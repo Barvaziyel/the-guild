@@ -1,5 +1,5 @@
 import { addChronicle, addGuildLog } from './chronicle.ts';
-import { DAY_MS, SAVE_VERSION, STARTING_RESOURCES, STARTING_SURVIVORS } from './constants.ts';
+import { DAY_MS, NAME_MAX_LENGTH, SAVE_VERSION, STARTING_RESOURCES, STARTING_SURVIVORS } from './constants.ts';
 import { createItem } from './gear.ts';
 import { generateSurvivor, pickOrigin } from './generator.ts';
 import { initialLocations } from './locations.ts';
@@ -36,6 +36,45 @@ export function getSurvivor(state: GameState, id: string): Survivor {
   const s = state.survivors.find((x) => x.id === id);
   if (!s) throw new Error(`Unknown survivor: ${id}`);
   return s;
+}
+
+/** Trim a name the player typed and collapse inner whitespace. */
+function cleanName(name: string): string {
+  return name.trim().replace(/\s+/g, ' ');
+}
+
+/** Why a name can't be used, or undefined if it's fine. */
+export function nameProblem(name: string): string | undefined {
+  const clean = cleanName(name);
+  if (!clean) return "A name can't be empty.";
+  if (clean.length > NAME_MAX_LENGTH) return `Keep it to ${NAME_MAX_LENGTH} characters.`;
+  return undefined;
+}
+
+/**
+ * Give a survivor a new name. If they're out on a run, the copy of them that
+ * comes home gets it too, so the name survives completeRun. Old log lines and
+ * reports keep the name used at the time. Throws if a name is invalid.
+ */
+export function renameSurvivor(state: GameState, id: string, firstName: string, lastName: string): void {
+  const problem = nameProblem(firstName) ?? nameProblem(lastName);
+  if (problem) throw new Error(problem);
+  const first = cleanName(firstName);
+  const last = cleanName(lastName);
+  const copies = [getSurvivor(state, id), ...state.runs.flatMap((r) => r.result.crew.filter((c) => c.id === id))];
+  for (const s of copies) {
+    // The generated backstory has the first name written into it.
+    s.backstory = replaceWord(s.backstory, s.firstName, first);
+    s.firstName = first;
+    s.lastName = last;
+  }
+}
+
+/** Replace whole-word occurrences of `from` (including "from's"). */
+function replaceWord(text: string, from: string, to: string): string {
+  if (!from || from === to) return text;
+  const escaped = from.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return text.replace(new RegExp(`(?<![\\p{L}\\p{N}])${escaped}(?![\\p{L}\\p{N}])`, 'gu'), () => to);
 }
 
 /** Add a survivor to the guild: relationships, Chronicle, guild log. */

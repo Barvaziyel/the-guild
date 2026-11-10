@@ -195,6 +195,11 @@ export const EXPLORE_GAIN: Record<'scavenge' | 'scout' | 'hunt', readonly [numbe
   hunt: [2, 4],
 };
 
+// ---------------------------------------------------------------- names
+
+/** Longest first or last name the player can give a survivor. */
+export const NAME_MAX_LENGTH = 20;
+
 // ---------------------------------------------------------------- new game
 
 export const STARTING_SURVIVORS = 4;

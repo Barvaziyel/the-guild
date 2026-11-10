@@ -91,10 +91,21 @@ export function findGearWithHook(s: Survivor, key: FlagGearHook): ItemInstance |
 }
 
 /**
+ * Gear can only change at the Depot. A crew that is out was simulated with the
+ * gear it left with, and comes home with exactly that (see completeRun), so
+ * swapping items in the meantime would duplicate or lose them.
+ */
+export function canChangeGear(s: Survivor): boolean {
+  return s.status === 'ready';
+}
+
+/**
  * Move an item from the guild stash onto a survivor. Anything already in that
- * slot goes back to the stash. Returns false if the item isn't in the stash.
+ * slot goes back to the stash. Returns false if the item isn't in the stash or
+ * the survivor isn't at the Depot.
  */
 export function equipFromStash(state: GameState, s: Survivor, uid: string): boolean {
+  if (!canChangeGear(s)) return false;
   const idx = state.stash.findIndex((i) => i.uid === uid);
   if (idx < 0) return false;
   const item = state.stash[idx]!;
@@ -109,8 +120,9 @@ export function equipFromStash(state: GameState, s: Survivor, uid: string): bool
   return true;
 }
 
-/** Move whatever is in a slot back to the stash. */
+/** Move whatever is in a slot back to the stash. Does nothing unless the survivor is at the Depot. */
 export function unequip(state: GameState, s: Survivor, slot: Slot): ItemInstance | undefined {
+  if (!canChangeGear(s)) return undefined;
   const item = s.equipment[slot];
   if (!item) return undefined;
   delete s.equipment[slot];
