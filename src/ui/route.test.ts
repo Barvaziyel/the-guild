@@ -5,6 +5,9 @@ import { parseRoute, routeHash, tabFor, type Route } from './route.ts';
 describe('routes', () => {
   test('round-trip through the hash', () => {
     const routes: Route[] = [
+      { screen: 'depot' },
+      { screen: 'building', id: 'garden' },
+      { screen: 'recruits' },
       { screen: 'roster' },
       { screen: 'memorial' },
       { screen: 'settings' },
@@ -21,9 +24,10 @@ describe('routes', () => {
   });
 
   test('anything unknown or incomplete lands somewhere sensible', () => {
-    assert.deepEqual(parseRoute(''), { screen: 'roster' });
-    assert.deepEqual(parseRoute('#/nowhere'), { screen: 'roster' });
-    assert.deepEqual(parseRoute('#/s/'), { screen: 'roster' });
+    assert.deepEqual(parseRoute(''), { screen: 'depot' });
+    assert.deepEqual(parseRoute('#/nowhere'), { screen: 'depot' });
+    assert.deepEqual(parseRoute('#/s/'), { screen: 'depot' });
+    assert.deepEqual(parseRoute('#/b'), { screen: 'depot' });
     assert.deepEqual(parseRoute('#/s/s1/nonsense'), { screen: 'survivor', id: 's1', tab: 'stats' });
     assert.deepEqual(parseRoute('#/plan'), { screen: 'reach' });
     assert.deepEqual(parseRoute('#/run'), { screen: 'runs' });
@@ -35,5 +39,7 @@ describe('routes', () => {
     assert.equal(tabFor({ screen: 'plan', locationId: 'x' }), 'reach');
     assert.equal(tabFor({ screen: 'run', id: 'r1' }), 'runs');
     assert.equal(tabFor({ screen: 'settings' }), 'settings');
+    assert.equal(tabFor({ screen: 'building', id: 'garden' }), 'depot');
+    assert.equal(tabFor({ screen: 'recruits' }), 'depot');
   });
 });

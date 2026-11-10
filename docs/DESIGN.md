@@ -1,6 +1,6 @@
 # The Guild — Game Design Document
 
-> Version 0.6 · 2026-11-10 · Living document. Numbers are starting points for tuning, not promises.
+> Version 0.7 · 2026-11-10 · Living document. Numbers are starting points for tuning, not promises.
 
 ## 1. Pitch
 
@@ -85,7 +85,7 @@ Survivors therefore specialize according to the jobs you give them. Nobody spend
 | **Earned** | From experience (§4.5) | Veteran, Rad-Hardened, Survivor, Dead-Eye, Scav, Steady, Tough as Nails, Hardened, Vengeful (vs one enemy type), Beast-Friend |
 | **Stress** | From hitting a breaking point (§6) | Jittery, Paranoid, Drinker, Haunted, *or* Unshakable |
 | **Scar** | Permanent injuries | Lost Eye, Bad Leg, Burn Scars, Missing Fingers, Scarred Face |
-| **Condition** | Temporary | Wounded, Rad Sickness, Grieving, Exhausted |
+| **Condition** | Temporary | Wounded, Rad Sickness, Grieving, Exhausted, Feverish |
 
 Each trait is a piece of data. It can carry:
 
@@ -333,52 +333,98 @@ Every survivor has four slots: **Weapon · Armor · Tool · Trinket**
 
 - **Gear only changes at the Depot.** A crew that is out was simulated with the gear it left with, and comes home with exactly that.
 - **Cherished trinkets.** After 5 runs with the same trinket, it becomes *Cherished* and its effect doubles. Losing it gives +30 stress and a Chronicle entry.
-- **Workshop.** Crafts and upgrades gear using Scrap and Tech.
+- **Workshop.** Makes gear and improves weapons and armor using Scrap and Tech (§9.4).
 - **Named gear** (phase 2). A weapon with 10 kills earns a name and a history.
 
 ## 9. The Depot
 
 **Resources:** Scrap · Rations · Meds · Ammo · Tech
 
-| Building | Effect (levels 1/2/3) | Workers use |
-|---|---|---|
-| Bunks | Population cap of 4 / 8 / 12 | — |
-| Garden | Produces rations each day | Wits |
-| Infirmary | Faster healing; cures rad sickness (uses meds) | Wits |
-| Workshop | Crafts and upgrades gear; makes ammo | Wits |
-| Firepit → Bar | Stress relief; relationships drift upward | Nerve |
-| Radio Tower | Reveals locations; more and better recruits | Wits |
-| Watchtower | Defends the Depot; early warning of raids | Aim |
-| Training Yard | Turns Depot days into practice | Any stat |
+The Depot plays one **Depot day** for every game day that passes (§11). Each day, for everyone at home (not out on a run):
 
-- **Workers.** Idle survivors are assigned to buildings, 2–3 per building. They gain slow practice in the building's stat, and their relationships drift with their co-workers.
-- **Depot events** are rolled each day:
-  - a wanderer arrives (a recruit offer)
-  - a trader caravan
-  - a raid on the Depot
-  - a fight between feuding survivors
-  - a celebration
-  - a sickness
-  - a stray dog
-- **Upkeep:** 1 ration per survivor per day. If rations run out, everyone gains +10 stress per day, but nobody starves to death.
+1. Conditions that have run their course wear off.
+2. **Food.** The Garden grows rations, and everyone eats 1 (Gluttons and Drinkers 2). If there isn't enough, they eat what there is and go hungry: +10 stress each instead of any rest. Nobody starves to death. The log notes when the food runs out and when it's back.
+3. **Work.** People at their posts work and get +1 practice a day in the building's stat. Serious wounds (anything that blocks runs) keep people in bed.
+4. **Care.** Everyone heals 15% of max HP a day, +10% per Infirmary level, and +2% per point of Wits among the Infirmary's medics. A staffed Infirmary also closes wounds sooner, and treats rad sickness and fever with meds, one patient per medic a day.
+5. **Rest.** Everyone sheds 5 stress a day, plus the Firepit's share, plus 2 with a Bonded friend at home. Optimists and Drinkers shed half as much again.
+6. **People.** Co-workers drift toward or away from each other by their trait affinity (a 50% chance each day). A Bar warms everyone a little.
+7. **Evolution.** Days at the Depot count toward evolution rules, such as Haunted → Hardened with a Bonded friend home.
+8. Something may happen (§9.3), and a new set of recruits answers the radio (§10).
+
+**Balance.** Monte Carlo tests (`depot/depot.test.ts`) check that a new guild left at home for 60 days never goes hungry and stays calm, and that a full Bunks of 8 is fed by a level 2 Garden with three gardeners.
+
+### 9.1 Buildings
+
+| Building | At the start | Level 1 | Level 2 | Level 3 | Workers use |
+|---|---|---|---|---|---|
+| Bunks | Level 1 | 4 beds | 8 beds (30 scrap) | 12 beds (60 scrap, 4 tech) | — |
+| Garden | Level 1 | Grows rations | ×2 (25 scrap) | ×3 (50 scrap, 4 tech) | Wits |
+| Firepit → Bar | Level 1 | −5 stress a day | Bar: −8, people warm to each other (30 scrap, 2 tech) | Bar and Stage: −12, warm faster (60 scrap, 6 tech) | Nerve |
+| Infirmary | — | 25 scrap, 2 tech | 45 scrap, 5 tech | 70 scrap, 10 tech | Wits |
+| Workshop | — | Basic gear, ammo (30 scrap) | Guns, armor, instruments, Prime upgrades (50 scrap, 5 tech) | Makes Solid gear (80 scrap, 12 tech) | Wits |
+| Radio Tower | — | +1 recruit, stats known (30 scrap, 5 tech) | +2, better recruits (50, 10) | +3, the best (80, 15) | Wits |
+| Watchtower | — | Raid defense, halves losses (25 scrap) | Stronger (45 scrap, 3 tech) | Strongest (70 scrap, 8 tech) | Aim |
+| Training Yard | — | 2 practice a day (20 scrap) | 3 (40 scrap, 3 tech) | 4 (60 scrap, 8 tech) | Any stat |
+
+Building is instant. Numbers live in `constants.ts`, and the building text in `content/buildings.ts`; a test checks that they agree.
+
+- **Garden:** rations per day = level × (2 + for each gardener, 0.5 + Wits × 0.25). Two gardeners with Wits 4 at level 1 grow 5, enough for a guild of 4 at home.
+- **Firepit:** each keeper adds 1 + Nerve × 0.25 to the relief. A Bar gives each pair at home a 25% chance a day to warm by 1 (50% at level 3).
+- **Workshop:** each worker turns 1 scrap into 1 + Wits × 0.25 ammo a day, until the Depot holds 60 ammo.
+- **Radio Tower:** a 3% chance per level each day, +0.5% per point of the operators' Wits, of hearing about an undiscovered place one road beyond a known one.
+- **Watchtower:** +2 per level to holding off raids, and +1 per lookout.
+
+### 9.2 Posts
+
+- Each building with work takes 2 workers at level 1 and 3 at levels 2–3. Posts are given from the building's screen or from a survivor's sheet. A survivor out on a run keeps their post and picks it up when back.
+- **Training Yard** workers each pick a stat (the weakest by default) and get 2/3/4 practice in it a day, instead of the usual +1.
+- **A new game** posts the two founders with the best Wits to the Garden and the one with the best Nerve to the Firepit, so the guild feeds itself from the start.
+
+### 9.3 Depot events
+
+At most one event a day (a 20% chance), weighted:
+
+| Event | What happens |
+|---|---|
+| A wanderer | Someone turns up at the gate and waits there 3 days (§10). |
+| A trader caravan | Offers a swap of supplies, or a Solid or Prime piece of gear for scrap (and tech for guns). Stays 2 days. |
+| A raid | d10 + the best Aim at home + 2 per Watchtower level + 1 per lookout vs 12. Held: the defenders get Aim practice and a little stress. Broken: raiders take 25% of the scrap, rations and ammo (half that with a Watchtower, never more than 30 of each), one defender is Wounded, and everyone gains +10 stress. |
+| A celebration | Costs a ration per two people. Everyone at home sheds 15 stress, and every pair warms by 3. Only when food is plentiful. |
+| A fever | Someone at home becomes Feverish (−1 Grit, −1 Wits, 2–4 days) unless the Infirmary treats it. |
+| A stray dog | Someone with a way with animals feeds it and sheds 10 stress; otherwise it moves on. |
+
+**Feuds at home:** each feuding pair at the Depot has a 20% chance a day to come to blows. The loser (on a Brawn roll) is Wounded, both gain stress, and the feud deepens. Nobody dies at the Depot. Leaving the guild over a feud is not built yet.
+
+### 9.4 Workshop
+
+- **Make:** everything but trinkets. Basic weapons, armor and tools need level 1; guns other than the Pipe Pistol and Crossbow, Riot Gear, the Hazmat Suit, Binoculars, the Multitool and the Geiger Counter need level 2. Recipes are in `content/workshop.ts`. A Medkit costs 4 scrap and 3 meds.
+- **Improve:** weapons and armor only, since quality doesn't change anything else. Rusty → Common: 4 scrap. Common → Solid: 10 scrap, 2 tech. Solid → Prime: 20 scrap, 6 tech, and a level 2 Workshop. Relics can't be made. The Workshop can improve what's in the stash and what anyone at home is carrying.
 
 ## 10. Recruitment
 
-- **Recruit board.** Shows 2–3 candidates and refreshes daily. A better Radio Tower brings more and better candidates.
-- **Candidate info.** Each candidate shows their origin, stats, visible traits and one **hidden** trait slot. Low Radio Tower levels show stats only as rough ranges.
-- **Rescue jobs** can bring in free recruits. They start with *Owes a Life* toward their rescuer.
-- **New game.** The guild starts with 4 generated survivors, 3 known locations, and level 1 Bunks, Garden and Firepit.
+- **Recruit board.** Each day, 2 + the Radio Tower's level answer the radio. They're there for that day only. Wanderers (§9.3) wait 3 days.
+- **Candidate info.** Each candidate shows their origin, age, backstory, visible traits, and a hint when they have a hidden one. Without a Radio Tower, their stats show as rough ranges (one either side). A Radio Tower at level 2 or 3 brings recruits with 1 or 2 extra stat points, still no higher than 7.
+- **Taking someone in** is free but needs a free bed in the Bunks. They join with relationships to everyone and a first Chronicle entry.
+- **Rescue jobs** can bring in free recruits. They start with *Owes a Life* toward their rescuer (not built yet).
+- **New game.** The guild starts with 4 generated survivors, 3 known locations, and level 1 Bunks, Garden and Firepit. With 4 beds, the first recruit needs better Bunks.
 
 ## 11. Time model
 
 - The game runs on real time and keeps going while the app is closed.
 - **1 game day = 1 real hour** (a tunable constant). For testing, Settings → Developer → *Developer shortcuts* adds a button to a crew's run that skips ahead to their return (the whole timeline moves, as if the time had passed).
-- Runs take 5–60 minutes for nearby locations and up to 3 hours for far ones.
-- **Catch-up.** When the app opens, the elapsed Depot days are simulated in a batch. The batch is capped at 7 days, so a long absence never spirals out of control.
+- Runs take 10 minutes for the nearest locations and up to 2.5 hours for far ones.
+- **Catch-up** (`advanceTime`). When the app opens, and at each new day while it's open, the days that passed are played in order. Crews due back before a day begins come home first, then the Depot has its day. At most **7 days** are played at once; older missed days are skipped, so a long absence never spirals out of control. The Depot screen sums up what the days brought ("Since you last looked").
 
 ## 12. Screens
 
-1. **Depot (home):** resource bar, buildings and their workers, active runs (countdown plus the latest beat), event inbox.
+1. **Depot (home):** resource bar, buildings and their workers, active runs (countdown plus the latest beat), event inbox. *Built (PR 7):*
+   - The first tab and the screen the game opens on.
+   - "Since you last looked": the days that passed, what the Garden grew and the guild ate, ammo made, health healed, and the news.
+   - A trader's offers, with Trade and Send them on.
+   - Crews out, each building with its live numbers and workers, who is at the gate, buildings still to build, and Depot news.
+   - **A building's screen:** what it does now, the next level and its cost, and its workers (post someone, take them off; Training Yard workers pick a stat). The Workshop adds Make and Improve.
+   - **At the gate:** the recruit board (§10).
+   - Survivor sheets have a post picker.
 2. **Roster:** survivor cards showing portrait, name, status, HP and stress bars, and top traits. *Built (PR 5).*
 3. **Survivor sheet:** portrait wearing their gear, stats with practice bars, traits (tap for an explanation and how it was gained), relationships, gear slots and Chronicle. Three tabs: *Stats and gear*, *Bonds*, *Chronicle*. If a survivor has a hidden trait, the sheet says something about them hasn't shown yet, without naming it. *Built (PR 5).*
 4. **Reach map:** locations with explored %, danger and radiation. Tap a location for details and to plan a run. *Built (PR 6):*
@@ -393,7 +439,7 @@ Every survivor has four slots: **Weapon · Armor · Tool · Trinket**
 7. **Memorial Wall:** faded portraits with the day and cause of death; tap one for their sheet and Chronicle. Opened from the bottom of the roster. *Built (PR 5).*
 8. **Settings:** mercy mode, notices when crews come back, portrait wobble, export and import save, load the backup copy, start a new guild, developer shortcuts and fast-forward (§11, §13). *Built (PR 5, 6).*
 
-**Navigation.** Tabs along the bottom: Roster, Reach, Runs, Settings. The Depot (PR 7) will become the first tab. Survivors who are out show where they are and when they're back, on the roster and on their sheet.
+**Navigation.** Tabs along the bottom: Depot, Roster, Reach, Runs, Settings. Survivors who are out show where they are and when they're back, on the roster and on their sheet.
 
 **Look.** The app is a depot workbench: steel-green surfaces, bone text, rust for actions. Names and numbers are set in Big Shoulders Stencil, like lettering on a freight car; everything else is Atkinson Hyperlegible Next. Portraits sit on top like pinned prints, and the Chronicle is the one page of the field journal itself (paper and ink). Both fonts are bundled (SIL Open Font License), so the APK works offline.
 
@@ -407,15 +453,15 @@ Every survivor has four slots: **Weapon · Armor · Tool · Trinket**
 - **`src/ui/`** uses React and Vite.
   - One store (`store.ts`) holds the game. `store.update(fn)` runs engine functions on a copy of the state, saves it and re-renders; if `fn` throws, nothing changes.
   - Screens are addressed by the URL hash (`#/roster`, `#/s/<id>/bonds`), so the phone's back button works.
-  - Logic that can be tested without a browser lives in plain `.ts` files (`store.ts`, `persist.ts`, `route.ts`, `view.ts`, `runs-view.ts`, `reach-map.ts`, `dev.ts`) with Node tests. Components are `.tsx`.
-  - Crews are brought home in one place (`App.tsx`, with `completeDueRuns`), when the clock passes a return time or the game is opened.
+  - Logic that can be tested without a browser lives in plain `.ts` files (`store.ts`, `persist.ts`, `route.ts`, `view.ts`, `runs-view.ts`, `depot-view.ts`, `reach-map.ts`, `dev.ts`) with Node tests. Components are `.tsx`.
+  - Time moves in one place: `App.tsx` calls the engine's `advanceTime` when the clock reaches a crew's return or a new Depot day, and on opening the game.
   - The engine is type-checked without DOM types (root `tsconfig.json`), the UI with them (`src/ui/tsconfig.json`).
 - **Persistence.** A versioned JSON save with migrations, stored in localStorage (Capacitor storage later).
   - Saves can be exported (copy or download) and imported (paste or file). Text that isn't a save, or a damaged one, is rejected with a reason.
   - Importing or starting over keeps the replaced save as a **backup copy**, which Settings can load again.
   - If the save on the device can't be read, the game shows it for copying and overwrites nothing until the player starts a new guild.
 - **Developer tools** (Settings → Developer):
-  - *Fast-forward* plays ten runs with random crews at danger up to 3, faking rest between runs, then slides the whole timeline back so the guild looks older and nothing is in the future.
+  - *Fast-forward* plays ten runs with random crews at danger up to 3, with three real Depot days after each (rations are topped up so it never stalls), then slides the whole timeline back so the guild looks older and nothing is in the future.
   - *Developer shortcuts* add a button to a crew's run that skips ahead to their return, the same way: the timeline moves, and the crew comes home through the normal return.
 - **Tests.** Node's built-in test runner (`node --test`, which runs `.ts` files natively). This includes Monte Carlo balance tests.
 - **Android.** Capacitor wraps the built web app. GitHub Actions builds the APK and publishes it to a GitHub Release, so it can be downloaded directly on the phone.
@@ -468,7 +514,7 @@ Every survivor has four slots: **Weapon · Armor · Tool · Trinket**
 | 4 | Event content pack: 40+ events with flavor text | **Fable** · **done** (54 events) |
 | 5 | UI shell: React/Vite, roster, survivor sheet, save/load | Opus · **done** |
 | 6 | Reach map, run planner, run report, notifications | Opus · **done** |
-| 7 | Depot: buildings, workers, resources, recruits, Depot events, time catch-up | Opus |
+| 7 | Depot: buildings, workers, resources, recruits, Depot events, time catch-up | Opus · **done** |
 | 8 | Android APK: Capacitor, Actions and a GitHub Release | Opus |
 
 **First playable = PRs 1–8.**

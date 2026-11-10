@@ -168,7 +168,7 @@ export function portraitLook(s: Survivor): PortraitLook {
       burns: has('burn_scars'),
       wounded: has('wounded'),
       badlyWounded: has('badly_wounded'),
-      sick: has('rad_sickness'),
+      sick: has('rad_sickness') || has('feverish'),
       haunted: has('haunted'),
       weary: has('grieving') || has('exhausted') || strained,
       strained,

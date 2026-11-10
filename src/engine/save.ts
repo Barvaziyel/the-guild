@@ -1,4 +1,5 @@
-import { SAVE_VERSION } from './constants.ts';
+import { DAY_MS, SAVE_VERSION } from './constants.ts';
+import { defaultPosts, initialBuildings } from './depot/buildings.ts';
 import { initialLocations } from './locations.ts';
 import type { GameState } from './types.ts';
 
@@ -24,6 +25,14 @@ const MIGRATIONS: Record<number, (save: Record<string, unknown>) => void> = {
   // v4: reports remember whether they've been read. Old ones count as read.
   3: (save) => {
     for (const report of (save.reports ?? []) as { read?: boolean }[]) report.read = true;
+  },
+  // v5: the Depot. Buildings as a new game has them, days counted from the last update, default posts.
+  4: (save) => {
+    save.buildings = initialBuildings();
+    const created = Number(save.createdAt);
+    const last = Number(save.lastUpdate ?? created);
+    save.depot = { lastDay: Math.floor(Math.max(0, last - created) / DAY_MS) + 1, recruits: [], offers: [] };
+    defaultPosts(save as unknown as GameState);
   },
 };
 
@@ -78,7 +87,7 @@ function shapeProblem(data: Record<string, unknown>): string | undefined {
   for (const key of ['survivors', 'memorial', 'stash', 'runs', 'reports', 'log'] as const) {
     if (!Array.isArray(data[key])) return `${key} is missing`;
   }
-  for (const key of ['rng', 'relationships', 'resources', 'locations', 'eventsSeen', 'settings'] as const) {
+  for (const key of ['rng', 'relationships', 'resources', 'locations', 'eventsSeen', 'settings', 'buildings', 'depot'] as const) {
     if (!isObject(data[key])) return `${key} is missing`;
   }
   for (const s of [...(data.survivors as unknown[]), ...(data.memorial as unknown[])]) {

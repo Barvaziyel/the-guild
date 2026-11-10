@@ -1916,6 +1916,318 @@ li:nth-child(even) .pinned {
   color: var(--bone-3);
 }
 
+/* ---------------------------------------------------------------- the Depot */
+
+.buildings {
+  display: grid;
+  gap: 0.625rem;
+}
+
+.building-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  width: 100%;
+  padding: 0.75rem 0.875rem;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--steel-2);
+  text-align: left;
+}
+
+.building-card.is-unbuilt {
+  background: none;
+  border-style: dashed;
+}
+
+.building-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.building-name {
+  font-family: var(--stencil);
+  font-size: var(--step-1);
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.building-level {
+  font-size: 0.875rem;
+  color: var(--bone-2);
+  white-space: nowrap;
+}
+
+.is-unbuilt .building-level {
+  color: var(--rust-hi);
+}
+
+.building-status {
+  font-size: 0.9375rem;
+  color: var(--bone-2);
+}
+
+.building-workers {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin-top: 0.25rem;
+}
+
+.building-workers .portrait {
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.building-slots {
+  margin-left: 0.25rem;
+  font-size: var(--step--1);
+  color: var(--bone-3);
+}
+
+.away-note {
+  margin: 0.5rem 1rem 0;
+  padding: 1rem;
+  background: var(--paper);
+  color: var(--ink);
+  border-left: 3px double #c98a78;
+  box-shadow: 0 3px 0 rgb(0 0 0 / 0.3);
+}
+
+.away-note p + p {
+  margin-top: 0.25rem;
+}
+
+.away-note .btn {
+  margin-top: 0.75rem;
+  color: var(--ink);
+  border-color: var(--ink-2);
+}
+
+.away-news {
+  display: grid;
+  gap: 0.25rem;
+  margin-top: 0.75rem;
+  padding-top: 0.625rem;
+  border-top: 1px solid rgb(43 36 32 / 0.2);
+  font-size: 0.9375rem;
+}
+
+.away-news .news-day {
+  color: var(--rust);
+}
+
+.offer + .offer {
+  margin-top: 0.875rem;
+  padding-top: 0.875rem;
+  border-top: 1px solid var(--line);
+}
+
+.out-list {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.link-row {
+  padding: 0.375rem 0;
+  min-height: 40px;
+  border: 0;
+  background: none;
+  color: var(--bone);
+  text-align: left;
+  text-decoration: underline;
+  text-decoration-color: var(--line);
+  text-underline-offset: 0.25em;
+}
+
+.news {
+  display: grid;
+  gap: 0.5rem;
+  font-size: 0.9375rem;
+}
+
+.news-day {
+  font-family: var(--stencil);
+  font-weight: 700;
+  color: var(--rust-hi);
+  margin-right: 0.25rem;
+}
+
+/* a building */
+
+.building-now {
+  margin-top: 0.375rem;
+  color: var(--sage);
+  font-weight: 700;
+}
+
+.next-level {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+}
+
+.next-level .btn,
+.panel > .btn-primary {
+  margin-top: 0.25rem;
+}
+
+.workers > li + li {
+  border-top: 1px solid var(--line);
+}
+
+.worker {
+  display: grid;
+  grid-template-columns: 48px 1fr auto;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.625rem 0;
+}
+
+.worker-face {
+  padding: 0;
+  border: 0;
+  background: none;
+  line-height: 0;
+}
+
+.worker-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.train-pick {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--bone-2);
+}
+
+.train-pick select,
+.post-field select {
+  min-height: 40px;
+  padding: 0.25rem 0.5rem;
+  background: var(--steel);
+  color: var(--bone);
+  border: 1.5px solid var(--bone-3);
+  border-radius: 4px;
+  font: inherit;
+}
+
+.pick-person {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.pick-person:disabled {
+  opacity: 0.5;
+}
+
+.pick-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.recipes > li + li {
+  border-top: 1px solid var(--line);
+}
+
+.recipe {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.625rem 0;
+}
+
+.recipe-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.recipe-cost {
+  font-size: 0.875rem;
+  color: var(--bone-2);
+}
+
+.holder {
+  font-weight: 400;
+  color: var(--bone-2);
+}
+
+.post-field {
+  margin-top: 1rem;
+}
+
+.post-field .select-field {
+  margin-top: 0;
+}
+
+/* the gate */
+
+.candidates {
+  display: grid;
+}
+
+.candidate-id {
+  display: grid;
+  grid-template-columns: 88px 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+
+.candidate-name {
+  font-family: var(--stencil);
+  font-size: var(--step-2);
+  font-weight: 800;
+  line-height: 1.05;
+}
+
+.candidate-wait {
+  font-size: 0.875rem;
+  color: var(--ochre);
+}
+
+.candidate-stats {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.375rem;
+  margin: 0.875rem 0 0.5rem;
+}
+
+.candidate-stats div {
+  padding: 0.375rem 0.25rem;
+  background: var(--steel-2);
+  border-radius: 4px;
+  text-align: center;
+}
+
+.candidate-stats dt {
+  font-size: 0.75rem;
+  color: var(--bone-2);
+}
+
+.candidate-stats dd {
+  font-family: var(--stencil);
+  font-size: var(--step-1);
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.candidate-traits {
+  margin-bottom: 0.75rem;
+  font-size: 0.9375rem;
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     transition: none !important;

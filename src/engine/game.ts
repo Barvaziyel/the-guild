@@ -1,5 +1,6 @@
 import { addChronicle, addGuildLog } from './chronicle.ts';
 import { DAY_MS, NAME_MAX_LENGTH, SAVE_VERSION, STARTING_RESOURCES, STARTING_SURVIVORS } from './constants.ts';
+import { defaultPosts, initialBuildings } from './depot/buildings.ts';
 import { createItem } from './gear.ts';
 import { generateSurvivor, pickOrigin } from './generator.ts';
 import { initialLocations } from './locations.ts';
@@ -102,6 +103,8 @@ export function newGame(opts: NewGameOptions): GameState {
     stash: [],
     resources: { ...STARTING_RESOURCES },
     locations: initialLocations(),
+    buildings: initialBuildings(),
+    depot: { lastDay: 1, recruits: [], offers: [] },
     runs: [],
     reports: [],
     eventsSeen: {},
@@ -121,6 +124,7 @@ export function newGame(opts: NewGameOptions): GameState {
     state.stash.push(createItem(state, 'crowbar', 'rusty'));
     state.stash.push(createItem(state, 'medkit', 'common'));
   });
+  defaultPosts(state);
 
   addGuildLog(state, 1, `${state.guildName} set up camp in the old rail depot.`, ['founding']);
   return state;

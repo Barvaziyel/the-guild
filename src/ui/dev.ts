@@ -1,19 +1,18 @@
 /**
- * Developer fast-forward: plays a guild through a batch of runs at once, so
- * the screens have people with history to show before the run planner exists.
+ * Developer tools: fast-forward a guild through a batch of runs, or skip ahead
+ * to a crew's return.
  *
- * It plays the runs forward from `now` and then slides the whole timeline back
- * by the time that took, as if the guild had been founded earlier. Day numbers
- * in Chronicles and logs stay consistent, and nothing ends up in the future.
- * Rest between runs is faked (as in scripts/career.ts) until the Depot arrives.
+ * Both play time forward from `now` and then slide the whole timeline back by
+ * the time that took, as if the guild had been founded earlier. Day numbers in
+ * Chronicles and logs stay consistent, and nothing ends up in the future.
+ * Depot days are played for real (eating, healing, work, events).
  */
 import {
   DAY_MS,
-  completeRun,
+  advanceTime,
+  dailyUpkeep,
   dayAt,
-  expireConditions,
   knownLocations,
-  maxHp,
   rationsNeeded,
   startRun,
   unavailableReason,
@@ -26,7 +25,7 @@ export interface FastForwardOptions {
   runs: number;
   /** Highest location danger the crews are sent to. */
   maxDanger: number;
-  /** Days of rest after each run. */
+  /** Days at the Depot after each run. */
   restDays: number;
 }
 
@@ -46,10 +45,19 @@ export function fastForward(state: GameState, now: number, options: Partial<Fast
   let played = 0;
   let deaths = 0;
 
+  /** Play time up to `to`. Reports from fast-forward count as read. */
+  const settle = (to: number): void => {
+    for (const report of advanceTime(state, to).reports) {
+      report.read = true;
+      deaths += report.summary.deaths.length;
+    }
+  };
+
+  settle(t);
   // Crews already out come home first.
-  for (const run of [...state.runs].sort((a, b) => a.returnAt - b.returnAt)) {
-    t = Math.max(t, run.returnAt);
-    deaths += completeRun(state, run.id, t).summary.deaths.length;
+  if (state.runs.length > 0) {
+    t = Math.max(...state.runs.map((r) => r.returnAt));
+    settle(t);
   }
 
   for (let i = 0; i < opts.runs; i++) {
@@ -68,29 +76,17 @@ export function fastForward(state: GameState, now: number, options: Partial<Fast
       // Fast-forward never stalls for food.
       state.resources.rations = Math.max(state.resources.rations, rationsNeeded(state, plan));
       const run = startRun(state, plan, t);
-      const report = completeRun(state, run.id, run.returnAt);
-      report.read = true;
       t = run.returnAt;
       played += 1;
-      deaths += report.summary.deaths.length;
     }
     t += opts.restDays * DAY_MS;
-    rest(state, t, opts.restDays);
+    state.resources.rations = Math.max(state.resources.rations, dailyUpkeep(state) * (opts.restDays + 3));
+    settle(t);
   }
 
   shiftTimeline(state, now - t);
   state.lastUpdate = now;
   return { runs: played, deaths, days: dayAt(state, now) - startDay };
-}
-
-/** Stand-in for Depot days: wounds close, conditions pass, nerves settle. */
-function rest(state: GameState, t: number, days: number): void {
-  const day = dayAt(state, t);
-  for (const s of state.survivors) {
-    expireConditions(s, day);
-    s.hp = maxHp(s);
-    s.stress = Math.max(0, s.stress - 5 * days);
-  }
 }
 
 /**
@@ -106,7 +102,7 @@ export function skipToReturn(state: GameState, now: number, runId?: string): num
   return skipped;
 }
 
-/** Move every timestamp in the save by `delta` ms. */
+/** Move every timestamp in the save by `delta` ms. Day numbers stay as they are. */
 export function shiftTimeline(state: GameState, delta: number): void {
   state.createdAt += delta;
   state.lastUpdate += delta;

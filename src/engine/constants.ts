@@ -6,7 +6,7 @@
 import type { Quality, RelationshipLabel, Resources } from './types.ts';
 
 /** Save format version. Bump together with a migration in save.ts. */
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 5;
 
 // ---------------------------------------------------------------- time
 
@@ -194,6 +194,85 @@ export const EXPLORE_GAIN: Record<'scavenge' | 'scout' | 'hunt', readonly [numbe
   scout: [10, 15],
   hunt: [2, 4],
 };
+
+// ---------------------------------------------------------------- the Depot
+
+/** Opening the game plays at most this many missed Depot days; older ones are skipped. */
+export const MAX_CATCHUP_DAYS = 7;
+/** Entries kept in the guild log. */
+export const MAX_LOG = 300;
+
+/** Bunks: beds by level (index = level). */
+export const BUNKS_CAP = [0, 4, 8, 12] as const;
+/** Workers a building takes by level. */
+export const WORKER_SLOTS = [0, 2, 3, 3] as const;
+export const MAX_BUILDING_LEVEL = 3;
+
+/** Rations a survivor at the Depot eats per day (Gluttons eat more). */
+export const UPKEEP_RATIONS = 1;
+/** Stress per hungry day, instead of any relief. */
+export const HUNGER_STRESS = 10;
+
+/** Garden rations per day = level * (GARDEN_BASE + sum over gardeners of (GARDEN_PER_WORKER + Wits * GARDEN_PER_WITS)). */
+export const GARDEN_BASE = 2;
+export const GARDEN_PER_WORKER = 0.5;
+export const GARDEN_PER_WITS = 0.25;
+
+/** Stress shed per day at the Depot, before Firepit and traits. */
+export const REST_RELIEF = 5;
+/** Extra stress shed per day by Firepit level. */
+export const FIREPIT_RELIEF = [0, 5, 8, 12] as const;
+/** Each Firepit keeper adds this plus Nerve * FIREPIT_PER_NERVE. */
+export const FIREPIT_PER_KEEPER = 1;
+export const FIREPIT_PER_NERVE = 0.25;
+/** Bar levels: daily chance that each pair at the Depot warms by 1. */
+export const BAR_DRIFT_CHANCE = [0, 0, 0.25, 0.5] as const;
+/** Extra stress shed per day with a Bonded friend at the Depot. */
+export const BONDED_RELIEF = 2;
+
+/** HP healed per day, as a share of max HP: base, per Infirmary level, per medic Wits point. */
+export const HEAL_BASE = 0.15;
+export const HEAL_PER_INFIRMARY = 0.1;
+export const HEAL_PER_MEDIC_WITS = 0.02;
+/** Daily chance, by Infirmary level, that a staffed Infirmary closes a wound a day early. */
+export const INFIRMARY_SPEEDUP = [0, 0.25, 0.5, 0.75] as const;
+
+/** Practice per day for working a post. */
+export const WORK_PRACTICE = 1;
+/** Practice per day at the Training Yard, by level. */
+export const TRAINING_PRACTICE = [0, 2, 3, 4] as const;
+/** Daily chance that co-workers' relationship drifts by their affinity. */
+export const COWORKER_DRIFT_CHANCE = 0.5;
+
+/** Workshop: each worker turns 1 scrap into AMMO_PER_WORKER + Wits * AMMO_PER_WITS ammo a day... */
+export const AMMO_PER_WORKER = 1;
+export const AMMO_PER_WITS = 0.25;
+/** ...until the Depot holds this much ammo. */
+export const AMMO_STOCK_CAP = 60;
+
+/** Radio Tower: daily chance per level to hear of an undiscovered place, plus per operator Wits point. */
+export const RADIO_REVEAL_PER_LEVEL = 0.03;
+export const RADIO_REVEAL_PER_WITS = 0.005;
+/** Recruits at the gate each day: base plus Radio Tower level. */
+export const RECRUITS_BASE = 2;
+/** Extra stat points for recruits, by Radio Tower level ("better recruits"). */
+export const RECRUIT_BONUS_POINTS = [0, 0, 1, 2] as const;
+/** Days a wanderer waits at the gate. */
+export const WANDERER_DAYS = 3;
+/** Days a trader caravan waits. */
+export const TRADE_DAYS = 2;
+
+/** Chance per day that something happens at the Depot (one event at most). */
+export const DEPOT_EVENT_CHANCE = 0.2;
+/** Daily chance that each feuding pair at the Depot comes to blows. */
+export const FEUD_FIGHT_CHANCE = 0.2;
+/** Raids: d10 + best Aim at the Depot + Watchtower bonus vs this. */
+export const RAID_DC = 12;
+export const WATCHTOWER_DEFENSE = 2;
+/** Share of scrap, rations and ammo raiders take; halved with a Watchtower... */
+export const RAID_LOSS = 0.25;
+/** ...but no more of each than they can carry. */
+export const RAID_MAX_TAKE = 30;
 
 // ---------------------------------------------------------------- names
 

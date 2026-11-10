@@ -1,8 +1,9 @@
 /** React glue: the game store, preferences, the clock and hash navigation. */
 import { createContext, useContext, useEffect, useState, useSyncExternalStore } from 'react';
+import type { GameState } from '../engine/index.ts';
 import type { Notifier } from './notify.ts';
 import type { Prefs, PrefsStore } from './prefs.ts';
-import { parseRoute, routeHash, type Route } from './route.ts';
+import { DEFAULT_ROUTE, parseRoute, routeHash, type Route } from './route.ts';
 import type { GameStore, Snapshot } from './store.ts';
 
 export interface AppServices {
@@ -27,6 +28,29 @@ export function useSnapshot(): Snapshot {
 export function usePrefs(): Prefs {
   const { prefs } = useServices();
   return useSyncExternalStore(prefs.subscribe, prefs.get);
+}
+
+/**
+ * Run a game action through the store and keep its error message (the engine
+ * throws readable ones) for the screen to show. Returns whether it worked.
+ */
+export function useAction(): { act: (fn: (state: GameState) => void) => boolean; error: string | null; clear: () => void } {
+  const { store } = useServices();
+  const [error, setError] = useState<string | null>(null);
+  return {
+    act: (fn) => {
+      try {
+        store.update(fn);
+        setError(null);
+        return true;
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err));
+        return false;
+      }
+    },
+    error,
+    clear: () => setError(null),
+  };
 }
 
 /**
@@ -71,7 +95,7 @@ function depth(): number {
 const scrollPositions = new Map<string, number>();
 
 export function rememberScroll(): void {
-  scrollPositions.set(window.location.hash || routeHash({ screen: 'roster' }), window.scrollY);
+  scrollPositions.set(window.location.hash || routeHash(DEFAULT_ROUTE), window.scrollY);
 }
 
 export function savedScroll(hash: string): number {

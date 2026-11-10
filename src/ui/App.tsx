@@ -1,12 +1,16 @@
 import { useEffect, useLayoutEffect, useState } from 'react';
-import { completeDueRuns, dayAt, dueRuns, getLocation, type GameState } from '../engine/index.ts';
+import { advanceTime, dayAt, dueRuns, getLocation, nextDayAt, type AdvanceResult, type DepotSummary, type GameState } from '../engine/index.ts';
+import { mergeSummaries } from './depot-view.ts';
 import { navigate, savedScroll, useHash, useNow, usePrefs, useRoute, useServices, useSnapshot } from './hooks.ts';
 import { tabFor, type Route, type TabScreen } from './route.ts';
 import { joinNames, noticesFor, reportFirstNames, unreadCount } from './runs-view.ts';
+import { Building } from './screens/Building.tsx';
+import { Depot } from './screens/Depot.tsx';
 import { LoadError } from './screens/LoadError.tsx';
 import { Memorial } from './screens/Memorial.tsx';
 import { Planner } from './screens/Planner.tsx';
 import { Reach } from './screens/Reach.tsx';
+import { Recruits } from './screens/Recruits.tsx';
 import { Roster } from './screens/Roster.tsx';
 import { Runs } from './screens/Runs.tsx';
 import { RunView } from './screens/RunView.tsx';
@@ -15,16 +19,17 @@ import { SurvivorSheet } from './screens/SurvivorSheet.tsx';
 import { resourceList } from './view.ts';
 
 /** Screens that have their own back bar instead of the guild header. */
-const DETAIL_SCREENS: Route['screen'][] = ['survivor', 'plan', 'run'];
+const DETAIL_SCREENS: Route['screen'][] = ['survivor', 'plan', 'run', 'building', 'recruits'];
 
 export function App() {
   const snap = useSnapshot();
   const route = useRoute();
   const hash = useHash();
   const state = snap.status === 'ready' ? snap.state : null;
-  const nextReturn = state && state.runs.length > 0 ? Math.min(...state.runs.map((r) => r.returnAt)) : undefined;
-  const now = useNow(30_000, nextReturn);
-  const returned = useReturns(state, now, route);
+  // Wake for the next crew home or the next Depot day, whichever comes first.
+  const wakeAt = state ? Math.min(nextDayAt(state, Date.now()), ...state.runs.map((r) => r.returnAt)) : undefined;
+  const now = useNow(30_000, wakeAt);
+  const time = useTime(state, now, route);
   useNotices(state);
 
   // Each screen opens at the top, or where it was left when coming back to it.
@@ -38,6 +43,15 @@ export function App() {
 
   let screen;
   switch (route.screen) {
+    case 'depot':
+      screen = <Depot state={s} now={now} away={time.away} onDismissAway={time.dismissAway} />;
+      break;
+    case 'building':
+      screen = <Building key={route.id} state={s} id={route.id} />;
+      break;
+    case 'recruits':
+      screen = <Recruits state={s} day={day} />;
+      break;
     case 'roster':
       screen = <Roster state={s} day={day} now={now} />;
       break;
@@ -73,32 +87,39 @@ export function App() {
         </p>
       )}
       <main className="screen">{screen}</main>
-      {returned.current && <ReturnToast state={s} reportId={returned.current} more={returned.more} onClose={returned.dismiss} />}
+      {time.current && <ReturnToast state={s} reportId={time.current} more={time.more} onClose={time.dismiss} />}
       <TabBar current={tabFor(route)} unread={unreadCount(s)} />
     </div>
   );
 }
 
 /**
- * Bring crews home as soon as they're due (also on opening the game), and
- * remember which reports arrived while the player was looking at something else.
+ * Let time pass (on opening the game, at each new Depot day and when a crew is
+ * due): play the Depot days and bring crews home. Remembers which reports
+ * arrived while the player was looking at something else, and what the Depot
+ * days brought, for the "while you were away" note.
  */
-function useReturns(state: GameState | null, now: number, route: Route) {
+function useTime(state: GameState | null, now: number, route: Route) {
   const { store } = useServices();
   const [pending, setPending] = useState<string[]>([]);
-  const due = state ? dueRuns(state, now).length : 0;
+  const [away, setAway] = useState<DepotSummary | null>(null);
+  const behind = state ? dueRuns(state, now).length > 0 || dayAt(state, now) > state.depot.lastDay : false;
 
   useEffect(() => {
-    if (due === 0) return;
-    let ids: string[] = [];
+    if (!behind) return;
+    const out: { result?: AdvanceResult } = {};
     store.update((s) => {
-      ids = completeDueRuns(s, Date.now()).map((r) => r.id);
+      out.result = advanceTime(s, Date.now());
     });
+    const { result } = out;
+    if (!result) return;
+    const days = result.depot;
+    if (days.days > 0) setAway((a) => (a ? mergeSummaries(a, days) : days));
     // Someone watching the run turn into a report doesn't need telling.
     const watching = route.screen === 'run' ? route.id : undefined;
-    const news = ids.filter((id) => id !== watching);
+    const news = result.reports.map((r) => r.id).filter((id) => id !== watching);
     if (news.length > 0) setPending((p) => [...p, ...news]);
-  }, [due, now, store, route]);
+  }, [behind, now, store, route]);
 
   // Reports opened some other way don't need a banner.
   const unread = pending.filter((id) => state?.reports.some((r) => r.id === id && !r.read));
@@ -107,6 +128,8 @@ function useReturns(state: GameState | null, now: number, route: Route) {
     current,
     more: Math.max(0, unread.length - 1),
     dismiss: () => setPending([]),
+    away,
+    dismissAway: () => setAway(null),
   };
 }
 
@@ -170,6 +193,7 @@ function TopBar({ state, day }: { state: GameState; day: number }) {
 }
 
 const TABS: { screen: TabScreen; label: string }[] = [
+  { screen: 'depot', label: 'Depot' },
   { screen: 'roster', label: 'Roster' },
   { screen: 'reach', label: 'Reach' },
   { screen: 'runs', label: 'Runs' },

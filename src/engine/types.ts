@@ -76,6 +76,8 @@ export interface TraitHooks {
   crowdStress?: number;
   /** Ignores retreat orders while the target enemy type is present. */
   ignoresRetreat?: boolean;
+  /** Has a way with animals: strays at the Depot come to them (Animal Lover, Beast-Friend). */
+  likesAnimals?: boolean;
   /** Situational check modifiers. */
   checkMods?: CheckMod[];
 }
@@ -257,6 +259,8 @@ export interface Survivor {
   joinedDay: number;
   diedDay?: number;
   causeOfDeath?: string;
+  /** Their job at the Depot, done on days they're home and fit. */
+  post?: Post;
 }
 
 // ---------------------------------------------------------------- relationships
@@ -401,6 +405,46 @@ export interface LocationState {
   runs: number;
 }
 
+// ---------------------------------------------------------------- the Depot
+
+export const BUILDING_IDS = ['bunks', 'garden', 'firepit', 'infirmary', 'workshop', 'radio_tower', 'watchtower', 'training_yard'] as const;
+export type BuildingId = (typeof BUILDING_IDS)[number];
+
+/** A survivor's job at the Depot. */
+export interface Post {
+  building: BuildingId;
+  /** Training Yard: the stat they practice. */
+  stat?: StatId;
+}
+
+/** Someone at the gate who could join. */
+export interface Candidate {
+  survivor: Survivor;
+  /** They move on at the start of this day. */
+  expiresDay: number;
+  /** Came on their own (a Depot event) rather than answering the radio. */
+  wanderer?: boolean;
+}
+
+/** A trader caravan's offer: the guild gives `give` and gets `get` (and the item, if any). */
+export interface TradeOffer {
+  id: string;
+  give: Partial<Resources>;
+  get: Partial<Resources>;
+  item?: ItemInstance;
+  /** The caravan leaves at the start of this day. */
+  expiresDay: number;
+}
+
+export interface DepotState {
+  /** The last game day whose Depot day has been played. */
+  lastDay: number;
+  recruits: Candidate[];
+  offers: TradeOffer[];
+  /** Ran out of rations on the last day played. */
+  hungry?: boolean;
+}
+
 // ---------------------------------------------------------------- guild
 
 export const RESOURCE_IDS = ['scrap', 'rations', 'meds', 'ammo', 'tech'] as const;
@@ -435,6 +479,9 @@ export interface GameState {
   resources: Resources;
   /** Keyed by location id. Use locationState() to read; new content may be missing. */
   locations: Record<string, LocationState>;
+  /** Level of each Depot building; 0 means not built. */
+  buildings: Record<BuildingId, number>;
+  depot: DepotState;
   /** Crews currently out. */
   runs: Run[];
   /** Finished runs, newest first, capped at MAX_REPORTS. */

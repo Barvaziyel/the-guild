@@ -1,22 +1,21 @@
 /**
  * Play a guild through many runs and print how its people change.
- * Resting between runs is faked here (the Depot arrives in a later PR).
+ * Between runs the guild spends three days at the Depot (eating, healing, working).
  *   npm run career                  # 40 runs, random seed
  *   npm run career -- <seed> <runs> <maxDanger>
  */
 import {
   DAY_MS,
   LOCATIONS,
+  advanceTime,
   STAT_IDS,
   completeRun,
   dayAt,
   effectiveStat,
-  expireConditions,
   getTrait,
   itemName,
   knownLocations,
   labelName,
-  maxHp,
   newGame,
   relationshipsOf,
   startRun,
@@ -62,12 +61,11 @@ for (let i = 1; i <= runs; i++) {
     }
     deaths += report.summary.deaths.length;
   }
-  // Rest: three days pass, wounds mend, nerves settle.
+  // Three days at the Depot: wounds mend, nerves settle, the Garden grows.
   now += 3 * DAY_MS;
-  for (const s of state.survivors) {
-    expireConditions(s, dayAt(state, now));
-    s.hp = maxHp(s);
-    s.stress = Math.max(0, s.stress - 15);
+  for (const n of advanceTime(state, now).depot.news) {
+    if (n.tags?.includes('run') || n.tags?.includes('recruit')) continue;
+    console.log(`    Depot, day ${n.day}: ${n.text}`);
   }
 }
 
