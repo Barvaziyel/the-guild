@@ -1,0 +1,13 @@
+node_modules/
+dist/
+coverage/
+*.log
+.DS_Store
+
+# Android / Capacitor build output
+android/app/build/
+android/.gradle/
+*.apk
+*.aab
+*.keystore
+*.jks

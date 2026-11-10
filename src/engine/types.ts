@@ -1,0 +1,313 @@
+/**
+ * Core data types for the game state. Everything here is plain JSON-safe data
+ * so the whole GameState can be saved with JSON.stringify.
+ */
+
+import type { RngState } from './rng.ts';
+
+// ---------------------------------------------------------------- stats
+
+export const STAT_IDS = ['grit', 'brawn', 'aim', 'wits', 'nerve'] as const;
+export type StatId = (typeof STAT_IDS)[number];
+export type Stats = Record<StatId, number>;
+
+// ---------------------------------------------------------------- traits
+
+export type TraitKind = 'personality' | 'earned' | 'stress' | 'scar' | 'condition';
+
+/** A situational modifier to checks, e.g. +2 Wits when dealing with tech. */
+export interface CheckMod {
+  stat?: StatId;
+  /** Free-form context tag the simulation matches on, e.g. 'tech', 'scavenge', 'enemy:scrapbot'. */
+  context?: string;
+  mod: number;
+}
+
+/**
+ * Behavior knobs that the simulation reads. All optional; absent means "no effect".
+ * Add new keys here (documented) rather than special-casing trait ids in code.
+ */
+export interface TraitHooks {
+  /** Chance per combat to flee when hurt or when an ally goes down. */
+  fleeChance?: number;
+  /** Never flees, even under retreat pressure. */
+  neverFlees?: boolean;
+  /** Relative weight for being targeted by enemies (1 = normal). */
+  attentionWeight?: number;
+  /** Bonus loot rolls multiplier added to 1 (0.25 = +25%). */
+  lootBonus?: number;
+  /** Chance per scavenge beat to secretly pocket an item. */
+  pocketChance?: number;
+  /** Failed checks this survivor may reroll per run. */
+  rerollFails?: number;
+  /** Successful checks that get rerolled (bad luck) per run. */
+  rerollSuccesses?: number;
+  /** Multiplier on stress gained (1.25 = +25%). */
+  stressGainMult?: number;
+  /** Multiplier on stress recovered at the Depot. */
+  stressReliefMult?: number;
+  /** Stress removed from every other crew member per beat. */
+  crewStressRelief?: number;
+  /** Will try to rescue downed allies (bigger effect for Bonded friends). */
+  rescuesAllies?: boolean;
+  /** Bonus to wound rolls of downed allies in the same crew. */
+  allyWoundBonus?: number;
+  /** Bonus to own wound rolls. */
+  woundRollBonus?: number;
+  /** Multiplier on radiation absorbed. */
+  radMult?: number;
+  /** Multiplier on relationship gains (0.5 for Loner). */
+  relGainMult?: number;
+  /** Chance per run to start an argument with a crewmate. */
+  argueChance?: number;
+  /** Rations eaten per day (default 1). */
+  rationUse?: number;
+  /** Chance per beat to trigger a discovery (Curious). */
+  discoveryBonus?: number;
+  /** Chance per beat to trigger a hazard. */
+  hazardBonus?: number;
+  /** Ambush detection bonus. */
+  ambushBonus?: number;
+  /** Run duration multiplier when in the crew. */
+  durationMult?: number;
+  /** Bonus when the survivor is alone on a run. */
+  soloBonus?: number;
+  /** Stress per beat when the crew has 3+ members. */
+  crowdStress?: number;
+  /** Ignores retreat orders while the target enemy type is present. */
+  ignoresRetreat?: boolean;
+  /** Situational check modifiers. */
+  checkMods?: CheckMod[];
+}
+
+export interface TraitDef {
+  id: string;
+  name: string;
+  kind: TraitKind;
+  /** Player-facing explanation of what the trait does. */
+  description: string;
+  /** Flat stat changes while the trait is held. */
+  statMods?: Partial<Stats>;
+  /** Mutually exclusive trait; gaining one replaces the other. */
+  opposite?: string;
+  /** General sociability, -2..+2. Added to every relationship affinity. */
+  sociability?: number;
+  /** Affinity with specific other traits, -2..+2. */
+  affinity?: Record<string, number>;
+  hooks?: TraitHooks;
+  /** Weight when rolling starting personality traits. 0 or absent = never at start. */
+  startWeight?: number;
+  /** For conditions: duration range in days. */
+  durationDays?: [number, number];
+  /** Trait needs a target, e.g. Vengeful needs an enemy type. */
+  needsTarget?: boolean;
+}
+
+export interface TraitInstance {
+  id: string;
+  /** Hidden traits work normally but are not shown until revealed. */
+  hidden?: boolean;
+  gainedDay: number;
+  /** Conditions expire at the start of this day. */
+  expiresDay?: number;
+  /** Why the trait was gained, for tooltips. */
+  source?: string;
+  /** Target for traits like Vengeful (an enemy type id). */
+  target?: string;
+}
+
+// ---------------------------------------------------------------- gear
+
+export const SLOTS = ['weapon', 'armor', 'tool', 'trinket'] as const;
+export type Slot = (typeof SLOTS)[number];
+
+export const QUALITIES = ['rusty', 'common', 'solid', 'prime', 'relic'] as const;
+export type Quality = (typeof QUALITIES)[number];
+
+export interface GearHooks {
+  /** Bonus to scavenge checks. */
+  scavengeBonus?: number;
+  /** Multiplier on radiation absorbed. */
+  radMult?: number;
+  /** Warns of radiation hazards (lets the crew avoid them). */
+  radWarning?: boolean;
+  /** Ambush detection and scouting bonus. */
+  ambushBonus?: number;
+  /** Consumed to automatically pass a death save. */
+  autoDeathSave?: boolean;
+  /** Bonus to finding stashes. */
+  stashBonus?: number;
+  /** Stress relief per beat for the holder. */
+  stressRelief?: number;
+  /** Stress relief per beat for the whole crew. */
+  crewStressRelief?: number;
+  /** Silent weapon: bonus when the crew is sneaking. */
+  silent?: boolean;
+  /** Penalty to sneaking (heavy armor). */
+  sneakPenalty?: number;
+  /** Close-range weapon (bonus in ambushes, penalty at range). */
+  closeRange?: boolean;
+  /** Free failed-check rerolls per run. */
+  rerollFails?: number;
+  checkMods?: CheckMod[];
+}
+
+export interface GearDef {
+  id: string;
+  name: string;
+  slot: Slot;
+  description: string;
+  /** Weapons only. */
+  weaponType?: 'melee' | 'ranged';
+  damage?: number;
+  /** Modifier to attack rolls. */
+  toHit?: number;
+  /** Ranged weapons that spend ammo. */
+  usesAmmo?: boolean;
+  /** Armor: damage soaked per hit and added to defense. */
+  armor?: number;
+  statMods?: Partial<Stats>;
+  hooks?: GearHooks;
+  /** Single-use items (Medkit) are removed after use. */
+  consumable?: boolean;
+  /** Relative rarity in loot tables (higher = more common). */
+  lootWeight: number;
+}
+
+export interface ItemInstance {
+  uid: string;
+  defId: string;
+  quality: Quality;
+  /** Custom name (named gear, phase 2). */
+  name?: string;
+  kills?: number;
+  /** Consecutive runs carried by the same survivor (trinket attachment). */
+  runsWithHolder?: number;
+  /** Trinkets: survivor id this item became Cherished by. */
+  cherishedBy?: string;
+}
+
+export type Equipment = Partial<Record<Slot, ItemInstance>>;
+
+// ---------------------------------------------------------------- survivors
+
+export type Pronouns = 'he' | 'she' | 'they';
+
+export interface Appearance {
+  /** Master seed for anything the portrait composer wants to vary. */
+  seed: number;
+  skinTone: number;
+  hairColor: number;
+  hairStyle: number;
+  faceShape: number;
+  eyes: number;
+  brows: number;
+  nose: number;
+  mouth: number;
+  facialHair: number;
+}
+
+export interface LifeCounters {
+  runs: number;
+  combats: number;
+  kills: number;
+  rangedKills: number;
+  meleeKills: number;
+  killsByEnemy: Record<string, number>;
+  timesDowned: number;
+  nearDeaths: number;
+  rads: number;
+  alliesLost: number;
+  alliesSaved: number;
+  scavenges: number;
+  daysAtDepot: number;
+}
+
+export interface ChronicleEntry {
+  day: number;
+  text: string;
+  tags?: string[];
+}
+
+export type SurvivorStatus = 'ready' | 'away' | 'dead' | 'left';
+
+export interface Survivor {
+  id: string;
+  firstName: string;
+  lastName: string;
+  nickname?: string;
+  pronouns: Pronouns;
+  age: number;
+  origin: string;
+  backstory: string;
+  appearance: Appearance;
+  /** Base stats (without trait/gear modifiers). */
+  stats: Stats;
+  /** Practice points toward the next increase of each stat. */
+  practice: Stats;
+  hp: number;
+  stress: number;
+  traits: TraitInstance[];
+  equipment: Equipment;
+  counters: LifeCounters;
+  chronicle: ChronicleEntry[];
+  status: SurvivorStatus;
+  joinedDay: number;
+  diedDay?: number;
+  causeOfDeath?: string;
+}
+
+// ---------------------------------------------------------------- relationships
+
+export type RelationshipLabel = 'feud' | 'rival' | 'neutral' | 'friend' | 'bonded';
+
+export type RelationshipFlag =
+  | { kind: 'owesLife'; debtor: string }
+  | { kind: 'mentor'; mentor: string }
+  | { kind: 'partners' };
+
+export interface Relationship {
+  /** Survivor ids, sorted so that a < b. */
+  a: string;
+  b: string;
+  score: number;
+  flags: RelationshipFlag[];
+}
+
+// ---------------------------------------------------------------- guild
+
+export const RESOURCE_IDS = ['scrap', 'rations', 'meds', 'ammo', 'tech'] as const;
+export type ResourceId = (typeof RESOURCE_IDS)[number];
+export type Resources = Record<ResourceId, number>;
+
+export interface GuildLogEntry {
+  day: number;
+  text: string;
+  tags?: string[];
+}
+
+export interface GameState {
+  /** Save format version; bump and add a migration in save.ts when the shape changes. */
+  version: number;
+  seed: string;
+  rng: RngState;
+  /** Epoch ms when the guild was founded. Day 1 starts here. */
+  createdAt: number;
+  /** Epoch ms of the last time the state was advanced. */
+  lastUpdate: number;
+  guildName: string;
+  /** Counter for deterministic ids (s1, s2, i1, ...). */
+  nextId: number;
+  /** Living members of the guild (any status except dead/left). */
+  survivors: Survivor[];
+  /** Survivors who died, kept for the Memorial Wall. */
+  memorial: Survivor[];
+  /** Keyed by pairKey(a, b). */
+  relationships: Record<string, Relationship>;
+  stash: ItemInstance[];
+  resources: Resources;
+  log: GuildLogEntry[];
+  settings: {
+    mercyMode: boolean;
+  };
+}

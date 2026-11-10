@@ -1,0 +1,20 @@
+{
+  "name": "the-guild",
+  "private": true,
+  "version": "0.1.0",
+  "description": "A post-apocalyptic scavenger-guild management game for Android.",
+  "type": "module",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "test": "node --test \"src/**/*.test.ts\"",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run typecheck && npm test",
+    "sample": "node scripts/sample.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.18.0",
+    "typescript": "^6.0.3"
+  }
+}
