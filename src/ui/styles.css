@@ -1,0 +1,1177 @@
+/*
+ * The Guild: a field journal on a depot workbench.
+ * Steel-green surfaces, bone text, rust for action. Survivors' names are
+ * stencilled like freight-car lettering; portraits sit on top like pinned prints.
+ */
+
+:root {
+  --steel: #24332f;
+  --steel-2: #2d3f3a;
+  --steel-3: #3a4e48;
+  --line: #475c55;
+  --bone: #efe6d2;
+  --bone-2: #c3bfae;
+  --bone-3: #9aa79f;
+  --paper: #eadfc8;
+  --ink: #2b2420;
+  --ink-2: #5e5046;
+  --rust: #a64d27;
+  --rust-hi: #df9065;
+  --sage: #a3c299;
+  --ochre: #d8b66c;
+  --blood: #b2453a;
+  --blood-hi: #ec8f80;
+  --teal: #86aea4;
+
+  --stencil: 'Big Shoulders Stencil Variable', 'Arial Narrow', sans-serif;
+  --text: 'Atkinson Hyperlegible Next', system-ui, sans-serif;
+
+  --step--1: 0.8125rem;
+  --step-0: 1rem;
+  --step-1: 1.25rem;
+  --step-2: 1.5625rem;
+  --step-3: 1.953rem;
+  --step-4: 2.441rem;
+
+  --tabbar-h: 3.5rem;
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  margin: 0;
+  background: var(--steel);
+  color: var(--bone);
+  font-family: var(--text);
+  font-size: var(--step-0);
+  line-height: 1.5;
+}
+
+h1,
+h2,
+h3,
+h4,
+p,
+ul,
+ol,
+dl,
+dd {
+  margin: 0;
+}
+
+ul,
+ol {
+  padding: 0;
+  list-style: none;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--rust-hi);
+  outline-offset: 2px;
+}
+
+.app {
+  max-width: 34rem;
+  margin: 0 auto;
+  min-height: 100dvh;
+  padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 1rem);
+}
+
+/* ---------------------------------------------------------------- top bar */
+
+.topbar {
+  padding: calc(env(safe-area-inset-top) + 0.875rem) 1rem 0.75rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.topbar-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.guild-name {
+  font-family: var(--stencil);
+  font-size: var(--step-3);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.01em;
+}
+
+.day {
+  font-family: var(--stencil);
+  font-size: var(--step-1);
+  font-weight: 700;
+  color: var(--rust-hi);
+  white-space: nowrap;
+}
+
+.resources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.125rem 1rem;
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.res-name {
+  color: var(--bone-2);
+}
+
+.res-amount {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.banner {
+  background: var(--ochre);
+  color: var(--ink);
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+}
+
+/* ---------------------------------------------------------------- shared */
+
+.screen-head {
+  padding: 1.25rem 1rem 0.5rem;
+}
+
+.screen-title {
+  font-family: var(--stencil);
+  font-size: var(--step-2);
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.screen-sub {
+  color: var(--bone-2);
+  font-size: 0.875rem;
+}
+
+.empty {
+  padding: 1rem;
+  color: var(--bone-2);
+  max-width: 60ch;
+}
+
+.panel .empty {
+  padding: 0;
+}
+
+.hint {
+  color: var(--bone-2);
+  font-style: italic;
+  font-size: 0.9375rem;
+  margin-top: 0.5rem;
+}
+
+.panel {
+  padding: 1.25rem 1rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.panel-title {
+  font-family: var(--stencil);
+  font-size: var(--step-1);
+  font-weight: 700;
+  line-height: 1.1;
+  margin-bottom: 0.75rem;
+}
+
+.panel-help {
+  color: var(--bone-2);
+  font-size: 0.9375rem;
+  margin-bottom: 0.75rem;
+  max-width: 60ch;
+}
+
+.status {
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.status-ready {
+  color: var(--sage);
+}
+
+.status-away {
+  color: var(--teal);
+}
+
+.status-hurt {
+  color: var(--blood-hi);
+}
+
+.status-strained {
+  color: var(--ochre);
+}
+
+.status-dead {
+  color: var(--bone-3);
+}
+
+/* Portraits are prints pinned to the board. */
+.portrait {
+  flex: none;
+  line-height: 0;
+}
+
+.portrait svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.pinned,
+.sheet-portrait {
+  box-shadow: 0 3px 0 rgb(0 0 0 / 0.28);
+  transform: rotate(-1.5deg);
+}
+
+li:nth-child(even) .pinned {
+  transform: rotate(1.25deg);
+}
+
+/* ---------------------------------------------------------------- meters */
+
+.vitals {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-top: 0.375rem;
+}
+
+.meter {
+  display: block;
+}
+
+.meter-text {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: var(--step--1);
+  line-height: 1.3;
+}
+
+.meter-label {
+  color: var(--bone-2);
+}
+
+.meter-reading {
+  font-variant-numeric: tabular-nums;
+}
+
+.meter-track {
+  position: relative;
+  display: block;
+  height: 6px;
+  margin-top: 0.25rem;
+  background: var(--steel-3);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.meter-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  display: block;
+  border-radius: 3px;
+  background: var(--bone-2);
+}
+
+.meter-mark {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  display: block;
+  background: var(--bone-3);
+}
+
+.meter-hp .meter-fill {
+  background: var(--sage);
+}
+
+.meter-hp.mid .meter-fill {
+  background: var(--ochre);
+}
+
+.meter-hp.low .meter-fill {
+  background: var(--blood-hi);
+}
+
+.meter-stress .meter-fill {
+  background: var(--rust-hi);
+}
+
+.meter-stress.high .meter-fill {
+  background: var(--blood-hi);
+}
+
+.meter-practice .meter-fill {
+  background: var(--teal);
+}
+
+/* ---------------------------------------------------------------- roster */
+
+.roster > li {
+  border-bottom: 1px solid var(--line);
+}
+
+.roster-row {
+  display: grid;
+  grid-template-columns: 84px 1fr;
+  gap: 1rem;
+  align-items: start;
+  width: 100%;
+  padding: 1rem;
+  border: 0;
+  background: none;
+  text-align: left;
+}
+
+.roster-row:active {
+  background: var(--steel-2);
+}
+
+.roster-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.roster-name {
+  font-family: var(--stencil);
+  font-size: var(--step-2);
+  font-weight: 700;
+  line-height: 1.05;
+}
+
+.roster-origin {
+  color: var(--bone-2);
+  font-size: 0.875rem;
+  margin-bottom: 0.125rem;
+}
+
+.roster-traits {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--bone-2);
+}
+
+.tone-away .portrait {
+  opacity: 0.75;
+}
+
+/* ---------------------------------------------------------------- survivor sheet */
+
+.sheet-nav {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: env(safe-area-inset-top) 0.5rem 0;
+  background: var(--steel);
+  border-bottom: 1px solid var(--line);
+}
+
+.back {
+  min-height: 44px;
+  padding: 0 0.5rem;
+  border: 0;
+  background: none;
+  color: var(--rust-hi);
+  font-weight: 700;
+}
+
+.back span {
+  font-size: var(--step-2);
+  line-height: 0;
+  vertical-align: -0.1em;
+  margin-right: 0.125rem;
+}
+
+.sheet-head {
+  padding: 1.25rem 1rem 1rem;
+}
+
+.sheet-id {
+  display: grid;
+  grid-template-columns: 148px 1fr;
+  gap: 1rem;
+  align-items: end;
+}
+
+.sheet-names {
+  min-width: 0;
+}
+
+.sheet-name {
+  font-family: var(--stencil);
+  line-height: 0.95;
+  overflow-wrap: anywhere;
+}
+
+.sheet-name .first {
+  display: block;
+  font-size: var(--step-4);
+  font-weight: 800;
+}
+
+.sheet-name .nick {
+  display: block;
+  font-size: var(--step-1);
+  font-weight: 600;
+  color: var(--rust-hi);
+}
+
+.sheet-name .last {
+  display: block;
+  font-size: var(--step-2);
+  font-weight: 600;
+  color: var(--bone-2);
+}
+
+.sheet-origin {
+  margin-top: 0.5rem;
+  font-size: 0.9375rem;
+}
+
+.sheet-names .rename-btn {
+  padding-left: 0;
+}
+
+.sheet-pronouns {
+  color: var(--bone-2);
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
+}
+
+.backstory {
+  margin-top: 1rem;
+  font-style: italic;
+  color: var(--bone-2);
+  max-width: 60ch;
+}
+
+.sheet-condition,
+.death {
+  margin-top: 1rem;
+}
+
+.death p {
+  font-weight: 700;
+}
+
+.death .death-days {
+  font-weight: 400;
+  color: var(--bone-2);
+}
+
+.rename {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding: 1rem;
+  background: var(--steel-2);
+  border-radius: 4px;
+}
+
+.rename label,
+.field {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.rename input,
+.field textarea,
+.copybox textarea {
+  display: block;
+  width: 100%;
+  margin-top: 0.25rem;
+  padding: 0.625rem 0.75rem;
+  background: var(--steel);
+  border: 1.5px solid var(--bone-3);
+  border-radius: 4px;
+  font-weight: 400;
+  font-size: var(--step-0);
+}
+
+.field + .field {
+  margin-top: 0.75rem;
+}
+
+.field input[type='file'] {
+  display: block;
+  margin-top: 0.375rem;
+  font-weight: 400;
+  max-width: 100%;
+}
+
+.sheet-tabs {
+  display: flex;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.sheet-tab {
+  flex: 1;
+  min-height: 48px;
+  padding: 0.5rem;
+  border: 0;
+  background: none;
+  color: var(--bone-2);
+  font-size: 0.9375rem;
+  font-weight: 700;
+}
+
+.sheet-tab[aria-selected='true'] {
+  color: var(--bone);
+  box-shadow: inset 0 -3px 0 var(--rust-hi);
+}
+
+/* stats */
+
+.stat {
+  display: grid;
+  grid-template-columns: 3rem 1fr;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.375rem 0;
+}
+
+.stat-value {
+  font-family: var(--stencil);
+  font-size: var(--step-4);
+  font-weight: 800;
+  line-height: 1;
+  text-align: center;
+}
+
+.stat-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.stat-name {
+  font-weight: 700;
+}
+
+.stat-note {
+  font-size: var(--step--1);
+  color: var(--bone-2);
+}
+
+.derived {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.derived div {
+  padding: 0.5rem 0.75rem;
+  background: var(--steel-2);
+  border-radius: 4px;
+}
+
+.derived dt {
+  font-size: var(--step--1);
+  color: var(--bone-2);
+}
+
+.derived dd {
+  font-family: var(--stencil);
+  font-size: var(--step-1);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+/* traits: stamped tags, coloured by where they came from */
+
+.trait-group + .trait-group {
+  margin-top: 0.875rem;
+}
+
+.trait-kind {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--bone-2);
+  margin-bottom: 0.375rem;
+}
+
+.traits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.traits li:has(details[open]) {
+  flex-basis: 100%;
+}
+
+.trait {
+  --tag: var(--bone-3);
+  border: 1.5px solid var(--tag);
+  border-radius: 3px;
+}
+
+.kind-earned .trait {
+  --tag: var(--sage);
+}
+
+.kind-scar .trait {
+  --tag: var(--blood-hi);
+}
+
+.kind-stress .trait {
+  --tag: var(--ochre);
+}
+
+.kind-condition .trait {
+  --tag: var(--rust-hi);
+  border-style: dashed;
+}
+
+.trait summary {
+  list-style: none;
+  padding: 0.375rem 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  min-height: 36px;
+}
+
+.trait summary::-webkit-details-marker {
+  display: none;
+}
+
+.trait[open] {
+  background: var(--steel-2);
+}
+
+.trait[open] summary {
+  color: var(--tag);
+}
+
+.trait p {
+  padding: 0 0.75rem;
+  font-size: 0.9375rem;
+  max-width: 60ch;
+}
+
+.trait p:last-child {
+  padding-bottom: 0.75rem;
+}
+
+.trait .trait-gained {
+  margin-top: 0.375rem;
+  font-size: var(--step--1);
+  color: var(--bone-2);
+}
+
+/* gear */
+
+.gear-slot {
+  padding: 0.75rem 0;
+  border-top: 1px solid var(--line);
+}
+
+.gear-slot:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.gear-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.gear-item {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.slot-name {
+  font-size: var(--step--1);
+  color: var(--bone-2);
+}
+
+.item-name {
+  font-weight: 700;
+}
+
+.item-stats {
+  font-size: 0.875rem;
+  color: var(--rust-hi);
+}
+
+.item-desc {
+  font-size: 0.875rem;
+  color: var(--bone-2);
+  max-width: 50ch;
+}
+
+.item-empty {
+  color: var(--bone-3);
+  font-style: italic;
+}
+
+.cherished {
+  color: var(--ochre);
+  font-size: 0.875rem;
+}
+
+.picker {
+  margin-top: 0.75rem;
+  padding: 0.25rem 0.75rem 0.75rem;
+  background: var(--steel-2);
+  border-radius: 4px;
+}
+
+.picker ul {
+  margin-bottom: 0.5rem;
+}
+
+.pick {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: 0.625rem 0;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: none;
+  text-align: left;
+}
+
+.stash-count {
+  margin-top: 0.75rem;
+  font-size: 0.875rem;
+  color: var(--bone-2);
+}
+
+/* bonds */
+
+.bonds > li + li {
+  border-top: 1px solid var(--line);
+}
+
+.bond {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  gap: 0.875rem;
+  align-items: center;
+  width: 100%;
+  padding: 0.75rem 0;
+  border: 0;
+  background: none;
+  text-align: left;
+}
+
+.bond-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.bond-name {
+  font-weight: 700;
+}
+
+.bond-label {
+  font-size: 0.875rem;
+  color: var(--bone-2);
+}
+
+.label-bonded .bond-label,
+.label-friend .bond-label {
+  color: var(--sage);
+}
+
+.label-rival .bond-label {
+  color: var(--ochre);
+}
+
+.label-feud .bond-label {
+  color: var(--blood-hi);
+}
+
+.bond-track {
+  position: relative;
+  display: block;
+  height: 6px;
+  margin: 0.375rem 0 0.125rem;
+  background: var(--steel-3);
+  border-radius: 3px;
+}
+
+.bond-fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: block;
+}
+
+.bond-fill.warm {
+  background: var(--sage);
+  border-radius: 0 3px 3px 0;
+}
+
+.bond-fill.cold {
+  background: var(--blood-hi);
+  border-radius: 3px 0 0 3px;
+}
+
+.bond-mid {
+  position: absolute;
+  left: calc(50% - 1px);
+  top: -2px;
+  bottom: -2px;
+  width: 2px;
+  display: block;
+  background: var(--bone-3);
+}
+
+.bond-tie {
+  font-size: 0.875rem;
+  font-style: italic;
+  color: var(--rust-hi);
+}
+
+/* chronicle: the one page of the journal itself */
+
+.journal {
+  margin: 1.25rem 1rem;
+  padding: 1.25rem 1.25rem 1.5rem 1.5rem;
+  background: var(--paper);
+  color: var(--ink);
+  border-left: 3px double #c98a78;
+  box-shadow: 0 3px 0 rgb(0 0 0 / 0.3);
+}
+
+.journal-title {
+  font-family: var(--stencil);
+  font-size: var(--step-2);
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.journal-counts {
+  margin-top: 0.25rem;
+  font-style: italic;
+  color: var(--ink-2);
+  font-size: 0.9375rem;
+}
+
+.journal-days {
+  margin-top: 1rem;
+}
+
+.journal-day + .journal-day {
+  margin-top: 0.875rem;
+}
+
+.journal-date {
+  font-family: var(--stencil);
+  font-size: var(--step-1);
+  font-weight: 700;
+  color: var(--rust);
+  line-height: 1.2;
+}
+
+.journal-day ul {
+  line-height: 1.55;
+}
+
+.journal-day li + li {
+  margin-top: 0.25rem;
+}
+
+/* ---------------------------------------------------------------- memorial */
+
+.wall {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+  gap: 0.75rem;
+  padding: 0.5rem 1rem 1rem;
+}
+
+.plaque {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.125rem;
+  width: 100%;
+  height: 100%;
+  padding: 1rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--steel-2);
+  text-align: center;
+}
+
+.plaque .portrait {
+  margin-bottom: 0.5rem;
+}
+
+.plaque-name {
+  font-family: var(--stencil);
+  font-size: var(--step-1);
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.plaque-line {
+  font-size: var(--step--1);
+  color: var(--bone-2);
+}
+
+/* ---------------------------------------------------------------- buttons and forms */
+
+.btn {
+  min-height: 44px;
+  padding: 0.5rem 1rem;
+  border: 1.5px solid var(--bone-3);
+  border-radius: 4px;
+  background: transparent;
+  font-weight: 700;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.btn-primary {
+  background: var(--rust);
+  border-color: var(--rust);
+  color: var(--bone);
+}
+
+.btn-danger {
+  border-color: var(--blood-hi);
+  color: var(--blood-hi);
+}
+
+.confirm .btn-danger {
+  background: var(--blood);
+  border-color: var(--blood);
+  color: var(--bone);
+}
+
+.btn-quiet {
+  border-color: transparent;
+  color: var(--bone-2);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.btn-small {
+  min-height: 36px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.875rem;
+}
+
+.btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.confirm {
+  margin-top: 0.75rem;
+  padding: 0.875rem 1rem;
+  border-left: 3px solid var(--ochre);
+  background: var(--steel-2);
+}
+
+.confirm-warning {
+  font-size: 0.9375rem;
+  max-width: 60ch;
+}
+
+.confirm .btn-row {
+  margin-top: 0.5rem;
+}
+
+.field-error {
+  color: var(--blood-hi);
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+}
+
+.ok-note {
+  color: var(--sage);
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+}
+
+/* ---------------------------------------------------------------- settings */
+
+.toggle {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.75rem 0;
+  cursor: pointer;
+}
+
+.toggle + .toggle {
+  border-top: 1px solid var(--line);
+}
+
+.toggle-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.toggle-label {
+  font-weight: 700;
+}
+
+.toggle-help {
+  font-size: 0.875rem;
+  color: var(--bone-2);
+  max-width: 50ch;
+}
+
+.toggle input {
+  appearance: none;
+  position: relative;
+  width: 3rem;
+  height: 1.75rem;
+  margin: 0;
+  border: 1.5px solid var(--bone-3);
+  border-radius: 1rem;
+  background: var(--steel-3);
+  cursor: pointer;
+}
+
+.toggle input::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: calc(1.75rem - 7px);
+  height: calc(1.75rem - 7px);
+  border-radius: 50%;
+  background: var(--bone-2);
+  transition: transform 0.15s ease-out;
+}
+
+.toggle input:checked {
+  background: var(--rust);
+  border-color: var(--rust);
+}
+
+.toggle input:checked::before {
+  background: var(--bone);
+  transform: translateX(1.25rem);
+}
+
+.setting-block {
+  margin-top: 1rem;
+}
+
+.setting-title {
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.copybox {
+  margin-bottom: 0.25rem;
+}
+
+.copybox textarea {
+  font-family: ui-monospace, 'Cascadia Mono', 'Roboto Mono', monospace;
+  font-size: 0.75rem;
+  resize: vertical;
+}
+
+.about p {
+  font-size: 0.875rem;
+  color: var(--bone-2);
+}
+
+.about p + p {
+  margin-top: 0.375rem;
+}
+
+/* ---------------------------------------------------------------- unreadable save */
+
+.load-error {
+  display: grid;
+  justify-items: start;
+  gap: 1rem;
+  max-width: 34rem;
+  margin: 0 auto;
+  padding: calc(env(safe-area-inset-top) + 1.5rem) 1rem 2rem;
+}
+
+.load-error .copybox {
+  justify-self: stretch;
+}
+
+/* ---------------------------------------------------------------- tab bar */
+
+.tabbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3;
+  display: flex;
+  max-width: 34rem;
+  margin: 0 auto;
+  padding-bottom: env(safe-area-inset-bottom);
+  background: var(--steel-2);
+  border-top: 1px solid var(--line);
+}
+
+.tab {
+  flex: 1;
+  min-height: var(--tabbar-h);
+  border: 0;
+  background: none;
+  color: var(--bone-2);
+  font-size: 0.9375rem;
+  font-weight: 700;
+}
+
+.tab[aria-current='page'] {
+  color: var(--bone);
+  box-shadow: inset 0 3px 0 var(--rust-hi);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}

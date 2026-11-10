@@ -1,6 +1,6 @@
 # The Guild — Game Design Document
 
-> Version 0.4 · 2026-11-10 · Living document. Numbers are starting points for tuning, not promises.
+> Version 0.5 · 2026-11-10 · Living document. Numbers are starting points for tuning, not promises.
 
 ## 1. Pitch
 
@@ -31,7 +31,7 @@ Inspirations: Fallout Shelter (individual characters, gear, base rooms), Civ 5 (
 
 | Field | Notes |
 |---|---|
-| Name, pronouns | Generated; player can rename |
+| Name, pronouns | Generated; player can rename. The backstory follows the new name; old log lines keep the name used at the time |
 | Nickname | Earned through feats (phase 2), e.g. *Dex "Two-Shot" Arlo* |
 | Origin | Bunker-born, Caravan Kid, City Rat, Farmhand, Ex-Raider, Old Medic, Scrapper. Tilts stats, may grant a trait |
 | Backstory | One generated line |
@@ -328,6 +328,7 @@ Every survivor has four slots: **Weapon · Armor · Tool · Trinket**
 | Tool | Crowbar (+2 scavenging), Geiger Counter (avoid radiation hazards), Medkit (automatic death save, used up), Binoculars (+2 vs ambush and to scouting), Lockpicks (find more stashes), Multitool (+2 tech) |
 | Trinket | Lucky Coin, Old Photo (−stress), Dog Tags (+1 Nerve), Music Box (−stress for the whole crew), Rabbit's Foot |
 
+- **Gear only changes at the Depot.** A crew that is out was simulated with the gear it left with, and comes home with exactly that.
 - **Cherished trinkets.** After 5 runs with the same trinket, it becomes *Cherished* and its effect doubles. Losing it gives +30 stress and a Chronicle entry.
 - **Workshop.** Crafts and upgrades gear using Scrap and Tech.
 - **Named gear** (phase 2). A weapon with 10 kills earns a name and a history.
@@ -375,13 +376,15 @@ Every survivor has four slots: **Weapon · Armor · Tool · Trinket**
 ## 12. Screens
 
 1. **Depot (home):** resource bar, buildings and their workers, active runs (countdown plus the latest beat), event inbox.
-2. **Roster:** survivor cards showing portrait, name, status, HP and stress bars, and top traits.
-3. **Survivor sheet:** portrait wearing their gear, stats with practice bars, traits (tap for an explanation and how it was gained), relationships, gear slots and Chronicle.
+2. **Roster:** survivor cards showing portrait, name, status, HP and stress bars, and top traits. *Built (PR 5).*
+3. **Survivor sheet:** portrait wearing their gear, stats with practice bars, traits (tap for an explanation and how it was gained), relationships, gear slots and Chronicle. Three tabs: *Stats and gear*, *Bonds*, *Chronicle*. If a survivor has a hidden trait, the sheet says something about them hasn't shown yet, without naming it. *Built (PR 5).*
 4. **Reach map:** locations with explored %, danger and radiation. Tap a location for details and to plan a run.
 5. **Run planner** (§7.2).
 6. **Run report:** a beat-by-beat log, then a summary of what changed. For example: *"Mara gained Rad-Hardened"*, *"Dex & Ava are now Friends"*, and the loot.
-7. **Memorial Wall.**
-8. **Settings:** time scale (developer), export and import save, mercy mode, reset.
+7. **Memorial Wall:** faded portraits with the day and cause of death; tap one for their sheet and Chronicle. *Built (PR 5).*
+8. **Settings:** mercy mode, portrait wobble, export and import save, load the backup copy, start a new guild, and a developer fast-forward (§13). Time scale is still to come. *Built (PR 5).*
+
+**Look.** The app is a depot workbench: steel-green surfaces, bone text, rust for actions. Names and numbers are set in Big Shoulders Stencil, like lettering on a freight car; everything else is Atkinson Hyperlegible Next. Portraits sit on top like pinned prints, and the Chronicle is the one page of the field journal itself (paper and ink). Both fonts are bundled (SIL Open Font License), so the APK works offline.
 
 ## 13. Tech architecture
 
@@ -390,8 +393,16 @@ Every survivor has four slots: **Weapon · Armor · Tool · Trinket**
   - No DOM, `Date.now()` or `Math.random()`. Time and randomness are passed in.
   - A seeded RNG (sfc32) whose state lives in the save.
   - All content is typed data in `src/engine/content/`.
-- **`src/ui/`** uses React and Vite. UI actions call engine functions, which return the new state.
-- **Persistence.** A versioned JSON save with migrations, stored in localStorage (Capacitor storage later). Saves can be exported and imported as text.
+- **`src/ui/`** uses React and Vite.
+  - One store (`store.ts`) holds the game. `store.update(fn)` runs engine functions on a copy of the state, saves it and re-renders; if `fn` throws, nothing changes.
+  - Screens are addressed by the URL hash (`#/roster`, `#/s/<id>/bonds`), so the phone's back button works.
+  - Logic that can be tested without a browser lives in plain `.ts` files (`store.ts`, `persist.ts`, `route.ts`, `view.ts`, `dev.ts`) with Node tests. Components are `.tsx`.
+  - The engine is type-checked without DOM types (root `tsconfig.json`), the UI with them (`src/ui/tsconfig.json`).
+- **Persistence.** A versioned JSON save with migrations, stored in localStorage (Capacitor storage later).
+  - Saves can be exported (copy or download) and imported (paste or file). Text that isn't a save, or a damaged one, is rejected with a reason.
+  - Importing or starting over keeps the replaced save as a **backup copy**, which Settings can load again.
+  - If the save on the device can't be read, the game shows it for copying and overwrites nothing until the player starts a new guild.
+- **Developer fast-forward** (Settings, until the run planner exists): plays ten runs with random crews at danger up to 3, faking rest between runs, then slides the whole timeline back so the guild looks older and nothing is in the future.
 - **Tests.** Node's built-in test runner (`node --test`, which runs `.ts` files natively). This includes Monte Carlo balance tests.
 - **Android.** Capacitor wraps the built web app. GitHub Actions builds the APK and publishes it to a GitHub Release, so it can be downloaded directly on the phone.
   - Signing uses **one fixed keystore**, stored in repo secrets. That way updates install over the old version and keep the save.
@@ -441,7 +452,7 @@ Every survivor has four slots: **Weapon · Armor · Tool · Trinket**
 | 2 | Expedition simulation: beats, checks, combat, downed/injury/death, loot, stress, practice growth, trait evolution, relationship events, Monte Carlo balance tests | **Fable** · **done** |
 | 3 | Portrait system: layered SVG parts and the composer | **Fable** · **done** |
 | 4 | Event content pack: 40+ events with flavor text | **Fable** · **done** (54 events) |
-| 5 | UI shell: React/Vite, roster, survivor sheet, save/load | Opus |
+| 5 | UI shell: React/Vite, roster, survivor sheet, save/load | Opus · **done** |
 | 6 | Reach map, run planner, run report, notifications | Opus |
 | 7 | Depot: buildings, workers, resources, recruits, Depot events, time catch-up | Opus |
 | 8 | Android APK: Capacitor, Actions and a GitHub Release | Opus |

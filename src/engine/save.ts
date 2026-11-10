@@ -27,9 +27,23 @@ export function serialize(state: GameState): string {
   return JSON.stringify(state);
 }
 
+/**
+ * Parse a save and upgrade it to the current version. Throws with a readable
+ * message if the text isn't a save, is from a newer game, or is damaged.
+ */
 export function deserialize(json: string): GameState {
-  const data = JSON.parse(json) as Record<string, unknown>;
-  let version = typeof data.version === 'number' ? data.version : 0;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(json);
+  } catch {
+    throw new Error('This is not a save: it is not valid JSON.');
+  }
+  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+    throw new Error('This is not a save.');
+  }
+  const data = parsed as Record<string, unknown>;
+  if (typeof data.version !== 'number') throw new Error('This is not a save.');
+  let version = data.version;
   if (version > SAVE_VERSION) {
     throw new Error(`Save is from a newer version (${version}) than this game (${SAVE_VERSION}).`);
   }
@@ -40,5 +54,36 @@ export function deserialize(json: string): GameState {
     version += 1;
     data.version = version;
   }
+  const problem = shapeProblem(data);
+  if (problem) throw new Error(`This save is damaged: ${problem}.`);
   return data as unknown as GameState;
+}
+
+/**
+ * A light structural check of a migrated save, so that pasting the wrong text
+ * fails at import instead of crashing the game later. Not a full validation.
+ */
+function shapeProblem(data: Record<string, unknown>): string | undefined {
+  const isObject = (v: unknown): boolean => typeof v === 'object' && v !== null && !Array.isArray(v);
+  for (const key of ['seed', 'guildName'] as const) {
+    if (typeof data[key] !== 'string') return `${key} is missing`;
+  }
+  for (const key of ['createdAt', 'lastUpdate', 'nextId'] as const) {
+    if (typeof data[key] !== 'number' || !Number.isFinite(data[key])) return `${key} is missing`;
+  }
+  for (const key of ['survivors', 'memorial', 'stash', 'runs', 'reports', 'log'] as const) {
+    if (!Array.isArray(data[key])) return `${key} is missing`;
+  }
+  for (const key of ['rng', 'relationships', 'resources', 'locations', 'eventsSeen', 'settings'] as const) {
+    if (!isObject(data[key])) return `${key} is missing`;
+  }
+  for (const s of [...(data.survivors as unknown[]), ...(data.memorial as unknown[])]) {
+    if (!isObject(s)) return 'a survivor is unreadable';
+    const sv = s as Record<string, unknown>;
+    if (typeof sv.id !== 'string' || typeof sv.firstName !== 'string') return 'a survivor has no id or name';
+    if (!isObject(sv.stats) || !Array.isArray(sv.traits) || !isObject(sv.equipment) || !Array.isArray(sv.chronicle)) {
+      return `${sv.firstName} is missing stats, traits, gear or a Chronicle`;
+    }
+  }
+  return undefined;
 }
