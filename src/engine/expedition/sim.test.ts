@@ -78,7 +78,8 @@ describe('simulateRun', () => {
         const capacity = result.crew.filter((s) => s.status !== 'dead').reduce((sum, s) => sum + carryCapacity(s), 0);
         assert.ok(total <= capacity + CARRY_COST_DOWNED * size, `loot ${total} within carry ${capacity}`);
         if (result.outcome === 'routed' || result.outcome === 'lost') assert.equal(total, 0);
-        assert.ok(result.medsLeft >= 0 && result.medsLeft <= plan.meds);
+        // Events can add a little to what the crew carries (a trade), never much.
+        assert.ok(result.medsLeft >= 0 && result.medsLeft <= plan.meds + 2);
         assert.ok(result.ammoLeft >= 0 && result.ammoLeft <= plan.ammo);
         for (const id of result.discovered) assert.ok(loc.leadsTo.includes(id));
       }

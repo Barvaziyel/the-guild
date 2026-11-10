@@ -46,7 +46,7 @@ import { enemyContexts, situationalMods } from '../stats.ts';
 import { maxTraitHook, sumTraitHook } from '../traits.ts';
 import type { Quality, ResourceId } from '../types.ts';
 import { QUALITIES, RESOURCE_IDS } from '../types.ts';
-import { buildEncounter, describeGroup, fight } from './combat.ts';
+import { buildEncounter, describeGroup, fight, type Enemy, type FightStart } from './combat.ts';
 import {
   absorbRads,
   bestBy,
@@ -67,11 +67,11 @@ import {
 
 // ---------------------------------------------------------------- loot helpers
 
-function lootMult(m: Member): number {
+export function lootMult(m: Member): number {
   return Math.max(0.25, 1 + sumTraitHook(m.s, 'lootBonus'));
 }
 
-function pickResource(sim: Sim): ResourceId {
+export function pickResource(sim: Sim): ResourceId {
   return sim.rng.weightedBy(RESOURCE_IDS, (r) => sim.loc.loot[r]);
 }
 
@@ -81,18 +81,18 @@ function rollQuality(sim: Sim): Quality {
   return sim.rng.weightedBy(QUALITIES, (q) => weights[q]);
 }
 
-function findGear(sim: Sim, finder: Member): void {
+export function findGear(sim: Sim, finder: Member): void {
   const def = sim.rng.weightedBy(GEAR, (g) => g.lootWeight);
   const item = createItem(sim.state, def.id, rollQuality(sim));
   sim.items.push(item);
   say(sim, `${finder.s.firstName} finds something worth keeping: ${itemName(item)}.`, { tone: 'good' });
 }
 
-function addLoot(sim: Sim, res: ResourceId, amount: number): void {
+export function addLoot(sim: Sim, res: ResourceId, amount: number): void {
   sim.loot[res] += amount;
 }
 
-function lootText(loot: Partial<Record<ResourceId, number>>): string {
+export function lootText(loot: Partial<Record<ResourceId, number>>): string {
   const parts: string[] = [];
   for (const res of RESOURCE_IDS) {
     const n = loot[res] ?? 0;
@@ -311,7 +311,12 @@ export function combatBeat(sim: Sim): void {
     }
   }
 
-  const result = fight(sim, enemies, { ambushed, drop });
+  resolveFight(sim, enemies, { ambushed, drop });
+}
+
+/** Fight it out and deal with the result: loot from the bodies, or a retreat home. */
+export function resolveFight(sim: Sim, enemies: Enemy[], start: FightStart): void {
+  const result = fight(sim, enemies, start);
   if (result.end === 'won') {
     const text = lootText(result.loot);
     for (const res of RESOURCE_IDS) addLoot(sim, res, result.loot[res] ?? 0);
@@ -323,16 +328,29 @@ export function combatBeat(sim: Sim): void {
 
 // ---------------------------------------------------------------- social
 
+/** Change how two crew members feel about each other, and say so if it crosses a line. */
+export function relate(sim: Sim, a: Member, b: Member, delta: number): void {
+  const change = adjustRelationship(sim.state, a.s.id, b.s.id, delta, { day: simDay(sim) });
+  if (!change.labelChange) return;
+  const to = change.labelChange.to;
+  const warmer = change.after > change.before;
+  const now =
+    to === 'bonded'
+      ? 'are inseparable now'
+      : to === 'friend'
+        ? warmer ? 'are friends now' : 'are not as close as they were'
+        : to === 'neutral'
+          ? warmer ? 'are on speaking terms again' : 'have cooled toward each other'
+          : to === 'rival'
+            ? warmer ? 'have stepped back from the brink' : 'are rivals now'
+            : "are at each other's throats";
+  say(sim, `${a.s.firstName} and ${b.s.firstName} ${now}.`, { tone: warmer ? 'good' : 'bad' });
+}
+
 function socialEvent(sim: Sim, a: Member, b: Member, text: SocialText, delta: number, stressDelta: number): void {
   startBeat(sim, 'social', text.title);
   say(sim, flavor(sim, text.lines, { a, b }), { tone: delta < 0 ? 'bad' : 'good' });
-  const change = adjustRelationship(sim.state, a.s.id, b.s.id, delta, { day: simDay(sim) });
-  if (change.labelChange) {
-    const to = change.labelChange.to;
-    const now =
-      to === 'bonded' ? 'are inseparable now' : to === 'friend' ? 'are friends now' : to === 'neutral' ? 'are on speaking terms again' : to === 'rival' ? 'are rivals now' : 'are at each other\'s throats';
-    say(sim, `${a.s.firstName} and ${b.s.firstName} ${now}.`, { tone: delta < 0 ? 'bad' : 'good' });
-  }
+  relate(sim, a, b, delta);
   stress(sim, a, stressDelta);
   stress(sim, b, stressDelta);
 }

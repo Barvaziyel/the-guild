@@ -11,6 +11,15 @@ export { TRAITS } from './traits.ts';
 export { FIRST_NAMES, LAST_NAMES } from './names.ts';
 export { ENEMIES, type EnemyDef, type EnemyType } from './enemies.ts';
 export { LOCATIONS, type LocationDef, type EncounterDef, type HazardKind } from './locations.ts';
+export {
+  EVENTS,
+  type EventDef,
+  type EventRole,
+  type EventEffect,
+  type EventOutcome,
+  type EventCheck,
+  type EventTarget,
+} from './events.ts';
 export { EVOLUTIONS, type EvolutionRule, type RunTally, type NumericCounter } from './evolutions.ts';
 
 const traitById = new Map<string, TraitDef>(TRAITS.map((t) => [t.id, t]));

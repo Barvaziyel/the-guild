@@ -65,6 +65,7 @@ import {
   type Member,
   type Sim,
 } from './context.ts';
+import { tryEvent } from './events.ts';
 import { runDuration, rationsNeeded } from './plan.ts';
 import { resolveWounds } from './wounds.ts';
 
@@ -382,6 +383,8 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
     discovered: [],
     deaths: [],
     beatCounts: {},
+    events: [],
+    exploreBonus: 0,
   };
 
   startBeat(sim, 'depart', 'Setting Out');
@@ -396,7 +399,7 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
     if (sim.turnBack || sim.routed || standing(sim).length === 0) break;
     sim.offset = Math.round(slot * (i + 1) + slot * (rng.next() - 0.5) * 0.4);
     const kind = pickBeatKind(sim, previous, i === middle - 1);
-    BEAT_FNS[kind](sim);
+    if (!tryEvent(sim, kind)) BEAT_FNS[kind](sim);
     endBeat(sim);
     previous = kind;
     done += 1;
@@ -419,7 +422,7 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
   }
 
   const range = EXPLORE_GAIN[plan.job];
-  const fullGain = rng.int(range[0], range[1]);
+  const fullGain = rng.int(range[0], range[1]) + sim.exploreBonus;
   const exploredGain = outcome === 'completed' ? fullGain : outcome === 'turnedBack' ? Math.floor(fullGain / 2) : 0;
 
   const highlights: RunHighlight[] = [];
@@ -445,6 +448,7 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
       discovered: outcome === 'lost' ? [] : sim.discovered,
       deaths: sim.deaths,
       highlights,
+      events: sim.events,
     },
   };
 }

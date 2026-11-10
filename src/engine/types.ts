@@ -357,6 +357,8 @@ export interface RunSummary {
   discovered: string[];
   deaths: RunDeath[];
   highlights: RunHighlight[];
+  /** Ids of the scripted events that happened. */
+  events: string[];
 }
 
 /** Everything decided at departure and applied when the crew returns. */
@@ -435,6 +437,8 @@ export interface GameState {
   runs: Run[];
   /** Finished runs, newest first, capped at MAX_REPORTS. */
   reports: RunReport[];
+  /** How many times each scripted event has happened, so fresh ones come up first. */
+  eventsSeen: Record<string, number>;
   log: GuildLogEntry[];
   settings: {
     mercyMode: boolean;

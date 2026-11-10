@@ -25,6 +25,7 @@ npm run balance    # Monte Carlo table of danger and loot per location; args: <r
   - `types.ts`: all state types. `constants.ts`: every tunable number.
   - `content/`: data (traits, gear, origins, names). Prefer adding content here over adding code.
   - `expedition/`: runs. `plan.ts` (validation, duration), `sim.ts` (the beat loop and aftermath), `beats.ts`, `combat.ts`, `wounds.ts`, `runs.ts` (start, complete, risk estimate), `context.ts` (shared helpers).
+  - `expedition/events.ts`: runs the scripted events in `content/events.ts`.
   - `evolution.ts`: applies the trait evolution rules in `content/evolutions.ts`.
   - `*.test.ts`: tests next to the code. `test-utils.ts` holds the fixtures.
 - `src/portrait/`: survivor portraits as layered SVG, composed in code. Zero dependencies; imports types from the engine.
@@ -57,6 +58,11 @@ npm run balance    # Monte Carlo table of danger and loot per location; args: <r
    - `simulateRun` must never change the real `GameState`.
    - Inside a simulation, use the helpers in `expedition/context.ts` (`check`, `stress`, `hurt`, `say`). They handle rerolls, practice, hidden-trait reveals and log lines.
    - Run log text lives in `content/flavor.ts`.
+9. **Scripted events are data.**
+   - They live in `content/events.ts`; `expedition/events.ts` casts and plays them. To add one, append an entry. Add a new effect type only when no existing one fits.
+   - Write text so verbs don't have to agree with a pronoun: "{a.first} laughs", not "{a.they} laughs".
+   - `events.test.ts` checks references and placeholders, and that every event and both of its outcomes can happen.
+   - Events that hurt people or start fights change the balance: run `npm run balance` after adding them.
 
 ## Portrait rules
 

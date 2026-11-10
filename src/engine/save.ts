@@ -15,6 +15,12 @@ const MIGRATIONS: Record<number, (save: Record<string, unknown>) => void> = {
     save.runs = [];
     save.reports = [];
   },
+  // v3: scripted run events.
+  2: (save) => {
+    save.eventsSeen = {};
+    for (const run of (save.runs ?? []) as { result: { events?: string[] } }[]) run.result.events ??= [];
+    for (const report of (save.reports ?? []) as { summary: { events?: string[] } }[]) report.summary.events ??= [];
+  },
 };
 
 export function serialize(state: GameState): string {
