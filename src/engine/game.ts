@@ -65,6 +65,7 @@ export function newGame(opts: NewGameOptions): GameState {
     locations: initialLocations(),
     runs: [],
     reports: [],
+    eventsSeen: {},
     log: [],
     settings: { mercyMode: false },
   };

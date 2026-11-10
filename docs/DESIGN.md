@@ -1,6 +1,6 @@
 # The Guild — Game Design Document
 
-> Version 0.3 · 2026-11-10 · Living document. Numbers are starting points for tuning, not promises.
+> Version 0.4 · 2026-11-10 · Living document. Numbers are starting points for tuning, not promises.
 
 ## 1. Pitch
 
@@ -244,6 +244,18 @@ A run has **3–8 beats**, depending on distance. Each beat is a type, weighted 
 - **Discovery:** a stash, a survivor to rescue, a new location or lore
 - **Return trip:** always last. Fatigue sets in, and a badly hurt crew risks one more hazard
 
+**Scripted events.** A travel, hazard, discovery or social beat can be a written event instead of a plain one (`content/events.ts`, 54 so far). Travel beats are events 75% of the time, discoveries and social beats 50%, hazards 40%, when one fits.
+
+- **What makes an event fit:**
+  - a crew member with a certain trait (a Curious survivor won't leave a welded door alone; a Paranoid one insists on the long way round)
+  - a relationship (rivals on a crumbling ledge; Bonded friends keeping watch; an old hand teaching a newcomer)
+  - a piece of gear (the Music Box, the Old Photo)
+  - the place: every location has one or two of its own
+- **What an event does:** most have a check with a good and a bad outcome. Outcomes can give loot or gear, hurt someone, add or relieve stress, change relationships, grant a trait (an Animal Lover who wins over a stray may become Beast-Friend), reveal a new location, start a fight, or write a line in a survivor's Chronicle.
+- A hidden trait that drives an event is revealed by it.
+- No event happens twice on one run, and events the guild has already seen come up less often.
+- Adding an event is adding one entry to the list. Tests check that every event can happen and that both outcomes read cleanly.
+
 ### 7.4 Combat (auto-resolved)
 
 1. **Ambush check.** The crew's best Wits (helped by Cautious and Binoculars) is checked against the enemy's stealth.
@@ -428,7 +440,7 @@ Every survivor has four slots: **Weapon · Armor · Tool · Trinket**
 | 1 | Engine core: setup, RNG, types, stats, trait and gear data, character generator, relationship basics, Chronicle, tests, CI | Opus · **done** |
 | 2 | Expedition simulation: beats, checks, combat, downed/injury/death, loot, stress, practice growth, trait evolution, relationship events, Monte Carlo balance tests | **Fable** · **done** |
 | 3 | Portrait system: layered SVG parts and the composer | **Fable** · **done** |
-| 4 | Event content pack: 40+ events with flavor text | **Fable** |
+| 4 | Event content pack: 40+ events with flavor text | **Fable** · **done** (54 events) |
 | 5 | UI shell: React/Vite, roster, survivor sheet, save/load | Opus |
 | 6 | Reach map, run planner, run report, notifications | Opus |
 | 7 | Depot: buildings, workers, resources, recruits, Depot events, time catch-up | Opus |

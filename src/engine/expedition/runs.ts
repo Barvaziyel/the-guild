@@ -147,6 +147,8 @@ export function completeRun(state: GameState, runId: string, now: number): RunRe
     addGuildLog(state, day, `Discovered ${getLocation(id).name}.`, ['discovery', id]);
   }
 
+  for (const id of result.events) state.eventsSeen[id] = (state.eventsSeen[id] ?? 0) + 1;
+
   const outcomeText = { completed: 'returned from', turnedBack: 'came back early from', routed: 'were routed at', lost: 'never came back from' }[result.outcome];
   addGuildLog(state, day, `The crew ${outcomeText} ${loc.name}.`, ['run', run.id]);
 

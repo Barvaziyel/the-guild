@@ -6,7 +6,7 @@
 import type { Quality, RelationshipLabel, Resources } from './types.ts';
 
 /** Save format version. Bump together with a migration in save.ts. */
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 
 // ---------------------------------------------------------------- time
 
@@ -177,6 +177,16 @@ export const REL_FLED = -5;
 /** A survivor with this many runs can mentor a friend with at most MENTOR_NEWCOMER_RUNS. */
 export const MENTOR_RUNS = 10;
 export const MENTOR_NEWCOMER_RUNS = 3;
+
+/** Chance that a beat of this kind is a scripted event (content/events.ts) when one fits. */
+export const EVENT_CHANCE: Record<'travel' | 'hazard' | 'discovery' | 'social', number> = {
+  travel: 0.75,
+  hazard: 0.4,
+  discovery: 0.5,
+  social: 0.5,
+};
+/** An event's weight is divided by 1 + times seen * this, so new ones come up first. */
+export const EVENT_SEEN_PENALTY = 1;
 
 /** Explored % gained per finished run, by job. */
 export const EXPLORE_GAIN: Record<'scavenge' | 'scout' | 'hunt', readonly [number, number]> = {

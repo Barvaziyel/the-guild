@@ -75,6 +75,10 @@ export interface Sim {
   discovered: string[];
   deaths: RunDeath[];
   beatCounts: Partial<Record<BeatKind, number>>;
+  /** Ids of the scripted events that happened on this run. */
+  events: string[];
+  /** Extra explored % earned from events. */
+  exploreBonus: number;
 }
 
 export function newTally(): RunTally {
