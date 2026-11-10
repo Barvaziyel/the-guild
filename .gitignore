@@ -11,3 +11,4 @@ android/.gradle/
 *.aab
 *.keystore
 *.jks
+out/

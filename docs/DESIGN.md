@@ -1,6 +1,6 @@
 # The Guild — Game Design Document
 
-> Version 0.2 · 2026-11-10 · Living document. Numbers are starting points for tuning, not promises.
+> Version 0.3 · 2026-11-10 · Living document. Numbers are starting points for tuning, not promises.
 
 ## 1. Pitch
 
@@ -388,31 +388,36 @@ Every survivor has four slots: **Weapon · Armor · Tool · Trinket**
 ## 14. Art
 
 - **Style: "scavenger's field journal."** Ink linework, flat muted color and a watercolor-like wash, in a rust / teal / bone palette.
-- **Portraits** are made of layered SVG parts (built with Fable 5.2 before Nov 16).
-  - **Canvas:** `viewBox="0 0 256 256"`, framed as a bust.
-  - **Colors:** skin, hair, cloth and accent are parameters (CSS variables).
-  - **Layer order, back to front:**
-    1. background
+- **Portraits** are layered SVG parts composed in code (`src/portrait/`). `portraitSvg(survivor)` returns an SVG string, so it works in the app and in tests.
+  - **Canvas:** `viewBox="0 0 256 256"`, framed as a bust. Readable down to about 64 px.
+  - **The face never changes.** It comes from the survivor's `appearance` record. Gear, wounds and age are drawn on top.
+  - **Layers, back to front:**
+    1. background (paper and a watercolor wash)
     2. back hair
-    3. body / clothes (replaced by the armor layer)
-    4. neck and head
-    5. face shape
-    6. scar overlays
-    7. eyes
-    8. brows
-    9. nose
-    10. mouth
-    11. facial hair
-    12. front hair
-    13. headgear / mask
-    14. condition overlays (bandages, stress shading)
+    3. behind (hoods, the weapon on the back)
+    4. neck
+    5. body (clothes, or armor in their place; slings, tools, trinkets)
+    6. head and ears
+    7. skin marks (burns, sickness, haunted eyes), clipped to the face
+    8. features (eyes, brows, nose, facial hair, mouth)
+    9. face marks (wrinkles, eye bags, scars, plasters)
+    10. hair on top and in front
+    11. headgear (helmet, hood and mask, goggles, bandana, beanie, head bandage, eyepatch)
+    12. strain (sweat and a knotted brow)
+  - **Parts:** 8 face shapes, 8 skin tones, 14 hair styles in 8 colors (greying with age), 6 eyes, 6 brows, 5 noses, 6 mouths, 6 kinds of facial hair, 7 outfits, 3 accessories.
   - **Gear and history show on the character:**
-    - the armor type changes the body layer
-    - a Hazmat suit adds a gas mask
-    - Lost Eye adds an eyepatch
-    - Wounded adds bandages
-    - stress above 70 adds shading
-  - **Variety target:** about 8 face shapes, 12 hair styles, 6 eyes, 6 mouths, 5 noses, 6 facial hair, 6 clothes, 4 armor, 4 headgear and 6 scar or condition overlays.
+    - armor replaces the clothes: Leather Jacket, Scrap Vest, Riot Gear (with helmet), Hazmat Suit (with hood and gas mask)
+    - the weapon is carried on the back, with a sling or holster
+    - Medkit, Binoculars, Geiger Counter and Crowbar are visible; so are Dog Tags, the Lucky Coin and the Rabbit's Foot
+    - Lost Eye adds an eyepatch, Scarred Face a stitched scar, Burn Scars a burn
+    - Wounded adds plasters, Badly Wounded a bandaged head
+    - Rad Sickness, Haunted, Grieving and Exhausted show on the face
+    - stress of 70 or more adds sweat and a knotted brow
+    - the Memorial Wall shows the portrait faded
+    - hidden traits never show
+  - **Not drawn yet:** Lockpicks, Multitool, Old Photo and Music Box have no look. Bad Leg and Missing Fingers are out of frame.
+  - A hand-drawn wobble is applied with an SVG filter. It can be turned off (`wobble: false`) if long lists of portraits scroll slowly on the phone.
+  - `npm run portraits` writes a gallery to `out/portraits.html`.
 - **Image generation** (after Nov 16) covers location cards, event vignettes, item icons and buildings. Use one locked style prompt and a reference image.
 - **Placeholder** until the art exists: initials in a stamped circle, plus icons from game-icons.net (CC BY 3.0, credited).
 
@@ -422,7 +427,7 @@ Every survivor has four slots: **Weapon · Armor · Tool · Trinket**
 |---|---|---|
 | 1 | Engine core: setup, RNG, types, stats, trait and gear data, character generator, relationship basics, Chronicle, tests, CI | Opus · **done** |
 | 2 | Expedition simulation: beats, checks, combat, downed/injury/death, loot, stress, practice growth, trait evolution, relationship events, Monte Carlo balance tests | **Fable** · **done** |
-| 3 | Portrait system: layered SVG parts and the composer | **Fable** (before Nov 16) |
+| 3 | Portrait system: layered SVG parts and the composer | **Fable** · **done** |
 | 4 | Event content pack: 40+ events with flavor text | **Fable** |
 | 5 | UI shell: React/Vite, roster, survivor sheet, save/load | Opus |
 | 6 | Reach map, run planner, run report, notifications | Opus |
