@@ -44,6 +44,11 @@ export function equippedItems(s: Survivor): ItemInstance[] {
   return out;
 }
 
+/** A Cherished trinket works twice as well for the survivor who cherishes it. */
+export function attachmentMult(item: ItemInstance, s: Survivor): number {
+  return item.cherishedBy === s.id ? 2 : 1;
+}
+
 /** All gear hook objects for a survivor's equipped items. */
 export function gearHooks(s: Survivor): GearHooks[] {
   const out: GearHooks[] = [];
@@ -52,6 +57,37 @@ export function gearHooks(s: Survivor): GearHooks[] {
     if (hooks) out.push(hooks);
   }
   return out;
+}
+
+type NumericGearHook = {
+  [K in keyof GearHooks]-?: NonNullable<GearHooks[K]> extends number ? K : never;
+}[keyof GearHooks];
+
+type FlagGearHook = {
+  [K in keyof GearHooks]-?: NonNullable<GearHooks[K]> extends boolean ? K : never;
+}[keyof GearHooks];
+
+/** Sum a numeric gear hook across equipped items (Cherished items count double). */
+export function sumGearHook(s: Survivor, key: NumericGearHook): number {
+  let total = 0;
+  for (const item of equippedItems(s)) total += (itemDef(item).hooks?.[key] ?? 0) * attachmentMult(item, s);
+  return total;
+}
+
+/** Multiply a multiplier gear hook across equipped items (absent = 1). */
+export function mulGearHook(s: Survivor, key: NumericGearHook): number {
+  let total = 1;
+  for (const item of equippedItems(s)) total *= itemDef(item).hooks?.[key] ?? 1;
+  return total;
+}
+
+export function anyGearHook(s: Survivor, key: FlagGearHook): boolean {
+  return equippedItems(s).some((item) => itemDef(item).hooks?.[key] === true);
+}
+
+/** The equipped item with a given flag hook, if any (e.g. a Medkit). */
+export function findGearWithHook(s: Survivor, key: FlagGearHook): ItemInstance | undefined {
+  return equippedItems(s).find((item) => itemDef(item).hooks?.[key] === true);
 }
 
 /**

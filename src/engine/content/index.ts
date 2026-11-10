@@ -1,5 +1,7 @@
 import type { GearDef, TraitDef } from '../types.ts';
+import { ENEMIES, type EnemyDef } from './enemies.ts';
 import { GEAR } from './gear.ts';
+import { LOCATIONS, type LocationDef } from './locations.ts';
 import { ORIGINS, type OriginDef } from './origins.ts';
 import { TRAITS } from './traits.ts';
 
@@ -7,9 +9,14 @@ export { GEAR } from './gear.ts';
 export { ORIGINS, type OriginDef } from './origins.ts';
 export { TRAITS } from './traits.ts';
 export { FIRST_NAMES, LAST_NAMES } from './names.ts';
+export { ENEMIES, type EnemyDef, type EnemyType } from './enemies.ts';
+export { LOCATIONS, type LocationDef, type EncounterDef, type HazardKind } from './locations.ts';
+export { EVOLUTIONS, type EvolutionRule, type RunTally, type NumericCounter } from './evolutions.ts';
 
 const traitById = new Map<string, TraitDef>(TRAITS.map((t) => [t.id, t]));
 const gearById = new Map<string, GearDef>(GEAR.map((g) => [g.id, g]));
+const enemyById = new Map<string, EnemyDef>(ENEMIES.map((e) => [e.id, e]));
+const locationById = new Map<string, LocationDef>(LOCATIONS.map((l) => [l.id, l]));
 const originById = new Map<string, OriginDef>(ORIGINS.map((o) => [o.id, o]));
 
 export function getTrait(id: string): TraitDef {
@@ -36,4 +43,24 @@ export function getOrigin(id: string): OriginDef {
   const def = originById.get(id);
   if (!def) throw new Error(`Unknown origin: ${id}`);
   return def;
+}
+
+export function getEnemy(id: string): EnemyDef {
+  const def = enemyById.get(id);
+  if (!def) throw new Error(`Unknown enemy: ${id}`);
+  return def;
+}
+
+export function findEnemy(id: string): EnemyDef | undefined {
+  return enemyById.get(id);
+}
+
+export function getLocation(id: string): LocationDef {
+  const def = locationById.get(id);
+  if (!def) throw new Error(`Unknown location: ${id}`);
+  return def;
+}
+
+export function findLocation(id: string): LocationDef | undefined {
+  return locationById.get(id);
 }

@@ -6,7 +6,7 @@
 import type { Quality, RelationshipLabel, Resources } from './types.ts';
 
 /** Save format version. Bump together with a migration in save.ts. */
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;
 
 // ---------------------------------------------------------------- time
 
@@ -25,7 +25,7 @@ export const STAT_GEN_POINTS = 10;
 export const STAT_GEN_MAX = 7;
 
 /** Practice needed to go from stat N to N + 1 is PRACTICE_PER_LEVEL * N. */
-export const PRACTICE_PER_LEVEL = 10;
+export const PRACTICE_PER_LEVEL = 8;
 /** Practice from a normal check; hard checks give PRACTICE_HARD. */
 export const PRACTICE_NORMAL = 1;
 export const PRACTICE_HARD = 2;
@@ -98,6 +98,92 @@ export const QUALITY_NAME: Record<Quality, string> = {
 
 /** Runs with the same trinket before it becomes Cherished. */
 export const CHERISH_RUNS = 5;
+
+// ---------------------------------------------------------------- expeditions
+
+export const MAX_CREW = 4;
+export const MAX_REPORTS = 20;
+
+/** A run has between MIN and MAX beats (including the return), one per MINUTES_PER_BEAT of travel. */
+export const MIN_BEATS = 3;
+export const MAX_BEATS = 8;
+export const MINUTES_PER_BEAT = 20;
+/** Sneaking takes longer. */
+export const SNEAKY_DURATION_MULT = 1.15;
+
+/** Enemy group size: threat budget = (BASE + danger * PER_DANGER) * CREW_MULT[crew size - 1]. */
+export const ENCOUNTER_BASE = 5;
+export const ENCOUNTER_PER_DANGER = 1.5;
+export const ENCOUNTER_CREW_MULT = [0.6, 0.85, 1.1, 1.35] as const;
+export const MAX_ENEMIES = 6;
+
+export const MAX_COMBAT_ROUNDS = 6;
+/** Attacks against a survivor must reach this + their armor. */
+export const SURVIVOR_DEFENSE = 7;
+export const UNARMED_DAMAGE = 1;
+export const AGGRESSIVE_ATTACK_BONUS = 1;
+export const SNEAKY_AMBUSH_BONUS = 2;
+export const AGGRESSIVE_AMBUSH_PENALTY = -2;
+/** Sneaking past enemies: the crew's weakest Wits against this + danger. */
+export const SNEAK_DC_BASE = 6;
+/** Beating the ambush check by this much gives the crew a free round. */
+export const DROP_MARGIN = 3;
+/** Bonus to every check while a Bonded friend is in the crew, and their stress multiplier. */
+export const BONDED_CHECK_BONUS = 1;
+export const BONDED_STRESS_MULT = 0.8;
+
+/** Stress amounts (before Nerve and trait multipliers). */
+export const STRESS_COMBAT: readonly [number, number] = [8, 20];
+/** Every beat in a dangerous place wears on the nerves: (danger - 1) * this. */
+export const STRESS_PER_DANGER_BEAT = 1;
+/** Stress per point of damage taken. */
+export const STRESS_PER_DAMAGE = 1;
+export const STRESS_ALLY_DOWNED = 15;
+export const STRESS_ALLY_KILLED = 30;
+export const STRESS_ROUTED = 30;
+export const STRESS_RIVAL_PER_BEAT = 2;
+
+/** Wound roll: d100 + Grit * WOUND_GRIT_MULT + bonuses. Below MORTAL is a death save; below SERIOUS is a serious wound. */
+export const WOUND_GRIT_MULT = 2;
+export const WOUND_MORTAL_BELOW = 20;
+export const WOUND_SERIOUS_BELOW = 45;
+export const WOUND_BONDED_BONUS = 5;
+export const DEATH_SAVE_DC = 12;
+export const SCAR_CHANCE = 0.5;
+/** Carry capacity used up by carrying a downed crewmate. */
+export const CARRY_COST_DOWNED = 3;
+
+/** HP restored by one unit of meds (more with a successful medicine check). */
+export const MEDS_HEAL = 5;
+export const MEDS_HEAL_SKILLED = 8;
+
+/** Radiation absorbed per beat per location radiation level. */
+export const RADS_PER_BEAT = 3;
+/** Rads absorbed in one run before a rad-sickness check is made. */
+export const RAD_SICKNESS_THRESHOLD = 15;
+
+/** Relationship changes. */
+export const REL_RUN_BASE = 1;
+export const REL_RUN_PER_AFFINITY = 2;
+export const REL_COMBAT_TOGETHER = 3;
+export const REL_SAVED = 30;
+export const REL_ARGUMENT = -10;
+export const REL_CAUGHT_STEALING = -25;
+export const REL_SHARED = 8;
+export const REL_COVERED = 10;
+export const REL_FLED_DOWNED = -40;
+export const REL_FLED = -5;
+
+/** A survivor with this many runs can mentor a friend with at most MENTOR_NEWCOMER_RUNS. */
+export const MENTOR_RUNS = 10;
+export const MENTOR_NEWCOMER_RUNS = 3;
+
+/** Explored % gained per finished run, by job. */
+export const EXPLORE_GAIN: Record<'scavenge' | 'scout' | 'hunt', readonly [number, number]> = {
+  scavenge: [4, 6],
+  scout: [10, 15],
+  hunt: [2, 4],
+};
 
 // ---------------------------------------------------------------- new game
 

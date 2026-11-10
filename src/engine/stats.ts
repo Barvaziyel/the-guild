@@ -12,7 +12,7 @@ import {
   STRESS_MAX,
 } from './constants.ts';
 import { getTrait } from './content/index.ts';
-import { gearHooks, itemDef } from './gear.ts';
+import { attachmentMult, equippedItems, itemDef } from './gear.ts';
 import type { Rng } from './rng.ts';
 import { addTrait, getTraitInstance, mulTraitHook } from './traits.ts';
 import type { CheckMod, StatId, Stats, Survivor } from './types.ts';
@@ -41,7 +41,7 @@ export function effectiveStat(s: Survivor, stat: StatId): number {
   let value = s.stats[stat];
   for (const t of s.traits) value += getTrait(t.id).statMods?.[stat] ?? 0;
   for (const item of Object.values(s.equipment)) {
-    if (item) value += itemDef(item).statMods?.[stat] ?? 0;
+    if (item) value += (itemDef(item).statMods?.[stat] ?? 0) * attachmentMult(item, s);
   }
   return Math.max(0, value);
 }
@@ -97,9 +97,9 @@ export function situationalMods(s: Survivor, stat: StatId | undefined, contexts:
       if (checkModApplies(mod, stat, contexts)) total += mod.mod;
     }
   }
-  for (const hooks of gearHooks(s)) {
-    for (const mod of hooks.checkMods ?? []) {
-      if (checkModApplies(mod, stat, contexts)) total += mod.mod;
+  for (const item of equippedItems(s)) {
+    for (const mod of itemDef(item).hooks?.checkMods ?? []) {
+      if (checkModApplies(mod, stat, contexts)) total += mod.mod * attachmentMult(item, s);
     }
   }
   return total;

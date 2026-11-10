@@ -1,4 +1,5 @@
 import { SAVE_VERSION } from './constants.ts';
+import { initialLocations } from './locations.ts';
 import type { GameState } from './types.ts';
 
 /**
@@ -7,7 +8,14 @@ import type { GameState } from './types.ts';
  *   2. add MIGRATIONS[oldVersion] that upgrades a parsed save in place
  *   3. add a test with an old save
  */
-const MIGRATIONS: Record<number, (save: Record<string, unknown>) => void> = {};
+const MIGRATIONS: Record<number, (save: Record<string, unknown>) => void> = {
+  // v2: expeditions (locations, active runs, reports).
+  1: (save) => {
+    save.locations = initialLocations();
+    save.runs = [];
+    save.reports = [];
+  },
+};
 
 export function serialize(state: GameState): string {
   return JSON.stringify(state);
