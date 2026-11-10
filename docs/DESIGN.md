@@ -1,6 +1,6 @@
 # The Guild — Game Design Document
 
-> Version 0.1 · 2026-11-10 · Living document. Numbers are starting points for tuning, not promises.
+> Version 0.2 · 2026-11-10 · Living document. Numbers are starting points for tuning, not promises.
 
 ## 1. Pitch
 
@@ -64,14 +64,15 @@ Five stats, each on a 1–10 scale:
 | Hard | 13 | 20% | 60% |
 | Brutal | 16 | 0% | 30% |
 
-A location's danger adds +0 to +4 to the DC. Checks are always shown in the log, e.g. *Wits 6+5 vs 10 ✔*.
+Danger raises DCs: most checks add the location's danger, and scavenging adds half of it (rounded down), so that dangerous places still pay. Checks are always shown in the log, e.g. *Wits 6+5 vs 10 ✔*.
 
 ### 4.3 Growth through practice
 
 Characters get better at what they actually do.
 
-- Every check a character makes earns **practice** in that stat: +1, or +2 if the check was Hard or worse.
-- Raising a stat from N to N+1 takes **10 × N practice**. For example, going from 4 to 5 takes 40.
+- Every check a character makes earns **practice** in that stat: +1, or +2 if the check was Hard or worse. Attack rolls count.
+- Raising a stat from N to N+1 takes **8 × N practice**. For example, going from 4 to 5 takes 32.
+- A protégé earns +1 extra practice per check while their mentor is in the crew (§5).
 - Depot jobs give slow practice in that job's stat (§9).
 
 Survivors therefore specialize according to the jobs you give them. Nobody spends stat points by hand.
@@ -116,13 +117,13 @@ Evolution rules are data, checked after every run and every Depot day:
 |---|---|
 | Cowardly → **Steady** | 5 or more combats survived, then a 25% chance after each further combat |
 | Gain **Veteran** | 10 runs survived (guaranteed) |
-| Gain **Rad-Hardened** | 50 or more radiation absorbed (50% chance) |
+| Gain **Rad-Hardened** | 150 or more radiation absorbed (50% chance after each run with radiation) |
 | Gain **Tough as Nails** | Downed 3 or more times and survived (30% chance) |
 | Gain **Dead-Eye** | 15 or more ranged kills |
 | Gain **Scav** | 20 or more successful scavenges |
 | Haunted → **Hardened** | Each Depot day with a Bonded friend present (5% chance) |
 | Gain **Vengeful** (vs X) | A friend was killed by X (50% chance) |
-| Hidden trait revealed | After 1–3 runs (random) |
+| Hidden trait revealed | The moment it visibly acts (fleeing, getting caught stealing, a reroll), or after 1–3 runs (34%, 50%, then certain) |
 
 Every trait gained, lost or revealed writes a **Chronicle** entry that includes the cause.
 
@@ -143,25 +144,26 @@ The survivor sheet shows the Chronicle as their story. When a survivor dies, the
   - Bonded: +60 or higher
 - **Flags** add special relationships:
   - *Owes a Life* (one-way)
-  - *Mentor / Protégé*: a Veteran who is friends with a newcomer
+  - *Mentor / Protégé*: a survivor with 10+ runs who is friends with a newcomer (3 runs or fewer). The protégé learns faster on runs with their mentor
   - *Partners*: romance, optional (see open questions)
 
 **What changes a relationship:**
 
 | Event | Change |
 |---|---|
-| Run together | +3 × trait affinity multiplier (from −2 to +2). Loner halves gains |
-| Survive a combat together | +5 |
+| Run together | +1 + 2 × trait affinity (so −3 to +5). Loner halves gains |
+| Survive a combat together | +3 (once per run) |
+| Quiet talk on the road | +5 |
 | Saved by them | +30, plus the *Owes a Life* flag |
 | Argument (Hothead, rival events) | −10 |
 | Caught stealing | −25 |
 | Shared rations, covered for them | +8 / +10 |
-| Fled while they were downed | −40 |
+| Fled while they were downed | −40 (−5 with everyone else in the crew) |
 | Same Depot job | Drift of +1 per day × affinity |
 
 **What relationships change:**
 
-- **Bonded in the same crew:** +1 when helping each other and less stress. A Loyal survivor always tries to rescue a Bonded friend who goes down.
+- **Bonded in the same crew:** +1 to all checks, 20% less stress, and +5 to each other's wound rolls.
 - **Rival in the crew:** +2 stress per beat and a chance of argument events.
 - **Feud:** the run planner shows a warning, and the pair may refuse to go together. At the Depot they may fight, causing a Wounded condition. Rarely, one of them **leaves the guild**; Loners, Greedy survivors and Hotheads are more likely to go.
 - **Crew cohesion** is the average pair score in a crew. It adds −2 to +2 to every crew check.
@@ -170,11 +172,14 @@ The survivor sheet shows the Chronicle as their story. When a survivor dies, the
 ## 6. Stress
 
 - Stress runs from **0 to 100**.
-- **Gains:**
-  - combat: 5–15
+- **Gains** (all reduced by Nerve and traits):
+  - combat: 8–20, halved by passing a Nerve check as the fight starts
+  - taking damage: +1 per HP lost
   - an ally downed: 15
   - an ally killed: 30
+  - a rout: 30
   - a failed hazard: 5–10
+  - every beat in a dangerous place: danger − 1
   - a rival in the crew: +2 per beat
   - a starving Depot: +10 per day
 - **Relief:**
@@ -197,10 +202,10 @@ The Reach is a map of locations connected around the Depot. Each location has:
 - **Biome:** Ruined Suburb, Drowned Mall, Hospital, Rail Yard, Military Checkpoint, Irradiated Swamp, Water Plant, Radio Station and others
 - **Danger** from 1 to 5, **radiation** from 0 to 3, and **distance**, which sets the run duration
 - an enemy table, a loot table and an event deck
-- **Explored, 0–100%.** Each run explores more of the location. Milestones unlock deeper areas with more danger and better loot. At 100%, the player can build an **outpost** there (phase 2).
-- **Discovered or hidden.** Hidden locations are revealed by scouting, the Radio Tower or events.
+- **Explored, 0–100%.** Each finished run explores more of the location: Scout 10–15%, Scavenge 4–6%, Hunt 2–4% (half if the crew turns back). At 100%, the player can build an **outpost** there (phase 2). Deeper areas with more danger and better loot are a phase 2 idea.
+- **Discovered or hidden.** Each location lists the places it leads to. Discovery beats reveal them, and Scout runs find them three times as often. The Radio Tower and events can reveal them too.
 
-The guild starts with 3 known locations. The first version has about 12.
+The guild starts with 3 known locations (The Rail Yard, Maple Street, Kessler Farm). There are 12 in all, from danger 1 up to The Glow at danger 5.
 
 ### 7.2 Planning a run
 
@@ -210,14 +215,17 @@ The guild starts with 3 known locations. The first version has about 12.
    - Scavenge: loot
    - Scout: explore the location and discover new ones
    - Hunt: fight, get rations from Ferals, clear threats
-   - Rescue: only available when an event spawns a survivor to save
-4. **Supplies:** rations (required), meds and ammo
+   - Rescue: only available when an event spawns a survivor to save (not built yet)
+4. **Supplies:** meds and ammo. Rations are packed automatically: one per crew member per game day away.
 5. **Standing orders:**
-   - Approach: Sneaky, Balanced or Aggressive
-   - Retreat when anyone is Wounded, when anyone is Downed, or never
-   - Loot priority
+   - **Approach:**
+     - Sneaky: +2 to spotting enemies, and the crew tries to slip past them (except when hunting). Runs take 15% longer.
+     - Balanced: no modifiers.
+     - Aggressive: +1 to attacks, −2 to spotting enemies.
+   - **Retreat:** when anyone is below half HP (Wounded), when anyone is Downed, or never. Whatever the order, the crew heads home after a fight in which someone went down.
+   - **Loot priority:** the resource to keep when there's more than the crew can carry.
 
-The planner shows the duration, any cohesion warnings and a **simulated risk**. To get it, the engine quietly runs the same run with 50 different seeds and reports how often someone gets hurt or downed. The result is shown as Low, Moderate, High or Deadly.
+The planner shows the duration, warnings (rivals or feuds in the crew, injuries, high stress, guns without ammo) and a **simulated risk**. To get it, the engine quietly runs the same run with 50 different seeds and reports how often someone goes down or dies. The result is shown as Low, Moderate, High or Deadly.
 
 ### 7.3 Resolution
 
@@ -238,14 +246,19 @@ A run has **3–8 beats**, depending on distance. Each beat is a type, weighted 
 
 ### 7.4 Combat (auto-resolved)
 
-1. **Ambush check.** The crew's best Wits (helped by Cautious and Binoculars) is checked against the enemy's stealth. If the crew loses, the enemy gets a free round. If the crew wins and the approach is Sneaky, they can avoid the fight entirely, unless the job is Hunt.
+1. **Ambush check.** The crew's best Wits (helped by Cautious and Binoculars) is checked against the enemy's stealth.
+   - Fail: the enemy gets a free round.
+   - Beat it by 3 or more: the crew gets a free round.
+   - **Sneaking past.** A Sneaky crew that spots the enemy (and isn't hunting) tries to slip by. The crew member with the *lowest* Wits rolls against 6 + danger. Heavy armor makes it harder.
+   - **Talking it down.** Raiders can be stared down with a Nerve check against 12 + danger. Ferals can be calmed, but only by someone with a way with animals.
 2. **Rounds** (up to 6). Every combatant attacks: d10 + attack stat + weapon bonus vs. the target's defense of 7 + armor.
    - Ranged attacks use Aim and spend ammo. Melee attacks use Brawn.
    - A hit deals weapon damage minus armor soak, at least 1.
-   - Enemies pick targets at random, weighted toward Brave survivors.
+   - Enemies pick targets at random, weighted toward Brave survivors. Survivors prefer enemies that are already hurt.
 3. **Trait hooks.** Cowardly survivors may flee. Hotheads charge in. Loyal survivors cover downed Bonded friends. Lucky survivors reroll.
-4. **Enemy morale.** Raiders break when half of them are down. Hollows never break. A survivor with high Nerve may scare Raiders off before the fight.
-5. **Retreat orders.** When the crew's standing order triggers, they attempt to withdraw with a group check. Failing gives the enemy one more round.
+4. **Enemy morale.** Raiders and Ferals run once more than half the group is dead. Hollows and Scrapbots never break.
+5. **Retreat orders.** When the crew's standing order triggers, they attempt to withdraw with a group check. Failing gives the enemy one more round. A Vengeful survivor facing their sworn enemy blocks the retreat.
+   - Enemy group size comes from a threat budget: (5 + 1.5 × danger) × a crew-size factor (0.6 / 0.85 / 1.1 / 1.35 for 1–4), up to 6 enemies.
 6. **Log.** The log summarizes the fight rather than listing every swing, e.g. *"Rad-hounds burst out of the dark. Dex drops one with two shots. Mara is bitten (−5 HP)."*
 
 ### 7.5 Downed, injuries and (rare) death
@@ -254,21 +267,34 @@ When a survivor's HP hits 0, they are **Downed**. Once the fight ends, each down
 
 **Wound roll** = d100 + Grit × 2 + modifiers:
 
-- medkit in the crew: +15
-- a Patcher ally: +10
-- Survivor trait: +10
-- a Bonded or Loyal ally in the crew: +5
+- a Patcher ally still standing: +10
+- a Loyal ally still standing: +5
+- a Bonded friend still standing: +5
+- Survivor trait: +10, Tough as Nails: +5
 
 | Result | Outcome |
 |---|---|
-| 35 or more | **Wounded**: temporary, heals in 2–5 days |
-| 15–34 | **Serious**: Wounded, plus a 50% chance of a permanent **scar** |
-| Under 15 | **Mortal** → death save |
+| 45 or more | **Wounded**: temporary, heals in 2–5 days |
+| 20–44 | **Serious**: Badly Wounded for 4–8 days, plus a 50% chance of a permanent **scar** |
+| Under 20 | **Mortal** → death save |
 
-**Death save.** If an ally carries a medkit, it is used automatically. The survivor lives, with a Serious wound and the **Survivor** trait. Otherwise they make a Grit check against DC 12. If they fail, **they die**.
+The wounded can't be sent on runs until they heal. If an ally's help lifted the result into a better row, that ally is credited with the **rescue**: +30 relationship, an *Owes a Life* flag, and an entry in both Chronicles.
 
-- **Target:** about 1 death per 30–50 runs at moderate danger with sensible orders. Reckless play at Deadly danger is much worse. This is enforced by a Monte Carlo balance test: the engine simulates 10,000 runs and checks the death rate stays in range.
-- **Whole crew downed:** the crew limps home. They lose all loot, everyone makes a Serious-level roll, and everyone gains +30 stress. There are no instant crew wipes.
+**Death save.** If a standing ally can reach a Medkit (theirs or the casualty's), it is used up and the survivor lives. A Medkit gives no bonus to the wound roll itself: it is one guaranteed life. Otherwise the survivor makes a Grit check against DC 12. If they fail, **they die**. Anyone who survives a mortal wound gains the **Survivor** trait.
+
+- **Target:** about 1 death per 30–50 runs at moderate danger with sensible orders. Reckless play at Deadly danger is much worse. Monte Carlo balance tests (`balance.test.ts`) simulate thousands of runs and check these rates stay in range.
+- **Measured** (fresh crew of 3, scavenging, Balanced, retreat when Downed, no Medkit; `npm run balance`):
+
+  | Danger | Someone goes down | Deaths |
+  |---|---|---|
+  | 1 | 1% of runs | almost never |
+  | 2 | 6–17% | 1 per 90–290 runs |
+  | 3 | 23–39% | 1 per 30–45 runs |
+  | 4 | 49–67% | 1 per 14–21 runs |
+  | 5 | 76% | 1 per 14 runs |
+
+  A Medkit in the crew cuts deaths by 60–85%. Never retreating and attacking aggressively at danger 4–5 costs a life every 8 runs.
+- **Whole crew downed (a rout):** with nobody standing, nobody can help. Wound rolls get no ally bonuses and Medkits can't be used. The crew loses all loot and everyone gains +30 stress. In a crew of two or more, at least one member always survives to drag the others home, so there are no total wipes. A survivor who goes out **alone** has no such guarantee.
 - **Death:** the survivor goes to the Memorial Wall with their portrait, name, days survived, cause of death and Chronicle. Their gear comes home with the survivors.
 - **Mercy mode:** an optional setting where survivors are never killed and mortal wounds become scars instead. It's off by default.
 
@@ -394,8 +420,8 @@ Every survivor has four slots: **Weapon · Armor · Tool · Trinket**
 
 | # | PR | Model |
 |---|---|---|
-| 1 | Engine core: setup, RNG, types, stats, trait and gear data, character generator, relationship basics, Chronicle, tests, CI | Opus |
-| 2 | Expedition simulation: beats, checks, combat, downed/injury/death, loot, stress, practice growth, trait evolution, relationship events, Monte Carlo balance tests | **Fable** |
+| 1 | Engine core: setup, RNG, types, stats, trait and gear data, character generator, relationship basics, Chronicle, tests, CI | Opus · **done** |
+| 2 | Expedition simulation: beats, checks, combat, downed/injury/death, loot, stress, practice growth, trait evolution, relationship events, Monte Carlo balance tests | **Fable** · **done** |
 | 3 | Portrait system: layered SVG parts and the composer | **Fable** (before Nov 16) |
 | 4 | Event content pack: 40+ events with flavor text | **Fable** |
 | 5 | UI shell: React/Vite, roster, survivor sheet, save/load | Opus |

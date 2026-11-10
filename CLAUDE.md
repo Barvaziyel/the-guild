@@ -12,6 +12,9 @@ npm run check      # typecheck + tests (run before every commit)
 npm test           # node --test, runs .ts files natively (Node >= 22.18)
 npm run typecheck
 npm run sample     # print a generated guild; `npm run sample -- <seed>` for a fixed seed
+npm run run-sample # simulate one run and print its log; args: <seed> <location> <job> <approach> <retreat>
+npm run career     # play a guild through 40 runs and print how its people change; args: <seed> <runs> <maxDanger>
+npm run balance    # Monte Carlo table of danger and loot per location; args: <runs> <retreat> <approach> <crewSize> [medkit]
 ```
 
 ## Layout
@@ -20,6 +23,8 @@ npm run sample     # print a generated guild; `npm run sample -- <seed>` for a f
   - `index.ts`: the public API. The UI imports from here only.
   - `types.ts`: all state types. `constants.ts`: every tunable number.
   - `content/`: data (traits, gear, origins, names). Prefer adding content here over adding code.
+  - `expedition/`: runs. `plan.ts` (validation, duration), `sim.ts` (the beat loop and aftermath), `beats.ts`, `combat.ts`, `wounds.ts`, `runs.ts` (start, complete, risk estimate), `context.ts` (shared helpers).
+  - `evolution.ts`: applies the trait evolution rules in `content/evolutions.ts`.
   - `*.test.ts`: tests next to the code. `test-utils.ts` holds the fixtures.
 - `scripts/`: dev scripts run with `node`.
 - `src/ui/` (planned): React and Vite. `android/` (planned): Capacitor.
@@ -43,6 +48,12 @@ npm run sample     # print a generated guild; `npm run sample -- <seed>` for a f
    - Erasable syntax only (no `enum`, `namespace` or constructor parameter properties).
    - Relative imports end in `.ts`. Type-only imports use `import type`.
 7. Balance-sensitive systems (death rate, loot rates) get Monte Carlo tests that simulate thousands of runs and assert a range.
+   - After changing combat, wounds, enemies or locations, run `npm run balance` and compare with the table in `docs/DESIGN.md` §7.5. `expedition/balance.test.ts` fails if the game drifts far from it.
+8. **Runs are decided at departure.**
+   - `startRun` simulates the whole run on cloned survivors and stores the result. `completeRun` applies it once the crew is back.
+   - `simulateRun` must never change the real `GameState`.
+   - Inside a simulation, use the helpers in `expedition/context.ts` (`check`, `stress`, `hurt`, `say`). They handle rerolls, practice, hidden-trait reveals and log lines.
+   - Run log text lives in `content/flavor.ts`.
 
 ## Workflow
 

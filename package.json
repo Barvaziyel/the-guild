@@ -11,7 +11,10 @@
     "test": "node --test \"src/**/*.test.ts\"",
     "typecheck": "tsc --noEmit",
     "check": "npm run typecheck && npm test",
-    "sample": "node scripts/sample.ts"
+    "sample": "node scripts/sample.ts",
+    "run-sample": "node scripts/run.ts",
+    "balance": "node scripts/balance.ts",
+    "career": "node scripts/career.ts"
   },
   "devDependencies": {
     "@types/node": "^22.18.0",

@@ -2,7 +2,8 @@
 import { newGame } from './game.ts';
 import { emptyCounters } from './generator.ts';
 import { emptyStats } from './stats.ts';
-import type { GameState, Survivor } from './types.ts';
+import { LOCATIONS } from './content/index.ts';
+import type { GameState, RunPlan, Survivor } from './types.ts';
 
 export const T0 = Date.UTC(2026, 10, 10, 12, 0, 0);
 
@@ -31,6 +32,28 @@ export function testSurvivor(id = 'x1', overrides: Partial<Survivor> = {}): Surv
     chronicle: [],
     status: 'ready',
     joinedDay: 1,
+    ...overrides,
+  };
+}
+
+/** A new game with every location discovered and plenty of supplies. */
+export function openGame(seed = 'test-seed'): GameState {
+  const state = testGame(seed);
+  for (const loc of LOCATIONS) state.locations[loc.id] = { discovered: true, explored: 0, runs: 0 };
+  state.resources = { scrap: 0, rations: 500, meds: 50, ammo: 200, tech: 0 };
+  return state;
+}
+
+/** A sensible default plan for the first `size` survivors. */
+export function testPlan(state: GameState, locationId = 'maple_street', overrides: Partial<RunPlan> = {}, size = 3): RunPlan {
+  return {
+    locationId,
+    crew: state.survivors.slice(0, size).map((s) => s.id),
+    job: 'scavenge',
+    meds: 2,
+    ammo: 12,
+    approach: 'balanced',
+    retreat: 'downed',
     ...overrides,
   };
 }

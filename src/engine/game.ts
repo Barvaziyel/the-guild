@@ -2,6 +2,7 @@ import { addChronicle, addGuildLog } from './chronicle.ts';
 import { DAY_MS, SAVE_VERSION, STARTING_RESOURCES, STARTING_SURVIVORS } from './constants.ts';
 import { createItem } from './gear.ts';
 import { generateSurvivor, pickOrigin } from './generator.ts';
+import { initialLocations } from './locations.ts';
 import { initRelationships } from './relationships.ts';
 import { Rng } from './rng.ts';
 import { fullName } from './text.ts';
@@ -61,6 +62,9 @@ export function newGame(opts: NewGameOptions): GameState {
     relationships: {},
     stash: [],
     resources: { ...STARTING_RESOURCES },
+    locations: initialLocations(),
+    runs: [],
+    reports: [],
     log: [],
     settings: { mercyMode: false },
   };

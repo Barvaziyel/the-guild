@@ -5,7 +5,7 @@ import type { TraitDef } from '../types.ts';
  * `checkMods`; it should never special-case a trait id when a hook would do.
  *
  * Check-mod contexts used so far (the simulation decides when they apply):
- *   combat, scavenge, tech, medicine, intimidate, flee, wound, deathSave,
+ *   combat, scavenge, tech, medicine, intimidate, flee, ambush, sneak, deathSave,
  *   vengeance (enemy type === trait target), enemy:<enemyTypeId>
  */
 export const TRAITS: readonly TraitDef[] = [
@@ -354,6 +354,7 @@ export const TRAITS: readonly TraitDef[] = [
     name: 'Wounded',
     kind: 'condition',
     description: 'Hurt. Needs rest before the next run.',
+    blocksRuns: true,
     durationDays: [2, 5],
   },
   {
@@ -361,6 +362,7 @@ export const TRAITS: readonly TraitDef[] = [
     name: 'Badly Wounded',
     kind: 'condition',
     description: 'Seriously hurt. Out of action for a while.',
+    blocksRuns: true,
     durationDays: [4, 8],
   },
   {

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { STAT_MAX, STRESS_AFTER_BREAK, STRESS_HIGH } from './constants.ts';
+import { PRACTICE_PER_LEVEL, STAT_MAX, STRESS_AFTER_BREAK, STRESS_HIGH } from './constants.ts';
 import { getGear } from './content/index.ts';
 import { Rng } from './rng.ts';
 import {
@@ -70,10 +70,11 @@ describe('checks', () => {
 });
 
 describe('practice', () => {
-  test('stats rise when practice crosses 10 x current value', () => {
+  test('stats rise when practice crosses PRACTICE_PER_LEVEL x current value', () => {
     const s = testSurvivor();
-    assert.equal(practiceNeeded(5), 50);
-    assert.deepEqual(addPractice(s, 'aim', 49, 2), []);
+    const need = practiceNeeded(5);
+    assert.equal(need, PRACTICE_PER_LEVEL * 5);
+    assert.deepEqual(addPractice(s, 'aim', need - 1, 2), []);
     const up = addPractice(s, 'aim', 1, 3);
     assert.deepEqual(up, [{ stat: 'aim', from: 5, to: 6 }]);
     assert.equal(s.practice.aim, 0);
@@ -82,7 +83,7 @@ describe('practice', () => {
 
   test('big practice gains can raise a stat more than once, capped at max', () => {
     const s = testSurvivor();
-    addPractice(s, 'wits', 50 + 60 + 70, 1);
+    addPractice(s, 'wits', practiceNeeded(5) + practiceNeeded(6) + practiceNeeded(7), 1);
     assert.equal(s.stats.wits, 8);
     addPractice(s, 'wits', 10_000, 2);
     assert.equal(s.stats.wits, STAT_MAX);

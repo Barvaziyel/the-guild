@@ -1,4 +1,4 @@
-import type { Pronouns, Survivor } from './types.ts';
+import type { CheckInfo, Pronouns, Survivor } from './types.ts';
 
 interface PronounForms {
   they: string;
@@ -66,4 +66,11 @@ export function fullName(s: Survivor): string {
 /** "Dex" or 'Dex "Two-Shot"' if a nickname was earned. */
 export function displayName(s: Survivor): string {
   return s.nickname ? `${s.firstName} "${s.nickname}"` : s.firstName;
+}
+
+/** A check as shown in the run log: "Wits 6+5 vs 10 \u2714". */
+export function checkText(check: CheckInfo): string {
+  const stat = check.stat.charAt(0).toUpperCase() + check.stat.slice(1);
+  const bonus = check.bonus < 0 ? `(${check.bonus})` : String(check.bonus);
+  return `${stat} ${bonus}+${check.roll} vs ${check.dc} ${check.success ? '\u2714' : '\u2718'}${check.rerolled ? ' (rerolled)' : ''}`;
 }

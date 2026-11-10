@@ -101,6 +101,8 @@ export interface TraitDef {
   durationDays?: [number, number];
   /** Trait needs a target, e.g. Vengeful needs an enemy type. */
   needsTarget?: boolean;
+  /** Survivors with this trait can't be sent on runs (serious wounds). */
+  blocksRuns?: boolean;
 }
 
 export interface TraitInstance {
@@ -274,6 +276,127 @@ export interface Relationship {
   flags: RelationshipFlag[];
 }
 
+// ---------------------------------------------------------------- expeditions
+
+export type RunJob = 'scavenge' | 'scout' | 'hunt';
+export type Approach = 'sneaky' | 'balanced' | 'aggressive';
+/** When the crew pulls out of a fight: someone below half HP, someone downed, or never. */
+export type RetreatOrder = 'wounded' | 'downed' | 'never';
+
+export interface RunPlan {
+  locationId: string;
+  /** Survivor ids, 1 to MAX_CREW. */
+  crew: string[];
+  job: RunJob;
+  /** Supplies taken from the Depot. Rations are added automatically (rationsNeeded). */
+  meds: number;
+  ammo: number;
+  approach: Approach;
+  retreat: RetreatOrder;
+  /** If the crew finds more than it can carry, this resource is kept first. */
+  lootPriority?: ResourceId;
+}
+
+export type BeatKind = 'depart' | 'travel' | 'scavenge' | 'hazard' | 'combat' | 'social' | 'discovery' | 'return';
+
+/** A dice check shown next to a log line: "Wits 6+5 vs 10". */
+export interface CheckInfo {
+  who: string;
+  stat: StatId;
+  roll: number;
+  bonus: number;
+  dc: number;
+  success: boolean;
+  rerolled?: boolean;
+}
+
+export interface LogLine {
+  text: string;
+  check?: CheckInfo;
+  tone?: 'good' | 'bad';
+}
+
+/** One step of a run. `at` is ms after departure; the UI reveals beats as time passes. */
+export interface Beat {
+  at: number;
+  kind: BeatKind;
+  title: string;
+  lines: LogLine[];
+}
+
+/**
+ * completed: finished the job. turnedBack: came home early. routed: carried
+ * each other home with nothing. lost: nobody came back.
+ */
+export type RunOutcome = 'completed' | 'turnedBack' | 'routed' | 'lost';
+
+export interface RunDeath {
+  survivorId: string;
+  name: string;
+  cause: string;
+  /** Enemy type id, when an enemy did it. */
+  enemyType?: string;
+}
+
+/** A Chronicle entry written during the run, for the "what changed" summary. */
+export interface RunHighlight {
+  survivorId: string;
+  text: string;
+}
+
+export interface RunSummary {
+  outcome: RunOutcome;
+  loot: Resources;
+  items: ItemInstance[];
+  /** Loot units abandoned because the crew couldn't carry them. */
+  leftBehind: number;
+  medsLeft: number;
+  ammoLeft: number;
+  exploredGain: number;
+  /** Location ids discovered. */
+  discovered: string[];
+  deaths: RunDeath[];
+  highlights: RunHighlight[];
+}
+
+/** Everything decided at departure and applied when the crew returns. */
+export interface RunResult extends RunSummary {
+  /** The crew as they will be after the run. */
+  crew: Survivor[];
+  /** Relationships between crew members after the run. */
+  relationships: Relationship[];
+}
+
+export interface Run {
+  id: string;
+  plan: RunPlan;
+  seed: string;
+  departAt: number;
+  returnAt: number;
+  rations: number;
+  beats: Beat[];
+  result: RunResult;
+}
+
+/** A finished run kept for the report screen. */
+export interface RunReport {
+  id: string;
+  plan: RunPlan;
+  departAt: number;
+  returnAt: number;
+  beats: Beat[];
+  summary: RunSummary;
+  /** Survivor id -> full name at the time, so reports survive deaths. */
+  crewNames: Record<string, string>;
+}
+
+export interface LocationState {
+  discovered: boolean;
+  /** 0..100 */
+  explored: number;
+  runs: number;
+}
+
 // ---------------------------------------------------------------- guild
 
 export const RESOURCE_IDS = ['scrap', 'rations', 'meds', 'ammo', 'tech'] as const;
@@ -306,6 +429,12 @@ export interface GameState {
   relationships: Record<string, Relationship>;
   stash: ItemInstance[];
   resources: Resources;
+  /** Keyed by location id. Use locationState() to read; new content may be missing. */
+  locations: Record<string, LocationState>;
+  /** Crews currently out. */
+  runs: Run[];
+  /** Finished runs, newest first, capped at MAX_REPORTS. */
+  reports: RunReport[];
   log: GuildLogEntry[];
   settings: {
     mercyMode: boolean;

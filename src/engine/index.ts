@@ -14,4 +14,7 @@ export * from './relationships.ts';
 export * from './generator.ts';
 export * from './game.ts';
 export * from './save.ts';
+export * from './locations.ts';
+export * from './evolution.ts';
+export * from './expedition/index.ts';
 export { newId } from './ids.ts';
