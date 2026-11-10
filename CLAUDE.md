@@ -14,6 +14,7 @@ npm run typecheck
 npm run sample     # print a generated guild; `npm run sample -- <seed>` for a fixed seed
 npm run run-sample # simulate one run and print its log; args: <seed> <location> <job> <approach> <retreat>
 npm run career     # play a guild through 40 runs and print how its people change; args: <seed> <runs> <maxDanger>
+npm run portraits  # write a gallery of portraits to out/portraits.html
 npm run balance    # Monte Carlo table of danger and loot per location; args: <runs> <retreat> <approach> <crewSize> [medkit]
 ```
 
@@ -26,6 +27,8 @@ npm run balance    # Monte Carlo table of danger and loot per location; args: <r
   - `expedition/`: runs. `plan.ts` (validation, duration), `sim.ts` (the beat loop and aftermath), `beats.ts`, `combat.ts`, `wounds.ts`, `runs.ts` (start, complete, risk estimate), `context.ts` (shared helpers).
   - `evolution.ts`: applies the trait evolution rules in `content/evolutions.ts`.
   - `*.test.ts`: tests next to the code. `test-utils.ts` holds the fixtures.
+- `src/portrait/`: survivor portraits as layered SVG, composed in code. Zero dependencies; imports types from the engine.
+  - `portrait.ts`: `portraitSvg(survivor)`, `portraitLook`, and the layer order. `face.ts`, `hair.ts`, `outfit.ts`, `overlays.ts`: the parts. `palette.ts`: colors.
 - `scripts/`: dev scripts run with `node`.
 - `src/ui/` (planned): React and Vite. `android/` (planned): Capacitor.
 
@@ -54,6 +57,15 @@ npm run balance    # Monte Carlo table of danger and loot per location; args: <r
    - `simulateRun` must never change the real `GameState`.
    - Inside a simulation, use the helpers in `expedition/context.ts` (`check`, `stress`, `hurt`, `say`). They handle rerolls, practice, hidden-trait reveals and log lines.
    - Run log text lives in `content/flavor.ts`.
+
+## Portrait rules
+
+1. **A survivor's face never changes.** It is derived only from `appearance`. Gear, traits, stress and age add layers on top.
+2. **New gear needs a look.** Add armor and weapons to `ARMOR_LOOKS` / `WEAPON_LOOKS` in `outfit.ts` (a test fails otherwise). Tools and trinkets are optional.
+3. **Hidden traits never show.**
+4. Parts are drawn on a 256 x 256 canvas centered on x = 128, with ink `#2b2420` outlines and flat fills from `palette.ts`.
+5. After changing a part, run `npm run portraits` and look at the gallery. Tests only catch broken markup, not ugly drawings.
+6. Ids inside the SVG are prefixed with the appearance seed, so many portraits can sit on one page.
 
 ## Workflow
 

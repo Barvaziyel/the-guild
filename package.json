@@ -14,7 +14,8 @@
     "sample": "node scripts/sample.ts",
     "run-sample": "node scripts/run.ts",
     "balance": "node scripts/balance.ts",
-    "career": "node scripts/career.ts"
+    "career": "node scripts/career.ts",
+    "portraits": "node scripts/portraits.ts"
   },
   "devDependencies": {
     "@types/node": "^22.18.0",
