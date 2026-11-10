@@ -407,13 +407,16 @@ Every survivor has four slots: **Weapon · Armor · Tool · Trinket**
 - **`src/ui/`** uses React and Vite.
   - One store (`store.ts`) holds the game. `store.update(fn)` runs engine functions on a copy of the state, saves it and re-renders; if `fn` throws, nothing changes.
   - Screens are addressed by the URL hash (`#/roster`, `#/s/<id>/bonds`), so the phone's back button works.
-  - Logic that can be tested without a browser lives in plain `.ts` files (`store.ts`, `persist.ts`, `route.ts`, `view.ts`, `dev.ts`) with Node tests. Components are `.tsx`.
+  - Logic that can be tested without a browser lives in plain `.ts` files (`store.ts`, `persist.ts`, `route.ts`, `view.ts`, `runs-view.ts`, `reach-map.ts`, `dev.ts`) with Node tests. Components are `.tsx`.
+  - Crews are brought home in one place (`App.tsx`, with `completeDueRuns`), when the clock passes a return time or the game is opened.
   - The engine is type-checked without DOM types (root `tsconfig.json`), the UI with them (`src/ui/tsconfig.json`).
 - **Persistence.** A versioned JSON save with migrations, stored in localStorage (Capacitor storage later).
   - Saves can be exported (copy or download) and imported (paste or file). Text that isn't a save, or a damaged one, is rejected with a reason.
   - Importing or starting over keeps the replaced save as a **backup copy**, which Settings can load again.
   - If the save on the device can't be read, the game shows it for copying and overwrites nothing until the player starts a new guild.
-- **Developer fast-forward** (Settings, until the run planner exists): plays ten runs with random crews at danger up to 3, faking rest between runs, then slides the whole timeline back so the guild looks older and nothing is in the future.
+- **Developer tools** (Settings → Developer):
+  - *Fast-forward* plays ten runs with random crews at danger up to 3, faking rest between runs, then slides the whole timeline back so the guild looks older and nothing is in the future.
+  - *Developer shortcuts* add a button to a crew's run that skips ahead to their return, the same way: the timeline moves, and the crew comes home through the normal return.
 - **Tests.** Node's built-in test runner (`node --test`, which runs `.ts` files natively). This includes Monte Carlo balance tests.
 - **Android.** Capacitor wraps the built web app. GitHub Actions builds the APK and publishes it to a GitHub Release, so it can be downloaded directly on the phone.
   - Signing uses **one fixed keystore**, stored in repo secrets. That way updates install over the old version and keep the save.
