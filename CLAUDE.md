@@ -29,12 +29,14 @@ npm run balance    # Monte Carlo table of danger and loot per location; args: <r
   - `expedition/`: runs. `plan.ts` (validation, duration), `sim.ts` (the beat loop and aftermath), `beats.ts`, `combat.ts`, `wounds.ts`, `runs.ts` (start, complete, risk estimate), `context.ts` (shared helpers).
   - `expedition/events.ts`: runs the scripted events in `content/events.ts`.
   - `evolution.ts`: applies the trait evolution rules in `content/evolutions.ts`.
+  - `depot/`: the Depot. `buildings.ts` (levels, costs, beds, posts), `day.ts` (one Depot day: food, work, care, rest, drift), `events.ts` (raids, traders, wanderers, fights...), `recruits.ts` (the board, taking people in), `workshop.ts` (making and improving gear), `time.ts` (`advanceTime`: plays the days that passed and brings crews home, at most 7 days at once).
+  - `content/buildings.ts`, `content/workshop.ts`: building levels and text, recipes and upgrades.
   - `*.test.ts`: tests next to the code. `test-utils.ts` holds the fixtures.
 - `src/portrait/`: survivor portraits as layered SVG, composed in code. Zero dependencies; imports types from the engine.
   - `portrait.ts`: `portraitSvg(survivor)`, `portraitLook`, and the layer order. `face.ts`, `hair.ts`, `outfit.ts`, `overlays.ts`: the parts. `palette.ts`: colors.
 - `scripts/`: dev scripts run with `node`.
 - `src/ui/`: the app, in React and Vite. `index.html` and `vite.config.ts` are at the repo root.
-  - Plain `.ts`, tested in Node: `store.ts` (holds the game, saves on every change), `persist.ts` (localStorage, export/import, backup copy), `route.ts` (hash routes), `view.ts` (labels and groupings for survivor screens), `runs-view.ts` (the planner's choices, times, outcomes, reports, notices), `reach-map.ts` (where places sit on the map), `dev.ts` (fast-forward, skip ahead), `prefs.ts` (device-only settings), `time.ts` (clock times).
+  - Plain `.ts`, tested in Node: `store.ts` (holds the game, saves on every change), `persist.ts` (localStorage, export/import, backup copy), `route.ts` (hash routes), `view.ts` (labels and groupings for survivor screens), `runs-view.ts` (the planner's choices, times, outcomes, reports, notices), `depot-view.ts` (buildings with live numbers, posts, the workshop, recruits, the "since you last looked" note), `reach-map.ts` (where places sit on the map), `dev.ts` (fast-forward, skip ahead), `prefs.ts` (device-only settings), `time.ts` (clock times).
   - `notify.ts`: "crew is back" notices (browser version; PR 8 adds Capacitor's).
   - React: `main.tsx`, `App.tsx`, `hooks.ts`, `components/`, `screens/`. Styles in `styles.css`.
 - `android/` (planned): Capacitor.
@@ -59,12 +61,15 @@ npm run balance    # Monte Carlo table of danger and loot per location; args: <r
    - Relative imports end in `.ts`. Type-only imports use `import type`.
 7. Balance-sensitive systems (death rate, loot rates) get Monte Carlo tests that simulate thousands of runs and assert a range.
    - After changing combat, wounds, enemies or locations, run `npm run balance` and compare with the table in `docs/DESIGN.md` §7.5. `expedition/balance.test.ts` fails if the game drifts far from it.
-8. **Runs are decided at departure.**
+8. **Time only moves through `advanceTime`.** It plays Depot days in order and brings crews home before the day they're back for. Don't complete runs or play days anywhere else.
+   - Depot numbers live in `constants.ts`; building text in `content/buildings.ts` quotes some of them, and `depot.test.ts` checks they agree.
+   - After changing food, rest or raid numbers, run the Depot tests: Monte Carlo checks that an idle guild of 4, and a guild of 8 with a level 2 Garden, never go hungry.
+9. **Runs are decided at departure.**
    - `startRun` simulates the whole run on cloned survivors and stores the result. `completeRun` applies it once the crew is back.
    - `simulateRun` must never change the real `GameState`.
    - Inside a simulation, use the helpers in `expedition/context.ts` (`check`, `stress`, `hurt`, `say`). They handle rerolls, practice, hidden-trait reveals and log lines.
    - Run log text lives in `content/flavor.ts`.
-9. **Scripted events are data.**
+10. **Scripted events are data.**
    - They live in `content/events.ts`; `expedition/events.ts` casts and plays them. To add one, append an entry. Add a new effect type only when no existing one fits.
    - Write text so verbs don't have to agree with a pronoun: "{a.first} laughs", not "{a.they} laughs".
    - `events.test.ts` checks references and placeholders, and that every event and both of its outcomes can happen.
@@ -87,7 +92,7 @@ npm run balance    # Monte Carlo table of danger and loot per location; args: <r
 4. The engine is type-checked without DOM types; the UI has its own `src/ui/tsconfig.json` with them. `npm run typecheck` runs both.
 5. **Look:** steel-green surfaces, bone text, rust for actions (CSS variables at the top of `styles.css`). Big Shoulders Stencil for names, titles and big numbers; Atkinson Hyperlegible Next for everything else. Sentence case, no all-caps labels. Fonts are bundled, nothing loads from the network.
 6. **Phone first.** Test at 390 px wide. Touch targets at least 44 px. Respect the safe-area insets.
-7. **Crews come home in `App.tsx`** (`completeDueRuns` when the clock passes a return time, including on opening the game). Screens never complete runs themselves.
+7. **Time passes in `App.tsx`:** `advanceTime` runs when the clock reaches a crew's return or a new Depot day, and on opening the game. Screens never complete runs or play days themselves.
 8. **A new location needs a spot on the map** in `reach-map.ts` (a test fails otherwise). Keep roads from crossing; labels have a paper halo for where a road runs under them.
 9. To look at the UI from a cloud session: `npm run build`, `npx vite preview`, then screenshot with headless Chrome (puppeteer is in `/opt/npm-tools/node_modules`). Seed `localStorage['the-guild:save']` with a save that has history; the developer fast-forward in `dev.ts` can make one.
 

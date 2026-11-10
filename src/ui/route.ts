@@ -7,6 +7,11 @@ export const SHEET_TABS = ['stats', 'bonds', 'story'] as const;
 export type SheetTab = (typeof SHEET_TABS)[number];
 
 export type Route =
+  | { screen: 'depot' }
+  /** A Depot building: its workers and what it does. */
+  | { screen: 'building'; id: string }
+  /** Who is at the gate. */
+  | { screen: 'recruits' }
   | { screen: 'roster' }
   | { screen: 'survivor'; id: string; tab: SheetTab }
   | { screen: 'memorial' }
@@ -19,14 +24,20 @@ export type Route =
   | { screen: 'run'; id: string };
 
 /** The screens in the tab bar. */
-export type TabScreen = 'roster' | 'reach' | 'runs' | 'settings';
+export type TabScreen = 'depot' | 'roster' | 'reach' | 'runs' | 'settings';
 
-export const DEFAULT_ROUTE: Route = { screen: 'roster' };
+export const DEFAULT_ROUTE: Route = { screen: 'depot' };
 
 export function parseRoute(hash: string): Route {
   const parts = hash.replace(/^#\/?/, '').split('/').filter(Boolean).map(decodeURIComponent);
   const [head, a, b] = parts;
   switch (head) {
+    case 'roster':
+      return { screen: 'roster' };
+    case 'recruits':
+      return { screen: 'recruits' };
+    case 'b':
+      return a ? { screen: 'building', id: a } : DEFAULT_ROUTE;
     case 'memorial':
       return { screen: 'memorial' };
     case 'settings':
@@ -52,11 +63,15 @@ export function parseRoute(hash: string): Route {
 export function routeHash(route: Route): string {
   const enc = encodeURIComponent;
   switch (route.screen) {
+    case 'depot':
+    case 'recruits':
     case 'roster':
     case 'memorial':
     case 'settings':
     case 'runs':
       return `#/${route.screen}`;
+    case 'building':
+      return `#/b/${enc(route.id)}`;
     case 'reach':
       return route.id ? `#/reach/${enc(route.id)}` : '#/reach';
     case 'plan':
@@ -71,6 +86,10 @@ export function routeHash(route: Route): string {
 /** Which tab bar entry is lit for a route. */
 export function tabFor(route: Route): TabScreen {
   switch (route.screen) {
+    case 'depot':
+    case 'building':
+    case 'recruits':
+      return 'depot';
     case 'roster':
     case 'survivor':
     case 'memorial':

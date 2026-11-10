@@ -21,6 +21,8 @@ export {
   type EventTarget,
 } from './events.ts';
 export { EVOLUTIONS, type EvolutionRule, type RunTally, type NumericCounter } from './evolutions.ts';
+export { BUILDINGS, type BuildingDef, type BuildingLevel } from './buildings.ts';
+export { RECIPES, UPGRADES, type Recipe, type Upgrade } from './workshop.ts';
 
 const traitById = new Map<string, TraitDef>(TRAITS.map((t) => [t.id, t]));
 const gearById = new Map<string, GearDef>(GEAR.map((g) => [g.id, g]));

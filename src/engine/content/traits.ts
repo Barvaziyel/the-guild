@@ -191,7 +191,7 @@ export const TRAITS: readonly TraitDef[] = [
     name: 'Animal Lover',
     kind: 'personality',
     description: 'Animals sense a friend. Ferals sometimes back off.',
-    hooks: { checkMods: [{ stat: 'nerve', context: 'enemy:feral', mod: 2 }] },
+    hooks: { checkMods: [{ stat: 'nerve', context: 'enemy:feral', mod: 2 }], likesAnimals: true },
     startWeight: 3,
   },
 
@@ -268,7 +268,7 @@ export const TRAITS: readonly TraitDef[] = [
     name: 'Beast-Friend',
     kind: 'earned',
     description: 'Ferals hesitate around them.',
-    hooks: { checkMods: [{ context: 'enemy:feral', mod: 2 }] },
+    hooks: { checkMods: [{ context: 'enemy:feral', mod: 2 }], likesAnimals: true },
   },
 
   // ------------------------------------------------------------ stress
@@ -381,6 +381,14 @@ export const TRAITS: readonly TraitDef[] = [
     statMods: { nerve: -1 },
     hooks: { stressGainMult: 1.25 },
     durationDays: [3, 7],
+  },
+  {
+    id: 'feverish',
+    name: 'Feverish',
+    kind: 'condition',
+    description: 'Running a fever. Shaky and slow until it breaks, or the Infirmary treats it.',
+    statMods: { grit: -1, wits: -1 },
+    durationDays: [2, 4],
   },
   {
     id: 'exhausted',

@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import {
   NAME_MAX_LENGTH,
   SLOTS,
+  assignPost,
   getLocation,
   canChangeGear,
   equipFromStash,
@@ -10,12 +11,14 @@ import {
   renameSurvivor,
   unequip,
   type GameState,
+  type BuildingId,
   type Slot,
   type Survivor,
 } from '../../engine/index.ts';
+import { postChoices } from '../depot-view.ts';
 import { BondBar, Meter, Vitals } from '../components/Bars.tsx';
 import { Portrait } from '../components/Portrait.tsx';
-import { goBack, navigate, useServices } from '../hooks.ts';
+import { goBack, navigate, useAction, useServices } from '../hooks.ts';
 import type { SheetTab } from '../route.ts';
 import { backIn, runOfSurvivor } from '../runs-view.ts';
 import {
@@ -155,9 +158,41 @@ function SheetHeader({ state, survivor: s, day, now }: { state: GameState; survi
             </button>
           )}
           <Vitals survivor={s} />
+          <PostPicker state={state} survivor={s} />
         </div>
       )}
     </header>
+  );
+}
+
+/** Their job at the Depot. */
+function PostPicker({ state, survivor: s }: { state: GameState; survivor: Survivor }) {
+  const { act, error } = useAction();
+  const choices = postChoices(state, s);
+  return (
+    <div className="post-field">
+      <label className="field select-field">
+        Post at the Depot
+        <select
+          value={s.post?.building ?? ''}
+          onChange={(e) => act((st) => assignPost(st, s.id, e.target.value ? { building: e.target.value as BuildingId } : undefined))}
+        >
+          <option value="">No post</option>
+          {choices.map((c) => (
+            <option key={c.id} value={c.id} disabled={c.problem !== undefined}>
+              {c.name}
+              {c.problem ? ' (full)' : ''}
+            </option>
+          ))}
+        </select>
+      </label>
+      {s.post && (
+        <button type="button" className="link" onClick={() => navigate({ screen: 'building', id: s.post!.building })}>
+          Go to the {choices.find((c) => c.id === s.post!.building)?.name ?? 'building'}
+        </button>
+      )}
+      {error && <p className="field-error">{error}</p>}
+    </div>
   );
 }
 
