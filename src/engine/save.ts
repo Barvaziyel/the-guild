@@ -21,6 +21,10 @@ const MIGRATIONS: Record<number, (save: Record<string, unknown>) => void> = {
     for (const run of (save.runs ?? []) as { result: { events?: string[] } }[]) run.result.events ??= [];
     for (const report of (save.reports ?? []) as { summary: { events?: string[] } }[]) report.summary.events ??= [];
   },
+  // v4: reports remember whether they've been read. Old ones count as read.
+  3: (save) => {
+    for (const report of (save.reports ?? []) as { read?: boolean }[]) report.read = true;
+  },
 };
 
 export function serialize(state: GameState): string {

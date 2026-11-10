@@ -9,7 +9,7 @@ import { T0, openGame, testGame, testPlan } from '../test-utils.ts';
 import { addTrait, hasTrait } from '../traits.ts';
 import type { GameState, Run } from '../types.ts';
 import { planWarnings, rationsNeeded, runDuration, validatePlan } from './plan.ts';
-import { completeRun, dueRuns, estimateRisk, startRun, visibleBeats } from './runs.ts';
+import { completeDueRuns, completeRun, dueRuns, estimateRisk, markReportRead, startRun, visibleBeats } from './runs.ts';
 
 describe('planning', () => {
   test('a normal plan is valid', () => {
@@ -105,6 +105,30 @@ describe('run lifecycle', () => {
     assert.deepEqual(dueRuns(state, run.returnAt - 1), []);
     assert.throws(() => completeRun(state, run.id, run.returnAt - 1), /not back yet/);
     assert.deepEqual(dueRuns(state, run.returnAt), [run]);
+  });
+
+  test('crews that are back come home in the order they returned, as unread reports', () => {
+    const state = openGame('due');
+    const near = startRun(state, testPlan(state, 'rail_yard', {}, 1), T0);
+    const far = startRun(state, { ...testPlan(state, 'kessler_farm', {}, 2), crew: state.survivors.slice(1, 3).map((s) => s.id) }, T0);
+    assert.ok(near.returnAt < far.returnAt);
+
+    assert.deepEqual(completeDueRuns(state, near.returnAt - 1), []);
+    assert.deepEqual(
+      completeDueRuns(state, near.returnAt).map((r) => r.id),
+      [near.id],
+    );
+    assert.deepEqual(state.runs.map((r) => r.id), [far.id]);
+
+    const later = completeDueRuns(state, far.returnAt + DAY_MS);
+    assert.deepEqual(later.map((r) => r.id), [far.id]);
+    assert.equal(state.runs.length, 0);
+    assert.ok(state.reports.every((r) => !r.read));
+
+    markReportRead(state, near.id);
+    assert.equal(state.reports.find((r) => r.id === near.id)!.read, true);
+    assert.equal(state.reports.find((r) => r.id === far.id)!.read, false);
+    markReportRead(state, 'nope'); // unknown ids are ignored
   });
 
   test('completing a run applies exactly what was decided at departure', () => {
@@ -235,6 +259,18 @@ describe('risk estimate', () => {
 });
 
 describe('save migration', () => {
+  test('a version 3 save marks its old reports as read', () => {
+    const state = openGame('v3');
+    const run = startRun(state, testPlan(state), T0);
+    completeRun(state, run.id, run.returnAt);
+    const old = structuredClone(state) as unknown as Record<string, unknown>;
+    old.version = 3;
+    for (const r of old.reports as Record<string, unknown>[]) delete r.read;
+    const loaded = deserialize(JSON.stringify(old));
+    assert.equal(loaded.version, SAVE_VERSION);
+    assert.equal(loaded.reports[0]!.read, true);
+  });
+
   test('a version 1 save gains locations, runs and reports', () => {
     const state = newGame({ seed: 'old', now: T0 });
     const old: Record<string, unknown> = { ...structuredClone(state), version: 1 };

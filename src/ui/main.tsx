@@ -7,6 +7,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App.tsx';
 import { ServicesContext, type AppServices } from './hooks.ts';
+import { webNotifier } from './notify.ts';
 import { memoryStore, type KeyValueStore } from './persist.ts';
 import { createPrefsStore } from './prefs.ts';
 import { createGameStore, randomSeed } from './store.ts';
@@ -34,6 +35,7 @@ const kv = deviceStorage();
 const services: AppServices = {
   store: createGameStore(kv, { now: () => Date.now(), newSeed: randomSeed }),
   prefs: createPrefsStore(kv),
+  notifier: webNotifier(),
 };
 
 createRoot(document.getElementById('root')!).render(

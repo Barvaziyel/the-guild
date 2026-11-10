@@ -40,8 +40,9 @@ function Toggle({ label, help, checked, onChange }: { label: string; help: strin
 }
 
 function GameSettings({ state }: { state: GameState }) {
-  const { store, prefs } = useServices();
-  const { wobble } = usePrefs();
+  const { store, prefs, notifier } = useServices();
+  const { wobble, notify } = usePrefs();
+  const [noticeNote, setNoticeNote] = useState<string | null>(null);
   return (
     <div className="panel">
       <h3 className="panel-title">Game</h3>
@@ -55,6 +56,23 @@ function GameSettings({ state }: { state: GameState }) {
           })
         }
       />
+      <Toggle
+        label="Tell me when crews come back"
+        help="A notice when a crew is due home, even with the game in the background. In a phone browser it only works while the game is open; the Android app will do it with the game closed."
+        checked={notify}
+        onChange={(on) => {
+          setNoticeNote(null);
+          if (!on) {
+            prefs.set({ notify: false });
+            return;
+          }
+          void notifier.request().then((allowed) => {
+            prefs.set({ notify: allowed });
+            if (!allowed) setNoticeNote("This browser won't show notices. The game still tells you who is back when you open it.");
+          });
+        }}
+      />
+      {noticeNote && <p className="field-error">{noticeNote}</p>}
       <Toggle
         label="Hand-drawn lines"
         help="The wobble on portrait lines. Turn it off if lists scroll slowly on this phone."
@@ -286,7 +304,8 @@ function RestoreBackup({ raw }: { raw: string }) {
 // ---------------------------------------------------------------- developer
 
 function DeveloperSettings() {
-  const { store } = useServices();
+  const { store, prefs } = useServices();
+  const { devTools } = usePrefs();
   const [result, setResult] = useState<FastForwardResult | null>(null);
 
   const run = (): void => {
@@ -300,9 +319,15 @@ function DeveloperSettings() {
   return (
     <div className="panel">
       <h3 className="panel-title">Developer</h3>
+      <Toggle
+        label="Developer shortcuts"
+        help="Adds a button to a crew's run that skips ahead to their return, so you don't have to wait."
+        checked={devTools}
+        onChange={(on) => prefs.set({ devTools: on })}
+      />
       <p className="panel-help">
-        Until the run planner arrives, this plays ten runs at once with random crews at places up to danger 3, so the roster has some history.
-        Supplies are topped up as needed and everyone rests three days between runs.
+        Play ten runs at once with random crews at places up to danger 3, to give a new guild some history. Supplies are topped up as needed and
+        everyone rests three days between runs.
       </p>
       <ConfirmButton
         label="Play ten runs"

@@ -160,10 +160,26 @@ export function completeRun(state: GameState, runId: string, now: number): RunRe
     beats: run.beats,
     summary: summaryOf(run),
     crewNames,
+    read: false,
   };
   state.reports.unshift(report);
   state.reports.length = Math.min(state.reports.length, MAX_REPORTS);
   return report;
+}
+
+/**
+ * Bring home every crew that is back by `now`, in the order they returned.
+ * Returns the new reports, oldest first.
+ */
+export function completeDueRuns(state: GameState, now: number): RunReport[] {
+  const due = dueRuns(state, now).sort((a, b) => a.returnAt - b.returnAt);
+  return due.map((run) => completeRun(state, run.id, now));
+}
+
+/** The player has opened this report. */
+export function markReportRead(state: GameState, reportId: string): void {
+  const report = state.reports.find((r) => r.id === reportId);
+  if (report) report.read = true;
 }
 
 /** A dead survivor's gear goes back into the stash. */

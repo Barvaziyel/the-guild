@@ -1,10 +1,11 @@
-import type { GameState, Survivor } from '../../engine/index.ts';
+import { getLocation, type GameState, type Survivor } from '../../engine/index.ts';
 import { Vitals } from '../components/Bars.tsx';
 import { Portrait } from '../components/Portrait.tsx';
 import { navigate } from '../hooks.ts';
+import { backIn, runOfSurvivor } from '../runs-view.ts';
 import { headlineTraits, originLine, rosterOrder, survivorStatus } from '../view.ts';
 
-export function Roster({ state, day }: { state: GameState; day: number }) {
+export function Roster({ state, day, now }: { state: GameState; day: number; now: number }) {
   const people = rosterOrder(state);
   const ready = people.filter((s) => survivorStatus(s).tone === 'ready').length;
   return (
@@ -22,16 +23,26 @@ export function Roster({ state, day }: { state: GameState; day: number }) {
       ) : (
         <ul className="roster">
           {people.map((s) => (
-            <RosterRow key={s.id} survivor={s} day={day} />
+            <RosterRow key={s.id} state={state} survivor={s} day={day} now={now} />
           ))}
         </ul>
       )}
+      <div className="panel memorial-link">
+        <button type="button" className="btn" onClick={() => navigate({ screen: 'memorial' })}>
+          Memorial Wall
+        </button>
+        <span className="screen-sub">
+          {state.memorial.length === 0 ? 'No names yet.' : `${state.memorial.length} ${state.memorial.length === 1 ? 'name' : 'names'} on the wall.`}
+        </span>
+      </div>
     </section>
   );
 }
 
-function RosterRow({ survivor: s, day }: { survivor: Survivor; day: number }) {
+function RosterRow({ state, survivor: s, day, now }: { state: GameState; survivor: Survivor; day: number; now: number }) {
   const status = survivorStatus(s, day);
+  const run = runOfSurvivor(state, s.id);
+  const label = run ? `At ${getLocation(run.plan.locationId).name}, ${backIn(run, now)}` : status.label;
   const traits = headlineTraits(s);
   return (
     <li>
@@ -46,7 +57,7 @@ function RosterRow({ survivor: s, day }: { survivor: Survivor; day: number }) {
             {s.firstName} {s.lastName}
           </span>
           <span className="roster-origin">{originLine(s)}</span>
-          <span className={`status status-${status.tone}`}>{status.label}</span>
+          <span className={`status status-${status.tone}`}>{label}</span>
           <Vitals survivor={s} />
           {traits.length > 0 && <span className="roster-traits">{traits.join(', ')}</span>}
         </span>

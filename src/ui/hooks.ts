@@ -1,5 +1,6 @@
 /** React glue: the game store, preferences, the clock and hash navigation. */
 import { createContext, useContext, useEffect, useState, useSyncExternalStore } from 'react';
+import type { Notifier } from './notify.ts';
 import type { Prefs, PrefsStore } from './prefs.ts';
 import { parseRoute, routeHash, type Route } from './route.ts';
 import type { GameStore, Snapshot } from './store.ts';
@@ -7,6 +8,7 @@ import type { GameStore, Snapshot } from './store.ts';
 export interface AppServices {
   store: GameStore;
   prefs: PrefsStore;
+  notifier: Notifier;
 }
 
 export const ServicesContext = createContext<AppServices | null>(null);
@@ -27,9 +29,20 @@ export function usePrefs(): Prefs {
   return useSyncExternalStore(prefs.subscribe, prefs.get);
 }
 
-/** The current time, refreshed every `everyMs`. */
-export function useNow(everyMs = 30_000): number {
+/**
+ * The current time, refreshed every `everyMs`, when the app comes back to the
+ * foreground, and at `wakeAt` (e.g. the next crew's return) if given.
+ */
+export function useNow(everyMs = 30_000, wakeAt?: number): number {
   const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (wakeAt === undefined) return;
+    const delay = wakeAt - Date.now();
+    if (delay > 2 ** 31 - 1) return;
+    // Already passed (a developer skip, or the phone slept through it): wake right away.
+    const id = window.setTimeout(() => setNow(Date.now()), Math.max(0, delay) + 50);
+    return () => window.clearTimeout(id);
+  }, [wakeAt]);
   useEffect(() => {
     const id = window.setInterval(() => setNow(Date.now()), everyMs);
     const onVisible = (): void => {

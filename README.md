@@ -3,9 +3,11 @@
 Run a scavenger guild out of a ruined rail depot, forty years after the Burn. Recruit drifters, gear them up, send crews into the Reach, and read what happened when they come back. Every survivor changes with what they live through: scars, traits, friendships, feuds, and occasionally a name on the Memorial Wall.
 
 - Design: [`docs/DESIGN.md`](docs/DESIGN.md)
-- Status: engine core, expedition simulation, portraits, 54 scripted events and the UI shell (PRs 1–5 of the roadmap). The app shows the roster, survivor sheets and the Memorial Wall, and saves on the device. Sending crews out from the app comes next (PR 6).
+- Status: PRs 1–6 of the roadmap. The app has the roster, survivor sheets, the Reach map, the run planner, crews out in real time, run reports and the Memorial Wall, and saves on the device. The Depot comes next (PR 7), then the Android build (PR 8).
 
 ![The roster, a survivor sheet and a Chronicle](docs/img/ui-shell.png)
+
+![The Reach map, the run planner and a run report](docs/img/ui-runs.png)
 
 ![Twenty-four randomly generated survivors](docs/img/portraits-random.png)
 
@@ -26,6 +28,6 @@ npm run career   # play a guild through 40 runs and watch its people change
 npm run portraits # write a gallery of survivor portraits to out/portraits.html
 ```
 
-Until the run planner arrives, **Settings → Developer → Play ten runs** moves a guild forward a month so there is history to look at.
+Runs take real time (10 minutes to 2.5 hours). To test without waiting, turn on **Settings → Developer → Developer shortcuts**: a crew's run then has a button to skip ahead to their return. **Play ten runs** moves a new guild forward a month so there is history to look at.
 
 Fonts: [Big Shoulders Stencil](https://fonts.google.com/specimen/Big+Shoulders+Stencil) and [Atkinson Hyperlegible Next](https://fonts.google.com/specimen/Atkinson+Hyperlegible+Next), both under the SIL Open Font License, bundled through Fontsource.

@@ -7,10 +7,14 @@ import type { KeyValueStore } from './persist.ts';
 export interface Prefs {
   /** Hand-drawn wobble on portrait lines. Off can make long lists scroll faster. */
   wobble: boolean;
+  /** Tell the player when crews come back. */
+  notify: boolean;
+  /** Show developer shortcuts on game screens (skip ahead to a crew's return). */
+  devTools: boolean;
 }
 
 export const PREFS_KEY = 'the-guild:prefs';
-const DEFAULT_PREFS: Prefs = { wobble: true };
+const DEFAULT_PREFS: Prefs = { wobble: true, notify: false, devTools: false };
 
 export interface PrefsStore {
   get(): Prefs;

@@ -10,25 +10,39 @@ export type Route =
   | { screen: 'roster' }
   | { screen: 'survivor'; id: string; tab: SheetTab }
   | { screen: 'memorial' }
-  | { screen: 'settings' };
+  | { screen: 'settings' }
+  /** The Reach map, optionally with a location picked. */
+  | { screen: 'reach'; id?: string }
+  | { screen: 'plan'; locationId: string }
+  | { screen: 'runs' }
+  /** A crew that is out, or the report once they're back (same id). */
+  | { screen: 'run'; id: string };
 
 /** The screens in the tab bar. */
-export type TabScreen = 'roster' | 'memorial' | 'settings';
+export type TabScreen = 'roster' | 'reach' | 'runs' | 'settings';
 
 export const DEFAULT_ROUTE: Route = { screen: 'roster' };
 
 export function parseRoute(hash: string): Route {
   const parts = hash.replace(/^#\/?/, '').split('/').filter(Boolean).map(decodeURIComponent);
-  switch (parts[0]) {
+  const [head, a, b] = parts;
+  switch (head) {
     case 'memorial':
       return { screen: 'memorial' };
     case 'settings':
       return { screen: 'settings' };
+    case 'runs':
+      return { screen: 'runs' };
+    case 'reach':
+      return a ? { screen: 'reach', id: a } : { screen: 'reach' };
+    case 'plan':
+      return a ? { screen: 'plan', locationId: a } : { screen: 'reach' };
+    case 'run':
+      return a ? { screen: 'run', id: a } : { screen: 'runs' };
     case 's': {
-      const id = parts[1];
-      if (!id) return DEFAULT_ROUTE;
-      const tab = SHEET_TABS.find((t) => t === parts[2]) ?? 'stats';
-      return { screen: 'survivor', id, tab };
+      if (!a) return DEFAULT_ROUTE;
+      const tab = SHEET_TABS.find((t) => t === b) ?? 'stats';
+      return { screen: 'survivor', id: a, tab };
     }
     default:
       return DEFAULT_ROUTE;
@@ -36,20 +50,38 @@ export function parseRoute(hash: string): Route {
 }
 
 export function routeHash(route: Route): string {
+  const enc = encodeURIComponent;
   switch (route.screen) {
     case 'roster':
-      return '#/roster';
     case 'memorial':
-      return '#/memorial';
     case 'settings':
-      return '#/settings';
+    case 'runs':
+      return `#/${route.screen}`;
+    case 'reach':
+      return route.id ? `#/reach/${enc(route.id)}` : '#/reach';
+    case 'plan':
+      return `#/plan/${enc(route.locationId)}`;
+    case 'run':
+      return `#/run/${enc(route.id)}`;
     case 'survivor':
-      return `#/s/${encodeURIComponent(route.id)}${route.tab === 'stats' ? '' : `/${route.tab}`}`;
+      return `#/s/${enc(route.id)}${route.tab === 'stats' ? '' : `/${route.tab}`}`;
   }
 }
 
-/** Which tab bar entry is lit for a route. A survivor sheet belongs to the roster or the memorial. */
-export function tabFor(route: Route, isDead: boolean): TabScreen {
-  if (route.screen === 'survivor') return isDead ? 'memorial' : 'roster';
-  return route.screen;
+/** Which tab bar entry is lit for a route. */
+export function tabFor(route: Route): TabScreen {
+  switch (route.screen) {
+    case 'roster':
+    case 'survivor':
+    case 'memorial':
+      return 'roster';
+    case 'reach':
+    case 'plan':
+      return 'reach';
+    case 'runs':
+    case 'run':
+      return 'runs';
+    case 'settings':
+      return 'settings';
+  }
 }
