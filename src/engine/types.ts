@@ -390,6 +390,8 @@ export interface RunReport {
   summary: RunSummary;
   /** Survivor id -> full name at the time, so reports survive deaths. */
   crewNames: Record<string, string>;
+  /** Whether the player has opened the report. */
+  read: boolean;
 }
 
 export interface LocationState {

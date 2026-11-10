@@ -34,7 +34,8 @@ npm run balance    # Monte Carlo table of danger and loot per location; args: <r
   - `portrait.ts`: `portraitSvg(survivor)`, `portraitLook`, and the layer order. `face.ts`, `hair.ts`, `outfit.ts`, `overlays.ts`: the parts. `palette.ts`: colors.
 - `scripts/`: dev scripts run with `node`.
 - `src/ui/`: the app, in React and Vite. `index.html` and `vite.config.ts` are at the repo root.
-  - Plain `.ts`, tested in Node: `store.ts` (holds the game, saves on every change), `persist.ts` (localStorage, export/import, backup copy), `route.ts` (hash routes), `view.ts` (labels and groupings for screens), `dev.ts` (developer fast-forward), `prefs.ts` (device-only display settings).
+  - Plain `.ts`, tested in Node: `store.ts` (holds the game, saves on every change), `persist.ts` (localStorage, export/import, backup copy), `route.ts` (hash routes), `view.ts` (labels and groupings for survivor screens), `runs-view.ts` (the planner's choices, times, outcomes, reports, notices), `reach-map.ts` (where places sit on the map), `dev.ts` (fast-forward, skip ahead), `prefs.ts` (device-only settings), `time.ts` (clock times).
+  - `notify.ts`: "crew is back" notices (browser version; PR 8 adds Capacitor's).
   - React: `main.tsx`, `App.tsx`, `hooks.ts`, `components/`, `screens/`. Styles in `styles.css`.
 - `android/` (planned): Capacitor.
 
@@ -86,9 +87,11 @@ npm run balance    # Monte Carlo table of danger and loot per location; args: <r
 4. The engine is type-checked without DOM types; the UI has its own `src/ui/tsconfig.json` with them. `npm run typecheck` runs both.
 5. **Look:** steel-green surfaces, bone text, rust for actions (CSS variables at the top of `styles.css`). Big Shoulders Stencil for names, titles and big numbers; Atkinson Hyperlegible Next for everything else. Sentence case, no all-caps labels. Fonts are bundled, nothing loads from the network.
 6. **Phone first.** Test at 390 px wide. Touch targets at least 44 px. Respect the safe-area insets.
-7. To look at the UI from a cloud session: `npm run build`, `npx vite preview`, then screenshot with headless Chrome (puppeteer is in `/opt/npm-tools/node_modules`). Seed `localStorage['the-guild:save']` with a save that has history; the developer fast-forward in `dev.ts` can make one.
+7. **Crews come home in `App.tsx`** (`completeDueRuns` when the clock passes a return time, including on opening the game). Screens never complete runs themselves.
+8. **A new location needs a spot on the map** in `reach-map.ts` (a test fails otherwise). Keep roads from crossing; labels have a paper halo for where a road runs under them.
+9. To look at the UI from a cloud session: `npm run build`, `npx vite preview`, then screenshot with headless Chrome (puppeteer is in `/opt/npm-tools/node_modules`). Seed `localStorage['the-guild:save']` with a save that has history; the developer fast-forward in `dev.ts` can make one.
 
 ## Workflow
 
 - One PR per roadmap step (`docs/DESIGN.md` §15). Keep `npm run check` green.
-- CI (`.github/workflows/ci.yml`) runs the typecheck and tests on every PR.
+- CI (`.github/workflows/ci.yml`) runs the typecheck, tests and build on every PR.

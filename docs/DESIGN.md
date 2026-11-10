@@ -1,6 +1,6 @@
 # The Guild — Game Design Document
 
-> Version 0.5 · 2026-11-10 · Living document. Numbers are starting points for tuning, not promises.
+> Version 0.6 · 2026-11-10 · Living document. Numbers are starting points for tuning, not promises.
 
 ## 1. Pitch
 
@@ -232,6 +232,9 @@ The planner shows the duration, warnings (rivals or feuds in the crew, injuries,
 - When the crew **departs**, the engine picks a seed and simulates the entire run immediately into a list of **beats** with timestamps spread across the duration.
 - The beats are revealed in the run log as time passes. You can peek mid-run.
 - When the crew **returns**, the effects apply all at once on the report screen, and a local notification fires.
+  - The game brings a crew home the moment they're due, or as soon as it's opened after that. The report waits, marked new, until the player opens it. A banner says who is back, and the Runs tab shows a count of new reports.
+  - Notices never give away what happened: "Mara and Dex are due back", not "Dex died".
+  - In a browser, notices only fire while the game is open, even in the background. The Android build (PR 8) schedules them with the system, so they fire with the game closed.
 - The result is fixed at departure, so the game can't be save-scummed. The simulation only depends on the crew, gear and supplies at departure.
 
 A run has **3–8 beats**, depending on distance. Each beat is a type, weighted by job and location:
@@ -369,7 +372,7 @@ Every survivor has four slots: **Weapon · Armor · Tool · Trinket**
 ## 11. Time model
 
 - The game runs on real time and keeps going while the app is closed.
-- **1 game day = 1 real hour** (a tunable constant). A developer setting can speed time up.
+- **1 game day = 1 real hour** (a tunable constant). For testing, Settings → Developer → *Developer shortcuts* adds a button to a crew's run that skips ahead to their return (the whole timeline moves, as if the time had passed).
 - Runs take 5–60 minutes for nearby locations and up to 3 hours for far ones.
 - **Catch-up.** When the app opens, the elapsed Depot days are simulated in a batch. The batch is capped at 7 days, so a long absence never spirals out of control.
 
@@ -378,11 +381,19 @@ Every survivor has four slots: **Weapon · Armor · Tool · Trinket**
 1. **Depot (home):** resource bar, buildings and their workers, active runs (countdown plus the latest beat), event inbox.
 2. **Roster:** survivor cards showing portrait, name, status, HP and stress bars, and top traits. *Built (PR 5).*
 3. **Survivor sheet:** portrait wearing their gear, stats with practice bars, traits (tap for an explanation and how it was gained), relationships, gear slots and Chronicle. Three tabs: *Stats and gear*, *Bonds*, *Chronicle*. If a survivor has a hidden trait, the sheet says something about them hasn't shown yet, without naming it. *Built (PR 5).*
-4. **Reach map:** locations with explored %, danger and radiation. Tap a location for details and to plan a run.
-5. **Run planner** (§7.2).
-6. **Run report:** a beat-by-beat log, then a summary of what changed. For example: *"Mara gained Rad-Hardened"*, *"Dex & Ava are now Friends"*, and the loot.
-7. **Memorial Wall:** faded portraits with the day and cause of death; tap one for their sheet and Chronicle. *Built (PR 5).*
-8. **Settings:** mercy mode, portrait wobble, export and import save, load the backup copy, start a new guild, and a developer fast-forward (§13). Time scale is still to come. *Built (PR 5).*
+4. **Reach map:** locations with explored %, danger and radiation. Tap a location for details and to plan a run. *Built (PR 6):*
+   - The map is a page of the journal: ink roads on paper, markers numbered and colored by danger, a ring that fills as a place is explored, and a badge where a crew is out.
+   - A question mark sits at the end of each road to somewhere not yet found. Tapping it says where to scout.
+   - Below the map: the picked place's details, and a list of every known place.
+   - Map positions live in the UI (`src/ui/reach-map.ts`), not in the location data. A test checks that every location has a spot.
+5. **Run planner** (§7.2). *Built (PR 6):* crew (with why anyone can't go), job, meds and ammo, approach, when to pull out, and what to keep first. Below that: time away and when they're back, problems that stop the run, warnings, and the simulated risk, worked out once the plan stops changing. A bar at the bottom keeps the risk and the *Send the crew* button in reach.
+6. **Runs:** crews out now (last thing heard, progress, back in how long) and the last 20 reports, new ones marked. *Built (PR 6).*
+   - **A crew that is out:** a countdown, and the log so far, revealed beat by beat as time passes.
+   - **Run report:** what came home, deaths, places found, the beat-by-beat log with the dice under each line, then what changed for each person. For example: *"Mara gained Rad-Hardened"*, *"Dex & Ava are now Friends"*, and the loot. It opens in place of the countdown when the crew gets back.
+7. **Memorial Wall:** faded portraits with the day and cause of death; tap one for their sheet and Chronicle. Opened from the bottom of the roster. *Built (PR 5).*
+8. **Settings:** mercy mode, notices when crews come back, portrait wobble, export and import save, load the backup copy, start a new guild, developer shortcuts and fast-forward (§11, §13). *Built (PR 5, 6).*
+
+**Navigation.** Tabs along the bottom: Roster, Reach, Runs, Settings. The Depot (PR 7) will become the first tab. Survivors who are out show where they are and when they're back, on the roster and on their sheet.
 
 **Look.** The app is a depot workbench: steel-green surfaces, bone text, rust for actions. Names and numbers are set in Big Shoulders Stencil, like lettering on a freight car; everything else is Atkinson Hyperlegible Next. Portraits sit on top like pinned prints, and the Chronicle is the one page of the field journal itself (paper and ink). Both fonts are bundled (SIL Open Font License), so the APK works offline.
 
@@ -453,7 +464,7 @@ Every survivor has four slots: **Weapon · Armor · Tool · Trinket**
 | 3 | Portrait system: layered SVG parts and the composer | **Fable** · **done** |
 | 4 | Event content pack: 40+ events with flavor text | **Fable** · **done** (54 events) |
 | 5 | UI shell: React/Vite, roster, survivor sheet, save/load | Opus · **done** |
-| 6 | Reach map, run planner, run report, notifications | Opus |
+| 6 | Reach map, run planner, run report, notifications | Opus · **done** |
 | 7 | Depot: buildings, workers, resources, recruits, Depot events, time catch-up | Opus |
 | 8 | Android APK: Capacitor, Actions and a GitHub Release | Opus |
 

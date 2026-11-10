@@ -69,6 +69,7 @@ export function fastForward(state: GameState, now: number, options: Partial<Fast
       state.resources.rations = Math.max(state.resources.rations, rationsNeeded(state, plan));
       const run = startRun(state, plan, t);
       const report = completeRun(state, run.id, run.returnAt);
+      report.read = true;
       t = run.returnAt;
       played += 1;
       deaths += report.summary.deaths.length;
@@ -90,6 +91,19 @@ function rest(state: GameState, t: number, days: number): void {
     s.hp = maxHp(s);
     s.stress = Math.max(0, s.stress - 5 * days);
   }
+}
+
+/**
+ * Developer shortcut: let time pass until a crew (or every crew, without an
+ * id) is due back. The crews then come home through the normal return.
+ * Returns how much time was skipped.
+ */
+export function skipToReturn(state: GameState, now: number, runId?: string): number {
+  const runs = runId ? state.runs.filter((r) => r.id === runId) : state.runs;
+  const target = Math.max(now, ...runs.map((r) => r.returnAt));
+  const skipped = target - now;
+  if (skipped > 0) shiftTimeline(state, -skipped);
+  return skipped;
 }
 
 /** Move every timestamp in the save by `delta` ms. */

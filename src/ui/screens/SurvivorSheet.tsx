@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import {
   NAME_MAX_LENGTH,
   SLOTS,
+  getLocation,
   canChangeGear,
   equipFromStash,
   getSurvivor,
@@ -16,6 +17,7 @@ import { BondBar, Meter, Vitals } from '../components/Bars.tsx';
 import { Portrait } from '../components/Portrait.tsx';
 import { goBack, navigate, useServices } from '../hooks.ts';
 import type { SheetTab } from '../route.ts';
+import { backIn, runOfSurvivor } from '../runs-view.ts';
 import {
   SLOT_NAMES,
   bonds,
@@ -39,11 +41,12 @@ interface Props {
   id: string;
   tab: SheetTab;
   day: number;
+  now: number;
 }
 
 const TAB_LABELS: Record<SheetTab, string> = { stats: 'Stats and gear', bonds: 'Bonds', story: 'Chronicle' };
 
-export function SurvivorSheet({ state, id, tab, day }: Props) {
+export function SurvivorSheet({ state, id, tab, day, now }: Props) {
   const s = findAnySurvivor(state, id);
   if (!s) {
     return (
@@ -60,7 +63,7 @@ export function SurvivorSheet({ state, id, tab, day }: Props) {
   return (
     <article className="sheet" aria-labelledby="sheet-name">
       <BackLink to={dead ? 'memorial' : 'roster'} />
-      <SheetHeader survivor={s} day={day} />
+      <SheetHeader state={state} survivor={s} day={day} now={now} />
 
       <div className="sheet-tabs" role="tablist" aria-label="Sections">
         {tabs.map((t) => (
@@ -106,10 +109,11 @@ function BackLink({ to }: { to: 'roster' | 'memorial' }) {
 
 // ---------------------------------------------------------------- header
 
-function SheetHeader({ survivor: s, day }: { survivor: Survivor; day: number }) {
+function SheetHeader({ state, survivor: s, day, now }: { state: GameState; survivor: Survivor; day: number; now: number }) {
   const [renaming, setRenaming] = useState(false);
   const dead = s.status === 'dead';
   const status = survivorStatus(s, day);
+  const run = runOfSurvivor(state, s.id);
   return (
     <header className="sheet-head">
       <div className="sheet-id">
@@ -142,7 +146,14 @@ function SheetHeader({ survivor: s, day }: { survivor: Survivor; day: number }) 
         </div>
       ) : (
         <div className="sheet-condition">
-          <p className={`status status-${status.tone}`}>{status.label}</p>
+          <p className={`status status-${status.tone}`}>
+            {run ? `At ${getLocation(run.plan.locationId).name}, ${backIn(run, now)}.` : status.label}
+          </p>
+          {run && (
+            <button type="button" className="link" onClick={() => navigate({ screen: 'run', id: run.id })}>
+              Follow the run
+            </button>
+          )}
           <Vitals survivor={s} />
         </div>
       )}
