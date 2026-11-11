@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { Rng, build, emptySummary, refreshRecruits, startRun } from '../engine/index.ts';
+import { Rng, build, emptySummary, gardenYield, guildUpkeep, refreshRecruits, startRun } from '../engine/index.ts';
 import { T0, openGame, testGame, testPlan } from '../engine/test-utils.ts';
 import {
+  foodWarning,
+  newMouthNote,
   buildingRow,
   buildingRows,
   candidateStats,
@@ -24,7 +26,7 @@ describe('buildings on screen', () => {
     const state = testGame();
     const garden = buildingRow(state, 'garden');
     assert.equal(garden.built, true);
-    assert.match(garden.status, /^Grows about \d+ rations a day\. The guild at home eats \d+\.$/);
+    assert.match(garden.status, /^Grows about [\d.]+ rations a day\. The guild at home eats \d+\.$/);
     assert.equal(garden.workers.length, 2);
     assert.equal(garden.slots, 2);
     const infirmary = buildingRow(state, 'infirmary');
@@ -105,5 +107,46 @@ describe('while you were away', () => {
     assert.equal(depotNews(state)[0]!.text, 'A stray dog nosed around.');
     assert.ok(!depotNews(state).some((n) => n.text.includes('returned')));
     assert.deepEqual(homeCounts(state), { home: 4, out: 0, beds: 4, cap: 4 });
+  });
+});
+
+describe('food on the Depot', () => {
+  /** A guild whose Garden grows `grow` a day against `eat` mouths, with `stored` rations. */
+  function guild(stored: number, extraMouths: number) {
+    const state = testGame('food');
+    for (const s of state.survivors) s.traits = s.traits.filter((t) => t.id !== 'glutton' && t.id !== 'drinker');
+    for (let i = 0; i < extraMouths; i++) state.survivors.push({ ...structuredClone(state.survivors[0]!), id: `extra${i}`, post: undefined });
+    state.resources.rations = stored;
+    return state;
+  }
+
+  test('no warning while the Garden keeps up', () => {
+    const state = guild(0, 0);
+    assert.ok(gardenYield(state) >= guildUpkeep(state), 'a new guild feeds itself');
+    assert.equal(foodWarning(state), undefined);
+  });
+
+  test('a warning, with how long the stores last, once the Garden falls behind', () => {
+    const state = guild(6, 3);
+    const short = guildUpkeep(state) - gardenYield(state);
+    assert.ok(short > 0);
+    const days = Math.floor(6 / short);
+    assert.match(foodWarning(state)!, new RegExp(`^Food is running short\\. The guild eats ${guildUpkeep(state)} rations a day .* lasts about ${days === 0 ? 'a day' : `${days} more days?`}\\. Hunting runs`));
+    state.resources.rations = 500;
+    assert.equal(foodWarning(state), undefined, 'no nagging with plenty stored');
+  });
+
+  test('when the rations are gone, it says crews can still go out', () => {
+    const state = guild(0, 3);
+    assert.match(foodWarning(state)!, /^The rations are gone\..*Crews can still go out, hungry\./);
+  });
+
+  test('a note at the gate when another person would outgrow the Garden', () => {
+    const plenty = guild(0, 0);
+    plenty.buildings.garden = 3;
+    assert.equal(newMouthNote(plenty), undefined);
+    const tight = guild(0, 2);
+    assert.ok(gardenYield(tight) < guildUpkeep(tight) + 1);
+    assert.match(newMouthNote(tight)!, /^Another person eats at least a ration a day\. The guild already eats \d+, and the Garden grows about [\d.]+\.$/);
   });
 });

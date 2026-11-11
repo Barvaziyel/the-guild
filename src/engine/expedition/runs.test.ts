@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { DAY_MS, MAX_REPORTS, SAVE_VERSION } from '../constants.ts';
+import { DAY_MS, HUNGER_STRESS, MAX_REPORTS, SAVE_VERSION } from '../constants.ts';
 import { newGame } from '../game.ts';
 import { locationState } from '../locations.ts';
 import { adjustRelationship } from '../relationships.ts';
@@ -8,7 +8,7 @@ import { deserialize, serialize } from '../save.ts';
 import { T0, openGame, testGame, testPlan } from '../test-utils.ts';
 import { addTrait, hasTrait } from '../traits.ts';
 import type { GameState, Run } from '../types.ts';
-import { planWarnings, rationsNeeded, runDuration, validatePlan } from './plan.ts';
+import { hungryCrew, planWarnings, rationsNeeded, rationsPacked, runDuration, validatePlan } from './plan.ts';
 import { completeDueRuns, completeRun, dueRuns, estimateRisk, markReportRead, startRun, visibleBeats } from './runs.ts';
 
 describe('planning', () => {
@@ -25,8 +25,33 @@ describe('planning', () => {
     const twice = [state.survivors[0]!.id, state.survivors[0]!.id];
     assert.ok(validatePlan(state, testPlan(state, 'maple_street', { crew: twice })).some((p) => /twice/.test(p)));
     assert.ok(validatePlan(state, testPlan(state, 'maple_street', { ammo: 9999 })).some((p) => /ammo/.test(p)));
+  });
+
+  test('an empty larder never stops a run: whoever has no ration goes out hungry', () => {
+    const state = testGame('hungry');
+    const plan = testPlan(state, 'rail_yard');
+    const [a, b, c] = plan.crew.map((id) => state.survivors.find((s) => s.id === id)!);
+    for (const s of [a!, b!, c!]) s.traits = s.traits.filter((t) => t.id !== 'glutton' && t.id !== 'drinker');
+
+    state.resources.rations = 1;
+    assert.deepEqual(validatePlan(state, plan), []);
+    assert.deepEqual(
+      hungryCrew(state, plan).map((s) => s.id),
+      [b!.id, c!.id],
+      'the ration goes to the first in the crew',
+    );
+    assert.equal(rationsPacked(state, plan), 1);
+    assert.ok(planWarnings(state, plan).includes(`Not enough rations for everyone: ${b!.firstName} and ${c!.firstName} go out hungry (+${HUNGER_STRESS} stress each).`));
+
     state.resources.rations = 0;
-    assert.ok(validatePlan(state, testPlan(state)).some((p) => /rations/.test(p)));
+    const solo = testPlan(state, 'rail_yard', { crew: [a!.id] });
+    assert.ok(planWarnings(state, solo).includes(`No rations at the Depot: ${a!.firstName} goes out hungry (+${HUNGER_STRESS} stress).`));
+    const stressBefore = a!.stress;
+    const run = startRun(state, solo, T0);
+    assert.equal(state.resources.rations, 0, 'nothing packed, nothing owed');
+    assert.equal(run.rations, 0);
+    assert.ok(run.beats[0]!.lines.some((l) => l.text === `${a!.firstName} goes out on an empty stomach.`));
+    assert.ok(run.result.crew[0]!.stress > stressBefore);
   });
 
   test('the wounded and those already away cannot go', () => {

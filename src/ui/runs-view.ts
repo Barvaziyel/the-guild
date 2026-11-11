@@ -3,6 +3,7 @@
  * outcomes, loot and "what changed". No React, so it can be tested in Node.
  */
 import {
+  amountOf,
   MAX_CREW,
   RESOURCE_IDS,
   STAT_IDS,
@@ -31,6 +32,8 @@ import {
   type RunReport,
   type RunSummary,
   type Survivor,
+  rationsNeeded,
+  rationsPacked,
 } from '../engine/index.ts';
 import { RESOURCE_NAMES } from './view.ts';
 
@@ -275,7 +278,7 @@ export function outcomeTone(summary: RunSummary): OutcomeTone {
 
 /** What came home: ["6 scrap", "7 meds", "Rusty Scrap Vest"]. Leftover supplies aren't loot. */
 export function lootList(summary: RunSummary): string[] {
-  const out = RESOURCE_IDS.filter((r) => summary.loot[r] > 0).map((r) => `${summary.loot[r]} ${RESOURCE_NAMES[r].toLowerCase()}`);
+  const out = RESOURCE_IDS.filter((r) => summary.loot[r] > 0).map((r) => amountOf(r, summary.loot[r]));
   for (const item of summary.items) out.push(itemName(item));
   return out;
 }
@@ -350,4 +353,14 @@ export function noticesFor(state: GameState): PlannedNotice[] {
     title: `${joinNames(runCrewNames(run))} ${run.plan.crew.length === 1 ? 'is' : 'are'} due back`,
     body: `The run to ${getLocation(run.plan.locationId).name} is over. Open the game to read what happened.`,
   }));
+}
+
+/** The planner's line about rations: what's packed, and what happens when the Depot is short. */
+export function rationsNote(state: GameState, plan: RunPlan): string {
+  if (plan.crew.length === 0) return 'Rations are packed for each person automatically.';
+  const need = rationsNeeded(state, plan);
+  const packed = rationsPacked(state, plan);
+  if (packed >= need) return `${amountOf('rations', need)} packed automatically, of ${state.resources.rations} at the Depot.`;
+  if (packed === 0) return 'No rations at the Depot. The crew can still go, hungry.';
+  return `Only ${packed} of the ${need} rations the crew needs: all the Depot has.`;
 }

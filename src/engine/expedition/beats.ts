@@ -43,6 +43,7 @@ import { anyGearHook, createItem, itemName, sumGearHook } from '../gear.ts';
 import { locationState } from '../locations.ts';
 import { adjustRelationship, relationshipScore, traitAffinity } from '../relationships.ts';
 import { enemyContexts, situationalMods } from '../stats.ts';
+import { amountOf } from '../text.ts';
 import { maxTraitHook, sumTraitHook } from '../traits.ts';
 import type { Quality, ResourceId } from '../types.ts';
 import { QUALITIES, RESOURCE_IDS } from '../types.ts';
@@ -53,6 +54,7 @@ import {
   capitalize,
   check,
   flavor,
+  fmt,
   hurt,
   revealHook,
   say,
@@ -96,7 +98,7 @@ export function lootText(loot: Partial<Record<ResourceId, number>>): string {
   const parts: string[] = [];
   for (const res of RESOURCE_IDS) {
     const n = loot[res] ?? 0;
-    if (n > 0) parts.push(`${n} ${res}`);
+    if (n > 0) parts.push(amountOf(res, n));
   }
   return parts.join(', ');
 }
@@ -232,7 +234,8 @@ export function hazardBeat(sim: Sim): void {
 /** If nobody came to harm, say so. */
 function quietLine(sim: Sim): void {
   if (!sim.beats[sim.beats.length - 1]!.lines.some((l) => l.tone === 'bad')) {
-    say(sim, 'The crew grits their teeth and pushes through.');
+    // No line is picked at random here, so the run's dice stay the same.
+    say(sim, sim.members.length === 1 ? fmt('{a.first} grits {a.their} teeth and pushes through.', { a: sim.members[0]! }) : 'The crew grits their teeth and pushes through.');
   }
 }
 
@@ -320,7 +323,8 @@ export function resolveFight(sim: Sim, enemies: Enemy[], start: FightStart): voi
   if (result.end === 'won') {
     const text = lootText(result.loot);
     for (const res of RESOURCE_IDS) addLoot(sim, res, result.loot[res] ?? 0);
-    say(sim, text ? `The fight is over. The crew takes what is worth taking: ${text}.` : 'The fight is over.', { tone: 'good' });
+    const taker = sim.members.length === 1 ? sim.members[0]!.s.firstName : 'The crew';
+    say(sim, text ? `The fight is over. ${taker} takes what is worth taking: ${text}.` : 'The fight is over.', { tone: 'good' });
   } else if (result.end === 'withdrew') {
     sim.turnBack = true;
   }

@@ -8,6 +8,7 @@ import {
   CHERISH_RUNS,
   DC,
   EXPLORE_GAIN,
+  HUNGER_STRESS,
   MAX_BEATS,
   MENTOR_NEWCOMER_RUNS,
   MENTOR_RUNS,
@@ -24,13 +25,13 @@ import {
   STRESS_RIVAL_PER_BEAT,
 } from '../constants.ts';
 import { getLocation, getTrait } from '../content/index.ts';
-import { DEPART_LINES, RETURN_LINES, SOLO_DEPART_LINES } from '../content/flavor.ts';
+import { DEPART_LINES, RETURN_LINES } from '../content/flavor.ts';
 import { applyEvolutions } from '../evolution.ts';
 import { itemDef, itemName, sumGearHook } from '../gear.ts';
 import { addFlag, adjustRelationship, getRelationship, labelFor, pairKey, relationshipLabel, traitAffinity } from '../relationships.ts';
 import { Rng } from '../rng.ts';
 import { carryCapacity, maxHp } from '../stats.ts';
-import { fullName, pronounForms } from '../text.ts';
+import { amountOf, fullName, pronounForms } from '../text.ts';
 import { addTrait, maxTraitHook, revealTrait, sumTraitHook } from '../traits.ts';
 import type {
   Beat,
@@ -53,6 +54,7 @@ import {
   bestBy,
   check,
   flavor,
+  fmt,
   isHurt,
   newTally,
   say,
@@ -66,7 +68,7 @@ import {
   type Sim,
 } from './context.ts';
 import { tryEvent } from './events.ts';
-import { runDuration, rationsNeeded } from './plan.ts';
+import { hungryCrew, rationsPacked, runDuration } from './plan.ts';
 import { resolveWounds } from './wounds.ts';
 
 type MidKind = Exclude<BeatKind, 'depart' | 'return'>;
@@ -174,7 +176,7 @@ function endBeat(sim: Sim): void {
     const hurtOne = standing(sim).find(isHurt);
     if (hurtOne) {
       sim.turnBack = true;
-      say(sim, `${hurtOne.s.firstName} is in no state to go on. As ordered, the crew turns for home.`);
+      say(sim, sim.members.length === 1 ? `${hurtOne.s.firstName} is in no state to go on, and turns for home as ordered.` : `${hurtOne.s.firstName} is in no state to go on. As ordered, the crew turns for home.`);
     }
   }
 }
@@ -258,7 +260,8 @@ function aftermath(sim: Sim): void {
       const runs = m.s.counters.runs;
       if (sim.rng.chance(runs >= 3 ? 1 : runs === 2 ? 0.5 : 0.34)) {
         revealTrait(m.s, t.id, day);
-        say(sim, `The others have ${m.s.firstName} figured out by now: ${getTrait(t.id).name}.`);
+        const name = getTrait(t.id).name;
+        say(sim, sim.members.length === 1 ? `Some things show, even out alone. ${m.s.firstName} is ${name}.` : `The others have ${m.s.firstName} figured out by now: ${name}.`);
       }
     }
 
@@ -311,7 +314,7 @@ function packLoot(sim: Sim, outcome: RunOutcome): { loot: Resources; leftBehind:
 
 function lootSummary(loot: Resources, items: readonly string[]): string {
   const parts: string[] = [];
-  for (const res of RESOURCE_IDS) if (loot[res] > 0) parts.push(`${loot[res]} ${res}`);
+  for (const res of RESOURCE_IDS) if (loot[res] > 0) parts.push(amountOf(res, loot[res]));
   parts.push(...items);
   return parts.join(', ');
 }
@@ -388,7 +391,13 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
   };
 
   startBeat(sim, 'depart', 'Setting Out');
-  say(sim, crew.length === 1 ? flavor(sim, SOLO_DEPART_LINES, { a: sim.members[0]! }) : flavor(sim, DEPART_LINES));
+  say(sim, flavor(sim, DEPART_LINES));
+  // Short of rations, the crew goes anyway; whoever has none goes hungry.
+  for (const s of hungryCrew(state, plan)) {
+    const m = sim.members.find((x) => x.s.id === s.id)!;
+    say(sim, fmt('{a.first} goes out on an empty stomach.', { a: m }), { tone: 'bad' });
+    stress(sim, m, HUNGER_STRESS, 'going out hungry');
+  }
 
   const totalBeats = Math.max(MIN_BEATS, Math.min(MAX_BEATS, Math.round(duration / 60_000 / MINUTES_PER_BEAT) + 2));
   const middle = totalBeats - 1;
@@ -417,8 +426,15 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
   const { loot, leftBehind } = packLoot(sim, outcome);
   if (outcome === 'completed' || outcome === 'turnedBack') {
     const summary = lootSummary(loot, sim.items.map(itemName));
-    say(sim, summary ? `They bring back: ${summary}.` : 'They bring back nothing but themselves.', summary ? { tone: 'good' } : {});
-    if (leftBehind > 0) say(sim, `They had to leave ${leftBehind} ${leftBehind === 1 ? 'load' : 'loads'} behind: too much to carry.`);
+    const solo = sim.members.length === 1 ? sim.members[0]!.s.firstName : undefined;
+    const loads = `${leftBehind} ${leftBehind === 1 ? 'load' : 'loads'}`;
+    if (solo) {
+      say(sim, summary ? `${solo} brings back: ${summary}.` : `${solo} brings back nothing but a sore back.`, summary ? { tone: 'good' } : {});
+      if (leftBehind > 0) say(sim, `${solo} had to leave ${loads} behind: too much for one person to carry.`);
+    } else {
+      say(sim, summary ? `They bring back: ${summary}.` : 'They bring back nothing but themselves.', summary ? { tone: 'good' } : {});
+      if (leftBehind > 0) say(sim, `They had to leave ${loads} behind: too much to carry.`);
+    }
   }
 
   const range = EXPLORE_GAIN[plan.job];
@@ -432,7 +448,7 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
 
   return {
     returnAt: departAt + sim.offset,
-    rations: rationsNeeded(state, plan),
+    rations: rationsPacked(state, plan),
     beats: sim.beats,
     nextId: shell.nextId,
     result: {

@@ -5,7 +5,6 @@ import {
   findLocation,
   locationState,
   planWarnings,
-  rationsNeeded,
   runDuration,
   startRun,
   validatePlan,
@@ -28,6 +27,7 @@ import {
   defaultPlan,
   formatDuration,
   radiationText,
+  rationsNote,
   riskText,
   suggestedAmmo,
   toggleCrew,
@@ -79,7 +79,6 @@ function PlannerForm({ state, locationId }: { state: GameState; locationId: stri
   const problems = plan.crew.length === 0 ? [] : validatePlan(state, plan);
   const warnings = plan.crew.length === 0 ? [] : planWarnings(state, plan);
   const duration = runDuration(state, plan);
-  const rations = plan.crew.length === 0 ? 0 : rationsNeeded(state, plan);
   const ready = plan.crew.length > 0 && problems.length === 0;
   const risk = useRisk(state, plan, ready);
 
@@ -158,9 +157,7 @@ function PlannerForm({ state, locationId }: { state: GameState; locationId: stri
           }}
         />
         <p className="panel-help rations-note">
-          {plan.crew.length === 0
-            ? 'Rations are packed for each person automatically.'
-            : `${rations} ${rations === 1 ? 'ration' : 'rations'} packed automatically, of ${state.resources.rations} at the Depot.`}
+          {rationsNote(state, plan)}
         </p>
       </section>
 

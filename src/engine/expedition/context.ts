@@ -15,6 +15,7 @@ import { getTrait, type LocationDef, type RunTally } from '../content/index.ts';
 import { dayAt } from '../game.ts';
 import { mulGearHook, sumGearHook } from '../gear.ts';
 import { crewCohesion, getRelationship, relationshipLabel } from '../relationships.ts';
+import type { CrewLines } from '../content/flavor.ts';
 import type { Rng } from '../rng.ts';
 import { addPractice, changeStress, checkBonus, maxHp, rollCheck, statName, type CheckResult } from '../stats.ts';
 import { fillRoles } from '../text.ts';
@@ -162,13 +163,20 @@ export function fmt(template: string, roles: Record<string, Member> = {}, vars: 
 }
 
 /** Pick a line from a pool and fill it. */
+/**
+ * A line from a pool, filled in. For a CrewLines pool, someone out alone gets
+ * a solo line, with {a} as them unless the caller cast someone else.
+ */
 export function flavor(
   sim: Sim,
-  pool: readonly string[],
+  pool: readonly string[] | CrewLines,
   roles: Record<string, Member> = {},
   vars: Record<string, string> = {},
 ): string {
-  return fmt(sim.rng.pick(pool), roles, { loc: sim.loc.name, ...vars });
+  const solo = sim.members.length === 1;
+  const lines = 'crew' in pool ? (solo ? pool.solo : pool.crew) : pool;
+  const cast = solo && 'crew' in pool && !roles.a ? { ...roles, a: sim.members[0]! } : roles;
+  return fmt(sim.rng.pick(lines), cast, { loc: sim.loc.name, ...vars });
 }
 
 const NUMBER_WORDS = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight'];

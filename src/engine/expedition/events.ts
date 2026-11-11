@@ -186,7 +186,7 @@ function applyEffect(sim: Sim, event: EventDef, effect: EventEffect, roles: Cast
     case 'fight': {
       const enemies = buildEncounter(sim);
       const group = describeGroup(enemies);
-      say(sim, `${capitalize(group)}${enemies.length === 1 ? ' is' : ' are'} on the crew at once.`, { tone: 'bad' });
+      say(sim, `${capitalize(group)}${enemies.length === 1 ? ' attacks' : ' attack'} at once.`, { tone: 'bad' });
       resolveFight(sim, enemies, { ambushed: effect.ambushed !== false, drop: false });
       break;
     }

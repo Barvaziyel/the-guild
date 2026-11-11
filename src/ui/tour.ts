@@ -16,7 +16,7 @@ import {
   type BuildingId,
   type GameState,
 } from '../engine/index.ts';
-import { buildingRow, homeCounts } from './depot-view.ts';
+import { buildingRow, homeCounts, oneDecimal } from './depot-view.ts';
 import type { Route } from './route.ts';
 import { joinNames } from './runs-view.ts';
 
@@ -140,7 +140,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     route: () => ({ screen: 'building', id: 'garden' }),
     target: 'workers',
     text: (state) =>
-      `Everyone at home eats a ration a day, and a few eat two. Right now the guild eats ${dailyUpkeep(state)} a day, and the Garden grows about ${Math.round(gardenYield(state))}. Every gardener, and every level, grows more.`,
+      `Everyone at home eats a ration a day, and a few eat two. Right now the guild eats ${dailyUpkeep(state)} a day, and the Garden grows about ${oneDecimal(gardenYield(state))}. Every gardener, and every level, grows more.`,
   },
   {
     id: 'hungry',
@@ -148,7 +148,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     title: 'Running out',
     route: () => ({ screen: 'building', id: 'garden' }),
     text: () =>
-      "If the rations run out, nobody starves, but hungry people can't rest and their stress climbs. Hunting runs bring back food, and a bigger Garden feeds a bigger guild.",
+      "If the rations run out, nobody starves, but hungry people can't rest and their stress climbs. Crews can still go out hungry: hunting runs bring back food, and a bigger Garden feeds a bigger guild.",
   },
 
   // ---------------------------------------------------------------- people

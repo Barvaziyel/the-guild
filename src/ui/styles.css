@@ -2342,3 +2342,18 @@ li:nth-child(even) .pinned {
   text-decoration: underline;
   text-underline-offset: 0.2em;
 }
+
+/* ---------------------------------------------------------------- food */
+
+.food-warning {
+  border-left: 4px solid var(--ochre);
+}
+
+.food-warning p {
+  margin: 0;
+  max-width: 60ch;
+}
+
+.food-note {
+  color: var(--ochre);
+}

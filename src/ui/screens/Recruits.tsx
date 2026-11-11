@@ -1,7 +1,7 @@
 import { bunksCap, dayAt, getOrigin, recruitProblem, takeIn, withRng, type GameState } from '../../engine/index.ts';
 import { Portrait } from '../components/Portrait.tsx';
 import { goBack, navigate, useAction } from '../hooks.ts';
-import { candidateStats, candidateWait } from '../depot-view.ts';
+import { candidateStats, candidateWait, newMouthNote } from '../depot-view.ts';
 import { candidateTraitsLine as traitsLine } from '../depot-view.ts';
 import { hiddenTraitCount, pronounLabel, traitName } from '../view.ts';
 
@@ -24,6 +24,7 @@ export function Recruits({ state, day }: { state: GameState; day: number }) {
         <p className="place-facts">
           {state.survivors.length} of {cap} beds taken.{full ? ' Improve the Bunks to take anyone in.' : ''}
         </p>
+        {!full && state.depot.recruits.length > 0 && newMouthNote(state) && <p className="place-facts food-note">{newMouthNote(state)}</p>}
       </header>
 
       {state.depot.recruits.length === 0 ? (

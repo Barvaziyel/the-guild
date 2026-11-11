@@ -216,7 +216,7 @@ The guild starts with 3 known locations (The Rail Yard, Maple Street, Kessler Fa
    - Scout: explore the location and discover new ones
    - Hunt: fight, get rations from Ferals, clear threats
    - Rescue: only available when an event spawns a survivor to save (not built yet)
-4. **Supplies:** meds and ammo. Rations are packed automatically: one per crew member per game day away.
+4. **Supplies:** meds and ammo. Rations are packed automatically: one per crew member per game day away. **A crew can always leave:** if the Depot is short, rations go to the crew in order, and whoever gets none goes out hungry (+10 stress, shown in the planner and the log). That way an empty larder never traps the guild; a hunt or a scavenging run is always possible (1.1.2).
 5. **Standing orders:**
    - **Approach:**
      - Sneaky: +2 to spotting enemies, and the crew tries to slip past them (except when hunting). Runs take 15% longer.
@@ -346,6 +346,7 @@ The Depot plays one **Depot day** for every game day that passes (§11). Each da
 
 1. Conditions that have run their course wear off.
 2. **Food.** The Garden grows rations, and everyone eats 1 (Gluttons and Drinkers 2). If there isn't enough, they eat what there is and go hungry: +10 stress each instead of any rest. Nobody starves to death. The log notes when the food runs out and when it's back.
+   - **Warnings (1.1.2).** When the Garden grows less than the whole guild eats (counting those out on runs), the Depot shows how long the stores last, from 10 days out, or that they're gone, with what to do about it. The gate notes when another person would eat more than the Garden can spare.
 3. **Work.** People at their posts work and get +1 practice a day in the building's stat. Serious wounds (anything that blocks runs) keep people in bed.
 4. **Care.** Everyone heals 15% of max HP a day, +10% per Infirmary level, and +2% per point of Wits among the Infirmary's medics. A staffed Infirmary also closes wounds sooner, and treats rad sickness and fever with meds, one patient per medic a day.
 5. **Rest.** Everyone sheds 5 stress a day, plus the Firepit's share, plus 2 with a Bonded friend at home. Optimists and Drinkers shed half as much again.
