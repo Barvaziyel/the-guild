@@ -1,7 +1,7 @@
 {
   "name": "the-guild",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "A post-apocalyptic scavenger-guild management game for Android.",
   "type": "module",
   "engines": {
@@ -18,9 +18,15 @@
     "run-sample": "node scripts/run.ts",
     "balance": "node scripts/balance.ts",
     "career": "node scripts/career.ts",
-    "portraits": "node scripts/portraits.ts"
+    "portraits": "node scripts/portraits.ts",
+    "keystore": "node scripts/keystore.ts",
+    "apk": "node scripts/apk.ts",
+    "apk:install": "node scripts/apk.ts --install",
+    "android:sync": "vite build && cap sync android",
+    "android:open": "cap open android"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.6.0",
     "@types/node": "^22.18.0",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
@@ -29,6 +35,12 @@
     "vite": "^8.3.7"
   },
   "dependencies": {
+    "@capacitor/android": "^8.6.0",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/core": "^8.6.0",
+    "@capacitor/filesystem": "^8.1.5",
+    "@capacitor/local-notifications": "^8.3.1",
+    "@capacitor/share": "^8.0.3",
     "@fontsource-variable/big-shoulders-stencil": "^5.3.0",
     "@fontsource/atkinson-hyperlegible-next": "^5.3.0",
     "react": "^19.3.1",

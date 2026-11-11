@@ -332,6 +332,16 @@ export interface PlannedNotice {
   body: string;
 }
 
+/**
+ * Android notification ids are 31-bit numbers; runs have string ids ("r12").
+ * The same run always gets the same number, so a notice can be found again to cancel.
+ */
+export function noticeNumber(id: string): number {
+  let h = 5381;
+  for (let i = 0; i < id.length; i++) h = ((h * 33) ^ id.charCodeAt(i)) >>> 0;
+  return (h % 2_147_483_646) + 1;
+}
+
 /** One notice per crew that is out, timed for their return. Never gives away what happened. */
 export function noticesFor(state: GameState): PlannedNotice[] {
   return state.runs.map((run) => ({

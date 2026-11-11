@@ -34,6 +34,11 @@
   --step-4: 2.441rem;
 
   --tabbar-h: 3.5rem;
+  /* Safe areas. On Android, Capacitor injects --safe-area-inset-* because older WebViews report env() wrongly. */
+  --sa-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
+  --sa-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
+  --sa-left: var(--safe-area-inset-left, env(safe-area-inset-left, 0px));
+  --sa-right: var(--safe-area-inset-right, env(safe-area-inset-right, 0px));
   color-scheme: dark;
 }
 
@@ -94,14 +99,16 @@ button {
 .app {
   max-width: 34rem;
   margin: 0 auto;
+  padding-left: var(--sa-left);
+  padding-right: var(--sa-right);
   min-height: 100dvh;
-  padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 1rem);
+  padding-bottom: calc(var(--tabbar-h) + var(--sa-bottom) + 1rem);
 }
 
 /* ---------------------------------------------------------------- top bar */
 
 .topbar {
-  padding: calc(env(safe-area-inset-top) + 0.875rem) 1rem 0.75rem;
+  padding: calc(var(--sa-top) + 0.875rem) 1rem 0.75rem;
   border-bottom: 1px solid var(--line);
 }
 
@@ -391,7 +398,7 @@ li:nth-child(even) .pinned {
   position: sticky;
   top: 0;
   z-index: 2;
-  padding: env(safe-area-inset-top) 0.5rem 0;
+  padding: var(--sa-top) 0.5rem 0;
   background: var(--steel);
   border-bottom: 1px solid var(--line);
 }
@@ -1132,7 +1139,7 @@ li:nth-child(even) .pinned {
   gap: 1rem;
   max-width: 34rem;
   margin: 0 auto;
-  padding: calc(env(safe-area-inset-top) + 1.5rem) 1rem 2rem;
+  padding: calc(var(--sa-top) + 1.5rem) 1rem 2rem;
 }
 
 .load-error .copybox {
@@ -1150,7 +1157,7 @@ li:nth-child(even) .pinned {
   display: flex;
   max-width: 34rem;
   margin: 0 auto;
-  padding-bottom: env(safe-area-inset-bottom);
+  padding-bottom: var(--sa-bottom);
   background: var(--steel-2);
   border-top: 1px solid var(--line);
 }
@@ -1210,7 +1217,7 @@ li:nth-child(even) .pinned {
   position: fixed;
   left: 0.75rem;
   right: 0.75rem;
-  bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 0.75rem);
+  bottom: calc(var(--tabbar-h) + var(--sa-bottom) + 0.75rem);
   z-index: 4;
   max-width: 32.5rem;
   margin: 0 auto;
@@ -1638,7 +1645,7 @@ li:nth-child(even) .pinned {
   position: fixed;
   left: 0;
   right: 0;
-  bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
+  bottom: calc(var(--tabbar-h) + var(--sa-bottom));
   z-index: 3;
   display: flex;
   align-items: center;
