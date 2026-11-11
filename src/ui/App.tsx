@@ -7,6 +7,7 @@ import { tabFor, type Route, type TabScreen } from './route.ts';
 import { joinNames, noticesFor, reportFirstNames, unreadCount } from './runs-view.ts';
 import { Building } from './screens/Building.tsx';
 import { Depot } from './screens/Depot.tsx';
+import { Gear } from './screens/Gear.tsx';
 import { LoadError } from './screens/LoadError.tsx';
 import { Memorial } from './screens/Memorial.tsx';
 import { Planner } from './screens/Planner.tsx';
@@ -21,7 +22,7 @@ import { tourStep } from './tour.ts';
 import { resourceList } from './view.ts';
 
 /** Screens that have their own back bar instead of the guild header. */
-const DETAIL_SCREENS: Route['screen'][] = ['survivor', 'plan', 'run', 'building', 'recruits'];
+const DETAIL_SCREENS: Route['screen'][] = ['survivor', 'plan', 'run', 'building', 'recruits', 'gear'];
 
 export function App() {
   const snap = useSnapshot();
@@ -54,6 +55,9 @@ export function App() {
       break;
     case 'recruits':
       screen = <Recruits state={s} day={day} />;
+      break;
+    case 'gear':
+      screen = <Gear state={s} />;
       break;
     case 'roster':
       screen = <Roster state={s} day={day} now={now} />;

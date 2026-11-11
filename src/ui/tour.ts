@@ -122,6 +122,15 @@ export const TOUR_STEPS: readonly TourStep[] = [
     text: () =>
       'Almost everything comes home with crews from runs in the Reach. The Garden grows rations, the Workshop turns scrap into ammo, and now and then a trader offers a swap.',
   },
+  {
+    id: 'gear',
+    part: 'supplies',
+    title: 'Gear',
+    route: depot,
+    target: 'gear',
+    text: () =>
+      "Weapons, armor, tools and trinkets that crews find, or the Workshop makes, go into the stash. Open it to hand them out. People change gear only while they're at the Depot.",
+  },
 
   // ---------------------------------------------------------------- food
   {

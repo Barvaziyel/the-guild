@@ -340,7 +340,10 @@ function GearPanel({ state, survivor: s }: { state: GameState; survivor: Survivo
         ))}
       </ul>
       <p className="stash-count">
-        {state.stash.length === 0 ? 'The stash is empty.' : `${state.stash.length} ${state.stash.length === 1 ? 'item' : 'items'} in the stash.`}
+        {state.stash.length === 0 ? 'The stash is empty.' : `${state.stash.length} ${state.stash.length === 1 ? 'item' : 'items'} in the stash.`}{' '}
+        <button type="button" className="text-link" onClick={() => navigate({ screen: 'gear' })}>
+          See all the gear
+        </button>
       </p>
     </section>
   );

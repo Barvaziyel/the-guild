@@ -168,6 +168,14 @@ function Report({ state, report }: { state: GameState; report: RunReport }) {
           </p>
         ))}
         <p>{loot.length > 0 ? `Brought home ${loot.join(', ')}.` : 'Brought nothing home.'}</p>
+        {s.items.length > 0 && (
+          <p className="summary-minor">
+            The gear went into the stash.{' '}
+            <button type="button" className="text-link" onClick={() => navigate({ screen: 'gear' })}>
+              See the gear
+            </button>
+          </p>
+        )}
         {s.leftBehind > 0 && <p className="summary-minor">Left {s.leftBehind} loads behind: too much to carry.</p>}
         {(s.medsLeft > 0 || s.ammoLeft > 0) && (
           <p className="summary-minor">
