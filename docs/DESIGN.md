@@ -578,7 +578,7 @@ Planned 2026-11-11, in this order, all on Opus:
 | 12 | Partners: romance (§5.1) | **done** (1.3.0) |
 | 13 | Vehicles and gas | |
 | 14 | Expansion: outposts and deeper areas | |
-| 15 | What's missing: rescue jobs, feuds that make someone quit, pets, **babies**, the last gear drawings | |
+| 15 | What's missing: rescue jobs, feuds that make someone quit, pets, **ageing and babies**, the last gear drawings | |
 | 16 | The Vultures, a rival guild | |
 
 - **Tutorial.** Starts with a new guild, and can be replayed from Settings. It walks through the resources and how to get more of each, food and the Garden, why crews go out on runs, why to build, and taking in recruits. It's optional: the player can skip the whole thing, or skip ahead to the next part. Built as the tour (§12); later steps that add something to explain (gas, vehicles) add a step to it.
@@ -592,9 +592,15 @@ Planned 2026-11-11, in this order, all on Opus:
   - A run can take **several vehicles** and more people. A vehicle can be **lost**: wrecked on a run (its riders walk home, which takes longer) or stolen in a raid.
   - Big crews leave **fewer people at home**. Today an empty Depot only loses a little more in a raid, and the Garden still grows its base. This step makes a thin Depot clearly riskier, so a big convoy has a cost at home.
 - **Expansion.** Outposts on fully explored places extend the guild's reach (the Civ-style expansion). Places get deeper, more dangerous areas with better loot.
+- **Ageing** (part of step 15, asked for 2026-11-11, alongside babies). Everyone gets older in game time: a year every 365 game days, which is about 45 real days.
+  - Ages are fixed today. The portrait already greys hair by age, so faces would age on their own.
+  - To settle when building it:
+    - what old age does (stats slowly slipping past 60, say);
+    - whether anyone can die of old age;
+    - whether birthdays go in the Chronicle.
 - **Babies** (part of step 15, asked for 2026-11-11). Partners at the Depot sometimes have a baby, who grows up into a survivor.
-  - **Growing up:** about a month, roughly 30 game days (about 4 real days), from birth to a 16-year-old who joins the roster. *Assumed: Aviel didn't pick a speed, so check before building.* This brings in ages that change, at least for children.
-  - **Meanwhile:** children eat and need a bed. Everyone at home sheds a little more stress with a child around, and older children can take light posts such as the Garden. They never go on runs.
+  - **Growing up in real time,** at the same pace as everyone else: 16 game years from birth to joining the roster, which is about two real years of play. Children are a long-term thing.
+  - **Meanwhile:** children eat and need a bed. Everyone at home sheds a little more stress with a child around, and older children (about 12, so roughly a year and a half in) can take light posts such as the Garden. They never go on runs.
   - **From their parents:** a face that mixes both parents', stats that lean toward theirs, a chance to inherit a personality trait, and the family surname.
   - To settle when building it:
     - how often a couple has a baby;
@@ -617,6 +623,6 @@ Decided 2026-11-11:
 - Survivors are male or female (until 1.2.2 some were *they*).
 - People resting until healed can't take a new post.
 - Survivors have an orientation (85% straight, 6% gay, 9% bi), so about 96% of couples are a man and a woman.
-- Babies: yes, in step 15. Children help a little at the Depot and inherit looks, a stat lean and maybe a trait.
+- Ageing and babies: yes, in step 15. Everyone ages a year every 365 game days, and children grow up at that pace (about two real years to 16). They help a little at the Depot and inherit looks, a stat lean and maybe a trait.
 
 No open questions right now.
