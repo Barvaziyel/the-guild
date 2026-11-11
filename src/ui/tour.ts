@@ -47,6 +47,7 @@ export const TOUR_PARTS: readonly TourPart[] = [
 ];
 
 const depot = (): Route => ({ screen: 'depot' });
+const depotBuildings = (): Route => ({ screen: 'depot', tab: 'buildings' });
 
 const SMALL = ['No', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve'];
 
@@ -238,7 +239,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     id: 'buildings',
     part: 'building',
     title: 'Buildings',
-    route: depot,
+    route: depotBuildings,
     target: 'buildings',
     text: () =>
       'Scrap and tech go into buildings. The Bunks hold beds, the Garden grows food, the Firepit eases stress. Tap a building to see what its next level does.',
@@ -247,7 +248,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     id: 'posts',
     part: 'building',
     title: 'Posts',
-    route: depot,
+    route: depotBuildings,
     target: 'buildings',
     text: () =>
       "People at home work a post, and practice its stat every day: gardeners sharpen their Wits, firekeepers their Nerve. Change posts from a building or from someone's sheet.",
@@ -256,7 +257,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     id: 'build-first',
     part: 'building',
     title: 'What to build first',
-    route: depot,
+    route: depotBuildings,
     target: 'to-build',
     text: (state) => {
       const ideas = firstBuildSuggestions(state);

@@ -6,8 +6,13 @@
 export const SHEET_TABS = ['stats', 'bonds', 'story'] as const;
 export type SheetTab = (typeof SHEET_TABS)[number];
 
+/** The Depot's tabs. 'today' is the default and has no part in the hash. */
+export const DEPOT_TABS = ['today', 'buildings', 'news'] as const;
+export type DepotTab = (typeof DEPOT_TABS)[number];
+
 export type Route =
-  | { screen: 'depot' }
+  /** The Depot: what needs you today, the buildings, or the news. */
+  | { screen: 'depot'; tab?: Exclude<DepotTab, 'today'> }
   /** A Depot building: its workers and what it does. */
   | { screen: 'building'; id: string }
   /** Who is at the gate. */
@@ -34,6 +39,10 @@ export function parseRoute(hash: string): Route {
   const parts = hash.replace(/^#\/?/, '').split('/').filter(Boolean).map(decodeURIComponent);
   const [head, a, b] = parts;
   switch (head) {
+    case 'depot': {
+      const tab = DEPOT_TABS.find((t) => t === a);
+      return tab && tab !== 'today' ? { screen: 'depot', tab } : DEFAULT_ROUTE;
+    }
     case 'roster':
       return { screen: 'roster' };
     case 'recruits':
@@ -68,6 +77,7 @@ export function routeHash(route: Route): string {
   const enc = encodeURIComponent;
   switch (route.screen) {
     case 'depot':
+      return route.tab ? `#/depot/${route.tab}` : '#/depot';
     case 'recruits':
     case 'gear':
     case 'roster':

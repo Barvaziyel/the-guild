@@ -460,10 +460,10 @@ At most one event a day (a 20% chance), weighted:
 ## 12. Screens
 
 1. **Depot (home):** resource bar, buildings and their workers, active runs (countdown plus the latest beat), event inbox. *Built (PR 7):*
-   - The first tab and the screen the game opens on.
-   - "Since you last looked": the days that passed, what the Garden grew and the guild ate, ammo made, health healed, and the news.
-   - A trader's offers, with Trade and Send them on.
-   - Crews out, each building with its live numbers and workers, who is at the gate, buildings still to build, and Depot news.
+   - The first tab and the screen the game opens on. It grew long, so since 1.3.1 it has three tabs of its own:
+     - **Today** (the default): "Since you last looked" (the days that passed, what the Garden grew and the guild ate, ammo made, health healed, and the news), a food warning, a trader's offers (Trade, Send them on), crews out, who is at the gate, the gear, and the three latest news lines.
+     - **Buildings:** each building with its live numbers and workers, then those still to build. Coming back from a building returns here.
+     - **News:** the Depot news, up to 60 lines.
    - **A building's screen:** what it does now, the next level and its cost, and its workers (post someone, take them off; Training Yard workers pick a stat). The Workshop adds Make and Improve.
    - **At the gate:** the recruit board (§10).
    - Survivor sheets have a post picker.

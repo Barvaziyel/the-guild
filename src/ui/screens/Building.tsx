@@ -23,7 +23,7 @@ export function Building({ state, id }: { state: GameState; id: string }) {
   return (
     <article className="sheet building">
       <div className="sheet-nav">
-        <button type="button" className="back" onClick={() => goBack({ screen: 'depot' })}>
+        <button type="button" className="back" onClick={() => goBack({ screen: 'depot', tab: 'buildings' })}>
           <span aria-hidden="true">&lsaquo;</span> The Depot
         </button>
       </div>
