@@ -18,6 +18,9 @@ npm run run-sample # simulate one run and print its log; args: <seed> <location>
 npm run career     # play a guild through 40 runs and print how its people change; args: <seed> <runs> <maxDanger>
 npm run portraits  # write a gallery of portraits to out/portraits.html
 npm run balance    # Monte Carlo table of danger and loot per location; args: <runs> <retreat> <approach> <crewSize> [medkit]
+npm run keystore   # once: make the release signing key (android/keystore.properties, git-ignored)
+npm run apk        # build out/the-guild-<version>.apk on this machine (needs Android Studio + Java 21); apk:install also installs over USB
+npm run android:sync  # build the web app and copy it into android/; android:open opens Android Studio
 ```
 
 ## Layout
@@ -34,12 +37,14 @@ npm run balance    # Monte Carlo table of danger and loot per location; args: <r
   - `*.test.ts`: tests next to the code. `test-utils.ts` holds the fixtures.
 - `src/portrait/`: survivor portraits as layered SVG, composed in code. Zero dependencies; imports types from the engine.
   - `portrait.ts`: `portraitSvg(survivor)`, `portraitLook`, and the layer order. `face.ts`, `hair.ts`, `outfit.ts`, `overlays.ts`: the parts. `palette.ts`: colors.
-- `scripts/`: dev scripts run with `node`.
+- `scripts/`: dev scripts run with `node`. `apk.ts`, `keystore.ts` and `toolchain.ts` (finding Java and the Android SDK) build the app.
 - `src/ui/`: the app, in React and Vite. `index.html` and `vite.config.ts` are at the repo root.
   - Plain `.ts`, tested in Node: `store.ts` (holds the game, saves on every change), `persist.ts` (localStorage, export/import, backup copy), `route.ts` (hash routes), `view.ts` (labels and groupings for survivor screens), `runs-view.ts` (the planner's choices, times, outcomes, reports, notices), `depot-view.ts` (buildings with live numbers, posts, the workshop, recruits, the "since you last looked" note), `reach-map.ts` (where places sit on the map), `dev.ts` (fast-forward, skip ahead), `prefs.ts` (device-only settings), `time.ts` (clock times).
-  - `notify.ts`: "crew is back" notices (browser version; PR 8 adds Capacitor's).
+  - `notify.ts`: "crew is back" notices: `webNotifier` in a browser, `nativeNotifier` (scheduled with Android) in the app.
+  - `native.ts`: app-only setup (back button, resume, tapping a notice). `files.ts`: saving a file (download in a browser, share sheet in the app). Both check `Capacitor.isNativePlatform()`, so the browser version is unchanged.
   - React: `main.tsx`, `App.tsx`, `hooks.ts`, `components/`, `screens/`. Styles in `styles.css`.
-- `android/` (planned): Capacitor.
+- `android/`: the Capacitor native project, committed. `capacitor.config.ts` is at the repo root; app icons come from `assets/`. Setup and building: `docs/ANDROID.md`.
+  - The APK can't be built from a cloud session (Google's and Gradle's servers are blocked there); build it locally.
 
 ## Engine rules
 

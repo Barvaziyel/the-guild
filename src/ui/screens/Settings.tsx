@@ -3,6 +3,8 @@ import { SAVE_VERSION, dayAt, serialize, type GameState } from '../../engine/ind
 import { ConfirmButton } from '../components/Confirm.tsx';
 import { usePrefs, useServices } from '../hooks.ts';
 import { fastForward, type FastForwardResult } from '../dev.ts';
+import { saveFileLabel, saveTextFile } from '../files.ts';
+import { isNative } from '../native.ts';
 import { exportFileName, parseImport } from '../persist.ts';
 
 interface Props {
@@ -58,7 +60,11 @@ function GameSettings({ state }: { state: GameState }) {
       />
       <Toggle
         label="Tell me when crews come back"
-        help="A notice when a crew is due home, even with the game in the background. In a phone browser it only works while the game is open; the Android app will do it with the game closed."
+        help={
+          isNative()
+            ? 'A notice when a crew is due home, even with the game closed. Android may hold it a few minutes to save battery.'
+            : 'A notice when a crew is due home, even with the game in the background. In a browser it only works while the game is open; the Android app does it with the game closed.'
+        }
         checked={notify}
         onChange={(on) => {
           setNoticeNote(null);
@@ -136,14 +142,14 @@ export function CopyBox({ text, fileName }: { text: string; fileName: string }) 
     }
   };
 
-  // Downloads work in a browser. The Android build (PR 8) may need the share sheet instead.
-  const download = (): void => {
-    const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = fileName;
-    a.click();
-    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  const [fileError, setFileError] = useState<string | null>(null);
+  const saveFile = async (): Promise<void> => {
+    setFileError(null);
+    try {
+      await saveTextFile(fileName, text);
+    } catch (err) {
+      setFileError(`Couldn't make the file: ${err instanceof Error ? err.message : String(err)}. Copy the text instead.`);
+    }
   };
 
   return (
@@ -153,8 +159,8 @@ export function CopyBox({ text, fileName }: { text: string; fileName: string }) 
         <button type="button" className="btn btn-primary" onClick={() => void copy()}>
           Copy
         </button>
-        <button type="button" className="btn" onClick={download}>
-          Download file
+        <button type="button" className="btn" onClick={() => void saveFile()}>
+          {saveFileLabel()}
         </button>
       </div>
       {copied === 'yes' && (
@@ -165,6 +171,11 @@ export function CopyBox({ text, fileName }: { text: string; fileName: string }) 
       {copied === 'failed' && (
         <p className="field-error" role="status">
           This phone wouldn&rsquo;t copy it. The text is selected; copy it by hand.
+        </p>
+      )}
+      {fileError && (
+        <p className="field-error" role="status">
+          {fileError}
         </p>
       )}
     </div>

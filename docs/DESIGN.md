@@ -1,6 +1,6 @@
 # The Guild — Game Design Document
 
-> Version 0.7 · 2026-11-10 · Living document. Numbers are starting points for tuning, not promises.
+> Version 0.8 · 2026-11-11 · Living document. Numbers are starting points for tuning, not promises.
 
 ## 1. Pitch
 
@@ -234,7 +234,8 @@ The planner shows the duration, warnings (rivals or feuds in the crew, injuries,
 - When the crew **returns**, the effects apply all at once on the report screen, and a local notification fires.
   - The game brings a crew home the moment they're due, or as soon as it's opened after that. The report waits, marked new, until the player opens it. A banner says who is back, and the Runs tab shows a count of new reports.
   - Notices never give away what happened: "Mara and Dex are due back", not "Dex died".
-  - In a browser, notices only fire while the game is open, even in the background. The Android build (PR 8) schedules them with the system, so they fire with the game closed.
+  - In a browser, notices only fire while the game is open, even in the background. The Android app schedules them with the system, so they fire with the game closed. They are inexact (Android may hold one a few minutes to save battery), which is fine for a crew's return and needs no exact-alarm permission.
+  - Tapping a notice opens that crew's run.
 - The result is fixed at departure, so the game can't be save-scummed. The simulation only depends on the crew, gear and supplies at departure.
 
 A run has **3–8 beats**, depending on distance. Each beat is a type, weighted by job and location:
@@ -456,16 +457,19 @@ At most one event a day (a 20% chance), weighted:
   - Logic that can be tested without a browser lives in plain `.ts` files (`store.ts`, `persist.ts`, `route.ts`, `view.ts`, `runs-view.ts`, `depot-view.ts`, `reach-map.ts`, `dev.ts`) with Node tests. Components are `.tsx`.
   - Time moves in one place: `App.tsx` calls the engine's `advanceTime` when the clock reaches a crew's return or a new Depot day, and on opening the game.
   - The engine is type-checked without DOM types (root `tsconfig.json`), the UI with them (`src/ui/tsconfig.json`).
-- **Persistence.** A versioned JSON save with migrations, stored in localStorage (Capacitor storage later).
-  - Saves can be exported (copy or download) and imported (paste or file). Text that isn't a save, or a damaged one, is rejected with a reason.
+- **Persistence.** A versioned JSON save with migrations, stored in localStorage (in the Android app too: the WebView keeps it with the app's data).
+  - Saves can be exported (copy, or download in a browser and share in the app) and imported (paste or file). Text that isn't a save, or a damaged one, is rejected with a reason.
   - Importing or starting over keeps the replaced save as a **backup copy**, which Settings can load again.
   - If the save on the device can't be read, the game shows it for copying and overwrites nothing until the player starts a new guild.
 - **Developer tools** (Settings → Developer):
   - *Fast-forward* plays ten runs with random crews at danger up to 3, with three real Depot days after each (rations are topped up so it never stalls), then slides the whole timeline back so the guild looks older and nothing is in the future.
   - *Developer shortcuts* add a button to a crew's run that skips ahead to their return, the same way: the timeline moves, and the crew comes home through the normal return.
 - **Tests.** Node's built-in test runner (`node --test`, which runs `.ts` files natively). This includes Monte Carlo balance tests.
-- **Android.** Capacitor wraps the built web app. GitHub Actions builds the APK and publishes it to a GitHub Release, so it can be downloaded directly on the phone.
-  - Signing uses **one fixed keystore**, stored in repo secrets. That way updates install over the old version and keep the save.
+- **Android.** Capacitor 8 wraps the built web app (`capacitor.config.ts`, native project in `android/`, min Android 7, target Android 16). The APK is **built locally** with `npm run apk` (see `docs/ANDROID.md`), not in CI, and sideloaded over USB or by copying the file.
+  - Plugins: App (back button, resume), Local Notifications (crew returns), Share and Filesystem (exporting the save as a file). `src/ui/native.ts` and `src/ui/files.ts` hold the app-only code; the browser version is unchanged.
+  - Signing uses **one fixed keystore**, made once by `npm run keystore` and kept out of git (back it up). That way updates install over the old version and keep the save. Without it, release builds fall back to the debug key.
+  - The version code is the build time in minutes, so every build installs over the last; the version name is `package.json`'s.
+  - Edge-to-edge: the SystemBars plugin passes the system bar sizes to CSS as `--safe-area-inset-*`, which `styles.css` prefers over `env(safe-area-inset-*)`.
 - **Firebase and Cloudflare** aren't needed for the first version. Cloud save backup is optional later.
 
 ## 14. Art
@@ -515,7 +519,7 @@ At most one event a day (a 20% chance), weighted:
 | 5 | UI shell: React/Vite, roster, survivor sheet, save/load | Opus · **done** |
 | 6 | Reach map, run planner, run report, notifications | Opus · **done** |
 | 7 | Depot: buildings, workers, resources, recruits, Depot events, time catch-up | Opus · **done** |
-| 8 | Android APK: Capacitor, Actions and a GitHub Release | Opus |
+| 8 | Android APK: Capacitor, built locally (`npm run apk`), system notices | Opus · **done** |
 
 **First playable = PRs 1–8.**
 

@@ -15,6 +15,7 @@ import {
   latestBeat,
   locationView,
   lootList,
+  noticeNumber,
   noticesFor,
   outcomeHeadline,
   outcomeTone,
@@ -98,6 +99,12 @@ describe('crews out and reports', () => {
     assert.match(backIn(run, T0), /^back in \d+ min$/);
     assert.equal(backIn(run, run.returnAt), 'due back now');
 
+    assert.equal(noticeNumber('r12'), noticeNumber('r12'));
+    assert.notEqual(noticeNumber('r12'), noticeNumber('r13'));
+    for (const id of ['r1', 'r999999', 'a-very-long-run-id-indeed']) {
+      const n = noticeNumber(id);
+      assert.ok(Number.isInteger(n) && n > 0 && n < 2 ** 31, `${id} -> ${n}`);
+    }
     const [notice] = noticesFor(state);
     assert.equal(notice!.at, run.returnAt);
     assert.match(notice!.title, / and .* are due back$/);
