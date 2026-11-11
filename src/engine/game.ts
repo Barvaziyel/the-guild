@@ -108,6 +108,7 @@ export function newGame(opts: NewGameOptions): GameState {
     runs: [],
     reports: [],
     eventsSeen: {},
+    nemeses: [],
     log: [],
     settings: { mercyMode: false },
   };

@@ -9,6 +9,7 @@ export interface RunTally {
   rangedKills: number;
   meleeKills: number;
   scavenges: number;
+  nemesisKills: number;
 }
 
 export type NumericCounter = {

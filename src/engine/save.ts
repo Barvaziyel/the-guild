@@ -48,6 +48,10 @@ const MIGRATIONS: Record<number, (save: Record<string, unknown>) => void> = {
     const intoDay = (elapsed - days * HOUR_DAY_MS) / HOUR_DAY_MS;
     save.createdAt = last - Math.round((days + intoDay) * DAY_MS);
   },
+  // v7: nemeses (roadmap step 11). Named weapons and nicknames only fill fields that were already optional.
+  6: (save) => {
+    save.nemeses ??= [];
+  },
 };
 
 export function serialize(state: GameState): string {

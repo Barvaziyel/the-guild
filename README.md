@@ -14,6 +14,8 @@ Run a scavenger guild out of a ruined rail depot, forty years after the Burn. Re
 
 ![The tour: welcome, the Garden, and planning a first run](docs/img/ui-tour.png)
 
+![Stories: a nemesis on the Reach, a named weapon, and a score to settle](docs/img/ui-stories.png)
+
 ![Twenty-four randomly generated survivors](docs/img/portraits-random.png)
 
 One survivor through everything that can happen to them:

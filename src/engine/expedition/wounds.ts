@@ -22,6 +22,7 @@ import { fullName } from '../text.ts';
 import { addTrait, hasTrait, sumTraitHook } from '../traits.ts';
 import type { Slot } from '../types.ts';
 import { bestBy, check, isBonded, say, simDay, standing, stress, type Member, type Sim } from './context.ts';
+import { nemesisKilledSomeone } from './stories.ts';
 
 type Tier = 'wounded' | 'serious' | 'mortal';
 
@@ -71,7 +72,7 @@ function creditRescue(sim: Sim, rescuer: Member, saved: Member): void {
   addFlag(sim.state, rescuer.s.id, saved.s.id, { kind: 'owesLife', debtor: saved.s.id });
 }
 
-function kill(sim: Sim, m: Member, cause: string, enemyType: string | undefined): void {
+function kill(sim: Sim, m: Member, cause: string, enemyType: string | undefined, nemesisId?: string): void {
   const day = simDay(sim);
   m.dead = true;
   m.down = false;
@@ -82,6 +83,7 @@ function kill(sim: Sim, m: Member, cause: string, enemyType: string | undefined)
   addChronicle(m.s, day, `Died at ${sim.loc.name}, killed by ${cause}.`, ['death']);
   sim.deaths.push(enemyType ? { survivorId: m.s.id, name: fullName(m.s), cause, enemyType } : { survivorId: m.s.id, name: fullName(m.s), cause });
   say(sim, `${fullName(m.s)} is dead.`, { tone: 'bad' });
+  if (nemesisId) nemesisKilledSomeone(sim, nemesisId, m);
   for (const other of sim.members) {
     if (other === m || other.dead) continue;
     other.s.counters.alliesLost += 1;
@@ -95,7 +97,7 @@ function resolveOne(sim: Sim, m: Member, helpers: readonly Member[], opts: { spa
   const pending = m.woundPending;
   if (!pending) return;
   delete m.woundPending;
-  const { cause, enemyType } = pending;
+  const { cause, enemyType, nemesisId } = pending;
   const first = m.s.firstName;
 
   const own = effectiveStat(m.s, 'grit') * WOUND_GRIT_MULT + sumTraitHook(m.s, 'woundRollBonus');
@@ -146,7 +148,7 @@ function resolveOne(sim: Sim, m: Member, helpers: readonly Member[], opts: { spa
         applySerious(sim, m, cause, 1);
       } else {
         say(sim, `${first} is dying. There is nothing anyone can do.`, { check: save.info, tone: 'bad' });
-        kill(sim, m, cause, enemyType);
+        kill(sim, m, cause, enemyType, nemesisId);
         return;
       }
     }

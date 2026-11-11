@@ -34,12 +34,14 @@ npm run android:sync  # build the web app and copy it into android/; android:ope
   - `evolution.ts`: applies the trait evolution rules in `content/evolutions.ts`.
   - `depot/`: the Depot. `buildings.ts` (levels, costs, beds, posts), `day.ts` (one Depot day: food, work, care, rest, drift), `events.ts` (raids, traders, wanderers, fights...), `recruits.ts` (the board, taking people in), `workshop.ts` (making and improving gear), `time.ts` (`advanceTime`: plays the days that passed and brings crews home, at most 7 days at once).
   - `content/buildings.ts`, `content/workshop.ts`: building levels and text, recipes and upgrades.
+  - `content/stories.ts`: names for nemeses and weapons, and the nickname rules. `expedition/stories.ts`: nemeses in fights, naming weapons and people after a run, and `applyNemesisNews` when a crew is back.
   - `*.test.ts`: tests next to the code. `test-utils.ts` holds the fixtures.
 - `src/portrait/`: survivor portraits as layered SVG, composed in code. Zero dependencies; imports types from the engine.
   - `portrait.ts`: `portraitSvg(survivor)`, `portraitLook`, and the layer order. `face.ts`, `hair.ts`, `outfit.ts`, `overlays.ts`: the parts. `palette.ts`: colors.
 - `scripts/`: dev scripts run with `node`. `apk.ts`, `keystore.ts` and `toolchain.ts` (finding Java and the Android SDK) build the app.
 - `src/ui/`: the app, in React and Vite. `index.html` and `vite.config.ts` are at the repo root.
-  - Plain `.ts`, tested in Node: `store.ts` (holds the game, saves on every change), `persist.ts` (localStorage, export/import, backup copy), `route.ts` (hash routes), `view.ts` (labels and groupings for survivor screens), `runs-view.ts` (the planner's choices, times, outcomes, reports, notices), `depot-view.ts` (buildings with live numbers, posts, the workshop, recruits, the "since you last looked" note), `gear-view.ts` (the Gear screen: the stash, who can take what, who carries what), `reach-map.ts` (where places sit on the map), `dev.ts` (fast-forward, skip ahead), `prefs.ts` (device-only settings, including the tour step), `time.ts` (clock times), `tour.ts` (the tour's parts and steps).
+  - Plain `.ts`, tested in Node: `store.ts` (holds the game, saves on every change), `persist.ts` (localStorage, export/import, backup copy), `route.ts` (hash routes), `view.ts` (labels and groupings for survivor screens), `runs-view.ts` (the planner's choices, times, outcomes, reports, notices), `depot-view.ts` (buildings with live numbers, posts, the workshop, recruits, the "since you last looked" note), `gear-view.ts` (the Gear screen: the stash, who can take what, who carries what), `reach-map.ts` (where places sit on the map), `dev.ts` (fast-forward, skip ahead), `prefs.ts` (device-only settings, including the tour step), `time.ts` (clock times), `tour.ts` (the tour's parts and steps), `stories-view.ts` (nemeses on the Reach and a survivor's scores to settle).
+  - `components/ItemDetails.tsx`: an item's name, stats, and a named weapon's kind and story; used by the sheet and the Gear screen.
   - `notify.ts`: "crew is back" notices: `webNotifier` in a browser, `nativeNotifier` (scheduled with Android) in the app.
   - `native.ts`: app-only setup (back button, resume, tapping a notice). `files.ts`: saving a file (download in a browser, share sheet in the app). Both check `Capacitor.isNativePlatform()`, so the browser version is unchanged.
   - React: `main.tsx`, `App.tsx`, `hooks.ts`, `components/`, `screens/`. Styles in `styles.css`.
@@ -74,6 +76,7 @@ npm run android:sync  # build the web app and copy it into android/; android:ope
    - `simulateRun` must never change the real `GameState`.
    - Inside a simulation, use the helpers in `expedition/context.ts` (`check`, `stress`, `hurt`, `say`). They handle rerolls, practice, hidden-trait reveals and log lines.
    - Run log text lives in `content/flavor.ts`.
+   - **Nemeses live in the real state; runs see a copy.** `simulateRun` works on `sim.nemeses` and records what happened as `NemesisNews` in the result; `completeRun` merges it with `applyNemesisNews`, because runs overlap. Names come from `takenNames` and are never reused.
    - **Runs can be one person.** Text that talks about a group ("the crew", "everyone", "the others") is a `CrewLines` pool with separate solo lines, or a `members.length === 1` branch in code; anything else is written to read right either way. `expedition/solo.test.ts` simulates a few hundred solo runs and fails on group words.
 10. **Scripted events are data.**
    - They live in `content/events.ts`; `expedition/events.ts` casts and plays them. To add one, append an entry. Add a new effect type only when no existing one fits.

@@ -2,7 +2,7 @@
  * Planning a run: how long it takes, what it costs, and whether it's allowed.
  */
 import { DAY_MS, HUNGER_STRESS, MAX_CREW, SNEAKY_DURATION_MULT, STRESS_HIGH } from '../constants.ts';
-import { findLocation, getGear, getLocation, getTrait } from '../content/index.ts';
+import { findLocation, getEnemy, getGear, getLocation, getTrait } from '../content/index.ts';
 import { locationState } from '../locations.ts';
 import { crewConflicts } from '../relationships.ts';
 import { maxHp } from '../stats.ts';
@@ -116,6 +116,13 @@ export function planWarnings(state: GameState, plan: RunPlan): string[] {
     return w !== undefined && getGear(w.defId).usesAmmo === true;
   });
   if (needAmmo && plan.ammo === 0) warnings.push('Someone carries a gun, but the crew is taking no ammo.');
+  for (const n of state.nemeses ?? []) {
+    if (n.status !== 'atLarge' || n.locationId !== plan.locationId) continue;
+    const kind = getEnemy(n.enemyId).name;
+    const settle = crew.filter((s) => n.downed.includes(s.id)).map((s) => s.firstName);
+    const scores = settle.length === 0 ? '' : ` ${settle.length === 1 ? `${settle[0]} has` : `${settle.slice(0, -1).join(', ')} and ${settle[settle.length - 1]} have`} a score to settle.`;
+    warnings.push(`${n.name[0]!.toUpperCase()}${n.name.slice(1)}, ${/^[AEIOU]/.test(kind) ? 'an' : 'a'} ${kind} the guild knows by name, haunts this place.${scores}`);
+  }
   const hungry = hungryCrew(state, plan);
   if (hungry.length > 0) {
     const names = hungry.map((s) => s.firstName);

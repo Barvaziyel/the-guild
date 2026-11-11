@@ -16,6 +16,7 @@ import type { Beat, GameState, Run, RunDeath, RunPlan, RunReport, RunSummary, Su
 import { RESOURCE_IDS, SLOTS } from '../types.ts';
 import { rationsPacked, validatePlan } from './plan.ts';
 import { simulateRun } from './sim.ts';
+import { addStory, applyNemesisNews } from './stories.ts';
 
 /**
  * Send a crew out. The whole run is simulated now and stored; nothing that
@@ -120,7 +121,7 @@ export function completeRun(state: GameState, runId: string, now: number): RunRe
     if (after.status === 'dead') {
       state.survivors.splice(i, 1);
       state.memorial.push(after);
-      if (!lost) bringGearHome(state, after);
+      if (!lost) bringGearHome(state, after, day, loc.name);
       addGuildLog(state, day, `${fullName(after)} died at ${loc.name}.`, ['death', after.id]);
     } else {
       after.status = 'ready';
@@ -131,6 +132,7 @@ export function completeRun(state: GameState, runId: string, now: number): RunRe
 
   const rng = new Rng(`return:${run.seed}`);
   for (const death of result.deaths) mourn(state, death, rng, day);
+  for (const news of result.nemeses ?? []) applyNemesisNews(state, news, result.crew, day, rng);
 
   for (const res of RESOURCE_IDS) state.resources[res] += result.loot[res];
   state.resources.meds += result.medsLeft;
@@ -184,10 +186,11 @@ export function markReportRead(state: GameState, reportId: string): void {
 }
 
 /** A dead survivor's gear goes back into the stash. */
-function bringGearHome(state: GameState, s: Survivor): void {
+function bringGearHome(state: GameState, s: Survivor, day: number, place: string): void {
   for (const slot of SLOTS) {
     const item = s.equipment[slot];
     if (!item) continue;
+    if (item.name) addStory((item.history ??= []), { day, text: `Came home from ${place} without ${fullName(s)}.` });
     delete s.equipment[slot];
     delete item.cherishedBy;
     item.runsWithHolder = 0;

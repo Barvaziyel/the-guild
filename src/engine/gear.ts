@@ -14,7 +14,11 @@ export function itemDef(item: ItemInstance): GearDef {
 
 /** "Solid Machete", "Rusty Pipe", or a custom name if the item earned one. */
 export function itemName(item: ItemInstance): string {
-  if (item.name) return item.name;
+  return item.name ?? baseItemName(item);
+}
+
+/** "Solid Machete": what the item is, even when it has a name of its own. */
+export function baseItemName(item: ItemInstance): string {
   const prefix = QUALITY_NAME[item.quality];
   const base = itemDef(item).name;
   return prefix ? `${prefix} ${base}` : base;

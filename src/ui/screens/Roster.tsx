@@ -3,7 +3,7 @@ import { Vitals } from '../components/Bars.tsx';
 import { Portrait } from '../components/Portrait.tsx';
 import { navigate } from '../hooks.ts';
 import { backIn, runOfSurvivor } from '../runs-view.ts';
-import { headlineTraits, originLine, rosterOrder, survivorStatus } from '../view.ts';
+import { headlineTraits, nameWithNickname, originLine, rosterOrder, survivorStatus } from '../view.ts';
 
 export function Roster({ state, day, now }: { state: GameState; day: number; now: number }) {
   const people = rosterOrder(state);
@@ -54,7 +54,7 @@ function RosterRow({ state, survivor: s, day, now }: { state: GameState; survivo
         <Portrait survivor={s} size={84} decorative className="pinned" />
         <span className="roster-body">
           <span className="roster-name">
-            {s.firstName} {s.lastName}
+            {nameWithNickname(s)}
           </span>
           <span className="roster-origin">{originLine(s)}</span>
           <span className={`status status-${status.tone}`}>{label}</span>

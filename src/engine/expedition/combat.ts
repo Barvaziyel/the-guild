@@ -9,6 +9,7 @@ import {
   ENCOUNTER_PER_DANGER,
   MAX_COMBAT_ROUNDS,
   MAX_ENEMIES,
+  NEMESIS_HP_MULT,
   REL_FLED,
   REL_FLED_DOWNED,
   STRESS_COMBAT,
@@ -22,7 +23,7 @@ import { adjustRelationship } from '../relationships.ts';
 import { enemyContexts, situationalMods } from '../stats.ts';
 import { fullName } from '../text.ts';
 import { anyTraitHook, getTraitInstance, maxTraitHook, mulTraitHook } from '../traits.ts';
-import type { ResourceId, StatId } from '../types.ts';
+import type { Nemesis, ResourceId, StatId } from '../types.ts';
 import {
   absorbRads,
   active,
@@ -44,13 +45,27 @@ import {
   type Member,
   type Sim,
 } from './context.ts';
+import { afterFight, announceNemesis, enemyRef, grudgeBonus, maybeNemesisEscape, nemesisEnemy, nemesisJoins, nemesisKilled } from './stories.ts';
 
 export interface Enemy {
   def: EnemyDef;
   hp: number;
+  maxHp: number;
+  attack: number;
+  defense: number;
   dead: boolean;
   /** Ran away. */
   fled: boolean;
+  /** Survivors this enemy put down in the current fight. */
+  downed: Member[];
+  /** One of the guild's nemeses (the run's copy). */
+  nemesis?: Nemesis;
+  /** A nemesis gets one try per fight at slipping away. */
+  escapeTried?: boolean;
+}
+
+export function newEnemy(def: EnemyDef): Enemy {
+  return { def, hp: def.hp, maxHp: def.hp, attack: def.attack, defense: def.defense, dead: false, fled: false, downed: [] };
 }
 
 export type CombatEnd = 'won' | 'withdrew' | 'stalemate' | 'routed';
@@ -59,9 +74,15 @@ const living = (enemies: readonly Enemy[]): Enemy[] => enemies.filter((e) => !e.
 
 // ---------------------------------------------------------------- building encounters
 
-/** Pick an encounter for this location and buy enemies with the threat budget. */
+/**
+ * Pick an encounter for this location and buy enemies with the threat budget.
+ * A nemesis that haunts the place may lead it.
+ */
 export function buildEncounter(sim: Sim): Enemy[] {
-  const table: readonly EncounterDef[] = sim.loc.encounters;
+  const nemesis = nemesisJoins(sim);
+  const all: readonly EncounterDef[] = sim.loc.encounters;
+  const withIt = nemesis ? all.filter((e) => e.enemies.includes(nemesis.enemyId)) : [];
+  const table = withIt.length > 0 ? withIt : all;
   const encounter = sim.rng.weightedBy(table, (e) => {
     // Hunters go looking for animals.
     const feral = e.enemies.some((id) => getEnemy(id).type === 'feral');
@@ -72,25 +93,30 @@ export function buildEncounter(sim: Sim): Enemy[] {
   let budget = (ENCOUNTER_BASE + sim.loc.danger * ENCOUNTER_PER_DANGER) * crewMult;
 
   const out: Enemy[] = [];
+  if (nemesis) {
+    const e = nemesisEnemy(nemesis);
+    out.push(e);
+    budget -= e.def.threat * NEMESIS_HP_MULT;
+  }
   while (out.length < MAX_ENEMIES) {
     const affordable = defs.filter((d) => d.threat <= budget);
     if (affordable.length === 0) break;
     const def = sim.rng.pick(affordable);
-    out.push({ def, hp: def.hp, dead: false, fled: false });
+    out.push(newEnemy(def));
     budget -= def.threat;
   }
   if (out.length === 0) {
     const cheapest = defs.reduce((a, b) => (b.threat < a.threat ? b : a));
-    out.push({ def: cheapest, hp: cheapest.hp, dead: false, fled: false });
+    out.push(newEnemy(cheapest));
   }
   return out;
 }
 
-/** "three Rad-hounds", "a Raider Gunner and two Raider Scavs". */
+/** "three Rad-hounds", "a Raider Gunner and two Raider Scavs", "Old Notch and a Rad-hound". */
 export function describeGroup(enemies: readonly Enemy[]): string {
+  const parts: string[] = enemies.filter((e) => e.nemesis).map((e) => e.nemesis!.name);
   const counts = new Map<EnemyDef, number>();
-  for (const e of enemies) counts.set(e.def, (counts.get(e.def) ?? 0) + 1);
-  const parts: string[] = [];
+  for (const e of enemies) if (!e.nemesis) counts.set(e.def, (counts.get(e.def) ?? 0) + 1);
   for (const [def, n] of counts) parts.push(n === 1 ? withArticle(def.name) : `${numberWord(n)} ${def.plural}`);
   return listNames(parts);
 }
@@ -135,14 +161,17 @@ function survivorAttack(sim: Sim, m: Member, target: Enemy, ctx: AttackContext):
     }
   }
 
-  const extra = toHit + (sim.plan.approach === 'aggressive' ? AGGRESSIVE_ATTACK_BONUS : 0);
+  const extra = toHit + (sim.plan.approach === 'aggressive' ? AGGRESSIVE_ATTACK_BONUS : 0) + grudgeBonus(m, target);
   const bonus = simBonus(sim, m, stat, ['combat', ...enemyContexts(m.s, target.def.type)], { extra });
   const roll = sim.rng.d10();
-  practice(sim, m, stat, target.def.defense);
-  if (roll + bonus < target.def.defense) return;
+  practice(sim, m, stat, target.defense);
+  if (roll + bonus < target.defense) return;
 
   target.hp -= Math.max(1, damage - target.def.armor);
-  if (target.hp > 0) return;
+  if (target.hp > 0) {
+    maybeNemesisEscape(sim, target);
+    return;
+  }
 
   target.dead = true;
   const c = m.s.counters;
@@ -157,6 +186,10 @@ function survivorAttack(sim: Sim, m: Member, target: Enemy, ctx: AttackContext):
   }
   if (weapon) weapon.kills = (weapon.kills ?? 0) + 1;
   const how = weapon ? `with the ${itemName(weapon)}` : 'bare-handed';
+  if (target.nemesis) {
+    nemesisKilled(sim, m, target, how);
+    return;
+  }
   const verb = ranged ? 'drops' : 'takes down';
   say(sim, `${m.s.firstName} ${verb} ${withArticle(target.def.name)} ${how}.`, { tone: 'good' });
 }
@@ -190,17 +223,14 @@ function enemyRound(sim: Sim, fight: FightState): void {
     if (targets.length === 0) return;
     const target = sim.rng.weightedBy(targets, (m) => mulTraitHook(m.s, 'attentionWeight'));
     const armor = target.s.equipment.armor ? armorValue(target.s.equipment.armor) : 0;
-    if (sim.rng.d10() + enemy.def.attack < SURVIVOR_DEFENSE + armor) continue;
+    if (sim.rng.d10() + enemy.attack < SURVIVOR_DEFENSE + armor) continue;
 
     const damage = Math.max(1, enemy.def.damage - armor);
     if (enemy.def.rads) absorbRads(target, enemy.def.rads);
-    const wentDown = hurt(sim, target, damage, withArticle(enemy.def.name), enemy.def.type);
-    say(
-      sim,
-      `${target.s.firstName} is ${enemy.def.hitVerb} ${withArticle(enemy.def.name)} (-${damage} HP)${wentDown ? ' and goes down.' : '.'}`,
-      { tone: 'bad' },
-    );
+    const wentDown = hurt(sim, target, damage, enemyRef(enemy), enemy.def.type, enemy.nemesis?.id);
+    say(sim, `${target.s.firstName} is ${enemy.def.hitVerb} ${enemyRef(enemy)} (-${damage} HP)${wentDown ? ' and goes down.' : '.'}`, { tone: 'bad' });
     if (wentDown) {
+      enemy.downed.push(target);
       fight.downedHere.push(target);
       for (const other of active(sim)) maybeFlee(sim, other, fight);
     } else if (isHurt(target)) {
@@ -214,7 +244,8 @@ function checkMorale(sim: Sim, fight: FightState): boolean {
   const total = fight.enemies.length;
   const dead = fight.enemies.filter((e) => e.dead).length;
   if (dead * 2 <= total) return false;
-  const runners = living(fight.enemies).filter((e) => e.def.morale === 'breaks');
+  // A nemesis doesn't run with the pack; it has its own way of getting out.
+  const runners = living(fight.enemies).filter((e) => e.def.morale === 'breaks' && !e.nemesis);
   if (runners.length === 0) return false;
   for (const e of runners) e.fled = true;
   say(sim, flavor(sim, ENEMIES_BREAK));
@@ -290,6 +321,7 @@ export function fight(sim: Sim, enemies: Enemy[], start: FightStart): FightResul
     const base = sim.rng.int(STRESS_COMBAT[0], STRESS_COMBAT[1]);
     stress(sim, m, nerve.success ? base / 2 : base, 'the fighting');
   }
+  for (const e of enemies) if (e.nemesis) announceNemesis(sim, e);
 
   let end: CombatEnd | undefined;
   let blockedSaid = false;
@@ -303,7 +335,7 @@ export function fight(sim: Sim, enemies: Enemy[], start: FightStart): FightResul
         const targets = living(enemies);
         if (targets.length === 0) break;
         // People tend to finish what is already hurt.
-        const target = sim.rng.weightedBy(targets, (e) => (e.hp < e.def.hp ? 3 : 1));
+        const target = sim.rng.weightedBy(targets, (e) => (e.hp < e.maxHp ? 3 : 1));
         survivorAttack(sim, m, target, attackCtx);
       }
       if (living(enemies).length === 0 || (checkMorale(sim, state) && living(enemies).length === 0)) {
@@ -357,6 +389,8 @@ export function fight(sim: Sim, enemies: Enemy[], start: FightStart): FightResul
   if (state.fledHere.length > 0 && end !== 'routed') {
     say(sim, `${listNames(state.fledHere.map((m) => m.s.firstName))} ${state.fledHere.length === 1 ? 'creeps' : 'creep'} back once it is over. Nobody says anything.`);
   }
+
+  afterFight(sim, enemies);
 
   const loot: Partial<Record<ResourceId, number>> = {};
   if (end === 'won') {

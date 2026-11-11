@@ -1,7 +1,7 @@
 import type { GameState } from '../../engine/index.ts';
 import { Portrait } from '../components/Portrait.tsx';
 import { navigate } from '../hooks.ts';
-import { daysSurvived, memorialOrder } from '../view.ts';
+import { daysSurvived, memorialOrder, nameWithNickname } from '../view.ts';
 
 export function Memorial({ state, day }: { state: GameState; day: number }) {
   const fallen = memorialOrder(state);
@@ -22,7 +22,7 @@ export function Memorial({ state, day }: { state: GameState; day: number }) {
               <button type="button" className="plaque" onClick={() => navigate({ screen: 'survivor', id: s.id, tab: 'story' })}>
                 <Portrait survivor={s} size={96} memorial decorative />
                 <span className="plaque-name">
-                  {s.firstName} {s.lastName}
+                  {nameWithNickname(s)}
                 </span>
                 <span className="plaque-line">Day {s.diedDay}</span>
                 {s.causeOfDeath && <span className="plaque-line">{s.causeOfDeath}</span>}
