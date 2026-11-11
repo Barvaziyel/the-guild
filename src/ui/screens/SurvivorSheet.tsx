@@ -17,6 +17,8 @@ import {
 } from '../../engine/index.ts';
 import { postChoices } from '../depot-view.ts';
 import { BondBar, Meter, Vitals } from '../components/Bars.tsx';
+import { ItemDetails } from '../components/ItemDetails.tsx';
+import { scoresToSettle } from '../stories-view.ts';
 import { Portrait } from '../components/Portrait.tsx';
 import { goBack, navigate, useAction, useServices } from '../hooks.ts';
 import type { SheetTab } from '../route.ts';
@@ -94,6 +96,7 @@ export function SurvivorSheet({ state, id, tab, day, now }: Props) {
           </>
         )}
         {current === 'bonds' && <BondsPanel state={state} survivor={s} />}
+        {current === 'bonds' && <ScoresPanel state={state} survivor={s} />}
         {current === 'story' && <ChroniclePanel survivor={s} />}
       </div>
     </article>
@@ -385,14 +388,7 @@ function GearSlot({ state, survivor: s, slot, editable, open, onToggle, onDone }
         <div className="gear-item">
           <span className="slot-name">{SLOT_NAMES[slot]}</span>
           {view ? (
-            <>
-              <span className="item-name">
-                {view.name}
-                {view.cherished && <span className="cherished"> Cherished</span>}
-              </span>
-              {view.stats && <span className="item-stats">{view.stats}</span>}
-              <span className="item-desc">{view.description}</span>
-            </>
+            <ItemDetails view={view} />
           ) : (
             <span className="item-empty">Nothing</span>
           )}
@@ -469,6 +465,28 @@ function BondsPanel({ state, survivor: s }: { state: GameState; survivor: Surviv
           ))}
         </ul>
       )}
+    </section>
+  );
+}
+
+/** Nemeses that put this survivor down. */
+function ScoresPanel({ state, survivor: s }: { state: GameState; survivor: Survivor }) {
+  const scores = scoresToSettle(state, s);
+  if (scores.length === 0) return null;
+  return (
+    <section className="panel" aria-labelledby="scores-title">
+      <h3 id="scores-title" className="panel-title">
+        Scores to settle
+      </h3>
+      <ul className="nemeses">
+        {scores.map((n) => (
+          <li key={n.name} className="nemesis">
+            <span className="nemesis-name">{n.name}</span>
+            <span className="nemesis-kind">{n.kind[0]!.toUpperCase() + n.kind.slice(1)}.</span>
+            <span className="nemesis-line">{n.line}</span>
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }

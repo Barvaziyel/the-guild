@@ -3,6 +3,7 @@
  * small sentences around them. No React here, so it can be tested in Node.
  */
 import {
+  baseItemName,
   RESOURCE_IDS,
   STAT_IDS,
   STAT_MAX,
@@ -64,6 +65,11 @@ export function survivorStatus(s: Survivor, day?: number): StatusView {
 }
 
 // ---------------------------------------------------------------- identity
+
+/** 'Dex "Two-Shot" Arlo', or 'Dex Arlo' before a nickname is earned. */
+export function nameWithNickname(s: Survivor): string {
+  return s.nickname ? `${s.firstName} “${s.nickname}” ${s.lastName}` : `${s.firstName} ${s.lastName}`;
+}
 
 /** "Caravan Kid, 27" */
 export function originLine(s: Survivor): string {
@@ -279,6 +285,7 @@ export function itemStats(item: ItemInstance): string {
     const toHit = (def.toHit ?? 0) + qualityMod(item);
     if (toHit !== 0) parts.push(`${toHit > 0 ? '+' : ''}${toHit} to hit`);
     if (def.usesAmmo) parts.push('uses ammo');
+    if (item.kills) parts.push(`${item.kills} ${item.kills === 1 ? 'kill' : 'kills'}`);
   } else if (def.slot === 'armor') {
     parts.push(`armor ${armorValue(item)}`);
   }
@@ -288,18 +295,24 @@ export function itemStats(item: ItemInstance): string {
 export interface ItemView {
   uid: string;
   name: string;
+  /** What a named weapon is: "Solid Machete". */
+  kind?: string;
   stats: string;
   description: string;
   cherished: boolean;
+  /** A named weapon's story: "Day 14: Named after its tenth kill, ..." */
+  story: string[];
 }
 
 export function itemView(item: ItemInstance): ItemView {
   return {
     uid: item.uid,
     name: itemName(item),
+    ...(item.name ? { kind: baseItemName(item) } : {}),
     stats: itemStats(item),
     description: itemDef(item).description,
     cherished: item.cherishedBy !== undefined,
+    story: (item.history ?? []).map((l) => `Day ${l.day}: ${l.text}`),
   };
 }
 

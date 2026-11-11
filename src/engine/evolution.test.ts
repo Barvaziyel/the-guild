@@ -7,7 +7,7 @@ import { testSurvivor } from './test-utils.ts';
 import { addTrait, hasTrait } from './traits.ts';
 
 const tally = (over: Partial<RunTally> = {}): RunTally => ({
-  combats: 0, fled: 0, downed: 0, rads: 0, rangedKills: 0, meleeKills: 0, scavenges: 0, ...over,
+  combats: 0, fled: 0, downed: 0, rads: 0, rangedKills: 0, meleeKills: 0, scavenges: 0, nemesisKills: 0, ...over,
 });
 
 describe('trait evolution', () => {

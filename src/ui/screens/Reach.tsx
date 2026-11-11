@@ -2,6 +2,7 @@ import { findLocation, getLocation, knownLocations, locationState, type GameStat
 import { ReachMapSvg } from '../components/ReachMapSvg.tsx';
 import { navigate } from '../hooks.ts';
 import { dangerText, formatDuration, joinNames, locationView, radiationText, runCrewNames } from '../runs-view.ts';
+import { nemesesAt, nemesisRows } from '../stories-view.ts';
 
 export function Reach({ state, selected }: { state: GameState; selected?: string }) {
   const places = knownLocations(state);
@@ -48,7 +49,43 @@ export function Reach({ state, selected }: { state: GameState; selected?: string
             })}
         </ul>
       </div>
+      <NemesesPanel state={state} />
     </section>
+  );
+}
+
+/** Enemies the guild knows by name. Only shown once there is one. */
+function NemesesPanel({ state }: { state: GameState }) {
+  const rows = nemesisRows(state);
+  if (rows.length === 0) return null;
+  return (
+    <div className="panel" aria-labelledby="nemeses-title">
+      <h3 id="nemeses-title" className="panel-title">
+        Known by name
+      </h3>
+      <p className="panel-help">Enemies that put someone down and got away. They come back, tougher, where they were met.</p>
+      <ul className="nemeses">
+        {rows.map((n) => (
+          <li key={n.id} className={`nemesis${n.atLarge ? '' : ' is-dead'}`}>
+            <span className="nemesis-name">{n.name}</span>
+            <span className="nemesis-kind">
+              {n.kind[0]!.toUpperCase() + n.kind.slice(1)}. {n.status}
+            </span>
+            {n.record && <span className="nemesis-line">{n.record}</span>}
+            {n.story.length > 0 && (
+              <details className="nemesis-story">
+                <summary>The story so far</summary>
+                <ul>
+                  {n.story.map((line, i) => (
+                    <li key={i}>{line}</li>
+                  ))}
+                </ul>
+              </details>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
@@ -73,6 +110,7 @@ function PlacePanel({ state, id }: { state: GameState; id: string }) {
 
   const v = locationView(state, id);
   const loc = v.def;
+  const haunting = nemesesAt(state, id);
   return (
     <div className="panel place-panel" aria-live="polite">
       <p className="place-biome">{loc.biome}</p>
@@ -101,6 +139,11 @@ function PlacePanel({ state, id }: { state: GameState; id: string }) {
         {v.leadsTo.length > 0 && `Roads lead on to ${joinNames(v.leadsTo.map((l) => l.name))}.`}{' '}
         {v.unknownLeads > 0 && `${v.unknownLeads === 1 ? 'One road leads' : `${v.unknownLeads} roads lead`} somewhere nobody has found yet.`}
       </p>
+      {haunting.map((n) => (
+        <p key={n.id} className="nemesis-here">
+          <strong>{n.name}</strong>, {n.kind}, haunts this place. {n.record}
+        </p>
+      ))}
       {v.crewsOut.map((run) => (
         <button key={run.id} type="button" className="crew-here" onClick={() => navigate({ screen: 'run', id: run.id })}>
           {joinNames(runCrewNames(run))} {run.plan.crew.length === 1 ? 'is' : 'are'} here now. Follow the run.

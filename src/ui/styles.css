@@ -2357,3 +2357,80 @@ li:nth-child(even) .pinned {
 .food-note {
   color: var(--ochre);
 }
+
+/* ---------------------------------------------------------------- stories */
+
+.item-kind {
+  font-size: 0.875rem;
+  color: var(--bone-2);
+}
+
+.item-story {
+  margin-top: 0.5rem;
+  padding-left: 0.75rem;
+  border-left: 2px solid var(--line);
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.875rem;
+  color: var(--bone-2);
+}
+
+.nemeses > li + li {
+  margin-top: 0.875rem;
+  padding-top: 0.875rem;
+  border-top: 1px solid var(--line);
+}
+
+.nemesis {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.nemesis-name {
+  font-family: var(--stencil);
+  font-size: var(--step-1);
+  font-weight: 700;
+  color: var(--blood-hi);
+  line-height: 1.1;
+}
+
+.nemesis.is-dead .nemesis-name {
+  color: var(--bone-3);
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+}
+
+.nemesis-kind,
+.nemesis-line {
+  font-size: 0.9375rem;
+  color: var(--bone-2);
+}
+
+.nemesis-story {
+  margin-top: 0.375rem;
+  font-size: 0.875rem;
+  color: var(--bone-2);
+}
+
+.nemesis-story summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  color: var(--rust-hi);
+  cursor: pointer;
+}
+
+.nemesis-story ul {
+  padding-left: 0.75rem;
+  border-left: 2px solid var(--line);
+  display: grid;
+  gap: 0.25rem;
+}
+
+.nemesis-here {
+  margin: 0.75rem 0;
+  padding-left: 0.75rem;
+  border-left: 3px solid var(--blood-hi);
+  font-size: 0.9375rem;
+}

@@ -201,7 +201,8 @@ describe('relationships on the road', () => {
   test('time together moves relationships, and rescues create a life debt', () => {
     let moved = 0;
     let debts = 0;
-    for (let i = 0; i < 300; i++) {
+    // A large sample: rescues are rare, and a small one swings with any change to the dice.
+    for (let i = 0; i < 1200; i++) {
       const state = openGame(`rel-${i % 6}`);
       const plan = testPlan(state, 'water_plant', { retreat: 'never' });
       // Give the crew a healer so that help can make the difference.
@@ -219,8 +220,8 @@ describe('relationships on the road', () => {
         }
       }
     }
-    assert.ok(moved > 500, `relationships moved ${moved} times`);
-    assert.ok(debts > 3, `life debts: ${debts}`);
+    assert.ok(moved > 2000, `relationships moved ${moved} times`);
+    assert.ok(debts > 10, `life debts: ${debts}`);
   });
 
   test('feuding crews argue more than friendly ones', () => {

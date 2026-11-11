@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { equipFromStash, getSurvivor, type GameState } from '../../engine/index.ts';
+import { ItemDetails } from '../components/ItemDetails.tsx';
 import { Portrait } from '../components/Portrait.tsx';
 import { carriedRows, gearTakers, stashGroups, stashLine } from '../gear-view.ts';
 import { goBack, navigate, useAction } from '../hooks.ts';
@@ -56,9 +57,7 @@ export function Gear({ state }: { state: GameState }) {
                   <li key={item.uid} className="gear-slot">
                     <div className="gear-row">
                       <div className="gear-item">
-                        <span className="item-name">{item.name}</span>
-                        {item.stats && <span className="item-stats">{item.stats}</span>}
-                        <span className="item-desc">{item.description}</span>
+                        <ItemDetails view={item} />
                       </div>
                       <button
                         type="button"

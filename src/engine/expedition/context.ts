@@ -27,6 +27,8 @@ import type {
   GameState,
   ItemInstance,
   LogLine,
+  Nemesis,
+  NemesisNews,
   Resources,
   RunDeath,
   RunPlan,
@@ -43,7 +45,11 @@ export interface Member {
   fled: boolean;
   fleeRolled: boolean;
   /** Went down and still needs a wound roll. */
-  woundPending?: { cause: string; enemyType?: string };
+  woundPending?: { cause: string; enemyType?: string; nemesisId?: string };
+  /** Name of the nemesis this member killed on the run, for nicknames. */
+  killedNemesis?: string;
+  /** Weapon kills at departure, to notice milestones. */
+  weaponKillsAtStart: number;
   tally: RunTally;
   rerollFails: number;
   rerollSuccesses: number;
@@ -80,10 +86,18 @@ export interface Sim {
   events: string[];
   /** Extra explored % earned from events. */
   exploreBonus: number;
+  /** The guild's nemeses as they stand on this run (a copy; the real ones change when the crew is back). */
+  nemeses: Nemesis[];
+  /** What this run did to them, by nemesis id. */
+  nemesisNews: Record<string, NemesisNews>;
+  /** A nemesis already turned up on this run (at most one does). */
+  nemesisMet: boolean;
+  /** Names already given out (nicknames, weapons, nemeses), so new ones don't repeat them. */
+  takenNames: Set<string>;
 }
 
 export function newTally(): RunTally {
-  return { combats: 0, fled: 0, downed: 0, rads: 0, rangedKills: 0, meleeKills: 0, scavenges: 0 };
+  return { combats: 0, fled: 0, downed: 0, rads: 0, rangedKills: 0, meleeKills: 0, scavenges: 0, nemesisKills: 0 };
 }
 
 // ---------------------------------------------------------------- crew queries
@@ -301,7 +315,7 @@ export function stress(sim: Sim, m: Member, amount: number, source?: string): vo
  * Deal damage to a member. Returns true if it put them down. A downed member
  * gets a wound roll when the beat ends (see wounds.ts).
  */
-export function hurt(sim: Sim, m: Member, amount: number, cause: string, enemyType?: string): boolean {
+export function hurt(sim: Sim, m: Member, amount: number, cause: string, enemyType?: string, nemesisId?: string): boolean {
   if (m.down || m.dead) return false;
   const damage = Math.max(0, Math.round(amount));
   m.s.hp = Math.max(0, m.s.hp - damage);
@@ -310,7 +324,7 @@ export function hurt(sim: Sim, m: Member, amount: number, cause: string, enemyTy
     return false;
   }
   m.down = true;
-  m.woundPending = enemyType ? { cause, enemyType } : { cause };
+  m.woundPending = { cause, ...(enemyType ? { enemyType } : {}), ...(nemesisId ? { nemesisId } : {}) };
   m.tally.downed += 1;
   m.s.counters.timesDowned += 1;
   for (const other of standing(sim)) stress(sim, other, STRESS_ALLY_DOWNED, `seeing ${m.s.firstName} go down`);

@@ -182,9 +182,11 @@ export interface ItemInstance {
   uid: string;
   defId: string;
   quality: Quality;
-  /** Custom name (named gear, phase 2). */
+  /** Weapons earn a name at NAMED_GEAR_KILLS kills. */
   name?: string;
   kills?: number;
+  /** A named weapon's story: how it got its name, and what it has done since. */
+  history?: StoryLine[];
   /** Consecutive runs carried by the same survivor (trinket attachment). */
   runsWithHolder?: number;
   /** Trinkets: survivor id this item became Cherished by. */
@@ -334,6 +336,50 @@ export interface Beat {
  */
 export type RunOutcome = 'completed' | 'turnedBack' | 'routed' | 'lost';
 
+// ---------------------------------------------------------------- stories
+
+/** A line in a nemesis's or a named weapon's story. Written without a subject. */
+export interface StoryLine {
+  day: number;
+  text: string;
+}
+
+/** An enemy that put someone down and got away, and now has a name. */
+export interface Nemesis {
+  id: string;
+  name: string;
+  /** Enemy content id: what it is (rad_hound, raider_brute, ...). */
+  enemyId: string;
+  /** Where it was met. It turns up in fights there. */
+  locationId: string;
+  status: 'atLarge' | 'dead';
+  /** Survivor ids it has put down, and those it has killed. */
+  downed: string[];
+  killed: string[];
+  /** Fights with the guild it has walked away from. */
+  escapes: number;
+  bornDay: number;
+  diedDay?: number;
+  /** Survivor id of whoever killed it. */
+  killedBy?: string;
+  history: StoryLine[];
+}
+
+/** What one run did to one nemesis, applied when the crew is back. */
+export interface NemesisNews {
+  id: string;
+  /** Met and named on this run: the whole record. */
+  born?: Nemesis;
+  /** Put down or killed on this run (survivor ids). */
+  downed: string[];
+  killed: string[];
+  /** Got away from the crew this many times. */
+  escapes: number;
+  /** Killed on this run, by this survivor. */
+  killedBy?: string;
+  history: StoryLine[];
+}
+
 export interface RunDeath {
   survivorId: string;
   name: string;
@@ -363,6 +409,8 @@ export interface RunSummary {
   highlights: RunHighlight[];
   /** Ids of the scripted events that happened. */
   events: string[];
+  /** Nemeses met, named or killed (missing on runs from before save version 7). */
+  nemeses?: NemesisNews[];
 }
 
 /** Everything decided at departure and applied when the crew returns. */
@@ -488,6 +536,8 @@ export interface GameState {
   reports: RunReport[];
   /** How many times each scripted event has happened, so fresh ones come up first. */
   eventsSeen: Record<string, number>;
+  /** Named enemies, at large and dead. */
+  nemeses: Nemesis[];
   log: GuildLogEntry[];
   settings: {
     mercyMode: boolean;

@@ -69,6 +69,7 @@ import {
 } from './context.ts';
 import { tryEvent } from './events.ts';
 import { hungryCrew, rationsPacked, runDuration } from './plan.ts';
+import { earnNickname, nameWeapon, nemesisNewsList, takenNames } from './stories.ts';
 import { resolveWounds } from './wounds.ts';
 
 type MidKind = Exclude<BeatKind, 'depart' | 'return'>;
@@ -265,6 +266,10 @@ function aftermath(sim: Sim): void {
       }
     }
 
+    // Feats leave names behind: on weapons, and on people.
+    nameWeapon(sim, m);
+    earnNickname(sim, m);
+
     // Trinkets become precious.
     const trinket = m.s.equipment.trinket;
     if (trinket && itemDef(trinket).slot === 'trinket') {
@@ -351,7 +356,8 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
       if (rel) relationships[pairKey(rel.a, rel.b)] = structuredClone(rel);
     }
   }
-  const shell: GameState = { ...state, survivors: crew, memorial: [], relationships, stash: [], runs: [], reports: [], log: [] };
+  const nemeses = structuredClone(state.nemeses ?? []);
+  const shell: GameState = { ...state, survivors: crew, memorial: [], relationships, stash: [], runs: [], reports: [], log: [], nemeses };
 
   const sim: Sim = {
     state: shell,
@@ -370,6 +376,7 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
         rerollFails: rerolls.fails,
         rerollSuccesses: rerolls.successes,
         chronicleStart: s.chronicle.length,
+        weaponKillsAtStart: s.equipment.weapon?.kills ?? 0,
       };
     }),
     departAt,
@@ -388,6 +395,10 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
     beatCounts: {},
     events: [],
     exploreBonus: 0,
+    nemeses,
+    nemesisNews: {},
+    nemesisMet: false,
+    takenNames: takenNames(state),
   };
 
   startBeat(sim, 'depart', 'Setting Out');
@@ -465,6 +476,7 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
       deaths: sim.deaths,
       highlights,
       events: sim.events,
+      nemeses: nemesisNewsList(sim),
     },
   };
 }

@@ -1,6 +1,6 @@
 # The Guild — Game Design Document
 
-> Version 0.9 · 2026-11-11 · Living document. Numbers are starting points for tuning, not promises.
+> Version 1.0 · 2026-11-11 · Living document. Numbers are starting points for tuning, not promises.
 
 ## 1. Pitch
 
@@ -32,7 +32,7 @@ Inspirations: Fallout Shelter (individual characters, gear, base rooms), Civ 5 (
 | Field | Notes |
 |---|---|
 | Name, pronouns | Generated; player can rename. The backstory follows the new name; old log lines keep the name used at the time |
-| Nickname | Earned through feats (phase 2), e.g. *Dex "Two-Shot" Arlo* |
+| Nickname | Earned through feats (§7.7), e.g. *Dex "Two-Shot" Arlo* |
 | Origin | Bunker-born, Caravan Kid, City Rat, Farmhand, Ex-Raider, Old Medic, Scrapper. Tilts stats, may grant a trait |
 | Backstory | One generated line |
 | Appearance | Seed and parameters for the layered portrait (§14) |
@@ -276,6 +276,7 @@ A run has **3–8 beats**, depending on distance. Each beat is a type, weighted 
 5. **Retreat orders.** When the crew's standing order triggers, they attempt to withdraw with a group check. Failing gives the enemy one more round. A Vengeful survivor facing their sworn enemy blocks the retreat.
    - Enemy group size comes from a threat budget: (5 + 1.5 × danger) × a crew-size factor (0.6 / 0.85 / 1.1 / 1.35 for 1–4), up to 6 enemies.
 6. **Log.** The log summarizes the fight rather than listing every swing, e.g. *"Rad-hounds burst out of the dark. Dex drops one with two shots. Mara is bitten (−5 HP)."*
+7. **Nemeses** (§7.7) can lead a fight at their place.
 
 ### 7.5 Downed, injuries and (rare) death
 
@@ -320,6 +321,23 @@ The wounded can't be sent on runs until they heal. If an ally's help lifted the 
 - The crew can carry the sum of everyone's Carry. Anything beyond that is left behind.
 - Gear quality, from worst to best: **Rusty (−1) · Common · Solid (+1) · Prime (+2) · Relic (+2 and a unique perk)**. Relics come from deep locations and named enemies.
 
+### 7.7 Stories: nemeses, nicknames, named weapons (1.2.0)
+
+Names the guild gives out. The names and the nickname rules are data in `content/stories.ts`; the numbers are in `constants.ts`.
+
+**Nemeses.** An enemy that puts someone down and is still alive when the fight ends (it fled, or the crew pulled out) becomes a nemesis half the time, if the guild has fewer than 3 at large. It gets a name by kind (*Old Notch*, a Rad-hound; *Mother Ash*, a raider; *the Janitor*, a Sentry Bot), and haunts the place it was met.
+
+- **Coming back.** In each fight at its place there is a 35% chance it leads the enemies, at most once a run. It has 1.5× its kind's HP plus 3, +1 attack, +1 defense, and +1 attack for each person it has killed (up to +2). It doesn't run with the pack; once it's below a third of its HP it tries once a fight to get away (50%).
+- **Grudges.** Anyone it has put down before gets +1 to hit it, and the log says they have not forgotten.
+- **Its record.** Who it put down and killed, how often it got away, and a short story ("Day 4: Put Mara Vance down at Maple Street, and got away."). A death it caused is put down to it by name: *Killed by Old Notch at Kessler Farm*.
+- **Killing it.** It is gone for good. The killer's Chronicle says so, everyone it ever put down sheds 10 stress (those at home hear the news), and a named weapon that did it remembers.
+- **Measured** (3,000 runs a place, fresh crew of 3, retreat when downed): a nemesis turns up in 7–16% of runs at its place and barely moves the death rate. A feral or Hollow nemesis dies in about a third of the fights it's in; a raider nemesis with its crew rarely does unless the guild stops retreating. New ones are born in about 1 run in 9 at danger 3, 1 in 40 at danger 2, and almost never at danger 1.
+- Runs overlap, so a run's result carries *news* about each nemesis it met (born, put someone down, killed someone, got away, died), merged into the nemesis as it stands when the crew is back. A nemesis that died meanwhile stays dead.
+
+**Nicknames.** After each run, someone without a nickname is checked against the rules in order; the first that fits and rolls its chance gives a name from its list, never one already in use: killing a nemesis (*Bane*), a dozen ranged or melee kills (*Two-Shot*, *Knuckles*), surviving a mortal wound (*Lazarus*), going down four times (*Bounce*), saving two lives (*Doc*), losing an eye (*Patch*), 200 radiation (*Sparky*), 25 scavenges (*Magpie*), 40 runs (*Old Hand*), or running from a fight (*Rabbit*). A nickname sticks. The Chronicle says why: *Earned a name: "Two-Shot", for a dozen kills at range.*
+
+**Named weapons.** A weapon's kills are counted. At 10 it earns a name that reads well after "the" (*Widowmaker*, *Bonebreaker*), and its story starts: *Named after its tenth kill, in Mara Vance's hands at Maple Street.* The story adds kills 25, 50 and 100, a nemesis it killed, and an owner who died carrying it (*Came home from the Glow without Dex Arlo.*). It keeps its name through upgrades and new owners.
+
 ## 8. Gear
 
 Every survivor has four slots: **Weapon · Armor · Tool · Trinket**
@@ -336,7 +354,7 @@ Every survivor has four slots: **Weapon · Armor · Tool · Trinket**
 - **The stash.** Gear that crews find or the Workshop makes goes into the guild's stash. The Gear screen (§12) lists it by slot, hands a piece to anyone at the Depot (their old one goes back), and shows what everyone carries.
 - **Cherished trinkets.** After 5 runs with the same trinket, it becomes *Cherished* and its effect doubles. Losing it gives +30 stress and a Chronicle entry.
 - **Workshop.** Makes gear and improves weapons and armor using Scrap and Tech (§9.4).
-- **Named gear** (phase 2). A weapon with 10 kills earns a name and a history.
+- **Named gear** (§7.7). A weapon with 10 kills earns a name and a history.
 
 ## 9. The Depot
 
@@ -431,8 +449,8 @@ At most one event a day (a 20% chance), weighted:
    - **At the gate:** the recruit board (§10).
    - Survivor sheets have a post picker.
 2. **Roster:** survivor cards showing portrait, name, status, HP and stress bars, and top traits. *Built (PR 5).*
-3. **Survivor sheet:** portrait wearing their gear, stats with practice bars, traits (tap for an explanation and how it was gained), relationships, gear slots and Chronicle. Three tabs: *Stats and gear*, *Bonds*, *Chronicle*. If a survivor has a hidden trait, the sheet says something about them hasn't shown yet, without naming it. *Built (PR 5).*
-4. **Reach map:** locations with explored %, danger and radiation. Tap a location for details and to plan a run. *Built (PR 6):*
+3. **Survivor sheet:** portrait wearing their gear, stats with practice bars, traits (tap for an explanation and how it was gained), relationships, gear slots and Chronicle. Three tabs: *Stats and gear*, *Bonds*, *Chronicle*. If a survivor has a hidden trait, the sheet says something about them hasn't shown yet, without naming it. *Built (PR 5).* Since 1.2.0: the nickname between first and last name (also on the roster and the Memorial Wall), named weapons with what they are, their kills and their story, and *Scores to settle* on the Bonds tab (nemeses that put them down).
+4. **Reach map:** locations with explored %, danger and radiation. Tap a location for details and to plan a run. *Built (PR 6):* (since 1.2.0, a place names the nemesis that haunts it, a *Known by name* list under the places gives every nemesis's record and story, and the planner warns when a nemesis haunts the place and who has a score to settle)
    - The map is a page of the journal: ink roads on paper, markers numbered and colored by danger, a ring that fills as a place is explored, and a badge where a crew is out.
    - A question mark sits at the end of each road to somewhere not yet found. Tapping it says where to scout.
    - Below the map: the picked place's details, and a list of every known place.
@@ -537,7 +555,7 @@ Planned 2026-11-11, in this order, all on Opus:
 |---|---|---|
 | 9 | Slower pace: a game day lasts 3 real hours (§11) | **done** |
 | 10 | Tutorial for a new guild (the tour, §12) | **done** |
-| 11 | Stories: nemeses, nicknames, named gear | |
+| 11 | Stories: nemeses, nicknames, named gear (§7.7) | **done** (1.2.0) |
 | 12 | Partners: romance | |
 | 13 | Vehicles and gas | |
 | 14 | Expansion: outposts and deeper areas | |
@@ -545,7 +563,7 @@ Planned 2026-11-11, in this order, all on Opus:
 | 16 | The Vultures, a rival guild | |
 
 - **Tutorial.** Starts with a new guild, and can be replayed from Settings. It walks through the resources and how to get more of each, food and the Garden, why crews go out on runs, why to build, and taking in recruits. It's optional: the player can skip the whole thing, or skip ahead to the next part. Built as the tour (§12); later steps that add something to explain (gas, vehicles) add a step to it.
-- **Stories.** An enemy that downs a survivor and gets away becomes a named, recurring foe (a nemesis). Survivors earn nicknames from feats. A weapon with 10 kills earns a name and a history.
+- **Stories.** An enemy that downs a survivor and gets away becomes a named, recurring foe (a nemesis). Survivors earn nicknames from feats. A weapon with 10 kills earns a name and a history. Built as §7.7.
 - **Partners.** Uncommon, and a step beyond Bonded. About 96% of couples are a man and a woman, and 99% are monogamous. Losing a partner hits harder than losing a friend.
 - **Vehicles and gas.** This is how crew size changes: on foot, a crew stays at 1–4.
   - Most vehicles seat 5. Motorcycles seat 1–2, and bigger vehicles more. No bicycles.

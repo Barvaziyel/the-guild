@@ -6,7 +6,7 @@
 import type { Quality, RelationshipLabel, Resources } from './types.ts';
 
 /** Save format version. Bump together with a migration in save.ts. */
-export const SAVE_VERSION = 6;
+export const SAVE_VERSION = 7;
 
 // ---------------------------------------------------------------- time
 
@@ -289,3 +289,33 @@ export const STARTING_RESOURCES: Resources = {
   ammo: 15,
   tech: 0,
 };
+
+// ---------------------------------------------------------------- stories (see docs/DESIGN.md §15, step 11)
+
+/** Chance that an enemy which put someone down and survived the fight becomes a nemesis. */
+export const NEMESIS_CHANCE = 0.5;
+/** Most nemeses at large at once. */
+export const NEMESIS_MAX = 3;
+/** Chance a nemesis at large joins a fight at its place. At most one turns up per run. */
+export const NEMESIS_APPEAR = 0.35;
+/** A nemesis is tougher than its kind: HP x1.5, plus a few, so even a Rad-hound takes some killing. */
+export const NEMESIS_HP_MULT = 1.5;
+export const NEMESIS_HP_BONUS = 3;
+export const NEMESIS_ATTACK_BONUS = 1;
+export const NEMESIS_DEFENSE_BONUS = 1;
+/** Each person it kills makes it worse, +1 attack, up to this much. */
+export const NEMESIS_MAX_GROWTH = 2;
+/** Below this share of its HP, a nemesis tries once per fight to get away. */
+export const NEMESIS_FLEE_HP = 0.34;
+export const NEMESIS_FLEE_CHANCE = 0.5;
+/** To hit, for someone it has put down before. */
+export const NEMESIS_GRUDGE_BONUS = 1;
+/** Stress shed by everyone it ever put down, when it dies. */
+export const NEMESIS_DEATH_RELIEF = 10;
+
+/** A weapon earns a name at this many kills... */
+export const NAMED_GEAR_KILLS = 10;
+/** ...and a line in its story at these. */
+export const NAMED_GEAR_MILESTONES = [25, 50, 100] as const;
+/** Story lines kept for a nemesis or a named weapon. */
+export const STORY_MAX_LINES = 12;
