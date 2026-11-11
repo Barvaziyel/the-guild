@@ -146,7 +146,7 @@ The survivor sheet shows the Chronicle as their story. When a survivor dies, the
 - **Flags** add special relationships:
   - *Owes a Life* (one-way)
   - *Mentor / Protégé*: a survivor with 10+ runs who is friends with a newcomer (3 runs or fewer). The protégé learns faster on runs with their mentor
-  - *Partners*: romance, uncommon (Phase 2, §15)
+  - *Partners*: romance, uncommon (§5.1)
 
 **What changes a relationship:**
 
@@ -169,6 +169,22 @@ The survivor sheet shows the Chronicle as their story. When a survivor dies, the
 - **Feud:** the run planner shows a warning, and the pair may refuse to go together. At the Depot they may fight, causing a Wounded condition. Rarely, one of them **leaves the guild**; Loners, Greedy survivors and Hotheads are more likely to go.
 - **Crew cohesion** is the average pair score in a crew. It adds −2 to +2 to every crew check.
 - **When a friend dies:** their friends become Grieving. A Bonded friend either becomes Haunted (50%) or Vengeful against the killer's type (50%).
+
+### 5.1 Partners
+
+Romance is uncommon, and a step beyond Bonded.
+
+- **Falling for each other.** Each Depot day, two Bonded adults at home together who aren't Grieving become partners with a 1.5% chance, so a Bonded man and woman get together after about two months at home on average. In 60-run test careers it came to about one couple per guild.
+  - For any pair but a man and a woman, the chance is ×0.015. Measured on guilds of 4 and 8 over two to four months, **about 96% of couples are a man and a woman** (lower than ×0.04 would suggest, because people with no one of the other sex free keep rolling).
+  - Someone who already has a partner is ×0.01 as likely to find another: **about 99% have one partner**.
+  - It's in both Chronicles ("Became partners with Wren Gale.") and the news ("Dex and Wren are together now.").
+- **Together.** Partners are Bonded, so they get everything Bonded friends do, plus:
+  - At the Depot, each sheds **2 more stress a day** with the other home.
+  - On a run, seeing their partner go down costs **+10 stress**, and a partner standing adds **+5** to their wound roll.
+  - Three run events need partners: one takes the other's watch, they argue about who stays back (a Nerve check), and a ring found in the rubble.
+- **Splitting up.** Partners whose score falls below Friend (+20) split up, with a line in both Chronicles and the news.
+- **Losing a partner** hits harder than losing a friend: Grieving lasts **7 days longer**, **+25 stress**, and the Chronicle says "Lost Dex Arlo, her partner." A widowed survivor can find someone new once the grief has passed.
+- **On screen:** the sheet says "Together with Wren Gale." under the name, and the partner comes first in Bonds, marked *Partners*.
 
 ## 6. Stress
 
@@ -558,7 +574,7 @@ Planned 2026-11-11, in this order, all on Opus:
 | 9 | Slower pace: a game day lasts 3 real hours (§11) | **done** |
 | 10 | Tutorial for a new guild (the tour, §12) | **done** |
 | 11 | Stories: nemeses, nicknames, named gear (§7.7) | **done** (1.2.0) |
-| 12 | Partners: romance | |
+| 12 | Partners: romance (§5.1) | **done** (1.3.0) |
 | 13 | Vehicles and gas | |
 | 14 | Expansion: outposts and deeper areas | |
 | 15 | What's missing: rescue jobs, feuds that make someone quit, pets, the last gear drawings | |

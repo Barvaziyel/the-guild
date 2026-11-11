@@ -1,11 +1,14 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { STAT_MAX, STRESS_HIGH, practiceNeeded } from '../engine/index.ts';
+import { STAT_MAX, STRESS_HIGH, becomePartners, getRelationship, practiceNeeded } from '../engine/index.ts';
 import { testGame, testSurvivor } from '../engine/test-utils.ts';
 import {
   chronicleByDay,
   daysSurvived,
+  bonds,
   flagText,
+  partnerLine,
+  sexLabel,
   headlineTraits,
   hiddenTraitCount,
   itemStats,
@@ -87,6 +90,26 @@ describe('bonds', () => {
     assert.equal(flagText(flag, dex, mara), 'Mara owes him a life.');
     assert.equal(flagText({ kind: 'mentor', mentor: 'b' }, dex, mara), 'Mentor to Mara.');
     assert.equal(flagText({ kind: 'mentor', mentor: 'b' }, mara, dex), 'Learning from Dex.');
+  });
+
+  test('a partner shows on the sheet and comes first in Bonds', () => {
+    const state = testGame();
+    const [a, b, c] = state.survivors;
+    for (const rel of Object.values(state.relationships)) rel.score = 10;
+    getRelationship(state, a!.id, b!.id)!.score = 70;
+    getRelationship(state, a!.id, c!.id)!.score = 95;
+    assert.equal(partnerLine(state, a!), undefined);
+    becomePartners(state, a!, b!, 2);
+    assert.equal(partnerLine(state, a!), `Together with ${b!.firstName} ${b!.lastName}.`);
+    const list = bonds(state, a!);
+    assert.equal(list[0]!.other.id, b!.id);
+    assert.deepEqual(list[0]!.ties, ['Partners.']);
+    assert.equal(list[1]!.other.id, c!.id);
+  });
+
+  test('survivors are male or female', () => {
+    assert.equal(sexLabel(testSurvivor('a', { pronouns: 'he' })), 'Male');
+    assert.equal(sexLabel(testSurvivor('b', { pronouns: 'she' })), 'Female');
   });
 });
 

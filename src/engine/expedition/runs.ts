@@ -3,16 +3,17 @@
  * log while they're away, and applying the outcome when they come home.
  */
 import { addChronicle, addGuildLog } from '../chronicle.ts';
-import { MAX_REPORTS, STRESS_MAX } from '../constants.ts';
+import { MAX_REPORTS, PARTNER_GRIEF_EXTRA_DAYS, PARTNER_LOSS_STRESS, STRESS_MAX } from '../constants.ts';
 import { buildingName, trimPosts } from '../depot/buildings.ts';
 import { ENEMIES, getLocation } from '../content/index.ts';
 import { dayAt, withRng } from '../game.ts';
 import { newId } from '../ids.ts';
 import { ensureLocationState } from '../locations.ts';
-import { pairKey, relationshipLabel } from '../relationships.ts';
+import { arePartners, pairKey, relationshipLabel } from '../relationships.ts';
 import { Rng } from '../rng.ts';
-import { fullName } from '../text.ts';
-import { addTrait, hasTrait } from '../traits.ts';
+import { changeStress } from '../stats.ts';
+import { fullName, pronounForms } from '../text.ts';
+import { addTrait, getTraitInstance, hasTrait } from '../traits.ts';
 import type { Beat, DepartureMark, GameState, Run, RunDeath, RunPlan, RunReport, RunSummary, Survivor } from '../types.ts';
 import { RESOURCE_IDS, SLOTS } from '../types.ts';
 import { rationsPacked, validatePlan } from './plan.ts';
@@ -98,7 +99,15 @@ function mourn(state: GameState, death: RunDeath, rng: Rng, day: number): void {
     const label = relationshipLabel(state, s.id, death.survivorId);
     if (label !== 'friend' && label !== 'bonded') continue;
     addTrait(s, 'grieving', { day, rng });
-    addChronicle(s, day, `Mourned ${death.name}.`, ['loss', death.survivorId]);
+    if (arePartners(state, s.id, death.survivorId)) {
+      // Losing a partner hits harder: a longer grief, and a heavy weight.
+      const grief = getTraitInstance(s, 'grieving');
+      if (grief?.expiresDay !== undefined) grief.expiresDay += PARTNER_GRIEF_EXTRA_DAYS;
+      addChronicle(s, day, `Lost ${death.name}, ${pronounForms(s.pronouns).their} partner.`, ['loss', death.survivorId]);
+      changeStress(s, PARTNER_LOSS_STRESS, { rng, day, source: `losing ${death.name}` });
+    } else {
+      addChronicle(s, day, `Mourned ${death.name}.`, ['loss', death.survivorId]);
+    }
     if (label !== 'bonded') continue;
     const canAvenge = death.enemyType !== undefined && ENEMIES.some((e) => e.type === death.enemyType) && !hasTrait(s, 'vengeful');
     if (canAvenge && rng.chance(0.5)) {

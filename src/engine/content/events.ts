@@ -87,7 +87,7 @@ export interface EventDef {
   a: EventRole;
   b?: EventRole;
   /** a and b must have this kind of relationship. */
-  pair?: 'friendly' | 'hostile' | 'bonded';
+  pair?: 'friendly' | 'hostile' | 'bonded' | 'partners';
   intro: string;
   /** Without a check, `success` always happens. */
   check?: EventCheck;
@@ -518,6 +518,71 @@ export const EVENTS: readonly EventDef[] = [
         { type: 'stress', who: 'b', amount: -8 },
         { type: 'chronicle', who: 'a', text: 'Made a promise with {b.first} at {loc}.' },
         { type: 'chronicle', who: 'b', text: 'Made a promise with {a.first} at {loc}.' },
+      ],
+    },
+  },
+  // ============================================================ partners (roadmap step 12)
+  {
+    id: 'partners_watch',
+    title: 'Taking the Watch',
+    kind: 'social',
+    weight: 10,
+    a: {},
+    b: {},
+    pair: 'partners',
+    intro: '{b.first} is asleep on {b.their} feet. {a.first} takes the watch without a word.',
+    success: {
+      text: 'Two hours later {b.first} wakes to find the watch done and something hot waiting in a dented cup.',
+      effects: [
+        { type: 'stress', who: 'b', amount: -10 },
+        { type: 'stress', who: 'a', amount: 3 },
+        { type: 'relationship', with: 'b', amount: 3 },
+      ],
+    },
+  },
+  {
+    id: 'partners_argue',
+    title: 'Not You Too',
+    kind: 'social',
+    weight: 8,
+    a: {},
+    b: {},
+    pair: 'partners',
+    intro: '{a.first} wants {b.first} to stay back from the next stretch. {b.first} will not hear of it.',
+    check: { who: 'a', stat: 'nerve', dc: 'normal' },
+    success: {
+      text: 'It gets talked through behind a wall, low and fierce, and the two of them come out of it closer.',
+      effects: [
+        { type: 'relationship', with: 'b', amount: 4 },
+        { type: 'stress', who: 'a', amount: -4 },
+        { type: 'stress', who: 'b', amount: -4 },
+      ],
+    },
+    failure: {
+      text: 'Neither gives an inch. {a.first} and {b.first} walk the rest of the day on opposite sides of the road.',
+      effects: [
+        { type: 'relationship', with: 'b', amount: -6 },
+        { type: 'stress', who: 'a', amount: 5 },
+        { type: 'stress', who: 'b', amount: 5 },
+      ],
+    },
+  },
+  {
+    id: 'partners_ring',
+    title: 'Something Shiny',
+    kind: 'discovery',
+    weight: 6,
+    a: {},
+    b: {},
+    pair: 'partners',
+    intro: '{a.first} turns up a ring in the rubble, plain and only a little bent, and pockets it fast.',
+    success: {
+      text: 'By nightfall it is on {b.first}\'s finger. Neither of them says much about it, and neither needs to.',
+      effects: [
+        { type: 'stress', who: 'a', amount: -6 },
+        { type: 'stress', who: 'b', amount: -6 },
+        { type: 'chronicle', who: 'a', text: 'Gave {b.first} a ring found at {loc}.' },
+        { type: 'chronicle', who: 'b', text: 'Got a ring from {a.first}, found at {loc}.' },
       ],
     },
   },

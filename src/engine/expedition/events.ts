@@ -7,7 +7,7 @@ import { addChronicle } from '../chronicle.ts';
 import { DC, EVENT_CHANCE, EVENT_SEEN_PENALTY } from '../constants.ts';
 import { EVENTS, getLocation, getTrait, type EventDef, type EventEffect, type EventOutcome, type EventRole, type EventTarget } from '../content/index.ts';
 import { locationState } from '../locations.ts';
-import { relationshipLabel } from '../relationships.ts';
+import { arePartners, relationshipLabel } from '../relationships.ts';
 import { addPractice, effectiveStat, maxHp, statName } from '../stats.ts';
 import { addTrait, getTraitInstance, hasTrait, revealTrait } from '../traits.ts';
 import type { BeatKind, LogLine } from '../types.ts';
@@ -43,6 +43,7 @@ function choose(sim: Sim, candidates: Member[], role: EventRole): Member | undef
 
 function pairFits(sim: Sim, a: Member, b: Member, relation: NonNullable<EventDef['pair']>): boolean {
   const label = relationshipLabel(sim.state, a.s.id, b.s.id);
+  if (relation === 'partners') return arePartners(sim.state, a.s.id, b.s.id);
   if (relation === 'bonded') return label === 'bonded';
   if (relation === 'friendly') return label === 'friend' || label === 'bonded';
   return label === 'rival' || label === 'feud';

@@ -18,6 +18,7 @@ import {
   itemName,
   labelName,
   maxHp,
+  partnerOf,
   practiceNeeded,
   pronounForms,
   qualityMod,
@@ -80,6 +81,12 @@ const SEX_LABEL = { he: 'Male', she: 'Female' } as const;
 /** "Male" or "Female". */
 export function sexLabel(s: Survivor): string {
   return SEX_LABEL[s.pronouns];
+}
+
+/** "Together with Wren Gale." for someone whose partner is in the guild. */
+export function partnerLine(state: GameState, s: Survivor): string | undefined {
+  const p = partnerOf(state, s.id);
+  return p ? `Together with ${p.firstName} ${p.lastName}.` : undefined;
 }
 
 /** Days from joining to death (or to `day` for the living), counting both ends. */
@@ -228,8 +235,10 @@ export function flagText(flag: RelationshipFlag, self: Survivor, other: Survivor
   }
 }
 
+/** Everyone else in the guild, a partner first, then by how close they are. */
 export function bonds(state: GameState, s: Survivor): BondView[] {
-  return relationshipsOf(state, s.id).map((r) => ({
+  const partnersFirst = (r: { flags: readonly RelationshipFlag[] }): number => (r.flags.some((f) => f.kind === 'partners') ? 0 : 1);
+  return [...relationshipsOf(state, s.id)].sort((x, y) => partnersFirst(x) - partnersFirst(y)).map((r) => ({
     other: r.other,
     score: r.score,
     label: r.label,
