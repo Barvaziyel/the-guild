@@ -398,6 +398,7 @@ Building is instant. Numbers live in `constants.ts`, and the building text in `c
 ### 9.2 Posts
 
 - Each building with work takes 2 workers at level 1 and 3 at levels 2–3. Posts are given from the building's screen or from a survivor's sheet. A survivor out on a run keeps their post and picks it up when back.
+  - Posts belong to the Depot: changing or removing the post of someone who is out sticks when they come back (1.2.1). Before that, a returning crew brought back the posts they left with, which could put three people in a two-person Garden; loading an older save takes the extras off, those out on runs first, with a note in the news.
 - **Training Yard** workers each pick a stat (the weakest by default) and get 2/3/4 practice in it a day, instead of the usual +1.
 - **A new game** posts the two founders with the best Wits to the Garden and the one with the best Nerve to the Firepit, so the guild feeds itself from the start.
 

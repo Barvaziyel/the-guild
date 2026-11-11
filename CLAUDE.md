@@ -76,6 +76,7 @@ npm run android:sync  # build the web app and copy it into android/; android:ope
    - `simulateRun` must never change the real `GameState`.
    - Inside a simulation, use the helpers in `expedition/context.ts` (`check`, `stress`, `hurt`, `say`). They handle rerolls, practice, hidden-trait reveals and log lines.
    - Run log text lives in `content/flavor.ts`.
+   - **Coming home merges, it doesn't overwrite.** The run's copy of each crew member was taken at departure, so `completeRun` (`homecoming`) keeps what changed at the Depot while they were out: their post, traits and Chronicle lines added at home (grief, news), and stress changes. `Run.departed` marks what they were like when they left.
    - **Nemeses live in the real state; runs see a copy.** `simulateRun` works on `sim.nemeses` and records what happened as `NemesisNews` in the result; `completeRun` merges it with `applyNemesisNews`, because runs overlap. Names come from `takenNames` and are never reused.
    - **Runs can be one person.** Text that talks about a group ("the crew", "everyone", "the others") is a `CrewLines` pool with separate solo lines, or a `members.length === 1` branch in code; anything else is written to read right either way. `expedition/solo.test.ts` simulates a few hundred solo runs and fails on group words.
 10. **Scripted events are data.**

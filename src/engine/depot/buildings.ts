@@ -104,6 +104,26 @@ export function postedTo(state: GameState, id: BuildingId): Survivor[] {
   return state.survivors.filter((s) => s.post?.building === id);
 }
 
+/**
+ * Take the extra workers off any building with more than it has room for,
+ * keeping those at the Depot first. Returns who was taken off, and from where.
+ */
+export function trimPosts(state: GameState): { survivor: Survivor; building: BuildingId }[] {
+  const removed: { survivor: Survivor; building: BuildingId }[] = [];
+  for (const id of BUILDING_IDS) {
+    const posted = postedTo(state, id);
+    const room = workerSlots(state, id);
+    if (posted.length <= room) continue;
+    const keep = [...posted].sort((a, b) => Number(atDepot(b)) - Number(atDepot(a))).slice(0, room);
+    for (const s of posted) {
+      if (keep.includes(s)) continue;
+      delete s.post;
+      removed.push({ survivor: s, building: id });
+    }
+  }
+  return removed;
+}
+
 /** Those working a building today. */
 export function workingAt(state: GameState, id: BuildingId): Survivor[] {
   return postedTo(state, id).filter(canWork);
