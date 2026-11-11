@@ -17,7 +17,7 @@ export function testSurvivor(id = 'x1', overrides: Partial<Survivor> = {}): Surv
     id,
     firstName: 'Test',
     lastName: 'Subject',
-    pronouns: 'they',
+    pronouns: 'she',
     age: 30,
     origin: 'scrapper',
     backstory: '',

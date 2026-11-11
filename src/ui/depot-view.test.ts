@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { Rng, build, emptySummary, gardenYield, guildUpkeep, refreshRecruits, startRun } from '../engine/index.ts';
+import { Rng, assignPost, build, emptySummary, gardenYield, guildUpkeep, postProblem, refreshRecruits, startRun } from '../engine/index.ts';
 import { T0, openGame, testGame, testPlan } from '../engine/test-utils.ts';
 import {
   foodWarning,
@@ -9,6 +9,7 @@ import {
   buildingRows,
   candidateStats,
   candidateTraitsLine,
+  candidateNote,
   candidateWait,
   depotNews,
   homeCounts,
@@ -53,6 +54,21 @@ describe('buildings on screen', () => {
     const s = state.survivors[0]!;
     assert.deepEqual(postChoices(state, s).map((c) => c.id), ['garden', 'firepit']);
   });
+
+  test('people resting until healed are not offered a post, and keep the one they have', () => {
+    const state = testGame();
+    const hurt = state.survivors.find((s) => s.post?.building !== 'firepit')!;
+    hurt.traits.push({ id: 'badly_wounded', gainedDay: 1, expiresDay: 6 });
+    assert.ok(postCandidates(state, 'firepit').every((o) => o.survivor.id !== hurt.id));
+    assert.equal(postProblem(state, hurt.id, { building: 'firepit' }), `${hurt.firstName} is resting until healed.`);
+    assert.throws(() => assignPost(state, hurt.id, { building: 'firepit' }), /resting until healed/);
+    if (hurt.post) {
+      assert.equal(postProblem(state, hurt.id, hurt.post), undefined);
+      assert.equal(workerLine(state, hurt).away, 'Resting until healed.');
+    }
+    hurt.traits = [];
+    assert.ok(postCandidates(state, 'firepit').some((o) => o.survivor.id === hurt.id));
+  });
 });
 
 describe('the Workshop on screen', () => {
@@ -86,6 +102,9 @@ describe('recruits on screen', () => {
     assert.equal(candidateTraitsLine(['Brave', 'Calm'], false), 'Brave, Calm.');
     assert.match(candidateTraitsLine([], true), /^Nothing shows yet/);
     assert.equal(candidateWait({ ...c, expiresDay: 6 }, 3), 'Waits at the gate until day 5.');
+    const wanderer = { ...c, wanderer: true, survivor: { ...c.survivor, pronouns: 'she' as const } };
+    assert.equal(candidateNote(wanderer, 2), 'Came on her own. Here today only.');
+    assert.equal(candidateNote({ ...c, wanderer: false }, 2), 'Here today only.');
   });
 });
 

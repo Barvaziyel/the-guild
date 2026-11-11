@@ -1,9 +1,9 @@
 import { bunksCap, dayAt, getOrigin, recruitProblem, takeIn, withRng, type GameState } from '../../engine/index.ts';
 import { Portrait } from '../components/Portrait.tsx';
 import { goBack, navigate, useAction } from '../hooks.ts';
-import { candidateStats, candidateWait, newMouthNote } from '../depot-view.ts';
+import { candidateNote, candidateStats, newMouthNote } from '../depot-view.ts';
 import { candidateTraitsLine as traitsLine } from '../depot-view.ts';
-import { hiddenTraitCount, pronounLabel, traitName } from '../view.ts';
+import { hiddenTraitCount, sexLabel, traitName } from '../view.ts';
 
 export function Recruits({ state, day }: { state: GameState; day: number }) {
   const { act, error } = useAction();
@@ -46,8 +46,8 @@ export function Recruits({ state, day }: { state: GameState; day: number }) {
                     <p className="sheet-origin">
                       {getOrigin(s.origin).name}, {s.age}
                     </p>
-                    <p className="sheet-pronouns">{pronounLabel(s)}</p>
-                    <p className="candidate-wait">{c.wanderer ? `Came on their own. ${candidateWait(c, day)}` : candidateWait(c, day)}</p>
+                    <p className="sheet-sex">{sexLabel(s)}</p>
+                    <p className="candidate-wait">{candidateNote(c, day)}</p>
                   </div>
                 </div>
                 <p className="backstory">{s.backstory}</p>

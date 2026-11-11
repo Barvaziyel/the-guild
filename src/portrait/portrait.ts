@@ -131,9 +131,7 @@ export function portraitLook(s: Survivor): PortraitLook {
     hairColor = GREY_HAIR[a.hairColor % GREY_HAIR.length]!;
   }
 
-  let facial = 0;
-  if (s.pronouns === 'he') facial = FACIAL_HAIR_HE[a.facialHair % FACIAL_HAIR_HE.length]!;
-  else if (s.pronouns === 'they') facial = a.facialHair % 5 === 0 ? 1 : 0;
+  const facial = s.pronouns === 'he' ? FACIAL_HAIR_HE[a.facialHair % FACIAL_HAIR_HE.length]! : 0;
 
   // Only what the player can see: hidden traits never show.
   const has = (id: string): boolean => s.traits.some((t) => t.id === id && !t.hidden);

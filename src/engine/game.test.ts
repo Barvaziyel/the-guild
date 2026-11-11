@@ -6,7 +6,9 @@ import { dayAt, nameProblem, newGame, renameSurvivor, withRng } from './game.ts'
 import { canChangeGear, equipFromStash, unequip } from './gear.ts';
 import { pairKey } from './relationships.ts';
 import { deserialize, serialize } from './save.ts';
-import { T0, openGame, testGame, testPlan } from './test-utils.ts';
+import { FIRST_NAMES } from './content/index.ts';
+import { T0, openGame, testGame, testPlan, testSurvivor } from './test-utils.ts';
+import type { GameState, Pronouns, Survivor } from './types.ts';
 
 describe('newGame', () => {
   test('creates founders with distinct origins and full relationships', () => {
@@ -151,5 +153,49 @@ describe('gear changes', () => {
       assert.ok(equipFromStash(state, home, weapon.uid));
       assert.equal(home.equipment.weapon?.uid, weapon.uid);
     }
+  });
+});
+
+describe('men and women', () => {
+  test('every survivor is a man or a woman, about half each, with a name to match', () => {
+    const names: Record<Pronouns, Set<string>> = {
+      he: new Set([...FIRST_NAMES.he, ...FIRST_NAMES.either]),
+      she: new Set([...FIRST_NAMES.she, ...FIRST_NAMES.either]),
+    };
+    let men = 0;
+    let total = 0;
+    for (let i = 0; i < 100; i++) {
+      for (const s of testGame(`sex-${i}`).survivors) {
+        assert.ok(s.pronouns === 'he' || s.pronouns === 'she', s.pronouns);
+        assert.ok(names[s.pronouns].has(s.firstName), `${s.firstName} (${s.pronouns})`);
+        total += 1;
+        if (s.pronouns === 'he') men += 1;
+      }
+    }
+    assert.ok(men / total > 0.4 && men / total < 0.6, `${men} of ${total}`);
+  });
+
+  test('a save from before version 9 makes everyone who was "they" a man or a woman, the same way everywhere', () => {
+    const state = openGame('v8');
+    const [a, b, c, d] = state.survivors as [Survivor, Survivor, Survivor, Survivor];
+    a.firstName = 'Ezra';
+    b.firstName = 'Wren';
+    c.firstName = 'Moss';
+    c.appearance.facialHair = 5;
+    d.firstName = 'Sage';
+    d.appearance.facialHair = 1;
+    startRun(state, { ...testPlan(state), crew: [c.id] }, T0);
+    state.memorial.push(testSurvivor('m1', { firstName: 'Echo' }));
+    state.depot.recruits.push({ survivor: testSurvivor('r1', { firstName: 'Nell' }), expiresDay: 9 });
+    const old = structuredClone(state) as unknown as GameState;
+    const everyone = [...old.survivors, ...old.memorial, ...old.runs[0]!.result.crew, old.depot.recruits.at(-1)!.survivor];
+    for (const s of everyone) (s as { pronouns: string }).pronouns = 'they';
+    old.version = 8;
+    const loaded = deserialize(JSON.stringify(old));
+    const sex = (id: string): string => loaded.survivors.find((s) => s.id === id)!.pronouns;
+    assert.deepEqual([a, b, c, d].map((s) => sex(s.id)), ['he', 'she', 'he', 'she']);
+    assert.equal(loaded.runs[0]!.result.crew[0]!.pronouns, 'he');
+    assert.equal(loaded.memorial.at(-1)!.pronouns, 'he');
+    assert.equal(loaded.depot.recruits.at(-1)!.survivor.pronouns, 'she');
   });
 });

@@ -76,9 +76,10 @@ export function originLine(s: Survivor): string {
   return `${getOrigin(s.origin).name}, ${s.age}`;
 }
 
-const PRONOUN_LABEL = { he: 'he/him', she: 'she/her', they: 'they/them' } as const;
-export function pronounLabel(s: Survivor): string {
-  return PRONOUN_LABEL[s.pronouns];
+const SEX_LABEL = { he: 'Male', she: 'Female' } as const;
+/** "Male" or "Female". */
+export function sexLabel(s: Survivor): string {
+  return SEX_LABEL[s.pronouns];
 }
 
 /** Days from joining to death (or to `day` for the living), counting both ends. */

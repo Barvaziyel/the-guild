@@ -34,7 +34,7 @@ import {
   itemView,
   lifeSummary,
   originLine,
-  pronounLabel,
+  sexLabel,
   stashFor,
   statRows,
   survivorStatus,
@@ -131,7 +131,7 @@ function SheetHeader({ state, survivor: s, day, now }: { state: GameState; survi
             <span className="last">{s.lastName}</span>
           </h2>
           <p className="sheet-origin">{originLine(s)}</p>
-          <p className="sheet-pronouns">{pronounLabel(s)}</p>
+          <p className="sheet-sex">{sexLabel(s)}</p>
           {!dead && !renaming && (
             <button type="button" className="btn btn-small btn-quiet rename-btn" onClick={() => setRenaming(true)}>
               Rename

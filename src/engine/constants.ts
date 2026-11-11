@@ -6,7 +6,7 @@
 import type { Quality, RelationshipLabel, Resources } from './types.ts';
 
 /** Save format version. Bump together with a migration in save.ts. */
-export const SAVE_VERSION = 8;
+export const SAVE_VERSION = 9;
 
 // ---------------------------------------------------------------- time
 

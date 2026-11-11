@@ -94,6 +94,11 @@ export function canWork(s: Survivor): boolean {
   return atDepot(s) && !s.traits.some((t) => getTrait(t.id).blocksRuns);
 }
 
+/** At the Depot but in bed until healed: no work, and no new post until then. */
+export function resting(s: Survivor): boolean {
+  return atDepot(s) && !canWork(s);
+}
+
 export function workerSlots(state: GameState, id: BuildingId): number {
   if (!buildingDef(id).workStat) return 0;
   return WORKER_SLOTS[Math.min(buildingLevel(state, id), MAX_BUILDING_LEVEL)] ?? 0;
@@ -147,6 +152,8 @@ export function postProblem(state: GameState, survivorId: string, post: Post): s
   if (buildingLevel(state, post.building) === 0) return `The ${def.name} isn't built yet.`;
   const others = postedTo(state, post.building).filter((s) => s.id !== survivorId);
   if (others.length >= workerSlots(state, post.building)) return `The ${buildingName(state, post.building)} has no room for another worker.`;
+  const s = state.survivors.find((x) => x.id === survivorId);
+  if (s && s.post?.building !== post.building && resting(s)) return `${s.firstName} is resting until healed.`;
   return undefined;
 }
 

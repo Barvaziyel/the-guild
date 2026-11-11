@@ -17,7 +17,6 @@ import {
   buildingLevel,
   buildingName,
   bunksCap,
-  canWork,
   costText,
   craftProblem,
   dailyUpkeep,
@@ -32,6 +31,8 @@ import {
   postProblem,
   postStat,
   postedTo,
+  pronounForms,
+  resting,
   statName,
   upgradeFor,
   upgradeProblem,
@@ -127,15 +128,15 @@ export function buildingRows(state: GameState): BuildingRow[] {
 /** A worker's line on a building screen: "Wits 5", plus why they aren't working today. */
 export function workerLine(state: GameState, s: Survivor): { stat: string; away?: string } {
   const stat = s.post ? postStat(s, s.post) : 'wits';
-  const away = !atDepot(s) ? 'Out on a run.' : !canWork(s) ? 'Resting until healed.' : undefined;
+  const away = !atDepot(s) ? 'Out on a run.' : resting(s) ? 'Resting until healed.' : undefined;
   return { stat: `${statName(stat)} ${effectiveStat(s, stat)}`, ...(away ? { away } : {}) };
 }
 
-/** Everyone who could be posted to a building, with why not if they can't. */
+/** Everyone who could be posted to a building, with why not if they can't. Those resting until healed aren't offered. */
 export function postCandidates(state: GameState, id: BuildingId): { survivor: Survivor; current: string; stat: string; problem?: string }[] {
   const workStat = buildingDef(id).workStat;
   return state.survivors
-    .filter((s) => s.post?.building !== id)
+    .filter((s) => s.post?.building !== id && !resting(s))
     .map((s) => {
       const stat: StatId = workStat && workStat !== 'any' ? workStat : s.post ? postStat(s, s.post) : 'wits';
       const problem = postProblem(state, s.id, { building: id });
@@ -245,6 +246,12 @@ export function candidateTraitsLine(visible: readonly string[], hidden: boolean)
 /** "Here today only" or "Waits at the gate until day 12". */
 export function candidateWait(c: Candidate, day: number): string {
   return c.expiresDay <= day + 1 ? 'Here today only.' : `Waits at the gate until day ${c.expiresDay - 1}.`;
+}
+
+/** How long a candidate waits, and "Came on her own." first for a wanderer. */
+export function candidateNote(c: Candidate, day: number): string {
+  const wait = candidateWait(c, day);
+  return c.wanderer ? `Came on ${pronounForms(c.survivor.pronouns).their} own. ${wait}` : wait;
 }
 
 // ---------------------------------------------------------------- while you were away

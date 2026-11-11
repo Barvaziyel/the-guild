@@ -197,7 +197,8 @@ export type Equipment = Partial<Record<Slot, ItemInstance>>;
 
 // ---------------------------------------------------------------- survivors
 
-export type Pronouns = 'he' | 'she' | 'they';
+/** Survivors are men ('he') or women ('she'). */
+export type Pronouns = 'he' | 'she';
 
 export interface Appearance {
   /** Master seed for anything the portrait composer wants to vary. */
