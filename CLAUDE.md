@@ -105,4 +105,5 @@ npm run android:sync  # build the web app and copy it into android/; android:ope
 ## Workflow
 
 - One PR per roadmap step (`docs/DESIGN.md` §15). Keep `npm run check` green.
+- Bump `version` in `package.json` (shown in Settings → About and as the Android version name) with each PR that changes the game: the minor number for a roadmap step (1.2.0), the patch number for a fix (1.1.1). PRs 9 and 10 were made together and share 1.1.0.
 - CI (`.github/workflows/ci.yml`) runs the typecheck, tests and build on every PR.
