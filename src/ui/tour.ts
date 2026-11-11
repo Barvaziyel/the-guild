@@ -108,11 +108,11 @@ export const TOUR_STEPS: readonly TourStep[] = [
   {
     id: 'supplies',
     part: 'supplies',
-    title: 'Five supplies',
+    title: 'Six supplies',
     route: depot,
     target: 'resources',
     text: () =>
-      'Scrap builds buildings and gear. Rations feed everyone. Meds patch people up, on runs and in the Infirmary. Ammo feeds guns. Tech goes into better buildings and gear.',
+      'Scrap builds buildings and gear. Rations feed everyone. Meds patch people up, on runs and in the Infirmary. Ammo feeds guns. Tech goes into better buildings and gear. Gas runs vehicles, once you have one.',
   },
   {
     id: 'more-supplies',
@@ -233,6 +233,15 @@ export const TOUR_STEPS: readonly TourStep[] = [
       return `Runs take real time, ${proseDuration(Math.min(...minutes))} to ${proseDuration(Math.max(...minutes))}, and crews come home even with the game closed. Their report tells you what happened out there, and who came back changed.`;
     },
   },
+  {
+    id: 'vehicles',
+    part: 'runs',
+    title: 'Vehicles',
+    route: () => ({ screen: 'vehicles' }),
+    target: 'vehicles',
+    text: () =>
+      `On foot a crew is at most ${MAX_CREW}. Vehicles seat more, get there faster and carry more, but they burn gas, draw trouble and wear down. They're rare: scouting turns up the odd wreck, traders sometimes sell one, and the Workshop can build some.`,
+  },
 
   // ---------------------------------------------------------------- building
   {
@@ -271,7 +280,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     title: 'Raids',
     route: depot,
     text: () =>
-      'Raiders sometimes hit the Depot. Whoever is home holds the fence, so the best shot at home matters, and a Watchtower helps. Send everyone out, and the Depot is easy pickings.',
+      'Raiders sometimes hit the Depot. Whoever is home holds the fence: the best shot matters, a Watchtower helps, and fewer than three at home makes it thin. They take supplies, and a vehicle if one is parked. Send everyone out, and the Depot is easy pickings.',
   },
 
   // ---------------------------------------------------------------- recruits

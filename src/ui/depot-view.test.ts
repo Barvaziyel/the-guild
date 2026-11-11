@@ -75,7 +75,7 @@ describe('the Workshop on screen', () => {
   test('recipes and improvements say what they cost and why not', () => {
     const state = testGame();
     assert.ok(recipeRows(state).every((r) => r.problem === 'Build the Workshop first.'));
-    state.resources = { scrap: 200, rations: 0, meds: 9, ammo: 0, tech: 20 };
+    state.resources = { scrap: 200, rations: 0, meds: 9, ammo: 0, tech: 20, gas: 0 };
     build(state, 'workshop', 1);
     const machete = recipeRows(state).find((r) => r.gear === 'machete')!;
     assert.equal(machete.problem, undefined);

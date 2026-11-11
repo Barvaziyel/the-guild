@@ -247,6 +247,13 @@ export const DISCOVERY_LEAD = [
   'Scratched into a wall: directions, and a name. {loc}.',
 ] as const;
 
+/** A wreck the crew gets running and drives home (§7.8). */
+export const VEHICLE_FOUND = [
+  'Under a tarp in a collapsed carport, {a.first} finds a {vehicle}. Half a day with a wrench and a lot of cursing, and it coughs into life.',
+  '{a.first} follows a fuel smell to a {vehicle} with two flat tyres and a dead battery. It takes everything in the toolbag, but it runs.',
+  'Behind a wall of rubble sits a {vehicle} somebody hid and never came back for. {a.first} gets it started on the third try.',
+] as const;
+
 export const DISCOVERY_LORE = [
   '{a.first} finds a diary from the first winter after the Burn and reads it cover to cover.',
   'A wall of photographs, hundreds of faces, each with a name and "MISSING" underneath. It is a while before anyone moves on.',

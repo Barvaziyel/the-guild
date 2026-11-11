@@ -30,7 +30,7 @@ const runs = Number(process.argv[3] ?? 40);
 const maxDanger = Number(process.argv[4] ?? 3);
 let now = 0;
 const state = newGame({ seed, now });
-state.resources = { scrap: 0, rations: 9999, meds: 9999, ammo: 9999, tech: 0 };
+state.resources = { scrap: 0, rations: 9999, meds: 9999, ammo: 9999, tech: 0, gas: 0 };
 
 console.log(`\nA guild's first ${runs} runs (seed: ${seed}, danger up to ${maxDanger})\n`);
 let deaths = 0;

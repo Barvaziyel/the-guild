@@ -40,7 +40,7 @@ import { craft, craftProblem, upgradeItem, upgradeProblem } from './workshop.ts'
 const HOUR = 60 * 60 * 1000;
 
 const rich = (state: GameState): void => {
-  state.resources = { scrap: 500, rations: 500, meds: 50, ammo: 50, tech: 100 };
+  state.resources = { scrap: 500, rations: 500, meds: 50, ammo: 50, tech: 100, gas: 0 };
 };
 
 describe('a new Depot', () => {
@@ -357,7 +357,7 @@ describe('the economy over time (Monte Carlo)', () => {
   test('a full Bunks of 8 is fed by an improved Garden with three gardeners', () => {
     for (let i = 0; i < 30; i++) {
       const state = testGame(`eight-${i}`);
-      state.resources = { scrap: 200, rations: 30, meds: 5, ammo: 15, tech: 20 };
+      state.resources = { scrap: 200, rations: 30, meds: 5, ammo: 15, tech: 20, gas: 0 };
       build(state, 'bunks', 1);
       build(state, 'garden', 1);
       for (let n = 0; n < 4; n++) {

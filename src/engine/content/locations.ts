@@ -24,6 +24,8 @@ export interface LocationDef {
   loot: Resources;
   /** Chance that a successful scavenge also finds a piece of gear. */
   gearChance: number;
+  /** Vehicles a crew might find here and get running (§7.8). */
+  wrecks?: readonly string[];
   hazards: HazardKind[];
   /** Known from the start of the game. */
   startKnown?: boolean;
@@ -47,8 +49,9 @@ export const LOCATIONS: readonly LocationDef[] = [
       { enemies: ['scrap_drone'], weight: 2 },
       { enemies: ['raider_scav'], weight: 2 },
     ],
-    loot: { scrap: 8, rations: 1, meds: 0, ammo: 1, tech: 1 },
+    loot: { scrap: 8, rations: 1, meds: 0, ammo: 1, tech: 1, gas: 1 },
     gearChance: 0.05,
+    wrecks: ['pickup'],
     hazards: ['collapse', 'storm'],
     startKnown: true,
     leadsTo: ['old_metro', 'water_plant'],
@@ -71,8 +74,9 @@ export const LOCATIONS: readonly LocationDef[] = [
       { enemies: ['raider_scav'], weight: 4 },
       { enemies: ['hollow'], weight: 1 },
     ],
-    loot: { scrap: 4, rations: 5, meds: 1, ammo: 1, tech: 0 },
+    loot: { scrap: 4, rations: 5, meds: 1, ammo: 1, tech: 0, gas: 2 },
     gearChance: 0.06,
+    wrecks: ['car', 'motorcycle'],
     hazards: ['collapse', 'storm', 'trap'],
     startKnown: true,
     leadsTo: ['drowned_mall', 'st_judes'],
@@ -94,8 +98,9 @@ export const LOCATIONS: readonly LocationDef[] = [
       { enemies: ['rad_hound'], weight: 6 },
       { enemies: ['raider_scav', 'raider_gunner'], weight: 3 },
     ],
-    loot: { scrap: 2, rations: 8, meds: 1, ammo: 0, tech: 0 },
+    loot: { scrap: 2, rations: 8, meds: 1, ammo: 0, tech: 0, gas: 1 },
     gearChance: 0.05,
+    wrecks: ['pickup'],
     hazards: ['storm', 'trap'],
     startKnown: true,
     leadsTo: ['blackwater', 'radio_station'],
@@ -118,7 +123,7 @@ export const LOCATIONS: readonly LocationDef[] = [
       { enemies: ['rad_hound'], weight: 3 },
       { enemies: ['raider_scav'], weight: 2 },
     ],
-    loot: { scrap: 6, rations: 1, meds: 1, ammo: 2, tech: 2 },
+    loot: { scrap: 6, rations: 1, meds: 1, ammo: 2, tech: 2, gas: 0 },
     gearChance: 0.08,
     hazards: ['collapse', 'toxic', 'trap'],
     leadsTo: ['checkpoint_bravo'],
@@ -140,8 +145,9 @@ export const LOCATIONS: readonly LocationDef[] = [
       { enemies: ['hollow'], weight: 5 },
       { enemies: ['raider_scav', 'raider_gunner'], weight: 4 },
     ],
-    loot: { scrap: 4, rations: 2, meds: 3, ammo: 1, tech: 1 },
+    loot: { scrap: 4, rations: 2, meds: 3, ammo: 1, tech: 1, gas: 2 },
     gearChance: 0.1,
+    wrecks: ['car', 'van'],
     hazards: ['collapse', 'radiation', 'toxic'],
     leadsTo: ['red_hand_camp'],
     sights: [
@@ -162,7 +168,7 @@ export const LOCATIONS: readonly LocationDef[] = [
       { enemies: ['raider_scav', 'raider_gunner'], weight: 6 },
       { enemies: ['rad_hound'], weight: 2 },
     ],
-    loot: { scrap: 3, rations: 1, meds: 0, ammo: 2, tech: 6 },
+    loot: { scrap: 3, rations: 1, meds: 0, ammo: 2, tech: 6, gas: 1 },
     gearChance: 0.08,
     hazards: ['storm', 'trap'],
     leadsTo: ['red_hand_camp'],
@@ -184,8 +190,9 @@ export const LOCATIONS: readonly LocationDef[] = [
       { enemies: ['hollow', 'glowing_hollow'], weight: 7 },
       { enemies: ['raider_scav', 'raider_gunner'], weight: 2 },
     ],
-    loot: { scrap: 2, rations: 1, meds: 8, ammo: 0, tech: 2 },
+    loot: { scrap: 2, rations: 1, meds: 8, ammo: 0, tech: 2, gas: 1 },
     gearChance: 0.1,
+    wrecks: ['van'],
     hazards: ['collapse', 'radiation', 'toxic'],
     leadsTo: ['the_glow'],
     sights: [
@@ -206,8 +213,9 @@ export const LOCATIONS: readonly LocationDef[] = [
       { enemies: ['scrap_drone', 'scrapbot_sentry'], weight: 7 },
       { enemies: ['hollow'], weight: 2 },
     ],
-    loot: { scrap: 5, rations: 0, meds: 1, ammo: 1, tech: 6 },
+    loot: { scrap: 5, rations: 0, meds: 1, ammo: 1, tech: 6, gas: 2 },
     gearChance: 0.1,
+    wrecks: ['pickup', 'van'],
     hazards: ['toxic', 'collapse', 'radiation'],
     leadsTo: ['checkpoint_bravo'],
     sights: [
@@ -228,7 +236,7 @@ export const LOCATIONS: readonly LocationDef[] = [
       { enemies: ['mire_stalker', 'rad_hound'], weight: 7 },
       { enemies: ['hollow', 'glowing_hollow'], weight: 3 },
     ],
-    loot: { scrap: 1, rations: 8, meds: 2, ammo: 0, tech: 0 },
+    loot: { scrap: 1, rations: 8, meds: 2, ammo: 0, tech: 0, gas: 0 },
     gearChance: 0.05,
     hazards: ['radiation', 'toxic', 'storm'],
     leadsTo: ['the_glow'],
@@ -250,8 +258,9 @@ export const LOCATIONS: readonly LocationDef[] = [
       { enemies: ['scrapbot_sentry', 'scrap_drone'], weight: 6 },
       { enemies: ['raider_gunner', 'raider_brute'], weight: 4 },
     ],
-    loot: { scrap: 3, rations: 1, meds: 2, ammo: 8, tech: 3 },
+    loot: { scrap: 3, rations: 1, meds: 2, ammo: 8, tech: 3, gas: 3 },
     gearChance: 0.15,
+    wrecks: ['pickup', 'motorcycle'],
     hazards: ['trap', 'radiation', 'collapse'],
     leadsTo: [],
     sights: [
@@ -272,8 +281,9 @@ export const LOCATIONS: readonly LocationDef[] = [
       { enemies: ['raider_gunner', 'raider_brute', 'raider_scav'], weight: 9 },
       { enemies: ['rad_hound'], weight: 1 },
     ],
-    loot: { scrap: 4, rations: 5, meds: 2, ammo: 5, tech: 1 },
+    loot: { scrap: 4, rations: 5, meds: 2, ammo: 5, tech: 1, gas: 3 },
     gearChance: 0.15,
+    wrecks: ['motorcycle', 'pickup'],
     hazards: ['trap', 'storm'],
     leadsTo: [],
     sights: [
@@ -295,7 +305,7 @@ export const LOCATIONS: readonly LocationDef[] = [
       { enemies: ['mire_stalker'], weight: 2 },
       { enemies: ['scrapbot_sentry'], weight: 1 },
     ],
-    loot: { scrap: 2, rations: 0, meds: 2, ammo: 2, tech: 8 },
+    loot: { scrap: 2, rations: 0, meds: 2, ammo: 2, tech: 8, gas: 0 },
     gearChance: 0.25,
     hazards: ['radiation', 'radiation', 'storm', 'collapse'],
     leadsTo: [],

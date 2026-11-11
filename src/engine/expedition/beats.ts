@@ -12,14 +12,19 @@ import {
   REL_SHARED,
   SNEAKY_AMBUSH_BONUS,
   SNEAK_DC_BASE,
+  FOUND_VEHICLE_CONDITION,
+  VEHICLE_AMBUSH_PENALTY,
+  WRECK_FIND_WEIGHT,
 } from '../constants.ts';
-import { GEAR, getLocation, type HazardKind } from '../content/index.ts';
+import { GEAR, getLocation, getVehicleDef, type HazardKind } from '../content/index.ts';
+import { createVehicle } from '../vehicles.ts';
 import {
   AMBUSHED_LINES,
   CALM_FAIL,
   CALM_SUCCESS,
   COMBAT_INTROS,
   DISCOVERY_LEAD,
+  VEHICLE_FOUND,
   DISCOVERY_LORE,
   DISCOVERY_STASH,
   DROP_LINES,
@@ -57,6 +62,7 @@ import {
   fmt,
   hurt,
   revealHook,
+  running,
   say,
   simBonus,
   simDay,
@@ -260,6 +266,7 @@ export function combatBeat(sim: Sim): void {
   let extra = sumTraitHook(scout.s, 'ambushBonus') + sumGearHook(scout.s, 'ambushBonus');
   if (plan.approach === 'sneaky') extra += SNEAKY_AMBUSH_BONUS;
   if (plan.approach === 'aggressive') extra += AGGRESSIVE_AMBUSH_PENALTY;
+  if (running(sim).length > 0) extra += VEHICLE_AMBUSH_PENALTY;
   const stealth = Math.max(...enemies.map((e) => e.def.stealth));
   const spot = check(sim, scout, 'wits', stealth, ['ambush'], { crew: true, extra });
 
@@ -417,6 +424,7 @@ export function discoveryBeat(sim: Sim): void {
     { item: 'stash', weight: 4 + stashBonus * 20 },
     { item: 'lead', weight: leads.length > 0 ? (sim.plan.job === 'scout' ? 9 : 3) : 0 },
     { item: 'lore', weight: 2 },
+    { item: 'wreck', weight: sim.loc.wrecks && sim.foundVehicles.length === 0 ? WRECK_FIND_WEIGHT : 0 },
   ] as const);
 
   if (kind === 'lead') {
@@ -431,6 +439,13 @@ export function discoveryBeat(sim: Sim): void {
     addLoot(sim, res, amount);
     say(sim, `${flavor(sim, DISCOVERY_STASH, { a: finder })} ${capitalize(String(amount))} ${res}.`, { tone: 'good' });
     if (sim.rng.chance(0.35)) findGear(sim, finder);
+  } else if (kind === 'wreck') {
+    const wrecks = sim.loc.wrecks!.map(getVehicleDef);
+    const def = sim.rng.weightedBy(wrecks, (d) => d.findWeight);
+    const v = createVehicle(sim.state, def.id, sim.rng.int(FOUND_VEHICLE_CONDITION[0], FOUND_VEHICLE_CONDITION[1]));
+    sim.foundVehicles.push(v);
+    startBeat(sim, 'discovery', 'Wheels');
+    say(sim, flavor(sim, VEHICLE_FOUND, { a: finder }, { vehicle: def.name }), { tone: 'good' });
   } else {
     startBeat(sim, 'discovery', 'Echoes');
     say(sim, flavor(sim, DISCOVERY_LORE, { a: finder }));

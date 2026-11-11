@@ -93,6 +93,14 @@ const MIGRATIONS: Record<number, (save: Record<string, unknown>) => void> = {
     const everyone = [...state.survivors, ...state.memorial, ...state.runs.flatMap((r) => r.result.crew), ...state.depot.recruits.map((c) => c.survivor)];
     for (const s of everyone) s.orientation ??= orientationFor(s.appearance.seed);
   },
+  // v11: vehicles and gas (roadmap step 13). Loot from runs already out has no gas in it.
+  10: (save) => {
+    const state = save as unknown as GameState;
+    state.resources.gas ??= 0;
+    state.vehicles ??= [];
+    for (const r of state.runs) r.result.loot.gas ??= 0;
+    for (const r of state.reports) r.summary.loot.gas ??= 0;
+  },
 };
 
 export function serialize(state: GameState): string {

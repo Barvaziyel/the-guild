@@ -130,7 +130,7 @@ describe('crews out and reports', () => {
     for (const r of ['scrap', 'rations', 'meds', 'ammo', 'tech'] as const) {
       if (report.summary.loot[r] > 0) assert.ok(loot.includes(amountOf(r, report.summary.loot[r])));
     }
-    assert.deepEqual(lootList({ ...report.summary, loot: { scrap: 4, rations: 1, meds: 1, ammo: 0, tech: 0 }, items: [] }), ['4 scrap', '1 ration', '1 med']);
+    assert.deepEqual(lootList({ ...report.summary, loot: { scrap: 4, rations: 1, meds: 1, ammo: 0, tech: 0, gas: 0 }, items: [] }), ['4 scrap', '1 ration', '1 med']);
     const check = report.beats.flatMap((b) => b.lines).find((l) => l.check)?.check;
     if (check) assert.match(checkLine(check, { [check.who]: 'Mara' }), /^Mara: \w+ /);
   });
@@ -138,7 +138,7 @@ describe('crews out and reports', () => {
   test('outcomes have headlines and tones', () => {
     assert.equal(outcomeHeadline('completed', 'Maple Street'), 'Back from Maple Street');
     assert.equal(outcomeHeadline('lost', 'The Glow'), 'Lost at The Glow');
-    const base = { loot: { scrap: 0, rations: 0, meds: 0, ammo: 0, tech: 0 }, items: [], leftBehind: 0, medsLeft: 0, ammoLeft: 0, exploredGain: 0, discovered: [], deaths: [], highlights: [], events: [] };
+    const base = { loot: { scrap: 0, rations: 0, meds: 0, ammo: 0, tech: 0, gas: 0 }, items: [], leftBehind: 0, medsLeft: 0, ammoLeft: 0, exploredGain: 0, discovered: [], deaths: [], highlights: [], events: [] };
     assert.equal(outcomeTone({ ...base, outcome: 'completed' }), 'good');
     assert.equal(outcomeTone({ ...base, outcome: 'turnedBack' }), 'mixed');
     assert.equal(outcomeTone({ ...base, outcome: 'completed', deaths: [{ survivorId: 'a', name: 'A', cause: 'x' }] }), 'bad');

@@ -109,6 +109,7 @@ export function newGame(opts: NewGameOptions): GameState {
     reports: [],
     eventsSeen: {},
     nemeses: [],
+    vehicles: [],
     log: [],
     settings: { mercyMode: false },
   };

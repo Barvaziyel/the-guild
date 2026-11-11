@@ -11,8 +11,10 @@ import {
   dayAt,
   effectiveStat,
   getGear,
+  getVehicleDef,
   getLocation,
   itemName,
+  vehicleName,
   locationState,
   statName,
   unavailableReason,
@@ -151,10 +153,10 @@ export function defaultPlan(state: GameState, locationId: string): RunPlan {
   };
 }
 
-/** Toggle someone in or out of the crew, never past the limit. */
-export function toggleCrew(crew: readonly string[], id: string): string[] {
+/** Toggle someone in or out of the crew, never past the limit (4 on foot, or the vehicles' seats). */
+export function toggleCrew(crew: readonly string[], id: string, limit = MAX_CREW): string[] {
   if (crew.includes(id)) return crew.filter((x) => x !== id);
-  return crew.length >= MAX_CREW ? [...crew] : [...crew, id];
+  return crew.length >= limit ? [...crew] : [...crew, id];
 }
 
 /** "In 50 tries, someone went down 9 times. Nobody died." */
@@ -280,7 +282,16 @@ export function outcomeTone(summary: RunSummary): OutcomeTone {
 export function lootList(summary: RunSummary): string[] {
   const out = RESOURCE_IDS.filter((r) => summary.loot[r] > 0).map((r) => amountOf(r, summary.loot[r]));
   for (const item of summary.items) out.push(itemName(item));
+  for (const v of summary.foundVehicles ?? []) out.push(`a ${vehicleName(v)} that only just runs (${v.condition}%)`);
   return out;
+}
+
+/** What became of the vehicles a crew took: ["The Hatchback: 72%", "The Motorcycle was wrecked"]. */
+export function vehicleOutcomes(summary: RunSummary): string[] {
+  return (summary.vehicles ?? []).map((n) => {
+    const name = getVehicleDef(n.defId).name;
+    return n.wrecked ? `The ${name} was wrecked and left behind.` : `The ${name} came back at ${n.condition}%.`;
+  });
 }
 
 export interface ChangeGroup {

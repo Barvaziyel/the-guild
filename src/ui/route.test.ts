@@ -11,6 +11,7 @@ describe('routes', () => {
       { screen: 'building', id: 'garden' },
       { screen: 'recruits' },
       { screen: 'gear' },
+      { screen: 'vehicles' },
       { screen: 'roster' },
       { screen: 'memorial' },
       { screen: 'settings' },
@@ -47,5 +48,6 @@ describe('routes', () => {
     assert.equal(tabFor({ screen: 'building', id: 'garden' }), 'depot');
     assert.equal(tabFor({ screen: 'recruits' }), 'depot');
     assert.equal(tabFor({ screen: 'gear' }), 'depot');
+    assert.equal(tabFor({ screen: 'vehicles' }), 'depot');
   });
 });

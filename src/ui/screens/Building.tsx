@@ -218,6 +218,13 @@ function Workshop({ state }: { state: GameState }) {
         )}
         {error && <p className="field-error">{error}</p>}
       </section>
+      <section className="panel">
+        <h3 className="panel-title">Vehicles</h3>
+        <p className="panel-help">The Workshop also repairs vehicles, and builds motorcycles and cars.</p>
+        <button type="button" className="btn btn-small" onClick={() => navigate({ screen: 'vehicles' })}>
+          Go to the vehicles
+        </button>
+      </section>
     </>
   );
 }
