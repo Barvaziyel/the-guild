@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import {
+  amountOf,
   dayAt,
   getLocation,
   markReportRead,
@@ -179,7 +180,7 @@ function Report({ state, report }: { state: GameState; report: RunReport }) {
         {s.leftBehind > 0 && <p className="summary-minor">Left {s.leftBehind} loads behind: too much to carry.</p>}
         {(s.medsLeft > 0 || s.ammoLeft > 0) && (
           <p className="summary-minor">
-            Unused supplies back in the store: {[s.medsLeft > 0 && `${s.medsLeft} meds`, s.ammoLeft > 0 && `${s.ammoLeft} ammo`].filter(Boolean).join(', ')}.
+            Unused supplies back in the store: {[s.medsLeft > 0 && amountOf('meds', s.medsLeft), s.ammoLeft > 0 && amountOf('ammo', s.ammoLeft)].filter(Boolean).join(', ')}.
           </p>
         )}
         {s.exploredGain > 0 && <p className="summary-minor">Explored {loc.name} a little more (+{s.exploredGain}%).</p>}

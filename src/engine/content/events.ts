@@ -110,7 +110,7 @@ export const EVENTS: readonly EventDef[] = [
     weight: 10,
     locations: SETTLED_PLACES,
     a: { trait: 'animal_lover' },
-    intro: 'A half-starved dog has been following the crew for an hour. {a.first} stops, crouches and holds out a hand.',
+    intro: 'A half-starved dog has been trailing along for an hour. {a.first} stops, crouches and holds out a hand.',
     check: { stat: 'nerve', dc: 'normal', contexts: ['enemy:feral'] },
     success: {
       text: 'It comes, belly low, and eats from {a.their} palm. It trots beside {a.first} the rest of the way and is gone by morning.',
@@ -167,7 +167,7 @@ export const EVENTS: readonly EventDef[] = [
       ],
     },
     failure: {
-      text: 'An hour of listening to tumblers, and nothing. The others have stopped pretending to be patient.',
+      text: 'An hour of listening to tumblers, and nothing but a stiff neck to show for it.',
       effects: [
         { type: 'relationship', with: 'crew', amount: -4 },
         { type: 'stress', who: 'others', amount: 3 },
@@ -182,7 +182,7 @@ export const EVENTS: readonly EventDef[] = [
     minDanger: 2,
     locations: BUILDINGS,
     a: { trait: 'curious' },
-    intro: 'A steel door, welded shut from the outside. Everyone agrees to leave it. {a.first} is already working at the weld.',
+    intro: 'A steel door, welded shut from the outside. The sensible thing is to leave it. {a.first} is already working at the weld.',
     check: { stat: 'wits', dc: 'normal', danger: true },
     success: {
       text: 'Inside: a storeroom nobody has touched since the Burn. {a.first} does not say "told you", but only just.',
@@ -203,7 +203,7 @@ export const EVENTS: readonly EventDef[] = [
     weight: 8,
     minDanger: 2,
     a: { trait: 'cautious' },
-    intro: '{a.first} stops dead and points at nothing. Then the others see it: fishing line, ankle height.',
+    intro: '{a.first} stops dead and stares at nothing. Then it catches the light: fishing line, ankle height.',
     success: {
       text: '{a.first} follows the line to a shotgun rigged in a doorway, and unloads it with steady hands.',
       effects: [
@@ -245,7 +245,7 @@ export const EVENTS: readonly EventDef[] = [
     intro: 'The only way on is a beam over a long drop. {a.first} hands off {a.their} pack and goes first, with the rope.',
     check: { stat: 'grit', dc: 'normal', danger: true },
     success: {
-      text: '{a.first} ties off on the far side and waves the others over as if it were nothing.',
+      text: '{a.first} makes it across and ties off on the far side as if it were nothing.',
       effects: [
         { type: 'explore', amount: 3 },
         { type: 'relationship', with: 'crew', amount: 3 },
@@ -263,7 +263,7 @@ export const EVENTS: readonly EventDef[] = [
     weight: 10,
     maxDanger: 4,
     a: { trait: 'hothead' },
-    intro: 'Two strangers are stripping a wreck the crew had marked for itself. {a.first} is walking toward them before anyone can stop {a.them}.',
+    intro: 'Two strangers are stripping a wreck the guild had marked as its own. {a.first} is already walking toward them.',
     check: { stat: 'brawn', dc: 'normal' },
     success: {
       text: 'One shove and a lot of shouting. The strangers decide the wreck is not worth it and leave what they had pulled.',
@@ -288,7 +288,7 @@ export const EVENTS: readonly EventDef[] = [
     a: { trait: 'generous' },
     intro: 'An old woman sits by the road with an empty pack. Before anyone can argue, {a.first} is unwrapping {a.their} own rations.',
     success: {
-      text: 'She eats slowly, then draws in the dust: a way through that is not on any map the crew has.',
+      text: 'She eats slowly, then draws in the dust: a way through that is not on any map the guild has.',
       effects: [
         { type: 'stress', who: 'all', amount: -4 },
         { type: 'explore', amount: 3 },
@@ -302,7 +302,7 @@ export const EVENTS: readonly EventDef[] = [
     kind: 'discovery',
     weight: 9,
     a: { trait: 'glutton' },
-    intro: 'A crate of tins with the labels long gone. The others would carry them home to boil first. {a.first} has a knife in one already.',
+    intro: 'A crate of tins with the labels long gone. Anyone sensible would carry them home to boil first. {a.first} has a knife in one already.',
     check: { stat: 'grit', dc: 'normal' },
     success: {
       text: 'Peaches. {a.first} eats four tins standing up and has to be dragged away from the fifth.',
@@ -393,7 +393,7 @@ export const EVENTS: readonly EventDef[] = [
     weight: 9,
     needsMeds: 1,
     a: { trait: 'patcher' },
-    intro: 'A man is propped against a wall with a rag pressed to his thigh. {a.first} is kneeling beside him before the others have decided whether it is a trap.',
+    intro: 'A man is propped against a wall with a rag pressed to his thigh. {a.first} is kneeling beside him before stopping to wonder whether it is a trap.',
     success: {
       text: 'It is not a trap. {a.first} cleans and binds the wound. The man presses a handful of cartridges on {a.them} and limps off the other way.',
       effects: [
@@ -592,7 +592,7 @@ export const EVENTS: readonly EventDef[] = [
     kind: 'travel',
     weight: 8,
     a: { gear: 'music_box' },
-    intro: 'When the crew stops for the night, {a.first} winds the music box and sets it on a stone.',
+    intro: 'When it is time to stop for the night, {a.first} winds the music box and sets it on a stone.',
     success: {
       text: 'Half a tune, over and over, thin as wire. Nobody speaks until it runs down.',
       effects: [{ type: 'stress', who: 'all', amount: -7 }],
@@ -611,7 +611,7 @@ export const EVENTS: readonly EventDef[] = [
     intro: 'A trade caravan is watering its mules at a crossroads. {a.first} goes over to see what a pocketful of scrap will buy.',
     check: { stat: 'nerve', dc: 'normal' },
     success: {
-      text: '{a.first} haggles them down to almost fair. The crew walks on with fresh bandages and something that is nearly coffee.',
+      text: '{a.first} haggles them down to almost fair. Fresh bandages go into the packs, and something that is nearly coffee.',
       effects: [
         { type: 'supplies', meds: 1 },
         { type: 'loot', resource: 'rations', amount: [1, 2] },
@@ -636,7 +636,7 @@ export const EVENTS: readonly EventDef[] = [
       effects: [{ type: 'explore', amount: 3 }],
     },
     failure: {
-      text: '{a.first} strains until something in {a.their} back complains. The slab does not care. The crew climbs round the long way.',
+      text: '{a.first} strains until something in {a.their} back complains. The slab does not care. It is the long way round, then.',
       effects: [
         { type: 'damage', who: 'a', amount: [1, 2], cause: 'a pulled back' },
         { type: 'stress', who: 'all', amount: 2 },
@@ -652,7 +652,7 @@ export const EVENTS: readonly EventDef[] = [
     a: {},
     intro: 'It starts to rain. {a.first} holds out the counter out of habit, then lowers it slowly. Clean.',
     success: {
-      text: 'They stand in it with their faces turned up, like children.',
+      text: 'Packs come off, and faces turn up to it, like children.',
       effects: [{ type: 'stress', who: 'all', amount: -5 }],
     },
   },
@@ -663,14 +663,14 @@ export const EVENTS: readonly EventDef[] = [
     weight: 7,
     minDanger: 2,
     a: { best: 'nerve' },
-    intro: 'Another crew is coming up the road: Vultures, by the feathers on their packs. Both groups stop at shouting distance. {a.first} steps forward.',
+    intro: 'Another crew is coming up the road: Vultures, by the feathers on their packs. Both sides stop at shouting distance. {a.first} steps forward.',
     check: { stat: 'nerve', dc: 'normal', danger: true, contexts: ['intimidate'] },
     success: {
-      text: 'A few careful words, a trade of rumors, and each crew goes its own way. {a.first} learned more than {a.they} gave.',
+      text: 'A few careful words, a trade of rumors, and each side goes its own way. {a.first} learned more than {a.they} gave.',
       effects: [{ type: 'explore', amount: 4 }],
     },
     failure: {
-      text: 'The Vultures say nothing, and smile, and fall in a few hundred meters behind. They shadow the crew for hours.',
+      text: 'The Vultures say nothing, and smile, and fall in a few hundred meters behind. They follow for hours.',
       effects: [{ type: 'stress', who: 'all', amount: 5 }],
     },
   },
@@ -690,7 +690,7 @@ export const EVENTS: readonly EventDef[] = [
       ],
     },
     failure: {
-      text: 'There is nothing. They take it in the open, backs to the wind and packs over their heads.',
+      text: 'There is nothing. It has to be taken in the open, back to the wind and pack over the head.',
       effects: [
         { type: 'damage', who: 'all', amount: [1, 2], cause: 'a dust storm' },
         { type: 'stress', who: 'all', amount: 4 },
@@ -727,7 +727,7 @@ export const EVENTS: readonly EventDef[] = [
       ],
     },
     failure: {
-      text: 'There are four of them, and more in the windows. The crew pays in ammunition and walks through with their eyes down.',
+      text: 'There are four of them, and more in the windows. The toll is paid in ammunition, eyes down all the way through.',
       effects: [
         { type: 'supplies', ammo: -4 },
         { type: 'stress', who: 'all', amount: 4 },
@@ -825,9 +825,9 @@ export const EVENTS: readonly EventDef[] = [
     weight: 10,
     locations: ['maple_street'],
     a: {},
-    intro: 'Through a broken window {a.first} sees a dining table, still laid for four. The chairs are pushed back as if everyone had just stood up.',
+    intro: 'Through a broken window {a.first} sees a dining table, still laid for four. The chairs are pushed back as if the family had just stood up.',
     success: {
-      text: 'The crew walks the rest of the street more quietly.',
+      text: 'The rest of the street goes by more quietly.',
       effects: [
         { type: 'stress', who: 'all', amount: 3 },
         { type: 'explore', amount: 2 },
@@ -902,7 +902,7 @@ export const EVENTS: readonly EventDef[] = [
       ],
     },
     failure: {
-      text: 'Something under the water has hold of {a.their} leg. {a.first} comes back up choking and bleeding. The crew goes another way.',
+      text: 'Something under the water has hold of {a.their} leg. {a.first} comes back up choking and bleeding. It will have to be another way.',
       effects: [
         { type: 'damage', who: 'a', amount: [2, 3], cause: 'something in the flooded tunnel' },
         { type: 'stress', who: 'a', amount: 6 },
@@ -918,7 +918,7 @@ export const EVENTS: readonly EventDef[] = [
     a: {},
     intro: '{a.first} forces the doors of a carriage. The passengers are all still in their seats.',
     success: {
-      text: 'The luggage racks are full. The crew takes what is useful and does not look down.',
+      text: 'The luggage racks are full. What is useful comes away, without looking down.',
       effects: [
         { type: 'loot', resource: 'any', amount: [3, 5] },
         { type: 'stress', who: 'all', amount: 3 },
@@ -935,7 +935,7 @@ export const EVENTS: readonly EventDef[] = [
     weight: 12,
     locations: ['drowned_mall'],
     a: { worst: 'nerve' },
-    intro: 'The mannequins in the atrium have been moved since the crew came in. {a.first} is certain of it. They are all facing the same way now.',
+    intro: 'The mannequins in the atrium have moved since the last pass through. {a.first} is certain of it. They are all facing the same way now.',
     check: { stat: 'nerve', dc: 'normal' },
     success: {
       text: '{a.first} walks up to the nearest one and knocks its hat off. Nothing happens. Probably.',
@@ -1024,11 +1024,11 @@ export const EVENTS: readonly EventDef[] = [
     intro: 'The way through is a ward where every bed has its curtains drawn. Something behind one of them is breathing. {a.first} is nearest.',
     check: { stat: 'nerve', dc: 'hard' },
     success: {
-      text: '{a.first} keeps walking at the same pace, eyes front, and the others follow in step. The breathing does not change.',
+      text: '{a.first} keeps walking at the same pace, eyes front, and never looks back. The breathing does not change.',
       effects: [{ type: 'practice', who: 'a', stat: 'nerve', amount: 3 }],
     },
     failure: {
-      text: '{a.first} runs. Then everyone runs. Behind them, curtains are opening.',
+      text: '{a.first} runs. Behind, one by one, the curtains are opening.',
       effects: [
         { type: 'stress', who: 'all', amount: 7 },
         { type: 'stress', who: 'a', amount: 4 },
@@ -1055,7 +1055,7 @@ export const EVENTS: readonly EventDef[] = [
       ],
     },
     failure: {
-      text: 'Wrong wheel. A yellow cloud rolls out of a ruptured tank, and the crew gets out coughing blood.',
+      text: 'Wrong wheel. A yellow cloud rolls out of a ruptured tank, and it is a coughing, bloody scramble to get out.',
       effects: [
         { type: 'damage', who: 'all', amount: [1, 2], cause: 'chlorine gas' },
         { type: 'stress', who: 'all', amount: 4 },
@@ -1209,7 +1209,7 @@ export const EVENTS: readonly EventDef[] = [
       ],
     },
     failure: {
-      text: 'It takes two of them to drag {a.first} back from the rim. {a.They} {a.is} still answering it.',
+      text: '{a.first} is at the very rim before stumbling back. {a.They} {a.is} still answering it.',
       effects: [
         { type: 'stress', who: 'a', amount: 16 },
         { type: 'rads', who: 'a', amount: [8, 14] },

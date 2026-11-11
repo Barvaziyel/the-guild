@@ -24,6 +24,7 @@ import {
   effectiveStat,
   firepitRelief,
   gardenYield,
+  guildUpkeep,
   getGear,
   healRate,
   itemName,
@@ -62,7 +63,7 @@ export function buildingStatus(state: GameState, id: BuildingId): string {
     case 'bunks':
       return `${state.survivors.length} of ${bunksCap(state)} beds taken.`;
     case 'garden':
-      return `Grows about ${Math.round(gardenYield(state))} rations a day. The guild at home eats ${dailyUpkeep(state)}.`;
+      return `Grows about ${oneDecimal(gardenYield(state))} rations a day. The guild at home eats ${dailyUpkeep(state)}.`;
     case 'firepit':
       return `Everyone at home sheds about ${Math.round(REST_RELIEF + firepitRelief(state))} stress a day.`;
     case 'infirmary':
@@ -284,4 +285,41 @@ export function depotNews(state: GameState, limit = 12): { day: number; text: st
 export function homeCounts(state: GameState): { home: number; out: number; beds: number; cap: number } {
   const home = state.survivors.filter(atDepot).length;
   return { home, out: state.survivors.length - home, beds: state.survivors.length, cap: bunksCap(state) };
+}
+
+// ---------------------------------------------------------------- food
+
+/** 4.5 stays 4.5, 5 stays 5: how the Garden's yield is shown everywhere. */
+export function oneDecimal(n: number): string {
+  return String(Math.round(n * 10) / 10);
+}
+
+const FOOD_FIXES = 'Hunting runs bring food home, and more gardeners or a bigger Garden grow more.';
+
+/**
+ * A warning for the Depot when the Garden can't keep up with the whole guild
+ * and the stores will soon be gone (or are). Nothing when food is fine.
+ */
+export function foodWarning(state: GameState): string | undefined {
+  const eat = guildUpkeep(state);
+  const grow = gardenYield(state);
+  if (grow >= eat) return undefined;
+  const stored = state.resources.rations;
+  if (stored <= 0) {
+    return `The rations are gone. The guild eats ${eat} a day and the Garden grows about ${oneDecimal(grow)}, so people at home go hungry and can't rest. Crews can still go out, hungry. ${FOOD_FIXES}`;
+  }
+  const days = Math.floor(stored / (eat - grow));
+  if (days > FOOD_WARNING_DAYS) return undefined;
+  return `Food is running short. The guild eats ${eat} rations a day and the Garden grows about ${oneDecimal(grow)}, so what's stored lasts about ${days === 0 ? 'a day' : `${days} more ${days === 1 ? 'day' : 'days'}`}. ${FOOD_FIXES}`;
+}
+
+/** Warn this many days before the stores run out. */
+export const FOOD_WARNING_DAYS = 10;
+
+/** At the gate: a note when another person would eat more than the Garden can spare. */
+export function newMouthNote(state: GameState): string | undefined {
+  const eat = guildUpkeep(state);
+  const grow = gardenYield(state);
+  if (grow >= eat + 1) return undefined;
+  return `Another person eats at least a ration a day. The guild already eats ${eat}, and the Garden grows about ${oneDecimal(grow)}.`;
 }

@@ -73,7 +73,16 @@ export function gardenYield(state: GameState): number {
 
 /** Rations everyone at the Depot eats in a day. */
 export function dailyUpkeep(state: GameState): number {
-  return sum(state.survivors.filter(atDepot).map((s) => Math.max(UPKEEP_RATIONS, maxTraitHook(s, 'rationUse'))));
+  return sum(state.survivors.filter(atDepot).map(rationsADay));
+}
+
+/** Rations the whole guild eats in a day once everyone is home: what the Garden has to keep up with. */
+export function guildUpkeep(state: GameState): number {
+  return sum(state.survivors.map(rationsADay));
+}
+
+function rationsADay(s: Survivor): number {
+  return Math.max(UPKEEP_RATIONS, maxTraitHook(s, 'rationUse'));
 }
 
 /** Stress everyone at the Depot sheds from the Firepit today (on top of rest). */

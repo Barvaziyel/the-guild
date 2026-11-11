@@ -324,7 +324,9 @@ export function fight(sim: Sim, enemies: Enemy[], start: FightStart): FightResul
       if (blocker) {
         if (!blockedSaid) {
           blockedSaid = true;
-          say(sim, `The crew wants out, but ${blocker.member.s.firstName} will not leave while ${withArticle(blocker.enemy.name)} is still standing.`, { tone: 'bad' });
+          const who = blocker.member.s.firstName;
+          const enemy = withArticle(blocker.enemy.name);
+          say(sim, sim.members.length === 1 ? `It is time to pull out, but ${who} will not leave while ${enemy} is still standing.` : `The crew wants out, but ${who} will not leave while ${enemy} is still standing.`, { tone: 'bad' });
         }
       } else {
         withdraw(sim, state);

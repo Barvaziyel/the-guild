@@ -6,18 +6,29 @@ import type { HazardKind } from './locations.ts';
  *   {a.first} {a.they} {a.their} ... (and {b.*}) for survivors, see text.ts fillRoles()
  *   {loc} location name, {group} / {Group} enemy group ("three Rad-hounds")
  * The event content pack (roadmap PR 4) grows these pools.
+ *
+ * Runs can be one person. A pool that talks about the group ("the crew",
+ * "everyone") is a CrewLines with separate lines for someone alone, where
+ * {a} is that person; other pools are written to read right either way.
  */
 
-export const DEPART_LINES = [
-  'The crew checks their gear one last time and heads out for {loc}.',
-  'The Depot gate rattles shut behind them. {loc} is waiting.',
-  'Packs on, heads down. The crew sets off toward {loc}.',
-] as const;
+/** Lines for a crew of two or more, and for someone out alone ({a} is them). */
+export interface CrewLines {
+  crew: readonly string[];
+  solo: readonly string[];
+}
 
-export const SOLO_DEPART_LINES = [
-  '{a.first} shoulders {a.their} pack and heads out for {loc} alone.',
-  '{a.first} slips out of the Depot gate without a word, bound for {loc}.',
-] as const;
+export const DEPART_LINES: CrewLines = {
+  crew: [
+    'The crew checks their gear one last time and heads out for {loc}.',
+    'The Depot gate rattles shut behind them. {loc} is waiting.',
+    'Packs on, heads down. The crew sets off toward {loc}.',
+  ],
+  solo: [
+    '{a.first} shoulders {a.their} pack and heads out for {loc} alone.',
+    '{a.first} slips out of the Depot gate without a word, bound for {loc}.',
+  ],
+};
 
 export const COMBAT_INTROS: Record<EnemyType, readonly string[]> = {
   feral: [
@@ -27,8 +38,8 @@ export const COMBAT_INTROS: Record<EnemyType, readonly string[]> = {
   ],
   raider: [
     '{Group} step out from cover, weapons already up.',
-    'A whistle from the rooftops. {Group}, and they want what the crew is carrying.',
-    'Voices ahead, then silence. {Group} have seen them.',
+    'A whistle from the rooftops. {Group}, and they want the packs.',
+    'Voices ahead, then silence. {Group} are already looking this way.',
   ],
   hollow: [
     'A wet, dragging sound. {Group} shamble out of the dark.',
@@ -44,7 +55,7 @@ export const COMBAT_INTROS: Record<EnemyType, readonly string[]> = {
 
 export const AMBUSHED_LINES = [
   'Nobody saw it coming.',
-  'They are on the crew before anyone can shout.',
+  'They attack before there is time to shout.',
   'There is no time to pick ground.',
 ] as const;
 
@@ -53,20 +64,26 @@ export const SPOTTED_LINES = [
   '{a.first} raises a fist: movement ahead.',
 ] as const;
 
-export const DROP_LINES = [
-  '{a.first} spots them early enough to pick the ground. The crew strikes first.',
-  'Thanks to {a.first}, the crew has the drop on them.',
-] as const;
+export const DROP_LINES: CrewLines = {
+  crew: ['{a.first} spots them early enough to pick the ground. The crew strikes first.', 'Thanks to {a.first}, the crew has the drop on them.'],
+  solo: ['{a.first} spots them early enough to pick the ground, and strikes first.', '{a.first} sees them long before they see {a.them}.'],
+};
 
-export const SNEAK_PAST_LINES = [
-  'The crew goes to ground and waits. Even {a.first} manages not to make a sound. The danger passes, close enough to smell.',
-  'They take the long way round, {a.first} placing every step with care. Nobody sees them.',
-] as const;
+export const SNEAK_PAST_LINES: CrewLines = {
+  crew: [
+    'The crew goes to ground and waits. Even {a.first} manages not to make a sound. The danger passes, close enough to smell.',
+    'They take the long way round, {a.first} placing every step with care. Nobody sees them.',
+  ],
+  solo: [
+    '{a.first} goes to ground and waits without a sound. The danger passes, close enough to smell.',
+    '{a.first} takes the long way round, placing every step with care. Nobody sees a thing.',
+  ],
+};
 
-export const SNEAK_FAIL_LINES = [
-  '{a.first} kicks a loose can. Every head turns.',
-  'The crew tries to slip past, but {a.first} is not quiet enough.',
-] as const;
+export const SNEAK_FAIL_LINES: CrewLines = {
+  crew: ['{a.first} kicks a loose can. Every head turns.', 'The crew tries to slip past, but {a.first} is not quiet enough.'],
+  solo: ['{a.first} kicks a loose can. Every head turns.', '{a.first} tries to slip past, but not quietly enough.'],
+};
 
 export const INTIMIDATE_SUCCESS = [
   '{a.first} steps forward and stares them down. They decide this is not worth dying over.',
@@ -93,29 +110,29 @@ export const ENEMIES_BREAK = [
   'That is enough for the others. They bolt.',
 ] as const;
 
-export const FLEE_LINES = [
-  '{a.first} panics and bolts.',
-  "{a.first}'s nerve goes. {a.They} {a.is} gone before anyone can call out.",
-] as const;
+export const FLEE_LINES: CrewLines = {
+  crew: ['{a.first} panics and bolts.', "{a.first}'s nerve goes. {a.They} {a.is} gone before anyone can call out."],
+  solo: ['{a.first} panics and bolts.', "{a.first}'s nerve goes, and {a.first} runs."],
+};
 
-export const WITHDRAW_SUCCESS = [
-  '{a.first} calls the retreat. The crew falls back in good order.',
-  '"Back! Back!" {a.first} gets everyone out.',
-] as const;
+export const WITHDRAW_SUCCESS: CrewLines = {
+  crew: ['{a.first} calls the retreat. The crew falls back in good order.', '"Back! Back!" {a.first} gets everyone out.'],
+  solo: ['{a.first} backs away step by step, and gets clear.', '{a.first} breaks off and makes it out.'],
+};
 
-export const WITHDRAW_FAIL = [
-  '{a.first} calls the retreat, but they are pressed too hard to break away clean.',
-] as const;
+export const WITHDRAW_FAIL: CrewLines = {
+  crew: ['{a.first} calls the retreat, but they are pressed too hard to break away clean.'],
+  solo: ['{a.first} tries to break away, but is pressed too hard to get clear.'],
+};
 
 export const STALEMATE_LINES = [
-  'Neither side can finish it. Both pull back, watching each other go.',
+  'Neither side can finish it. Both pull back, each watching the other go.',
 ] as const;
 
-export const SCAVENGE_INTROS = [
-  'The crew spreads out to search.',
-  'Time to see what is left here.',
-  'They work through the place room by room.',
-] as const;
+export const SCAVENGE_INTROS: CrewLines = {
+  crew: ['The crew spreads out to search.', 'Time to see what is left here.', 'They work through the place room by room.'],
+  solo: ['Time to see what is left here.', '{a.first} works through the place room by room.', '{a.first} starts searching, slow and careful.'],
+};
 
 export const SCAVENGE_NOTHING = [
   '{a.first} finds nothing worth carrying.',
@@ -130,7 +147,7 @@ export const POCKET_CAUGHT = [
 
 export const TRAVEL_FIND = [
   '{a.first} kicks over a crate on the way and finds a little scrap.',
-  '{a.first} pries a few useful bits off a wreck as they pass.',
+  '{a.first} pries a few useful bits off a wreck along the way.',
 ] as const;
 
 export const HAZARD_TEXT: Record<
@@ -141,15 +158,15 @@ export const HAZARD_TEXT: Record<
     title: 'Hot Zone',
     intro: ['The air tastes of metal. Skin prickles.', 'A dead patch: no birds, no insects, no moss.'],
     avoided: [
-      "{a.first}'s Geiger counter starts chattering. The crew backs off and goes around.",
+      "{a.first}'s Geiger counter starts chattering. Time to back off and go around.",
     ],
-    hit: ['{a.first} is retching by the time they are clear.', '{a.first} comes out of it grey and shaking.'],
+    hit: ['{a.first} is retching long before the air clears.', '{a.first} comes out of it grey and shaking.'],
     cause: 'radiation',
   },
   collapse: {
     title: 'Collapse',
     intro: ['The floor groans.', 'Dust trickles from the ceiling. Then more than dust.'],
-    avoided: ['{a.first} hears it go and yanks everyone back just in time.', '{a.first} spots the cracks and finds another way through.'],
+    avoided: ['{a.first} hears it go and gets clear just in time.', '{a.first} spots the cracks and finds another way through.'],
     hit: ['{a.first} is caught under falling rubble.', 'The floor gives way under {a.first}.'],
     cause: 'a collapse',
   },
@@ -163,7 +180,7 @@ export const HAZARD_TEXT: Record<
   trap: {
     title: 'Trap',
     intro: ['Someone has been here, and did not want company.', 'A wire glints across the path.'],
-    avoided: ['{a.first} spots the tripwire and steps the crew over it.', '{a.first} finds the trap before it finds them.'],
+    avoided: ['{a.first} spots the tripwire in time and steps over it.', '{a.first} finds the trap before it finds anyone.'],
     hit: ['{a.first} trips a wire. A scrap-bomb goes off.', '{a.first} steps on a spike trap.'],
     cause: 'a trap',
   },
@@ -231,15 +248,24 @@ export const DISCOVERY_LEAD = [
 ] as const;
 
 export const DISCOVERY_LORE = [
-  '{a.first} finds a diary from the first winter after the Burn and reads until the others make {a.them} stop.',
-  'A wall of photographs, hundreds of faces, each with a name and "MISSING" underneath. The crew stands there a while.',
+  '{a.first} finds a diary from the first winter after the Burn and reads it cover to cover.',
+  'A wall of photographs, hundreds of faces, each with a name and "MISSING" underneath. It is a while before anyone moves on.',
   '{a.first} gets an old radio to play ten seconds of music before it dies for good.',
   'A classroom, desks still in rows. On the board, in chalk: "Back Monday."',
 ] as const;
 
-export const RETURN_LINES = {
-  completed: ['The Depot lights come into view. Home.', 'Tired, dirty, and back in one piece.', 'The gate opens before they reach it. Someone was watching for them.'],
-  turnedBack: ['The crew cut the run short and made it home.', 'They turned back early. Better a light pack than an empty bunk.'],
-  routed: ['They come in at dawn, carrying each other, with nothing to show for it.', 'What is left of the crew staggers through the gate and collapses.'],
-  lost: ['Nobody comes back.'],
-} as const;
+export const RETURN_LINES: Record<'completed' | 'turnedBack' | 'routed' | 'lost', CrewLines> = {
+  completed: {
+    crew: ['The Depot lights come into view. Home.', 'Tired, dirty, and back in one piece.', 'The gate opens before they reach it. Someone was watching for them.'],
+    solo: ['The Depot lights come into view. Home.', 'Tired, dirty, and back in one piece.', 'The gate opens before {a.first} reaches it. Someone was watching.'],
+  },
+  turnedBack: {
+    crew: ['The crew cut the run short and made it home.', 'They turned back early. Better a light pack than an empty bunk.'],
+    solo: ['{a.first} cuts the run short and makes it home.', '{a.first} turns back early. Better a light pack than an empty bunk.'],
+  },
+  routed: {
+    crew: ['They come in at dawn, carrying each other, with nothing to show for it.', 'What is left of the crew staggers through the gate and collapses.'],
+    solo: ['{a.first} crawls in at dawn with nothing to show for it.', '{a.first} staggers through the gate and collapses.'],
+  },
+  lost: { crew: ['Nobody comes back.'], solo: ['Nobody comes back.'] },
+};

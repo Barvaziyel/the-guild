@@ -74,6 +74,7 @@ npm run android:sync  # build the web app and copy it into android/; android:ope
    - `simulateRun` must never change the real `GameState`.
    - Inside a simulation, use the helpers in `expedition/context.ts` (`check`, `stress`, `hurt`, `say`). They handle rerolls, practice, hidden-trait reveals and log lines.
    - Run log text lives in `content/flavor.ts`.
+   - **Runs can be one person.** Text that talks about a group ("the crew", "everyone", "the others") is a `CrewLines` pool with separate solo lines, or a `members.length === 1` branch in code; anything else is written to read right either way. `expedition/solo.test.ts` simulates a few hundred solo runs and fails on group words.
 10. **Scripted events are data.**
    - They live in `content/events.ts`; `expedition/events.ts` casts and plays them. To add one, append an entry. Add a new effect type only when no existing one fits.
    - Write text so verbs don't have to agree with a pronoun: "{a.first} laughs", not "{a.they} laughs".

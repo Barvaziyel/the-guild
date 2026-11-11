@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { DAY_MS, LOCATIONS, MAX_CREW, completeRun, startRun, type RiskEstimate } from '../engine/index.ts';
+import { DAY_MS, LOCATIONS, MAX_CREW, amountOf, completeRun, startRun, type RiskEstimate } from '../engine/index.ts';
 import { T0, openGame, testGame, testPlan } from '../engine/test-utils.ts';
 import { DEPOT_SPOT, MAP_SPOTS, mapLabel, reachMap } from './reach-map.ts';
 import {
+  rationsNote,
   backIn,
   changesByPerson,
   checkLine,
@@ -127,8 +128,9 @@ describe('crews out and reports', () => {
     for (const g of groups) assert.ok(report.plan.crew.includes(g.survivorId));
     const loot = lootList(report.summary);
     for (const r of ['scrap', 'rations', 'meds', 'ammo', 'tech'] as const) {
-      if (report.summary.loot[r] > 0) assert.ok(loot.includes(`${report.summary.loot[r]} ${r}`));
+      if (report.summary.loot[r] > 0) assert.ok(loot.includes(amountOf(r, report.summary.loot[r])));
     }
+    assert.deepEqual(lootList({ ...report.summary, loot: { scrap: 4, rations: 1, meds: 1, ammo: 0, tech: 0 }, items: [] }), ['4 scrap', '1 ration', '1 med']);
     const check = report.beats.flatMap((b) => b.lines).find((l) => l.check)?.check;
     if (check) assert.match(checkLine(check, { [check.who]: 'Mara' }), /^Mara: \w+ /);
   });
@@ -174,4 +176,18 @@ describe('Reach map', () => {
     assert.ok(unknown.every((n) => n.label.length === 0), 'unknown places have no name');
     assert.equal(map.roads.filter((r) => r.known).length, 3);
   });
+});
+
+test('the planner says what rations go, and what happens when the Depot is short', () => {
+  const state = testGame('ration-note');
+  for (const s of state.survivors) s.traits = s.traits.filter((t) => t.id !== 'glutton' && t.id !== 'drinker');
+  const plan = testPlan(state, 'rail_yard');
+  assert.equal(rationsNote(state, { ...plan, crew: [] }), 'Rations are packed for each person automatically.');
+  state.resources.rations = 10;
+  assert.equal(rationsNote(state, plan), '3 rations packed automatically, of 10 at the Depot.');
+  assert.equal(rationsNote(state, { ...plan, crew: plan.crew.slice(0, 1) }), '1 ration packed automatically, of 10 at the Depot.');
+  state.resources.rations = 2;
+  assert.equal(rationsNote(state, plan), 'Only 2 of the 3 rations the crew needs: all the Depot has.');
+  state.resources.rations = 0;
+  assert.equal(rationsNote(state, plan), 'No rations at the Depot. The crew can still go, hungry.');
 });

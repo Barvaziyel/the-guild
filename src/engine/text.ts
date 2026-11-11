@@ -1,4 +1,9 @@
-import type { CheckInfo, Pronouns, Survivor } from './types.ts';
+import type { CheckInfo, Pronouns, ResourceId, Survivor } from './types.ts';
+
+/** An amount of a resource in prose: "1 ration", "5 rations", "1 med", "4 scrap". */
+export function amountOf(res: ResourceId, n: number): string {
+  return n === 1 && (res === 'rations' || res === 'meds') ? `1 ${res.slice(0, -1)}` : `${n} ${res}`;
+}
 
 interface PronounForms {
   they: string;

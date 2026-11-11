@@ -1,7 +1,7 @@
 /**
  * Planning a run: how long it takes, what it costs, and whether it's allowed.
  */
-import { DAY_MS, MAX_CREW, SNEAKY_DURATION_MULT, STRESS_HIGH } from '../constants.ts';
+import { DAY_MS, HUNGER_STRESS, MAX_CREW, SNEAKY_DURATION_MULT, STRESS_HIGH } from '../constants.ts';
 import { findLocation, getGear, getLocation, getTrait } from '../content/index.ts';
 import { locationState } from '../locations.ts';
 import { crewConflicts } from '../relationships.ts';
@@ -28,12 +28,36 @@ export function runDuration(state: GameState, plan: RunPlan): number {
   return Math.round(loc.durationMin * mult) * 60_000;
 }
 
-/** Rations the crew packs: one per member per game day away (some eat more). */
-export function rationsNeeded(state: GameState, plan: RunPlan): number {
+/** Rations each crew member needs: one per game day away (some eat more). */
+function rationNeeds(state: GameState, plan: RunPlan): { s: Survivor; need: number }[] {
   const days = Math.max(1, Math.ceil(runDuration(state, plan) / DAY_MS));
-  let perDay = 0;
-  for (const s of crewOf(state, plan)) perDay += Math.max(1, maxTraitHook(s, 'rationUse'));
-  return perDay * days;
+  return crewOf(state, plan).map((s) => ({ s, need: Math.max(1, maxTraitHook(s, 'rationUse')) * days }));
+}
+
+/** Rations the crew needs: one per member per game day away (some eat more). */
+export function rationsNeeded(state: GameState, plan: RunPlan): number {
+  return rationNeeds(state, plan).reduce((n, r) => n + r.need, 0);
+}
+
+/** Rations the crew actually takes: what it needs, or all the Depot has if that's less. */
+export function rationsPacked(state: GameState, plan: RunPlan): number {
+  return Math.min(rationsNeeded(state, plan), Math.max(0, state.resources.rations));
+}
+
+/**
+ * Who goes out hungry when the Depot is short: rations go to the crew in
+ * order, a full share each, and whoever's share runs out goes without.
+ * A crew can always leave, so an empty larder never stops the guild from
+ * hunting or scavenging its way out.
+ */
+export function hungryCrew(state: GameState, plan: RunPlan): Survivor[] {
+  let left = Math.max(0, state.resources.rations);
+  const hungry: Survivor[] = [];
+  for (const { s, need } of rationNeeds(state, plan)) {
+    if (left >= need) left -= need;
+    else hungry.push(s);
+  }
+  return hungry;
 }
 
 /** Can this survivor be sent out right now? Returns the reason if not. */
@@ -71,8 +95,6 @@ export function validatePlan(state: GameState, plan: RunPlan): string[] {
   }
   if (plan.meds > state.resources.meds) problems.push('Not enough meds at the Depot.');
   if (plan.ammo > state.resources.ammo) problems.push('Not enough ammo at the Depot.');
-  const rations = rationsNeeded(state, plan);
-  if (rations > state.resources.rations) problems.push(`Not enough rations: the crew needs ${rations}.`);
   return problems;
 }
 
@@ -94,5 +116,13 @@ export function planWarnings(state: GameState, plan: RunPlan): string[] {
     return w !== undefined && getGear(w.defId).usesAmmo === true;
   });
   if (needAmmo && plan.ammo === 0) warnings.push('Someone carries a gun, but the crew is taking no ammo.');
+  const hungry = hungryCrew(state, plan);
+  if (hungry.length > 0) {
+    const names = hungry.map((s) => s.firstName);
+    const who = names.length === 1 ? names[0]! : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]!}`;
+    const one = hungry.length === 1;
+    const lead = state.resources.rations <= 0 ? 'No rations at the Depot' : 'Not enough rations for everyone';
+    warnings.push(`${lead}: ${who} ${one ? 'goes' : 'go'} out hungry (+${HUNGER_STRESS} stress${one ? '' : ' each'}).`);
+  }
   return warnings;
 }

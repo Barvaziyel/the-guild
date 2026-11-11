@@ -10,7 +10,7 @@ import {
 import { Portrait } from '../components/Portrait.tsx';
 import { navigate, useAction } from '../hooks.ts';
 import { activeRuns, backIn, joinNames, runCrewNames } from '../runs-view.ts';
-import { buildingRows, depotNews, homeCounts, summaryLines, type BuildingRow } from '../depot-view.ts';
+import { buildingRows, depotNews, foodWarning, homeCounts, summaryLines, type BuildingRow } from '../depot-view.ts';
 import { stashLine } from '../gear-view.ts';
 
 interface Props {
@@ -27,6 +27,7 @@ export function Depot({ state, now, away, onDismissAway }: Props) {
   const unbuilt = rows.filter((r) => !r.built);
   const out = activeRuns(state);
   const atGate = state.depot.recruits.length;
+  const food = foodWarning(state);
 
   return (
     <section aria-labelledby="depot-title">
@@ -41,6 +42,13 @@ export function Depot({ state, now, away, onDismissAway }: Props) {
       </div>
 
       {away && away.days > 0 && <AwayNote summary={away} onDismiss={onDismissAway} />}
+
+      {food && (
+        <div className="panel food-warning" role="status">
+          <h3 className="panel-title">Food</h3>
+          <p>{food}</p>
+        </div>
+      )}
 
       {state.depot.offers.length > 0 && <Offers state={state} />}
 

@@ -1,4 +1,4 @@
-export { runDuration, rationsNeeded, unavailableReason, validatePlan, planWarnings } from './plan.ts';
+export { hungryCrew, runDuration, rationsNeeded, rationsPacked, unavailableReason, validatePlan, planWarnings } from './plan.ts';
 export { simulateRun, type SimulatedRun } from './sim.ts';
 export {
   startRun,

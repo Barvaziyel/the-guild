@@ -14,7 +14,7 @@ import { fullName } from '../text.ts';
 import { addTrait, hasTrait } from '../traits.ts';
 import type { Beat, GameState, Run, RunDeath, RunPlan, RunReport, RunSummary, Survivor } from '../types.ts';
 import { RESOURCE_IDS, SLOTS } from '../types.ts';
-import { rationsNeeded, validatePlan } from './plan.ts';
+import { rationsPacked, validatePlan } from './plan.ts';
 import { simulateRun } from './sim.ts';
 
 /**
@@ -41,7 +41,7 @@ export function startRun(state: GameState, plan: RunPlan, now: number): Run {
     result: sim.result,
   };
 
-  state.resources.rations -= rationsNeeded(state, plan);
+  state.resources.rations -= rationsPacked(state, plan);
   state.resources.meds -= plan.meds;
   state.resources.ammo -= plan.ammo;
   for (const id of plan.crew) {
@@ -149,8 +149,9 @@ export function completeRun(state: GameState, runId: string, now: number): RunRe
 
   for (const id of result.events) state.eventsSeen[id] = (state.eventsSeen[id] ?? 0) + 1;
 
-  const outcomeText = { completed: 'returned from', turnedBack: 'came back early from', routed: 'were routed at', lost: 'never came back from' }[result.outcome];
-  addGuildLog(state, day, `The crew ${outcomeText} ${loc.name}.`, ['run', run.id]);
+  const solo = result.crew.length === 1 ? result.crew[0]!.firstName : undefined;
+  const outcomeText = { completed: 'returned from', turnedBack: 'came back early from', routed: solo ? 'was routed at' : 'were routed at', lost: 'never came back from' }[result.outcome];
+  addGuildLog(state, day, `${solo ?? 'The crew'} ${outcomeText} ${loc.name}.`, ['run', run.id]);
 
   const report: RunReport = {
     id: run.id,
