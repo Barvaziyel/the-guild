@@ -33,6 +33,7 @@ Inspirations: Fallout Shelter (individual characters, gear, base rooms), Civ 5 (
 |---|---|
 | Name | Generated; player can rename. The backstory follows the new name; old log lines keep the name used at the time |
 | Sex | Male or female, half each (he or she in text). First names come from a list for men, one for women, and one for either |
+| Orientation | Straight, gay or bi (§5.1). Not shown on the sheet |
 | Nickname | Earned through feats (§7.7), e.g. *Dex "Two-Shot" Arlo* |
 | Origin | Bunker-born, Caravan Kid, City Rat, Farmhand, Ex-Raider, Old Medic, Scrapper. Tilts stats, may grant a trait |
 | Backstory | One generated line |
@@ -174,8 +175,8 @@ The survivor sheet shows the Chronicle as their story. When a survivor dies, the
 
 Romance is uncommon, and a step beyond Bonded.
 
-- **Falling for each other.** Each Depot day, two Bonded adults at home together who aren't Grieving become partners with a 1.5% chance, so a Bonded man and woman get together after about two months at home on average. In 60-run test careers it came to about one couple per guild.
-  - For any pair but a man and a woman, the chance is ×0.015. Measured on guilds of 4 and 8 over two to four months, **about 96% of couples are a man and a woman** (lower than ×0.04 would suggest, because people with no one of the other sex free keep rolling).
+- **Orientation.** Everyone has one: 85% straight, 6% gay, 9% bi, worked out from their appearance seed. It isn't shown on its own; it shows in who they end up with. Measured on guilds of 4 and 8 over two to four months, **about 96% of couples are a man and a woman**.
+- **Falling for each other.** Each Depot day, two Bonded adults at home together, drawn to each other and not Grieving, become partners with a 1.5% chance. A Bonded pair gets together after about two months at home on average; in 60-run test careers it came to about one couple per guild.
   - Someone who already has a partner is ×0.01 as likely to find another: **about 99% have one partner**.
   - It's in both Chronicles ("Became partners with Wren Gale.") and the news ("Dex and Wren are together now.").
 - **Together.** Partners are Bonded, so they get everything Bonded friends do, plus:
@@ -479,7 +480,7 @@ At most one event a day (a 20% chance), weighted:
    - **Run report:** what came home, deaths, places found, the beat-by-beat log with the dice under each line, then what changed for each person. For example: *"Mara gained Rad-Hardened"*, *"Dex & Ava are now Friends"*, and the loot. It opens in place of the countdown when the crew gets back.
 7. **Memorial Wall:** faded portraits with the day and cause of death; tap one for their sheet and Chronicle. Opened from the bottom of the roster. *Built (PR 5).*
 8. **Settings:** mercy mode, notices when crews come back, portrait wobble, the tour, export and import save, load the backup copy, start a new guild, developer shortcuts and fast-forward (§11, §13). *Built (PR 5, 6, 10).*
-9. **The tour** (PR 10). A new guild starts with it, and Settings can show it again. A card pinned above the tab bar walks through 21 short steps in 7 parts: supplies, food, your people, runs, building, recruits, and time. Each step opens its screen and outlines what it's talking about, with live numbers where they help (what the Garden grows, what the first buildings cost). *Next*, *Skip this part* and *Skip tour* are always there. Opening the game mid-tour (from a notice, say) stays where it opened; the next step moves on from there.
+9. **The tour** (PR 10). A new guild starts with it, and Settings can show it again. A card pinned above the tab bar walks through 22 short steps in 7 parts: supplies, food, your people, runs, building, recruits, and time. Each step opens its screen and outlines what it's talking about, with live numbers where they help (what the Garden grows, what the first buildings cost). *Next*, *Skip this part* and *Skip tour* are always there. Opening the game mid-tour (from a notice, say) stays where it opened; the next step moves on from there.
 10. **Gear** (1.1.1). The stash by slot (weapons, armor, tools, trinkets), each piece with a *Give* button that lists everyone: those at the Depot can take it, those out on a run can't yet. Below, what each person carries; tap someone for their sheet. Opened from the Depot's Gear panel, from the stash line on a survivor's sheet, and from a run report that found gear.
 
 **Navigation.** Tabs along the bottom: Depot, Roster, Reach, Runs, Settings. Survivors who are out show where they are and when they're back, on the roster and on their sheet.

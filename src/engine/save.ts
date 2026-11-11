@@ -4,6 +4,7 @@ import { buildingName, defaultPosts, initialBuildings, trimPosts } from './depot
 import { fullName } from './text.ts';
 import { initialLocations } from './locations.ts';
 import { FIRST_NAMES } from './content/index.ts';
+import { orientationFor } from './generator.ts';
 import type { GameState, Pronouns, Survivor } from './types.ts';
 
 /** A game day lasted one real hour until save version 6. */
@@ -85,6 +86,12 @@ const MIGRATIONS: Record<number, (save: Record<string, unknown>) => void> = {
     for (const s of state.memorial) fix(s);
     for (const r of state.runs) for (const s of r.result.crew) fix(s);
     for (const c of state.depot.recruits) fix(c.survivor);
+  },
+  // v10: survivors have an orientation (§5.1), from their appearance seed, as new ones do.
+  9: (save) => {
+    const state = save as unknown as GameState;
+    const everyone = [...state.survivors, ...state.memorial, ...state.runs.flatMap((r) => r.result.crew), ...state.depot.recruits.map((c) => c.survivor)];
+    for (const s of everyone) s.orientation ??= orientationFor(s.appearance.seed);
   },
 };
 

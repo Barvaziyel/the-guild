@@ -6,7 +6,7 @@
 import type { Quality, RelationshipLabel, Resources } from './types.ts';
 
 /** Save format version. Bump together with a migration in save.ts. */
-export const SAVE_VERSION = 9;
+export const SAVE_VERSION = 10;
 
 // ---------------------------------------------------------------- time
 
@@ -325,12 +325,11 @@ export const STORY_MAX_LINES = 12;
 /** Each day, the chance a Bonded pair at the Depot together becomes partners. */
 export const PARTNER_DAILY_CHANCE = 0.015;
 /**
- * The chance is multiplied by this for any pair but a man and a woman, so that
- * about 96% of couples are a man and a woman (Aviel's call). Lower than 4%
- * because people with no one of the other sex free keep rolling: measured on
- * guilds of 4 and 8 over two to four months, see partners.test.ts.
+ * Who people can fall for, per thousand. Set so that about 96% of couples are a
+ * man and a woman (Aviel's call), measured on guilds of 4 and 8 over two to four
+ * months in partners.test.ts.
  */
-export const PARTNER_OTHER_PAIR_FACTOR = 0.015;
+export const ORIENTATION_PER_MILLE = { straight: 850, gay: 60, bi: 90 } as const;
 /** ...and by this when either already has a partner: about 99% stay with one. */
 export const PARTNER_SECOND_FACTOR = 0.01;
 /** Extra stress shed a day with their partner at the Depot, on top of a Bonded friend's. */

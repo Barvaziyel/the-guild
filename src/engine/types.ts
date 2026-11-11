@@ -200,6 +200,9 @@ export type Equipment = Partial<Record<Slot, ItemInstance>>;
 /** Survivors are men ('he') or women ('she'). */
 export type Pronouns = 'he' | 'she';
 
+/** Who someone can fall for: the other sex, their own, or either (§5.1). */
+export type Orientation = 'straight' | 'gay' | 'bi';
+
 export interface Appearance {
   /** Master seed for anything the portrait composer wants to vary. */
   seed: number;
@@ -244,6 +247,8 @@ export interface Survivor {
   lastName: string;
   nickname?: string;
   pronouns: Pronouns;
+  /** Who they can fall for. Not shown on its own: it shows in who they end up with. */
+  orientation: Orientation;
   age: number;
   origin: string;
   backstory: string;

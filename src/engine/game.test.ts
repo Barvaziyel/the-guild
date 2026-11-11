@@ -7,6 +7,7 @@ import { canChangeGear, equipFromStash, unequip } from './gear.ts';
 import { pairKey } from './relationships.ts';
 import { deserialize, serialize } from './save.ts';
 import { FIRST_NAMES } from './content/index.ts';
+import { orientationFor } from './generator.ts';
 import { T0, openGame, testGame, testPlan, testSurvivor } from './test-utils.ts';
 import type { GameState, Pronouns, Survivor } from './types.ts';
 
@@ -197,5 +198,20 @@ describe('men and women', () => {
     assert.equal(loaded.runs[0]!.result.crew[0]!.pronouns, 'he');
     assert.equal(loaded.memorial.at(-1)!.pronouns, 'he');
     assert.equal(loaded.depot.recruits.at(-1)!.survivor.pronouns, 'she');
+  });
+
+  test('a save from before version 10 gives everyone the orientation a new survivor with that face would have', () => {
+    const state = openGame('v9');
+    const away = state.survivors[0]!;
+    startRun(state, { ...testPlan(state), crew: [away.id] }, T0);
+    const old = structuredClone(state) as unknown as GameState;
+    const everyone = [...old.survivors, ...old.runs[0]!.result.crew];
+    for (const s of everyone) delete (s as Partial<Survivor>).orientation;
+    old.version = 9;
+    const loaded = deserialize(JSON.stringify(old));
+    for (const s of [...loaded.survivors, ...loaded.runs[0]!.result.crew]) {
+      assert.equal(s.orientation, orientationFor(s.appearance.seed), s.firstName);
+    }
+    assert.deepEqual(loaded.survivors.map((s) => s.orientation), state.survivors.map((s) => s.orientation));
   });
 });

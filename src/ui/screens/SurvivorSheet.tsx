@@ -436,7 +436,7 @@ function GearSlot({ state, survivor: s, slot, editable, open, onToggle, onDone }
 function BondsPanel({ state, survivor: s }: { state: GameState; survivor: Survivor }) {
   const list = bonds(state, s);
   return (
-    <section className="panel" aria-labelledby="bonds-title">
+    <section className="panel" aria-labelledby="bonds-title" data-tour="bonds">
       <h3 id="bonds-title" className="panel-title">
         How {s.firstName} gets on with everyone
       </h3>

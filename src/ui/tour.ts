@@ -65,7 +65,7 @@ export function proseDuration(minutes: number): string {
 }
 
 /** Someone to show on the sheet: the first survivor, or the roster if nobody's left. */
-function firstSurvivorRoute(state: GameState, tab: 'stats' | 'story'): Route {
+function firstSurvivorRoute(state: GameState, tab: 'stats' | 'bonds' | 'story'): Route {
   const s = state.survivors[0];
   return s ? { screen: 'survivor', id: s.id, tab } : { screen: 'roster' };
 }
@@ -169,6 +169,15 @@ export const TOUR_STEPS: readonly TourStep[] = [
     target: 'stats',
     text: () =>
       'Five stats: Grit, Brawn, Aim, Wits and Nerve. Nobody spends points. People get better at what they actually do, on runs and at their posts.',
+  },
+  {
+    id: 'bonds',
+    part: 'people',
+    title: 'Who gets along',
+    route: (state) => firstSurvivorRoute(state, 'bonds'),
+    target: 'bonds',
+    text: () =>
+      'People grow closer or further apart with everything they go through. Bonded friends look after each other on runs and help each other rest at home; rivals make it all harder. Now and then two Bonded people become partners.',
   },
   {
     id: 'story',
