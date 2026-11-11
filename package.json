@@ -23,7 +23,7 @@
     "apk": "node scripts/apk.ts",
     "apk:install": "node scripts/apk.ts --install",
     "android:sync": "vite build && cap sync android",
-    "android:open": "cap open android"
+    "android:open": "vite build && cap sync android && cap open android"
   },
   "devDependencies": {
     "@capacitor/cli": "^8.6.0",

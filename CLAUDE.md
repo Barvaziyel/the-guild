@@ -20,7 +20,7 @@ npm run portraits  # write a gallery of portraits to out/portraits.html
 npm run balance    # Monte Carlo table of danger and loot per location; args: <runs> <retreat> <approach> <crewSize> [medkit]
 npm run keystore   # once: make the release signing key (android/keystore.properties, git-ignored)
 npm run apk        # build out/the-guild-<version>.apk on this machine (needs Android Studio + Java 21); apk:install also installs over USB
-npm run android:sync  # build the web app and copy it into android/; android:open opens Android Studio
+npm run android:sync  # build the web app and copy it into android/ (needed before Android Studio can build); android:open syncs, then opens Android Studio
 ```
 
 ## Layout

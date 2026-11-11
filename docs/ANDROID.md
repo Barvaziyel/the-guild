@@ -69,8 +69,9 @@ If you ever have to change the key (for example, if you built before making the 
 
 `android/` is a normal Android Studio project and is committed to git (only build output, `local.properties` and the signing files are ignored).
 
-- `npm run android:sync` builds the web app and copies it into `android/`.
-- `npm run android:open` opens the project in Android Studio, where you can run it on a phone or emulator and see its logs.
+- `npm run android:sync` builds the web app and copies it into `android/`, along with the files Capacitor generates there.
+- `npm run android:open` does the same, then opens the project in Android Studio, where you can run it on a phone or emulator and see its logs.
+- **Sync before opening the project in Android Studio**, and again after changing the web app. Android Studio doesn't build the web part, and on a fresh checkout the generated files aren't there yet, so its Gradle sync fails (see Troubleshooting).
 
 App icons and the splash screen are generated from the images in `assets/`:
 
@@ -86,6 +87,7 @@ The notification icon is a vector drawable, `android/app/src/main/res/drawable/i
 |---|---|
 | Couldn't find the Android SDK | Open Android Studio once so it installs the SDK, or set `ANDROID_HOME` to where it is. |
 | Found Java 17, but the build needs Java 21 | Set `JAVA_HOME` to Android Studio's bundled Java (table above). |
+| Gradle fails at `capacitor.build.gradle` line 10, or can't find `cordova.variables.gradle` | Capacitor hasn't generated its files yet (they're not in git). Run `npm install`, then `npm run android:sync`, then sync Gradle again in Android Studio (or just run `npm run apk`). |
 | SDK location not found (from Gradle) | Delete `android/local.properties` and run `npm run apk` again; the script writes it. |
 | Failed to install … INSTALL_FAILED_UPDATE_INCOMPATIBLE | The installed app has a different key. See *Updating*. |
 | adb: no devices/emulators found | Check the cable, that USB debugging is on, and that you accepted the prompt on the phone. `adb devices` lists what it sees. |
