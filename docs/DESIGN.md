@@ -578,7 +578,7 @@ Planned 2026-11-11, in this order, all on Opus:
 | 12 | Partners: romance (§5.1) | **done** (1.3.0) |
 | 13 | Vehicles and gas | |
 | 14 | Expansion: outposts and deeper areas | |
-| 15 | What's missing: rescue jobs, feuds that make someone quit, pets, the last gear drawings | |
+| 15 | What's missing: rescue jobs, feuds that make someone quit, pets, **babies**, the last gear drawings | |
 | 16 | The Vultures, a rival guild | |
 
 - **Tutorial.** Starts with a new guild, and can be replayed from Settings. It walks through the resources and how to get more of each, food and the Garden, why crews go out on runs, why to build, and taking in recruits. It's optional: the player can skip the whole thing, or skip ahead to the next part. Built as the tour (§12); later steps that add something to explain (gas, vehicles) add a step to it.
@@ -592,6 +592,16 @@ Planned 2026-11-11, in this order, all on Opus:
   - A run can take **several vehicles** and more people. A vehicle can be **lost**: wrecked on a run (its riders walk home, which takes longer) or stolen in a raid.
   - Big crews leave **fewer people at home**. Today an empty Depot only loses a little more in a raid, and the Garden still grows its base. This step makes a thin Depot clearly riskier, so a big convoy has a cost at home.
 - **Expansion.** Outposts on fully explored places extend the guild's reach (the Civ-style expansion). Places get deeper, more dangerous areas with better loot.
+- **Babies** (part of step 15, asked for 2026-11-11). Partners at the Depot sometimes have a baby, who grows up into a survivor.
+  - **Growing up:** about a month, roughly 30 game days (about 4 real days), from birth to a 16-year-old who joins the roster. *Assumed: Aviel didn't pick a speed, so check before building.* This brings in ages that change, at least for children.
+  - **Meanwhile:** children eat and need a bed. Everyone at home sheds a little more stress with a child around, and older children can take light posts such as the Garden. They never go on runs.
+  - **From their parents:** a face that mixes both parents', stats that lean toward theirs, a chance to inherit a personality trait, and the family surname.
+  - To settle when building it:
+    - how often a couple has a baby;
+    - whether the mother stays home for the last stretch before the birth;
+    - whether couples who can't have children can take in an orphan (rescue jobs, also in step 15 — Claude's suggestion);
+    - what losing a parent does to a child;
+    - a tour step or a news line for the first birth.
 - **The Vultures.** A rival guild competing for places. They raid, trade, and turn up on runs.
 
 **Later ideas:** weather and seasons, planned Depot defense during raids, interactive combat. Runs are decided at departure, so a hands-on fight would fit where the player is there when it happens: a raid on the Depot, or a nemesis met again.
@@ -606,5 +616,7 @@ Decided 2026-11-11:
 - The player doesn't name the guild.
 - Survivors are male or female (until 1.2.2 some were *they*).
 - People resting until healed can't take a new post.
+- Survivors have an orientation (85% straight, 6% gay, 9% bi), so about 96% of couples are a man and a woman.
+- Babies: yes, in step 15. Children help a little at the Depot and inherit looks, a stat lean and maybe a trait.
 
 No open questions right now.
