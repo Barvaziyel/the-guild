@@ -228,7 +228,7 @@ The guild starts with 3 known locations (The Rail Yard, Maple Street, Kessler Fa
 ### 7.2 Planning a run
 
 1. **Location**
-2. **Crew** of 1–4 ready survivors
+2. **Vehicles**, if the guild has any (§7.8), and a **crew**: 1–4 ready survivors on foot, or as many as the vehicles seat
 3. **Job:**
    - Scavenge: loot
    - Scout: explore the location and discover new ones
@@ -356,6 +356,30 @@ Names the guild gives out. The names and the nickname rules are data in `content
 
 **Named weapons.** A weapon's kills are counted. At 10 it earns a name that reads well after "the" (*Widowmaker*, *Bonebreaker*), and its story starts: *Named after its tenth kill, in Mara Vance's hands at Maple Street.* The story adds kills 25, 50 and 100, a nemesis it killed, and an owner who died carrying it (*Came home from the Glow without Dex Arlo.*). It keeps its name through upgrades and new owners.
 
+### 7.8 Vehicles and gas (1.4.0)
+
+This is how crews grow past four, and how the guild moves faster and hauls more. Vehicles are rare, and each is a thing to look after.
+
+| Vehicle | Seats | Carries | Time vs walking | Gas a leg | Noise | Built in the Workshop | Trader's price |
+|---|---|---|---|---|---|---|---|
+| Motorcycle | 2 | +4 | 45% | 1 | +25% | Level 2: 50 scrap, 8 tech | 45 scrap, 6 tech |
+| Hatchback | 5 | +10 | 55% | 2 | +30% | Level 3: 90 scrap, 15 tech | 70 scrap, 10 tech |
+| Pickup Truck | 5 | +20 | 60% | 3 | +35% | — | 90 scrap, 12 tech |
+| Cargo Van | 8 | +24 | 65% | 4 | +45% | — | 110 scrap, 15 tech |
+
+- **Gas** is the sixth resource. Scavenging turns it up where cars and generators were (Checkpoint Bravo and Red Hand Camp most), traders swap it for scrap or ammo, and raiders take it. A new guild has none.
+- **Taking vehicles.** A run can take several. With vehicles, the crew is as big as the seats (one driver per vehicle, the rest fill seats in order); on foot it stays 1–4. A vehicle that is out or broken down can't go.
+  - **Gas** is paid when the crew leaves: each vehicle burns its rate for every leg, one leg per 30 minutes of walking (Maple Street 1, the Drowned Mall 2, Red Hand Camp 4, the Glow 5).
+  - **Faster:** the run takes the slowest vehicle's share of the walking time. The number of beats still comes from the distance, so a vehicle meets as much on the way, just sooner.
+  - **Carries more:** each vehicle's cargo adds to what the crew can bring home.
+  - **Noisy:** fights come up more often (the combat weight × 1 + the vehicles' noise, at most +60%), the crew is −2 to spotting enemies first, and **nobody sneaks in a vehicle** (the planner switches a Sneaky approach to Balanced).
+- **Wear.** Every run takes 3–9 condition, by type, and every fight or hazard knocks off 2–6 more. At 0 it breaks down and stays home until repaired. Repairs happen in the Workshop (level 1 or better), back to full: 3 scrap for every 10 points and 1 tech for every 25 (24 scrap, 3 tech from 20%).
+- **Wrecks.** At every fight or hazard, a vehicle is wrecked with a chance of 0.4% × danger + 8% × (1 − condition/100)². Measured over a run at Checkpoint Bravo: about 2% in good condition, 4% at 60%, 7% at 25%; at Red Hand Camp up to 11% when worn. A wreck hurts its riders (1–4 each) and is left behind. If what still runs can't seat everyone, the crew **turns for home on foot**: the walk takes 60% of the round trip on foot, and everyone gains +8 stress. A lost run loses its vehicles too.
+- **Found on runs.** Places with wrecks (Maple Street, the Rail Yard, Kessler Farm, the Drowned Mall, St. Jude's, the Water Plant, Checkpoint Bravo, Red Hand Camp) can turn one up on a discovery beat. The crew gets it running and drives it home at 10–35% condition, and its cargo helps carry the loot. About 3% of scouting runs at those places find one, and well under 1% of other runs.
+- **Sold by traders.** About one caravan in ten brings a vehicle instead of the usual offer, at 45–80% condition, for its price ±15%.
+- **Stolen in raids.** A broken raid drives off a vehicle parked at home 40% of the time (half with a Watchtower, half again more with nobody home).
+- **Leaving people home** (§9.3): the planner warns when fewer than three would be left to hold the fence. A thin fence is easier to break, an empty Depot draws raiders, and raiders who get in take more.
+
 ## 8. Gear
 
 Every survivor has four slots: **Weapon · Armor · Tool · Trinket**
@@ -376,7 +400,7 @@ Every survivor has four slots: **Weapon · Armor · Tool · Trinket**
 
 ## 9. The Depot
 
-**Resources:** Scrap · Rations · Meds · Ammo · Tech
+**Resources:** Scrap · Rations · Meds · Ammo · Tech · Gas (gas runs vehicles, §7.8)
 
 The Depot plays one **Depot day** for every game day that passes (§11). Each day, for everyone at home (not out on a run):
 
@@ -427,8 +451,8 @@ At most one event a day (a 20% chance), weighted:
 | Event | What happens |
 |---|---|
 | A wanderer | Someone turns up at the gate and waits there 3 days (§10). |
-| A trader caravan | Offers a swap of supplies, or a Solid or Prime piece of gear for scrap (and tech for guns). Stays 2 days. |
-| A raid | d10 + the best Aim at home + 2 per Watchtower level + 1 per lookout vs 12. Held: the defenders get Aim practice and a little stress. Broken: raiders take 25% of the scrap, rations and ammo (half that with a Watchtower, never more than 30 of each), one defender is Wounded, and everyone gains +10 stress. |
+| A trader caravan | Offers a swap of supplies (gas among them), or a Solid or Prime piece of gear for scrap (and tech for guns), or now and then a vehicle (§7.8). Stays 2 days. |
+| A raid | d10 + the best Aim at home + 2 per Watchtower level + 1 per lookout, −2 for each hand short of three at home, vs 12. Held: the defenders get Aim practice and a little stress. Broken: raiders take 25% of the scrap, rations, ammo and gas (half that with a Watchtower, a quarter more with one person home and half more with nobody, never more than 30 of each), may drive off a parked vehicle (§7.8), one defender is Wounded, and everyone gains +10 stress. Raids come twice as often when no more than one person is home. |
 | A celebration | Costs a ration per two people. Everyone at home sheds 15 stress, and every pair warms by 3. Only when food is plentiful. |
 | A fever | Someone at home becomes Feverish (−1 Grit, −1 Wits, 2–4 days) unless the Infirmary treats it. |
 | A stray dog | Someone with a way with animals feeds it and sheds 10 stress; otherwise it moves on. |
@@ -438,6 +462,7 @@ At most one event a day (a 20% chance), weighted:
 ### 9.4 Workshop
 
 - **Make:** everything but trinkets. Basic weapons, armor and tools need level 1; guns other than the Pipe Pistol and Crossbow, Riot Gear, the Hazmat Suit, Binoculars, the Multitool and the Geiger Counter need level 2. Recipes are in `content/workshop.ts`. A Medkit costs 4 scrap and 3 meds.
+- **Vehicles** (§7.8): repairs back to full condition at any level; a Motorcycle at level 2 and a Hatchback at level 3. Trucks and vans can't be built.
 - **Improve:** weapons and armor only, since quality doesn't change anything else. Rusty → Common: 4 scrap. Common → Solid: 10 scrap, 2 tech. Solid → Prime: 20 scrap, 6 tech, and a level 2 Workshop. Relics can't be made. The Workshop can improve what's in the stash and what anyone at home is carrying.
 
 ## 10. Recruitment
@@ -480,8 +505,9 @@ At most one event a day (a 20% chance), weighted:
    - **Run report:** what came home, deaths, places found, the beat-by-beat log with the dice under each line, then what changed for each person. For example: *"Mara gained Rad-Hardened"*, *"Dex & Ava are now Friends"*, and the loot. It opens in place of the countdown when the crew gets back.
 7. **Memorial Wall:** faded portraits with the day and cause of death; tap one for their sheet and Chronicle. Opened from the bottom of the roster. *Built (PR 5).*
 8. **Settings:** mercy mode, notices when crews come back, portrait wobble, the tour, export and import save, load the backup copy, start a new guild, developer shortcuts and fast-forward (§11, §13). *Built (PR 5, 6, 10).*
-9. **The tour** (PR 10). A new guild starts with it, and Settings can show it again. A card pinned above the tab bar walks through 22 short steps in 7 parts: supplies, food, your people, runs, building, recruits, and time. Each step opens its screen and outlines what it's talking about, with live numbers where they help (what the Garden grows, what the first buildings cost). *Next*, *Skip this part* and *Skip tour* are always there. Opening the game mid-tour (from a notice, say) stays where it opened; the next step moves on from there.
+9. **The tour** (PR 10). A new guild starts with it, and Settings can show it again. A card pinned above the tab bar walks through 23 short steps in 7 parts: supplies, food, your people, runs, building, recruits, and time. Each step opens its screen and outlines what it's talking about, with live numbers where they help (what the Garden grows, what the first buildings cost). *Next*, *Skip this part* and *Skip tour* are always there. Opening the game mid-tour (from a notice, say) stays where it opened; the next step moves on from there.
 10. **Gear** (1.1.1). The stash by slot (weapons, armor, tools, trinkets), each piece with a *Give* button that lists everyone: those at the Depot can take it, those out on a run can't yet. Below, what each person carries; tap someone for their sheet. Opened from the Depot's Gear panel, from the stash line on a survivor's sheet, and from a run report that found gear.
+11. **Vehicles** (1.4.0). Each vehicle with what it does, a condition bar, where it is, and *Repair* with its cost; below, what the Workshop can build. Opened from the Depot's Vehicles panel (which says what the guild has, or how to get one), the Workshop and a report that found one. The planner lists the vehicles above the crew, with seats, condition, and the gas the trip needs; the crew limit follows the seats. Reports say what became of each vehicle taken. The resource bar shows gas, in two rows of three on a phone.
 
 **Navigation.** Tabs along the bottom: Depot, Roster, Reach, Runs, Settings. Survivors who are out show where they are and when they're back, on the roster and on their sheet.
 
@@ -576,7 +602,7 @@ Planned 2026-11-11, in this order, all on Opus:
 | 10 | Tutorial for a new guild (the tour, §12) | **done** |
 | 11 | Stories: nemeses, nicknames, named gear (§7.7) | **done** (1.2.0) |
 | 12 | Partners: romance (§5.1) | **done** (1.3.0) |
-| 13 | Vehicles and gas | |
+| 13 | Vehicles and gas (§7.8) | **done** (1.4.0) |
 | 14 | Expansion: outposts and deeper areas | |
 | 15 | What's missing: rescue jobs, feuds that make someone quit, pets, **ageing and babies**, the last gear drawings | |
 | 16 | The Vultures, a rival guild | |
@@ -590,7 +616,8 @@ Planned 2026-11-11, in this order, all on Opus:
   - Vehicles are **rare**: found on runs (a wreck to get running), sold by traders now and then, or built in the Workshop.
   - A vehicle makes runs **faster** and **carries more** loot. It's **noisy**: enemies spot it more easily, and a crew in one can't sneak past. It **wears down**, and the Workshop repairs it.
   - A run can take **several vehicles** and more people. A vehicle can be **lost**: wrecked on a run (its riders walk home, which takes longer) or stolen in a raid.
-  - Big crews leave **fewer people at home**. Today an empty Depot only loses a little more in a raid, and the Garden still grows its base. This step makes a thin Depot clearly riskier, so a big convoy has a cost at home.
+  - Big crews leave **fewer people at home**. Before 1.4.0 an empty Depot only lost a little more in a raid; now a thin fence is easier to break, draws raiders, loses more, and can lose a vehicle.
+  - *Built in 1.4.0 as §7.8.*
 - **Expansion.** Outposts on fully explored places extend the guild's reach (the Civ-style expansion). Places get deeper, more dangerous areas with better loot.
 - **Ageing** (part of step 15, asked for 2026-11-11, alongside babies). Everyone gets older in game time: a year every 365 game days, which is about 45 real days.
   - Ages are fixed today. The portrait already greys hair by age, so faces would age on their own.

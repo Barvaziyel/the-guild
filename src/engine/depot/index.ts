@@ -24,7 +24,7 @@ export {
   workingAt,
 } from './buildings.ts';
 export { dailyUpkeep, emptySummary, guildUpkeep, firepitRelief, frontier, gardenYield, healRate, playDepotDay, type DepotSummary } from './day.ts';
-export { acceptOffer, declineOffer, offerProblem, offerText, rollDepotEvents } from './events.ts';
+export { acceptOffer, declineOffer, offerProblem, offerText, raid, raidDefense, rollDepotEvents } from './events.ts';
 export { boardSize, recruitProblem, refreshRecruits, takeIn } from './recruits.ts';
 export { craft, craftProblem, craftQuality, findRecipe, upgradeFor, upgradeItem, upgradeProblem, workshopItems } from './workshop.ts';
 export { advanceTime, dayStart, nextDayAt, type AdvanceResult } from './time.ts';

@@ -1,7 +1,7 @@
 /**
  * Planning a run: how long it takes, what it costs, and whether it's allowed.
  */
-import { DAY_MS, HUNGER_STRESS, MAX_CREW, SNEAKY_DURATION_MULT, STRESS_HIGH } from '../constants.ts';
+import { DAY_MS, HUNGER_STRESS, RAID_FULL_FENCE, SNEAKY_DURATION_MULT, STRESS_HIGH } from '../constants.ts';
 import { findLocation, getEnemy, getGear, getLocation, getTrait } from '../content/index.ts';
 import { locationState } from '../locations.ts';
 import { crewConflicts } from '../relationships.ts';
@@ -9,6 +9,7 @@ import { maxHp } from '../stats.ts';
 import { fullName } from '../text.ts';
 import { maxTraitHook, mulTraitHook } from '../traits.ts';
 import type { GameState, RunPlan, Survivor } from '../types.ts';
+import { crewLimit, findVehicle, gasNeeded, planVehicles, vehicleDef, vehicleName, vehicleProblem } from '../vehicles.ts';
 
 function crewOf(state: GameState, plan: RunPlan): Survivor[] {
   const out: Survivor[] = [];
@@ -19,13 +20,25 @@ function crewOf(state: GameState, plan: RunPlan): Survivor[] {
   return out;
 }
 
-/** Run length in ms. The slowest crew member sets the pace; sneaking takes longer. */
-export function runDuration(state: GameState, plan: RunPlan): number {
+/**
+ * How long the run would take on foot, in ms. The slowest crew member sets
+ * the pace; sneaking takes longer. This is also how far the place is: the
+ * number of beats, and the walk home after a wreck, come from it.
+ */
+export function footDuration(state: GameState, plan: RunPlan): number {
   const loc = getLocation(plan.locationId);
   let slowest = 1;
   for (const s of crewOf(state, plan)) slowest = Math.max(slowest, mulTraitHook(s, 'durationMult'));
   const mult = slowest * (plan.approach === 'sneaky' ? SNEAKY_DURATION_MULT : 1);
   return Math.round(loc.durationMin * mult) * 60_000;
+}
+
+/** Run length in ms: on foot, or at the pace of the slowest vehicle. */
+export function runDuration(state: GameState, plan: RunPlan): number {
+  const vehicles = planVehicles(state, plan);
+  if (vehicles.length === 0) return footDuration(state, plan);
+  const speed = Math.max(...vehicles.map((v) => vehicleDef(v).speed));
+  return Math.round(getLocation(plan.locationId).durationMin * speed) * 60_000;
 }
 
 /** Rations each crew member needs: one per game day away (some eat more). */
@@ -77,7 +90,11 @@ export function validatePlan(state: GameState, plan: RunPlan): string[] {
   if (!locationState(state, loc.id).discovered) problems.push(`${loc.name} has not been discovered yet.`);
 
   if (plan.crew.length < 1) problems.push('Pick at least one survivor.');
-  if (plan.crew.length > MAX_CREW) problems.push(`A crew can have at most ${MAX_CREW} survivors.`);
+  const vehicleIds = plan.vehicles ?? [];
+  const limit = crewLimit(state, plan);
+  if (plan.crew.length > limit) {
+    problems.push(vehicleIds.length === 0 ? `On foot, a crew can have at most ${limit} survivors.` : `The vehicles seat ${limit}.`);
+  }
   if (new Set(plan.crew).size !== plan.crew.length) problems.push('A survivor is listed twice.');
   for (const id of plan.crew) {
     const s = state.survivors.find((x) => x.id === id);
@@ -95,6 +112,23 @@ export function validatePlan(state: GameState, plan: RunPlan): string[] {
   }
   if (plan.meds > state.resources.meds) problems.push('Not enough meds at the Depot.');
   if (plan.ammo > state.resources.ammo) problems.push('Not enough ammo at the Depot.');
+
+  if (vehicleIds.length > 0) {
+    if (new Set(vehicleIds).size !== vehicleIds.length) problems.push('A vehicle is listed twice.');
+    for (const id of vehicleIds) {
+      const v = findVehicle(state, id);
+      if (!v) {
+        problems.push(`Unknown vehicle: ${id}`);
+        continue;
+      }
+      const why = vehicleProblem(v);
+      if (why) problems.push(`The ${vehicleName(v)} ${why}.`);
+    }
+    if (plan.crew.length < vehicleIds.length) problems.push('Every vehicle needs someone to drive it.');
+    if (plan.approach === 'sneaky') problems.push("Nobody sneaks anywhere in a vehicle. Pick another approach, or walk.");
+    const gas = gasNeeded(state, plan);
+    if (gas > state.resources.gas) problems.push(`The vehicles need ${gas} gas there and back; the Depot has ${state.resources.gas}.`);
+  }
   return problems;
 }
 
@@ -122,6 +156,17 @@ export function planWarnings(state: GameState, plan: RunPlan): string[] {
     const settle = crew.filter((s) => n.downed.includes(s.id)).map((s) => s.firstName);
     const scores = settle.length === 0 ? '' : ` ${settle.length === 1 ? `${settle[0]} has` : `${settle.slice(0, -1).join(', ')} and ${settle[settle.length - 1]} have`} a score to settle.`;
     warnings.push(`${n.name[0]!.toUpperCase()}${n.name.slice(1)}, ${/^[AEIOU]/.test(kind) ? 'an' : 'a'} ${kind} the guild knows by name, haunts this place.${scores}`);
+  }
+  for (const v of planVehicles(state, plan)) {
+    if (v.condition > 0 && v.condition < 30) warnings.push(`The ${vehicleName(v)} is in poor shape (${v.condition}%), so it's more likely to be wrecked.`);
+  }
+  const left = state.survivors.filter((s) => s.status === 'ready' && !plan.crew.includes(s.id) && !s.traits.some((t) => getTrait(t.id).blocksRuns)).length;
+  if (left < RAID_FULL_FENCE) {
+    warnings.push(
+      left === 0
+        ? 'Nobody would be left at home: if raiders come, the Depot is easy pickings.'
+        : `Only ${left} would be left at home to hold the fence. Raiders like a thin fence.`,
+    );
   }
   const hungry = hungryCrew(state, plan);
   if (hungry.length > 0) {

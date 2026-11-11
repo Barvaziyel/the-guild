@@ -16,6 +16,7 @@ export * from './game.ts';
 export * from './save.ts';
 export * from './locations.ts';
 export * from './evolution.ts';
+export * from './vehicles.ts';
 export * from './expedition/index.ts';
 export * from './depot/index.ts';
 export { newId } from './ids.ts';

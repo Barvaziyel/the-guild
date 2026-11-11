@@ -8,6 +8,7 @@ import { joinNames, noticesFor, reportFirstNames, unreadCount } from './runs-vie
 import { Building } from './screens/Building.tsx';
 import { Depot } from './screens/Depot.tsx';
 import { Gear } from './screens/Gear.tsx';
+import { Vehicles } from './screens/Vehicles.tsx';
 import { LoadError } from './screens/LoadError.tsx';
 import { Memorial } from './screens/Memorial.tsx';
 import { Planner } from './screens/Planner.tsx';
@@ -58,6 +59,9 @@ export function App() {
       break;
     case 'gear':
       screen = <Gear state={s} />;
+      break;
+    case 'vehicles':
+      screen = <Vehicles state={s} />;
       break;
     case 'roster':
       screen = <Roster state={s} day={day} now={now} />;

@@ -19,6 +19,8 @@ export type Route =
   | { screen: 'recruits' }
   /** The stash, and what everyone carries. */
   | { screen: 'gear' }
+  /** The guild's vehicles: condition, repairs, and building more. */
+  | { screen: 'vehicles' }
   | { screen: 'roster' }
   | { screen: 'survivor'; id: string; tab: SheetTab }
   | { screen: 'memorial' }
@@ -49,6 +51,8 @@ export function parseRoute(hash: string): Route {
       return { screen: 'recruits' };
     case 'gear':
       return { screen: 'gear' };
+    case 'vehicles':
+      return { screen: 'vehicles' };
     case 'b':
       return a ? { screen: 'building', id: a } : DEFAULT_ROUTE;
     case 'memorial':
@@ -80,6 +84,7 @@ export function routeHash(route: Route): string {
       return route.tab ? `#/depot/${route.tab}` : '#/depot';
     case 'recruits':
     case 'gear':
+    case 'vehicles':
     case 'roster':
     case 'memorial':
     case 'settings':
@@ -105,6 +110,7 @@ export function tabFor(route: Route): TabScreen {
     case 'building':
     case 'recruits':
     case 'gear':
+    case 'vehicles':
       return 'depot';
     case 'roster':
     case 'survivor':

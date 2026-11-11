@@ -136,11 +136,17 @@ button {
 }
 
 .resources {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.125rem 1rem;
+  display: grid;
+  grid-template-columns: repeat(3, max-content);
+  gap: 0.125rem 1.5rem;
   margin-top: 0.5rem;
   font-size: 0.875rem;
+}
+
+@media (min-width: 640px) {
+  .resources {
+    grid-template-columns: repeat(6, max-content);
+  }
 }
 
 .res-name {
@@ -1449,6 +1455,11 @@ li:nth-child(even) .pinned {
   cursor: default;
 }
 
+/* A vehicle has no portrait. */
+.ride-option {
+  grid-template-columns: auto 1fr;
+}
+
 .crew-option.is-unavailable .portrait {
   opacity: 0.5;
 }
@@ -2440,4 +2451,41 @@ li:nth-child(even) .pinned {
   padding-left: 0.75rem;
   border-left: 3px solid var(--blood-hi);
   font-size: 0.9375rem;
+}
+
+/* ---------------------------------------------------------------- vehicles */
+
+.vehicles {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.vehicle {
+  display: grid;
+  gap: 0.375rem;
+  padding: 0.875rem;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--steel-2);
+}
+
+.vehicle-name {
+  font-family: var(--stencil);
+  font-size: var(--step-1);
+  font-weight: 700;
+}
+
+.vehicle-desc {
+  color: var(--bone-2);
+  font-style: italic;
+}
+
+.vehicle-status {
+  color: var(--bone-2);
+  font-size: 0.875rem;
+}
+
+.vehicle .recipe {
+  margin-top: 0.25rem;
 }

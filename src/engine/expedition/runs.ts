@@ -18,6 +18,7 @@ import type { Beat, DepartureMark, GameState, Run, RunDeath, RunPlan, RunReport,
 import { RESOURCE_IDS, SLOTS } from '../types.ts';
 import { rationsPacked, validatePlan } from './plan.ts';
 import { simulateRun } from './sim.ts';
+import { gasNeeded, planVehicles, vehicleName } from '../vehicles.ts';
 import { addStory, applyNemesisNews } from './stories.ts';
 
 /**
@@ -47,6 +48,12 @@ export function startRun(state: GameState, plan: RunPlan, now: number): Run {
   state.resources.rations -= rationsPacked(state, plan);
   state.resources.meds -= plan.meds;
   state.resources.ammo -= plan.ammo;
+  const vehicles = planVehicles(state, plan);
+  if (vehicles.length > 0) {
+    run.gas = gasNeeded(state, plan);
+    state.resources.gas -= run.gas;
+    for (const v of vehicles) v.runId = run.id;
+  }
   for (const id of plan.crew) {
     const s = state.survivors.find((x) => x.id === id)!;
     run.departed = { ...run.departed, [s.id]: { traits: s.traits.map((t) => t.id), stress: s.stress, chronicle: s.chronicle.length } };
@@ -55,7 +62,8 @@ export function startRun(state: GameState, plan: RunPlan, now: number): Run {
   state.runs.push(run);
 
   const names = plan.crew.map((id) => state.survivors.find((x) => x.id === id)!.firstName);
-  addGuildLog(state, dayAt(state, now), `${names.join(', ')} set out for ${getLocation(plan.locationId).name}.`, ['run', run.id]);
+  const riding = vehicles.length === 0 ? '' : ` in the ${vehicles.map(vehicleName).join(' and the ')}`;
+  addGuildLog(state, dayAt(state, now), `${names.join(', ')} set out for ${getLocation(plan.locationId).name}${riding}.`, ['run', run.id]);
   return run;
 }
 
@@ -186,6 +194,7 @@ export function completeRun(state: GameState, runId: string, now: number): RunRe
   }
 
   const solo = result.crew.length === 1 ? result.crew[0]!.firstName : undefined;
+  bringVehiclesHome(state, run, day, solo);
   const outcomeText = { completed: 'returned from', turnedBack: 'came back early from', routed: solo ? 'was routed at' : 'were routed at', lost: 'never came back from' }[result.outcome];
   addGuildLog(state, day, `${solo ?? 'The crew'} ${outcomeText} ${loc.name}.`, ['run', run.id]);
 
@@ -202,6 +211,32 @@ export function completeRun(state: GameState, runId: string, now: number): RunRe
   state.reports.unshift(report);
   state.reports.length = Math.min(state.reports.length, MAX_REPORTS);
   return report;
+}
+
+/** Vehicles come back worn, or not at all; anything found out there joins the guild. */
+function bringVehiclesHome(state: GameState, run: Run, day: number, solo: string | undefined): void {
+  const { result } = run;
+  const place = getLocation(run.plan.locationId).name;
+  for (const news of result.vehicles ?? []) {
+    const i = state.vehicles.findIndex((v) => v.id === news.id);
+    if (i < 0) continue;
+    const v = state.vehicles[i]!;
+    if (news.wrecked) {
+      state.vehicles.splice(i, 1);
+      const text = result.outcome === 'lost' ? `The ${vehicleName(v)} never came back from ${place} either.` : `The ${vehicleName(v)} was wrecked at ${place} and left there.`;
+      addGuildLog(state, day, text, ['vehicle', v.id]);
+      continue;
+    }
+    v.condition = news.condition;
+    v.runs += 1;
+    delete v.runId;
+    if (v.condition === 0) addGuildLog(state, day, `The ${vehicleName(v)} limped home from ${place}. It needs repairs before it runs again.`, ['vehicle', v.id]);
+  }
+  for (const found of result.foundVehicles ?? []) {
+    const v = structuredClone(found);
+    state.vehicles.push(v);
+    addGuildLog(state, day, `${solo ?? 'The crew'} brought home a ${vehicleName(v)} found at ${place}. It runs, just (${v.condition}%).`, ['vehicle', v.id]);
+  }
 }
 
 /**

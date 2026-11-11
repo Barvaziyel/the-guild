@@ -307,6 +307,8 @@ export interface RunPlan {
   retreat: RetreatOrder;
   /** If the crew finds more than it can carry, this resource is kept first. */
   lootPriority?: ResourceId;
+  /** Vehicle ids. Missing or empty: the crew walks. */
+  vehicles?: string[];
 }
 
 export type BeatKind = 'depart' | 'travel' | 'scavenge' | 'hazard' | 'combat' | 'social' | 'discovery' | 'return';
@@ -417,6 +419,10 @@ export interface RunSummary {
   events: string[];
   /** Nemeses met, named or killed (missing on runs from before save version 7). */
   nemeses?: NemesisNews[];
+  /** The vehicles taken, after the run. Missing on foot and before save version 11. */
+  vehicles?: VehicleNews[];
+  /** Vehicles found out there and brought home. */
+  foundVehicles?: Vehicle[];
 }
 
 /** Everything decided at departure and applied when the crew returns. */
@@ -442,6 +448,8 @@ export interface Run {
   departAt: number;
   returnAt: number;
   rations: number;
+  /** Gas taken for the vehicles. */
+  gas?: number;
   beats: Beat[];
   result: RunResult;
   /** By survivor id. Missing on runs sent before save version 8. */
@@ -496,8 +504,35 @@ export interface TradeOffer {
   give: Partial<Resources>;
   get: Partial<Resources>;
   item?: ItemInstance;
+  /** A vehicle for sale, now and then (§7.8). */
+  vehicle?: Vehicle;
   /** The caravan leaves at the start of this day. */
   expiresDay: number;
+}
+
+// ---------------------------------------------------------------- vehicles
+
+/** A vehicle the guild owns (§7.8). Wrecked and stolen ones are gone. */
+export interface Vehicle {
+  id: string;
+  /** VehicleDef id in content/vehicles.ts. */
+  defId: string;
+  /** 0 to 100. At 0 it won't run until the Workshop repairs it. */
+  condition: number;
+  /** Runs it has been on. */
+  runs: number;
+  /** The run it's out on, if any. */
+  runId?: string;
+}
+
+/** What a run did to a vehicle it took, applied when the crew is back. */
+export interface VehicleNews {
+  id: string;
+  /** What kind it is, for the report once it's gone. */
+  defId: string;
+  condition: number;
+  /** Wrecked out in the Reach and left there. */
+  wrecked?: boolean;
 }
 
 export interface DepotState {
@@ -511,7 +546,7 @@ export interface DepotState {
 
 // ---------------------------------------------------------------- guild
 
-export const RESOURCE_IDS = ['scrap', 'rations', 'meds', 'ammo', 'tech'] as const;
+export const RESOURCE_IDS = ['scrap', 'rations', 'meds', 'ammo', 'tech', 'gas'] as const;
 export type ResourceId = (typeof RESOURCE_IDS)[number];
 export type Resources = Record<ResourceId, number>;
 
@@ -554,6 +589,8 @@ export interface GameState {
   eventsSeen: Record<string, number>;
   /** Named enemies, at large and dead. */
   nemeses: Nemesis[];
+  /** Vehicles the guild owns, at home or out (§7.8). */
+  vehicles: Vehicle[];
   log: GuildLogEntry[];
   settings: {
     mercyMode: boolean;

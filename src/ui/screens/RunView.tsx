@@ -24,6 +24,7 @@ import {
   formatCountdown,
   formatDuration,
   lootList,
+  vehicleOutcomes,
   outcomeHeadline,
   outcomeTone,
   reportFirstNames,
@@ -174,6 +175,19 @@ function Report({ state, report }: { state: GameState; report: RunReport }) {
             The gear went into the stash.{' '}
             <button type="button" className="text-link" onClick={() => navigate({ screen: 'gear' })}>
               See the gear
+            </button>
+          </p>
+        )}
+        {vehicleOutcomes(s).map((line) => (
+          <p key={line} className="summary-minor">
+            {line}
+          </p>
+        ))}
+        {(s.foundVehicles ?? []).length > 0 && (
+          <p className="summary-minor">
+            It&rsquo;s at the Depot now.{' '}
+            <button type="button" className="text-link" onClick={() => navigate({ screen: 'vehicles' })}>
+              See the vehicles
             </button>
           </p>
         )}

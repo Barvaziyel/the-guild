@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  MAX_CREW,
+  crewLimit,
   estimateRisk,
   findLocation,
   locationState,
@@ -33,6 +33,7 @@ import {
   toggleCrew,
 } from '../runs-view.ts';
 import { errorMessage } from '../persist.ts';
+import { toggleVehicle, vehicleChoices, vehicleNote } from '../vehicles-view.ts';
 import { clockTime } from '../time.ts';
 
 export function Planner({ state, locationId }: { state: GameState; locationId: string }) {
@@ -71,9 +72,15 @@ function PlannerForm({ state, locationId }: { state: GameState; locationId: stri
     setPlan((p) => ({ ...p, ...patch }));
     setSendError(null);
   };
+  const limit = crewLimit(state, plan);
+  const vehicles = vehicleChoices(state);
   const toggle = (id: string): void => {
-    const crew = toggleCrew(plan.crew, id);
+    const crew = toggleCrew(plan.crew, id, limit);
     change(ammoTouched ? { crew } : { crew, ammo: suggestedAmmo(state, crew) });
+  };
+  const toggleRide = (id: string): void => {
+    setPlan((p) => toggleVehicle(p, id));
+    setSendError(null);
   };
 
   const problems = plan.crew.length === 0 ? [] : validatePlan(state, plan);
@@ -108,14 +115,39 @@ function PlannerForm({ state, locationId }: { state: GameState; locationId: stri
         </p>
       </header>
 
+      {vehicles.length > 0 && (
+        <section className="panel" aria-labelledby="ride-title">
+          <h3 id="ride-title" className="panel-title">
+            Vehicles
+          </h3>
+          <ul className="crew-pick">
+            {vehicles.map((v) => {
+              const picked = (plan.vehicles ?? []).includes(v.vehicle.id);
+              return (
+                <li key={v.vehicle.id}>
+                  <label className={`crew-option ride-option${v.reason ? ' is-unavailable' : ''}${picked ? ' is-picked' : ''}`}>
+                    <input type="checkbox" checked={picked} disabled={v.reason !== undefined && !picked} onChange={() => toggleRide(v.vehicle.id)} />
+                    <span className="crew-body">
+                      <span className="crew-name">{v.name}</span>
+                      {v.reason ? <span className="crew-reason">{v.reason}</span> : <span className="crew-stats">{v.label}</span>}
+                    </span>
+                  </label>
+                </li>
+              );
+            })}
+          </ul>
+          <p className="panel-help">{vehicleNote(state, plan)}</p>
+        </section>
+      )}
+
       <section className="panel" aria-labelledby="crew-title" data-tour="crew">
         <h3 id="crew-title" className="panel-title">
-          Crew <span className="count">{plan.crew.length} of {MAX_CREW}</span>
+          Crew <span className="count">{plan.crew.length} of {limit}</span>
         </h3>
         <ul className="crew-pick">
           {options.map(({ survivor: s, reason, stats }) => {
             const picked = plan.crew.includes(s.id);
-            const full = !picked && plan.crew.length >= MAX_CREW;
+            const full = !picked && plan.crew.length >= limit;
             return (
               <li key={s.id}>
                 <label className={`crew-option${reason ? ' is-unavailable' : ''}${picked ? ' is-picked' : ''}`}>

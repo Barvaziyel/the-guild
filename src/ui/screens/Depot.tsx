@@ -13,6 +13,7 @@ import type { DepotTab } from '../route.ts';
 import { activeRuns, backIn, joinNames, runCrewNames } from '../runs-view.ts';
 import { buildingRows, depotNews, foodWarning, homeCounts, summaryLines, type BuildingRow } from '../depot-view.ts';
 import { stashLine } from '../gear-view.ts';
+import { vehiclesLine } from '../vehicles-view.ts';
 
 interface Props {
   state: GameState;
@@ -120,6 +121,16 @@ function Today({ state, now, away, onDismissAway }: Omit<Props, 'tab'>) {
         <p className="panel-help">{stashLine(state)} Hand it out, or see who carries what.</p>
         <button type="button" className="btn" onClick={() => navigate({ screen: 'gear' })}>
           See the gear
+        </button>
+      </div>
+
+      <div className="panel" data-tour="vehicles-panel">
+        <h3 className="panel-title">Vehicles</h3>
+        <p className="panel-help">
+          {vehiclesLine(state)} Gas: {state.resources.gas}.
+        </p>
+        <button type="button" className="btn" onClick={() => navigate({ screen: 'vehicles' })}>
+          {state.vehicles.length === 0 ? 'About vehicles' : 'See the vehicles'}
         </button>
       </div>
 

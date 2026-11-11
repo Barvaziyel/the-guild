@@ -12,7 +12,7 @@ import {
   STRESS_ALLY_DOWNED,
   STRESS_PER_DAMAGE,
 } from '../constants.ts';
-import { getTrait, type LocationDef, type RunTally } from '../content/index.ts';
+import { getTrait, type LocationDef, type RunTally, type VehicleDef } from '../content/index.ts';
 import { dayAt } from '../game.ts';
 import { mulGearHook, sumGearHook } from '../gear.ts';
 import { arePartners, crewCohesion, getRelationship, relationshipLabel } from '../relationships.ts';
@@ -36,6 +36,7 @@ import type {
   StatId,
   Survivor,
   TraitHooks,
+  Vehicle,
 } from '../types.ts';
 
 export interface Member {
@@ -95,6 +96,25 @@ export interface Sim {
   nemesisMet: boolean;
   /** Names already given out (nicknames, weapons, nemeses), so new ones don't repeat them. */
   takenNames: Set<string>;
+  /** The vehicles the crew took (copies), with who rides in each. */
+  rides: Ride[];
+  /** Vehicles found out here, to drive home. */
+  foundVehicles: Vehicle[];
+  /** Set when a wreck leaves the crew short of seats: the time they started walking home. */
+  walkingFrom?: number;
+}
+
+/** A vehicle on a run. */
+export interface Ride {
+  v: Vehicle;
+  def: VehicleDef;
+  riders: string[];
+  wrecked: boolean;
+}
+
+/** The vehicles still running. */
+export function running(sim: Sim): Ride[] {
+  return sim.rides.filter((r) => !r.wrecked);
 }
 
 export function newTally(): RunTally {

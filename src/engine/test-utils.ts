@@ -41,7 +41,7 @@ export function testSurvivor(id = 'x1', overrides: Partial<Survivor> = {}): Surv
 export function openGame(seed = 'test-seed'): GameState {
   const state = testGame(seed);
   for (const loc of LOCATIONS) state.locations[loc.id] = { discovered: true, explored: 0, runs: 0 };
-  state.resources = { scrap: 0, rations: 500, meds: 50, ammo: 200, tech: 0 };
+  state.resources = { scrap: 0, rations: 500, meds: 50, ammo: 200, tech: 0, gas: 0 };
   return state;
 }
 

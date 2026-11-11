@@ -333,7 +333,7 @@ export function stashFor(state: GameState, slot: Slot): ItemInstance[] {
 
 // ---------------------------------------------------------------- resources
 
-export const RESOURCE_NAMES: Record<ResourceId, string> = { scrap: 'Scrap', rations: 'Rations', meds: 'Meds', ammo: 'Ammo', tech: 'Tech' };
+export const RESOURCE_NAMES: Record<ResourceId, string> = { scrap: 'Scrap', rations: 'Rations', meds: 'Meds', ammo: 'Ammo', tech: 'Tech', gas: 'Gas' };
 
 export function resourceList(state: GameState): { id: ResourceId; name: string; amount: number }[] {
   return RESOURCE_IDS.map((id) => ({ id, name: RESOURCE_NAMES[id], amount: state.resources[id] }));

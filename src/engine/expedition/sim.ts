@@ -23,8 +23,15 @@ import {
   REL_RUN_PER_AFFINITY,
   STRESS_PER_DANGER_BEAT,
   STRESS_RIVAL_PER_BEAT,
+  VEHICLE_KNOCKS,
+  VEHICLE_NOISE_CAP,
+  WALK_HOME_SHARE,
+  WALK_HOME_STRESS,
+  WRECK_HURT,
+  WRECK_PER_DANGER,
+  WRECK_WORN,
 } from '../constants.ts';
-import { getLocation, getTrait } from '../content/index.ts';
+import { getLocation, getTrait, getVehicleDef } from '../content/index.ts';
 import { DEPART_LINES, RETURN_LINES } from '../content/flavor.ts';
 import { applyEvolutions } from '../evolution.ts';
 import { itemDef, itemName, sumGearHook } from '../gear.ts';
@@ -45,6 +52,7 @@ import type {
   RunOutcome,
   RunPlan,
   RunResult,
+  VehicleNews,
 } from '../types.ts';
 import { RESOURCE_IDS } from '../types.ts';
 import { combatBeat, discoveryBeat, hazardBeat, scavengeBeat, socialBeat, travelBeat } from './beats.ts';
@@ -55,8 +63,10 @@ import {
   check,
   flavor,
   fmt,
+  hurt,
   isHurt,
   newTally,
+  running,
   say,
   simBonus,
   simDay,
@@ -68,7 +78,8 @@ import {
   type Sim,
 } from './context.ts';
 import { tryEvent } from './events.ts';
-import { hungryCrew, rationsPacked, runDuration } from './plan.ts';
+import { footDuration, hungryCrew, rationsPacked, runDuration } from './plan.ts';
+import { seating } from '../vehicles.ts';
 import { earnNickname, nameWeapon, nemesisNewsList, takenNames } from './stories.ts';
 import { resolveWounds } from './wounds.ts';
 
@@ -93,6 +104,8 @@ function pickBeatKind(sim: Sim, previous: MidKind | undefined, isLast: boolean):
   const crew = standing(sim);
   const weights = { ...JOB_WEIGHTS[sim.plan.job] };
   weights.combat *= 0.8 + 0.15 * sim.loc.danger;
+  // Engines carry: trouble finds a crew in vehicles more often.
+  weights.combat *= 1 + Math.min(VEHICLE_NOISE_CAP, running(sim).reduce((n, r) => n + r.def.noise, 0));
   weights.hazard *= 0.8 + 0.1 * sim.loc.danger;
   let temper = 0;
   for (const m of crew) {
@@ -147,8 +160,41 @@ function useMeds(sim: Sim): void {
   }
 }
 
+/**
+ * Fights and hazards knock vehicles about, and now and then one is wrecked.
+ * Its riders are hurt, and if the rest can't seat everyone, the crew walks home.
+ */
+function rattleVehicles(sim: Sim): void {
+  for (const ride of running(sim)) {
+    ride.v.condition = Math.max(0, ride.v.condition - sim.rng.int(VEHICLE_KNOCKS[0], VEHICLE_KNOCKS[1]));
+    const worn = 1 - ride.v.condition / 100;
+    if (!sim.rng.chance(WRECK_PER_DANGER * sim.loc.danger + WRECK_WORN * worn * worn)) continue;
+    ride.wrecked = true;
+    say(sim, `The ${ride.def.name} is wrecked: it won't go another yard.`, { tone: 'bad' });
+    for (const m of sim.members) {
+      if (m.dead || m.down || !ride.riders.includes(m.s.id)) continue;
+      hurt(sim, m, sim.rng.int(WRECK_HURT[0], WRECK_HURT[1]), `a crash at ${sim.loc.name}`);
+    }
+  }
+  const seats = running(sim).reduce((n, r) => n + r.def.seats, 0);
+  if (sim.rides.length > 0 && sim.walkingFrom === undefined && seats < alive(sim).length) {
+    sim.walkingFrom = sim.offset;
+    sim.turnBack = true;
+    say(
+      sim,
+      sim.members.length === 1
+        ? `Nothing for it: ${sim.members[0]!.s.firstName} starts the long walk home.`
+        : running(sim).length === 0
+          ? 'Nothing for it: the crew starts the long walk home.'
+          : 'Not everyone fits in what still runs. The crew turns for home, some of them on foot.',
+      { tone: 'bad' },
+    );
+  }
+}
+
 /** Everything that happens at the end of every beat out in the Reach. */
-function endBeat(sim: Sim): void {
+function endBeat(sim: Sim, kind: MidKind): void {
+  if (kind === 'combat' || kind === 'hazard') rattleVehicles(sim);
   resolveWounds(sim);
   const crew = standing(sim);
 
@@ -285,7 +331,7 @@ function aftermath(sim: Sim): void {
 
 /** Round the loot and cut it down to what the crew can carry. */
 function packLoot(sim: Sim, outcome: RunOutcome): { loot: Resources; leftBehind: number } {
-  const loot: Resources = { scrap: 0, rations: 0, meds: 0, ammo: 0, tech: 0 };
+  const loot: Resources = { scrap: 0, rations: 0, meds: 0, ammo: 0, tech: 0, gas: 0 };
   if (outcome === 'routed' || outcome === 'lost') {
     sim.items = [];
     return { loot, leftBehind: 0 };
@@ -297,6 +343,9 @@ function packLoot(sim: Sim, outcome: RunOutcome): { loot: Resources; leftBehind:
     if (m.dead) continue;
     capacity += m.down ? -CARRY_COST_DOWNED : carryCapacity(m.s);
   }
+  // What still runs carries a load home, and so does anything found and got running.
+  for (const r of running(sim)) capacity += r.def.cargo;
+  for (const v of sim.foundVehicles) capacity += getVehicleDef(v.defId).cargo;
   capacity = Math.max(0, capacity);
 
   let leftBehind = 0;
@@ -382,7 +431,7 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
     departAt,
     offset: 0,
     beats: [],
-    loot: { scrap: 0, rations: 0, meds: 0, ammo: 0, tech: 0 },
+    loot: { scrap: 0, rations: 0, meds: 0, ammo: 0, tech: 0, gas: 0 },
     items: [],
     meds: plan.meds,
     ammo: plan.ammo,
@@ -399,10 +448,20 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
     nemesisNews: {},
     nemesisMet: false,
     takenNames: takenNames(state),
+    rides: seating(state, plan).map(({ vehicleId, riders }) => {
+      const v = structuredClone(state.vehicles.find((x) => x.id === vehicleId)!);
+      return { v, def: getVehicleDef(v.defId), riders, wrecked: false };
+    }),
+    foundVehicles: [],
   };
 
   startBeat(sim, 'depart', 'Setting Out');
   say(sim, flavor(sim, DEPART_LINES));
+  if (sim.rides.length > 0) {
+    const names = sim.rides.map((r) => `the ${r.def.name}`);
+    const list = names.length === 1 ? names[0]! : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]!}`;
+    say(sim, `Engines cough and catch. Into ${list} and away.`);
+  }
   // Short of rations, the crew goes anyway; whoever has none goes hungry.
   for (const s of hungryCrew(state, plan)) {
     const m = sim.members.find((x) => x.s.id === s.id)!;
@@ -410,7 +469,9 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
     stress(sim, m, HUNGER_STRESS, 'going out hungry');
   }
 
-  const totalBeats = Math.max(MIN_BEATS, Math.min(MAX_BEATS, Math.round(duration / 60_000 / MINUTES_PER_BEAT) + 2));
+  // Beats come from the distance, so a vehicle gets there sooner but meets as much on the way.
+  const foot = footDuration(state, plan);
+  const totalBeats = Math.max(MIN_BEATS, Math.min(MAX_BEATS, Math.round(foot / 60_000 / MINUTES_PER_BEAT) + 2));
   const middle = totalBeats - 1;
   const slot = duration / totalBeats;
   let previous: MidKind | undefined;
@@ -420,7 +481,7 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
     sim.offset = Math.round(slot * (i + 1) + slot * (rng.next() - 0.5) * 0.4);
     const kind = pickBeatKind(sim, previous, i === middle - 1);
     if (!tryEvent(sim, kind)) BEAT_FNS[kind](sim);
-    endBeat(sim);
+    endBeat(sim, kind);
     previous = kind;
     done += 1;
   }
@@ -428,10 +489,26 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
   const cutShort = done < middle || sim.turnBack || sim.routed;
   const outcome: RunOutcome =
     alive(sim).length === 0 ? 'lost' : sim.routed ? 'routed' : cutShort ? 'turnedBack' : 'completed';
-  sim.offset = cutShort ? Math.min(duration, Math.max(sim.offset + 60_000, Math.round(sim.offset * 1.5))) : duration;
+  sim.offset =
+    sim.walkingFrom !== undefined
+      ? Math.round(sim.walkingFrom + foot * WALK_HOME_SHARE)
+      : cutShort
+        ? Math.min(duration, Math.max(sim.offset + 60_000, Math.round(sim.offset * 1.5)))
+        : duration;
 
   startBeat(sim, 'return', outcome === 'lost' ? 'Silence' : 'Home');
   say(sim, flavor(sim, RETURN_LINES[outcome]), outcome === 'completed' ? {} : { tone: 'bad' });
+  if (sim.walkingFrom !== undefined && outcome !== 'lost') {
+    say(sim, sim.members.length === 1 ? 'It is a long way on foot.' : 'It is a long way on foot, and nobody talks much.', { tone: 'bad' });
+    for (const m of alive(sim)) stress(sim, m, WALK_HOME_STRESS, 'the long walk home');
+  }
+  // Every run wears a vehicle down.
+  const vehicleNews: VehicleNews[] = sim.rides.map((r) => {
+    // Nobody drives home from a lost run.
+    if (r.wrecked || outcome === 'lost') return { id: r.v.id, defId: r.v.defId, condition: 0, wrecked: true };
+    const condition = Math.max(0, r.v.condition - rng.int(r.def.wear[0], r.def.wear[1]));
+    return { id: r.v.id, defId: r.v.defId, condition };
+  });
   if (outcome !== 'lost') aftermath(sim);
 
   const { loot, leftBehind } = packLoot(sim, outcome);
@@ -477,6 +554,8 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
       highlights,
       events: sim.events,
       nemeses: nemesisNewsList(sim),
+      ...(vehicleNews.length > 0 ? { vehicles: vehicleNews } : {}),
+      ...(sim.foundVehicles.length > 0 && outcome !== 'lost' ? { foundVehicles: sim.foundVehicles } : {}),
     },
   };
 }

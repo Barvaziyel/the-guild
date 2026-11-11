@@ -8,13 +8,19 @@ import {
   DC,
   FEUD_FIGHT_CHANCE,
   RAID_DC,
+  RAID_EMPTY_WEIGHT,
+  RAID_FULL_FENCE,
   RAID_LOSS,
   RAID_MAX_TAKE,
+  RAID_THIN_PENALTY,
   REL_ARGUMENT,
+  TRADER_VEHICLE_CHANCE,
   TRADE_DAYS,
+  VEHICLE_THEFT_CHANCE,
   WATCHTOWER_DEFENSE,
 } from '../constants.ts';
-import { GEAR } from '../content/index.ts';
+import { GEAR, VEHICLES } from '../content/index.ts';
+import { createVehicle, vehicleName } from '../vehicles.ts';
 import { createItem, itemName } from '../gear.ts';
 import { newId } from '../ids.ts';
 import { adjustRelationship, relationshipLabel } from '../relationships.ts';
@@ -49,7 +55,9 @@ export function rollDepotEvents(state: GameState, day: number, rng: Rng): EventK
     if (k === 'sickness' || k === 'stray') return home.length > 0;
     return true;
   });
-  const kind = rng.weightedBy(options, (k) => EVENT_WEIGHTS[k]);
+  // Raiders watch the Depot: an empty one draws them.
+  const weight = (k: EventKind): number => EVENT_WEIGHTS[k] * (k === 'raid' && home.filter(canWork).length <= 1 ? RAID_EMPTY_WEIGHT : 1);
+  const kind = rng.weightedBy(options, weight);
   HANDLERS[kind](state, day, rng, home);
   happened.push(kind);
   return happened;
@@ -67,41 +75,8 @@ const HANDLERS: Record<EventKind, (state: GameState, day: number, rng: Rng, home
     addGuildLog(state, day, `A trader caravan stopped at the gate: ${offerText(offer)}.`, ['trade', offer.id]);
   },
 
-  raid(state, day, rng, home) {
-    const defenders = home.filter(canWork);
-    const tower = buildingLevel(state, 'watchtower');
-    const lookouts = tower > 0 ? workingAt(state, 'watchtower') : [];
-    const best = Math.max(0, ...defenders.map((s) => effectiveStat(s, 'aim')));
-    const roll = rollCheck(rng, best + tower * WATCHTOWER_DEFENSE + lookouts.length, RAID_DC);
-    const names = defenders.slice(0, 3).map((s) => s.firstName);
-
-    if (defenders.length > 0 && roll.success) {
-      for (const s of defenders) {
-        addPractice(s, 'aim', 2, day);
-        changeStress(s, 5, { rng, day, source: 'a raid' });
-      }
-      addGuildLog(state, day, `Raiders came for the Depot. ${listNames(names)} drove them off.`, ['raid']);
-      return;
-    }
-
-    const share = RAID_LOSS * (tower > 0 ? 0.5 : 1) * (defenders.length === 0 ? 1.2 : 1);
-    const taken: Partial<Resources> = {};
-    for (const r of ['scrap', 'rations', 'ammo'] as const) {
-      const n = Math.min(RAID_MAX_TAKE, Math.floor(state.resources[r] * share));
-      if (n > 0) {
-        state.resources[r] -= n;
-        taken[r] = n;
-      }
-    }
-    for (const s of home) changeStress(s, 10, { rng, day, source: 'a raid' });
-    const hurt = defenders.length > 0 ? rng.pick(defenders) : undefined;
-    if (hurt) {
-      addTrait(hurt, 'wounded', { day, rng, source: 'defending the Depot from raiders' });
-      addChronicle(hurt, day, 'Hurt holding the fence against raiders.', ['raid']);
-    }
-    const lost = Object.keys(taken).length > 0 ? ` They got away with ${costText(taken)}.` : '';
-    const warned = tower > 0 ? ' The Watchtower saw them coming, which saved the rest.' : '';
-    addGuildLog(state, day, `Raiders broke into the Depot.${lost}${hurt ? ` ${hurt.firstName} was hurt.` : ''}${warned}`, ['raid']);
+  raid(state, day, rng) {
+    raid(state, day, rng);
   },
 
   celebration(state, day, rng, home) {
@@ -131,6 +106,63 @@ const HANDLERS: Record<EventKind, (state: GameState, day: number, rng: Rng, home
     }
   },
 };
+
+/**
+ * What the fence is worth against raiders: the best shot at home, the
+ * Watchtower and its lookouts, less a penalty for each hand short of three.
+ */
+export function raidDefense(state: GameState): number {
+  const defenders = state.survivors.filter(canWork);
+  const tower = buildingLevel(state, 'watchtower');
+  const lookouts = tower > 0 ? workingAt(state, 'watchtower') : [];
+  const best = Math.max(0, ...defenders.map((s) => effectiveStat(s, 'aim')));
+  const thin = Math.max(0, RAID_FULL_FENCE - defenders.length) * RAID_THIN_PENALTY;
+  return best + tower * WATCHTOWER_DEFENSE + lookouts.length - thin;
+}
+
+/** Raiders come for the Depot. Returns whether they broke in. */
+export function raid(state: GameState, day: number, rng: Rng): boolean {
+  const home = state.survivors.filter(atDepot);
+  const defenders = home.filter(canWork);
+  const tower = buildingLevel(state, 'watchtower');
+  const roll = rollCheck(rng, raidDefense(state), RAID_DC);
+  const names = defenders.slice(0, 3).map((s) => s.firstName);
+
+  if (defenders.length > 0 && roll.success) {
+    for (const s of defenders) {
+      addPractice(s, 'aim', 2, day);
+      changeStress(s, 5, { rng, day, source: 'a raid' });
+    }
+    addGuildLog(state, day, `Raiders came for the Depot. ${listNames(names)} drove them off.`, ['raid']);
+    return false;
+  }
+
+  const share = RAID_LOSS * (tower > 0 ? 0.5 : 1) * (defenders.length === 0 ? 1.5 : defenders.length === 1 ? 1.25 : 1);
+  const taken: Partial<Resources> = {};
+  for (const r of ['scrap', 'rations', 'ammo', 'gas'] as const) {
+    const n = Math.min(RAID_MAX_TAKE, Math.floor(state.resources[r] * share));
+    if (n > 0) {
+      state.resources[r] -= n;
+      taken[r] = n;
+    }
+  }
+  for (const s of home) changeStress(s, 10, { rng, day, source: 'a raid' });
+  const hurt = defenders.length > 0 ? rng.pick(defenders) : undefined;
+  if (hurt) {
+    addTrait(hurt, 'wounded', { day, rng, source: 'defending the Depot from raiders' });
+    addChronicle(hurt, day, 'Hurt holding the fence against raiders.', ['raid']);
+  }
+  const lost = Object.keys(taken).length > 0 ? ` They got away with ${costText(taken)}.` : '';
+  const warned = tower > 0 ? ' The Watchtower saw them coming, which saved the rest.' : '';
+  // A vehicle at home is the best prize of all.
+  const parked = state.vehicles.filter((v) => !v.runId);
+  const theft = VEHICLE_THEFT_CHANCE * (tower > 0 ? 0.5 : 1) * (defenders.length === 0 ? 1.5 : 1);
+  const stolen = parked.length > 0 && rng.chance(theft) ? rng.pick(parked) : undefined;
+  if (stolen) state.vehicles = state.vehicles.filter((v) => v !== stolen);
+  const drove = stolen ? ` They drove off in the ${vehicleName(stolen)}.` : '';
+  addGuildLog(state, day, `Raiders broke into the Depot.${lost}${drove}${hurt ? ` ${hurt.firstName} was hurt.` : ''}${warned}`, ['raid']);
+  return true;
+}
 
 /** Feuding survivors at the Depot sometimes come to blows. */
 function feudFights(state: GameState, day: number, rng: Rng): void {
@@ -165,6 +197,15 @@ function listNames(names: string[]): string {
 function makeOffer(state: GameState, day: number, rng: Rng): TradeOffer {
   const id = newId(state, 'o');
   const expiresDay = day + TRADE_DAYS;
+  if (rng.chance(TRADER_VEHICLE_CHANCE)) {
+    // Now and then, wheels: the trader's own spare, with some miles on it.
+    const def = rng.weightedBy(VEHICLES, (d) => d.findWeight);
+    const vehicle = createVehicle(state, def.id, rng.int(45, 80));
+    const scale = 0.85 + rng.next() * 0.3;
+    const give: Partial<Resources> = {};
+    for (const r of RESOURCE_IDS) if (def.price[r]) give[r] = Math.round(def.price[r]! * scale);
+    return { id, give, get: {}, vehicle, expiresDay };
+  }
   if (rng.chance(0.35)) {
     const gear = rng.weightedBy(
       GEAR.filter((g) => !g.consumable),
@@ -183,6 +224,8 @@ function makeOffer(state: GameState, day: number, rng: Rng): TradeOffer {
     { give: 'scrap', get: 'tech', rate: 0.25 },
     { give: 'rations', get: 'scrap', rate: 0.8 },
     { give: 'ammo', get: 'meds', rate: 0.3 },
+    { give: 'scrap', get: 'gas', rate: 0.5 },
+    { give: 'ammo', get: 'gas', rate: 0.6 },
   ];
   const swap = rng.pick(swaps);
   const give = rng.int(8, 20);
@@ -192,7 +235,8 @@ function makeOffer(state: GameState, day: number, rng: Rng): TradeOffer {
 
 /** "20 scrap for 30 rations", "18 scrap for a Solid Machete". */
 export function offerText(offer: TradeOffer): string {
-  const get = [costText(offer.get), offer.item ? `a ${itemName(offer.item)}` : ''].filter((x) => x && x !== 'nothing').join(' and ');
+  const wheels = offer.vehicle ? `a ${vehicleName(offer.vehicle)} in fair shape (${offer.vehicle.condition}%)` : '';
+  const get = [costText(offer.get), offer.item ? `a ${itemName(offer.item)}` : '', wheels].filter((x) => x && x !== 'nothing').join(' and ');
   return `${costText(offer.give)} for ${get}`;
 }
 
@@ -212,6 +256,7 @@ export function acceptOffer(state: GameState, offerId: string, day: number): voi
   payCost(state, offer!.give);
   for (const r of RESOURCE_IDS) state.resources[r] += offer!.get[r] ?? 0;
   if (offer!.item) state.stash.push(offer!.item);
+  if (offer!.vehicle) state.vehicles.push(offer!.vehicle);
   addGuildLog(state, day, `Traded with the caravan: ${offerText(offer!)}.`, ['trade']);
 }
 

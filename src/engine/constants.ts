@@ -6,7 +6,7 @@
 import type { Quality, RelationshipLabel, Resources } from './types.ts';
 
 /** Save format version. Bump together with a migration in save.ts. */
-export const SAVE_VERSION = 10;
+export const SAVE_VERSION = 11;
 
 // ---------------------------------------------------------------- time
 
@@ -288,6 +288,7 @@ export const STARTING_RESOURCES: Resources = {
   meds: 3,
   ammo: 15,
   tech: 0,
+  gas: 0,
 };
 
 // ---------------------------------------------------------------- stories (see docs/DESIGN.md §15, step 11)
@@ -343,3 +344,40 @@ export const PARTNER_LOSS_STRESS = 25;
 export const PARTNER_GRIEF_EXTRA_DAYS = 7;
 /** Partners whose bond falls below this (no longer friends) split up. */
 export const PARTNER_SPLIT_SCORE = 20;
+
+// ---------------------------------------------------------------- vehicles and gas (roadmap step 13, §7.8)
+
+/** A run's distance in legs for gas: one leg per this many minutes of walking, at least one. */
+export const GAS_LEG_MINUTES = 30;
+/** Engines carry: the crew's spotting check when enemies are near. */
+export const VEHICLE_AMBUSH_PENALTY = -2;
+/** Most extra trouble that noise brings, added to the combat weight multiplier. */
+export const VEHICLE_NOISE_CAP = 0.6;
+/** Chance per fight or hazard that a vehicle is wrecked: this per point of danger... */
+export const WRECK_PER_DANGER = 0.004;
+/** ...plus this times (1 - condition/100) squared. */
+export const WRECK_WORN = 0.08;
+/** Condition lost to a fight or hazard, on top of the run's ordinary wear. */
+export const VEHICLE_KNOCKS: readonly [number, number] = [2, 6];
+/** Condition of a wreck a crew gets running and drives home. */
+export const FOUND_VEHICLE_CONDITION: readonly [number, number] = [10, 35];
+/** Walking home after a wreck: stress for each walker... */
+export const WALK_HOME_STRESS = 8;
+/** ...and the walk takes this share of the round trip on foot. */
+export const WALK_HOME_SHARE = 0.6;
+/** Damage to each rider when a vehicle is wrecked. */
+export const WRECK_HURT: readonly [number, number] = [1, 4];
+/** Repairs: scrap for every 10 points of condition, and tech for every 25. */
+export const REPAIR_SCRAP_PER_10 = 3;
+export const REPAIR_TECH_PER_25 = 1;
+/** A broken raid drives off a vehicle at home this often (half with a Watchtower). */
+export const VEHICLE_THEFT_CHANCE = 0.4;
+/** Fewer people home than this, and each one missing costs the fence this much. */
+export const RAID_FULL_FENCE = 3;
+export const RAID_THIN_PENALTY = 2;
+/** Raids come this many times as often when no more than one person is home. */
+export const RAID_EMPTY_WEIGHT = 2;
+/** Chance a trader brings a vehicle instead of the usual offer. */
+export const TRADER_VEHICLE_CHANCE = 0.1;
+/** Weight of finding a wreck to get running, among a discovery beat's outcomes, where a place has wrecks. */
+export const WRECK_FIND_WEIGHT = 0.5;
