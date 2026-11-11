@@ -9,6 +9,7 @@ import {
   SCAR_CHANCE,
   STRESS_ALLY_KILLED,
   STRESS_ROUTED,
+  PARTNER_WOUND_BONUS,
   WOUND_BONDED_BONUS,
   WOUND_GRIT_MULT,
   WOUND_MORTAL_BELOW,
@@ -16,7 +17,7 @@ import {
 } from '../constants.ts';
 import { TRAITS } from '../content/index.ts';
 import { findGearWithHook, itemDef } from '../gear.ts';
-import { addFlag, adjustRelationship } from '../relationships.ts';
+import { addFlag, adjustRelationship, arePartners } from '../relationships.ts';
 import { addPractice, effectiveStat } from '../stats.ts';
 import { fullName } from '../text.ts';
 import { addTrait, hasTrait, sumTraitHook } from '../traits.ts';
@@ -105,6 +106,7 @@ function resolveOne(sim: Sim, m: Member, helpers: readonly Member[], opts: { spa
   for (const h of helpers) allyBonus += sumTraitHook(h.s, 'allyWoundBonus');
   const bonded = helpers.find((h) => isBonded(sim, h, m));
   if (bonded) allyBonus += WOUND_BONDED_BONUS;
+  if (helpers.some((h) => arePartners(sim.state, h.s.id, m.s.id))) allyBonus += PARTNER_WOUND_BONUS;
   const medkit = helpers.length > 0 ? findMedkit(helpers, m) : undefined;
 
   const roll = sim.rng.d100();

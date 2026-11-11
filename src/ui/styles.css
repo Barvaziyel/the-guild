@@ -475,6 +475,13 @@ li:nth-child(even) .pinned {
   margin-bottom: 0.5rem;
 }
 
+.sheet-partner {
+  color: var(--bone-2);
+  font-size: 0.875rem;
+  margin-top: -0.25rem;
+  margin-bottom: 0.5rem;
+}
+
 .backstory {
   margin-top: 1rem;
   font-style: italic;

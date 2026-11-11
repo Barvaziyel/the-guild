@@ -1,7 +1,11 @@
-import { addChronicle } from './chronicle.ts';
+import { addChronicle, addGuildLog } from './chronicle.ts';
 import {
   AFFINITY_MAX,
   AFFINITY_MIN,
+  PARTNER_DAILY_CHANCE,
+  PARTNER_OTHER_PAIR_FACTOR,
+  PARTNER_SECOND_FACTOR,
+  PARTNER_SPLIT_SCORE,
   REL_AFFINITY_SCALE,
   REL_MAX,
   REL_MIN,
@@ -135,6 +139,15 @@ export function adjustRelationship(
   const result: AdjustResult = { before, after: rel.score };
   const from = labelFor(before);
   const to = labelFor(rel.score);
+  // Partners who are no longer even friends split up.
+  if (rel.flags.some((f) => f.kind === 'partners') && rel.score < PARTNER_SPLIT_SCORE) {
+    rel.flags = rel.flags.filter((f) => f.kind !== 'partners');
+    if (a && b) {
+      addChronicle(a, opts.day, `Split up with ${fullName(b)}.`, ['relationship', b.id]);
+      addChronicle(b, opts.day, `Split up with ${fullName(a)}.`, ['relationship', a.id]);
+      addGuildLog(state, opts.day, `${a.firstName} and ${b.firstName} have split up.`, ['partners', a.id, b.id]);
+    }
+  }
   if (from !== to) {
     result.labelChange = { from, to };
     if (!opts.silent && a && b) {
@@ -161,6 +174,42 @@ function labelChangeText(from: RelationshipLabel, to: RelationshipLabel, other: 
     case 'feud':
       return `Started a feud with ${other}.`;
   }
+}
+
+// ---------------------------------------------------------------- partners
+
+export function arePartners(state: GameState, a: string, b: string): boolean {
+  return hasFlag(state, a, b, 'partners');
+}
+
+/** A living survivor's partner, if they have one (the first, in the rare case of two). */
+export function partnerOf(state: GameState, id: string): Survivor | undefined {
+  return state.survivors.find((o) => o.id !== id && arePartners(state, id, o.id));
+}
+
+const isCouple = (a: Survivor, b: Survivor): boolean => (a.pronouns === 'he' && b.pronouns === 'she') || (a.pronouns === 'she' && b.pronouns === 'he');
+
+/**
+ * The chance, on a day at the Depot together, that two survivors become
+ * partners. Only Bonded adults who aren't grieving. About 96% of couples are a
+ * man and a woman, and about 99% of people stay with one partner.
+ */
+export function romanceChance(state: GameState, a: Survivor, b: Survivor): number {
+  if (a.id === b.id || a.age < 18 || b.age < 18) return 0;
+  if (relationshipLabel(state, a.id, b.id) !== 'bonded' || arePartners(state, a.id, b.id)) return 0;
+  if (a.traits.some((t) => t.id === 'grieving') || b.traits.some((t) => t.id === 'grieving')) return 0;
+  let p = PARTNER_DAILY_CHANCE;
+  if (!isCouple(a, b)) p *= PARTNER_OTHER_PAIR_FACTOR;
+  if (partnerOf(state, a.id) || partnerOf(state, b.id)) p *= PARTNER_SECOND_FACTOR;
+  return p;
+}
+
+/** Two survivors become partners. */
+export function becomePartners(state: GameState, a: Survivor, b: Survivor, day: number): void {
+  addFlag(state, a.id, b.id, { kind: 'partners' });
+  addChronicle(a, day, `Became partners with ${fullName(b)}.`, ['relationship', b.id]);
+  addChronicle(b, day, `Became partners with ${fullName(a)}.`, ['relationship', a.id]);
+  addGuildLog(state, day, `${a.firstName} and ${b.firstName} are together now.`, ['partners', a.id, b.id]);
 }
 
 // ---------------------------------------------------------------- flags

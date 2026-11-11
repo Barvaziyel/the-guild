@@ -319,3 +319,28 @@ export const NAMED_GEAR_KILLS = 10;
 export const NAMED_GEAR_MILESTONES = [25, 50, 100] as const;
 /** Story lines kept for a nemesis or a named weapon. */
 export const STORY_MAX_LINES = 12;
+
+// ---------------------------------------------------------------- partners (roadmap step 12)
+
+/** Each day, the chance a Bonded pair at the Depot together becomes partners. */
+export const PARTNER_DAILY_CHANCE = 0.015;
+/**
+ * The chance is multiplied by this for any pair but a man and a woman, so that
+ * about 96% of couples are a man and a woman (Aviel's call). Lower than 4%
+ * because people with no one of the other sex free keep rolling: measured on
+ * guilds of 4 and 8 over two to four months, see partners.test.ts.
+ */
+export const PARTNER_OTHER_PAIR_FACTOR = 0.015;
+/** ...and by this when either already has a partner: about 99% stay with one. */
+export const PARTNER_SECOND_FACTOR = 0.01;
+/** Extra stress shed a day with their partner at the Depot, on top of a Bonded friend's. */
+export const PARTNER_RELIEF = 2;
+/** Extra stress on seeing their partner go down. */
+export const PARTNER_DOWN_STRESS = 10;
+/** Extra on a wound roll with their partner standing, on top of a Bonded friend's. */
+export const PARTNER_WOUND_BONUS = 5;
+/** Losing a partner: stress, and Grieving lasts this many days longer. */
+export const PARTNER_LOSS_STRESS = 25;
+export const PARTNER_GRIEF_EXTRA_DAYS = 7;
+/** Partners whose bond falls below this (no longer friends) split up. */
+export const PARTNER_SPLIT_SCORE = 20;

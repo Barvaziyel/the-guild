@@ -3,7 +3,7 @@ import { describe, test } from 'node:test';
 import { DAY_MS, HUNGER_STRESS, MAX_REPORTS, SAVE_VERSION } from '../constants.ts';
 import { newGame } from '../game.ts';
 import { locationState } from '../locations.ts';
-import { adjustRelationship } from '../relationships.ts';
+import { adjustRelationship, becomePartners } from '../relationships.ts';
 import { deserialize, serialize } from '../save.ts';
 import { T0, openGame, testGame, testPlan } from '../test-utils.ts';
 import { addTrait, hasTrait } from '../traits.ts';
@@ -269,6 +269,23 @@ describe('death', () => {
       assert.ok(s.chronicle.some((c) => c.text === `Mourned ${death.name}.`));
     }
     assert.ok(state.log.some((l) => l.text === `${death.name} died at Red Hand Camp.`));
+  });
+
+  test('losing a partner hits harder than losing a friend', () => {
+    const { state, run } = fatalRun();
+    const death = run.result.deaths[0]!;
+    const dead = state.survivors.find((s) => s.id === death.survivorId)!;
+    // The one who stayed home (couples form at the Depot, so the run's copy of a crew pair can't know).
+    const partner = state.survivors.find((s) => !run.plan.crew.includes(s.id))!;
+    becomePartners(state, partner, dead, 1);
+    completeRun(state, run.id, run.returnAt);
+
+    const grief = (id: string): number => state.survivors.find((s) => s.id === id)!.traits.find((t) => t.id === 'grieving')!.expiresDay!;
+    const others = state.survivors.filter((s) => s.id !== partner.id);
+    assert.ok(others.every((o) => grief(partner.id) > grief(o.id)), 'grieves longest');
+    const their = partner.pronouns === 'he' ? 'his' : 'her';
+    assert.ok(partner.chronicle.some((c) => c.text === `Lost ${death.name}, ${their} partner.`));
+    assert.ok(others.every((o) => o.chronicle.some((c) => c.text === `Mourned ${death.name}.`)));
   });
 });
 

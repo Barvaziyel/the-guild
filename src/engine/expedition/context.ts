@@ -8,13 +8,14 @@ import {
   DC,
   PRACTICE_HARD,
   PRACTICE_NORMAL,
+  PARTNER_DOWN_STRESS,
   STRESS_ALLY_DOWNED,
   STRESS_PER_DAMAGE,
 } from '../constants.ts';
 import { getTrait, type LocationDef, type RunTally } from '../content/index.ts';
 import { dayAt } from '../game.ts';
 import { mulGearHook, sumGearHook } from '../gear.ts';
-import { crewCohesion, getRelationship, relationshipLabel } from '../relationships.ts';
+import { arePartners, crewCohesion, getRelationship, relationshipLabel } from '../relationships.ts';
 import type { CrewLines } from '../content/flavor.ts';
 import type { Rng } from '../rng.ts';
 import { addPractice, changeStress, checkBonus, maxHp, rollCheck, statName, type CheckResult } from '../stats.ts';
@@ -327,7 +328,10 @@ export function hurt(sim: Sim, m: Member, amount: number, cause: string, enemyTy
   m.woundPending = { cause, ...(enemyType ? { enemyType } : {}), ...(nemesisId ? { nemesisId } : {}) };
   m.tally.downed += 1;
   m.s.counters.timesDowned += 1;
-  for (const other of standing(sim)) stress(sim, other, STRESS_ALLY_DOWNED, `seeing ${m.s.firstName} go down`);
+  for (const other of standing(sim)) {
+    const partner = arePartners(sim.state, other.s.id, m.s.id);
+    stress(sim, other, STRESS_ALLY_DOWNED + (partner ? PARTNER_DOWN_STRESS : 0), `seeing ${m.s.firstName} go down`);
+  }
   return true;
 }
 

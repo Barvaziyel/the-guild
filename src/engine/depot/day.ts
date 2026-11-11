@@ -23,6 +23,7 @@ import {
   INFIRMARY_SPEEDUP,
   RADIO_REVEAL_PER_LEVEL,
   RADIO_REVEAL_PER_WITS,
+  PARTNER_RELIEF,
   REST_RELIEF,
   TRAINING_PRACTICE,
   UPKEEP_RATIONS,
@@ -31,7 +32,7 @@ import {
 import { LOCATIONS, getLocation, getTrait } from '../content/index.ts';
 import { applyEvolutions } from '../evolution.ts';
 import { ensureLocationState, locationState } from '../locations.ts';
-import { adjustRelationship, relationshipLabel, traitAffinity } from '../relationships.ts';
+import { adjustRelationship, arePartners, becomePartners, relationshipLabel, romanceChance, traitAffinity } from '../relationships.ts';
 import type { Rng } from '../rng.ts';
 import { addPractice, changeStress, effectiveStat, maxHp } from '../stats.ts';
 import { expireConditions, maxTraitHook, mulTraitHook, removeTrait } from '../traits.ts';
@@ -133,7 +134,8 @@ export function playDepotDay(state: GameState, day: number, rng: Rng, summary: D
       continue;
     }
     const bonded = home.some((o) => o.id !== s.id && relationshipLabel(state, s.id, o.id) === 'bonded');
-    const relief = (REST_RELIEF + fire + (bonded ? BONDED_RELIEF : 0)) * mulTraitHook(s, 'stressReliefMult');
+    const partner = home.some((o) => o.id !== s.id && arePartners(state, s.id, o.id));
+    const relief = (REST_RELIEF + fire + (bonded ? BONDED_RELIEF : 0) + (partner ? PARTNER_RELIEF : 0)) * mulTraitHook(s, 'stressReliefMult');
     changeStress(s, -Math.round(relief), { rng, day });
   }
 
@@ -144,6 +146,7 @@ export function playDepotDay(state: GameState, day: number, rng: Rng, summary: D
     addPractice(s, postStat(s, s.post), amount, day);
   }
   driftTogether(state, home, day, rng);
+  fallForEachOther(state, home, day, rng);
 
   // Time at home changes people too.
   for (const s of home) {
@@ -152,6 +155,17 @@ export function playDepotDay(state: GameState, day: number, rng: Rng, summary: D
     applyEvolutions(s, { when: 'depotDay', rng, day, bondedAtDepot });
   }
   summary.days += 1;
+}
+
+/** Now and then, two Bonded people at home together become partners. */
+function fallForEachOther(state: GameState, home: readonly Survivor[], day: number, rng: Rng): void {
+  for (let i = 0; i < home.length; i++) {
+    for (let j = i + 1; j < home.length; j++) {
+      const [a, b] = [home[i]!, home[j]!];
+      const p = romanceChance(state, a, b);
+      if (p > 0 && rng.chance(p)) becomePartners(state, a, b, day);
+    }
+  }
 }
 
 function growFood(state: GameState, rng: Rng, summary: DepotSummary): void {

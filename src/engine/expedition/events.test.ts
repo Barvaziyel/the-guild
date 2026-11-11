@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import { EVENTS, LOCATIONS, findGear, findLocation, findTrait, type EventDef, type EventEffect } from '../content/index.ts';
-import { adjustRelationship } from '../relationships.ts';
+import { addFlag, adjustRelationship } from '../relationships.ts';
 import { deserialize, serialize } from '../save.ts';
 import { T0, openGame, testPlan } from '../test-utils.ts';
 import { addTrait } from '../traits.ts';
@@ -95,9 +95,10 @@ function stage(event: EventDef, i: number): { state: GameState; location: string
   dress(b, event.b, 6);
   c!.counters.runs = 6;
   if (event.pair) {
-    const delta = event.pair === 'hostile' ? -200 : event.pair === 'bonded' ? 200 : 45;
+    const delta = event.pair === 'hostile' ? -200 : event.pair === 'bonded' || event.pair === 'partners' ? 200 : 45;
     state.relationships[[a!.id, b!.id].sort().join('|')]!.score = 0;
     adjustRelationship(state, a!.id, b!.id, delta, { day: 1, silent: true, useTraitMult: false });
+    if (event.pair === 'partners') addFlag(state, a!.id, b!.id, { kind: 'partners' });
   }
   const location =
     event.locations?.[i % event.locations.length] ??
