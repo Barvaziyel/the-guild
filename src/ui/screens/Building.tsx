@@ -83,7 +83,7 @@ function Workers({ state, id }: { state: GameState; id: BuildingId }) {
   const full = r.workers.length >= r.slots;
 
   return (
-    <section className="panel" aria-labelledby="workers-title">
+    <section className="panel" aria-labelledby="workers-title" data-tour="workers">
       <h3 id="workers-title" className="panel-title">
         {training ? 'Training here' : 'Working here'} <span className="count">{r.workers.length} of {r.slots}</span>
       </h3>

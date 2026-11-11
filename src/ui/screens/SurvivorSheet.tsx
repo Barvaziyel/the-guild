@@ -237,7 +237,7 @@ function RenameForm({ survivor: s, onDone }: { survivor: Survivor; onDone: () =>
 function StatsPanel({ survivor: s }: { survivor: Survivor }) {
   const d = derived(s);
   return (
-    <section className="panel" aria-labelledby="stats-title">
+    <section className="panel" aria-labelledby="stats-title" data-tour="stats">
       <h3 id="stats-title" className="panel-title">
         Stats
       </h3>

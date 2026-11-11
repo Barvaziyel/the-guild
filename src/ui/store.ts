@@ -40,6 +40,8 @@ export interface StoreOptions {
   now: () => number;
   /** A fresh random seed for new games. */
   newSeed: () => string;
+  /** Called with each new guild: on first launch, and when Settings starts one (the tour begins). */
+  onNewGuild?: (state: GameState) => void;
 }
 
 export function createGameStore(kv: KeyValueStore, opts: StoreOptions): GameStore {
@@ -62,7 +64,11 @@ export function createGameStore(kv: KeyValueStore, opts: StoreOptions): GameStor
     emit();
   };
 
-  const freshGame = (): GameState => newGame({ seed: opts.newSeed(), now: opts.now() });
+  const freshGame = (): GameState => {
+    const state = newGame({ seed: opts.newSeed(), now: opts.now() });
+    opts.onNewGuild?.(state);
+    return state;
+  };
 
   const loaded = loadSave(kv);
   if (loaded.kind === 'ok') {

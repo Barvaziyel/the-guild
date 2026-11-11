@@ -12,6 +12,7 @@ import { nativeNotifier, webNotifier } from './notify.ts';
 import { memoryStore, type KeyValueStore } from './persist.ts';
 import { createPrefsStore } from './prefs.ts';
 import { createGameStore, randomSeed } from './store.ts';
+import { startTour } from './components/TourCard.tsx';
 
 /** localStorage, or memory if the device won't give us any (the game then warns that it can't save). */
 function deviceStorage(): KeyValueStore {
@@ -33,9 +34,11 @@ function deviceStorage(): KeyValueStore {
 
 window.history.scrollRestoration = 'manual';
 const kv = deviceStorage();
+const prefs = createPrefsStore(kv);
 const services: AppServices = {
-  store: createGameStore(kv, { now: () => Date.now(), newSeed: randomSeed }),
-  prefs: createPrefsStore(kv),
+  // A new guild starts with the tour.
+  store: createGameStore(kv, { now: () => Date.now(), newSeed: randomSeed, onNewGuild: (state) => startTour(prefs, state) }),
+  prefs,
   notifier: isNative() ? nativeNotifier() : webNotifier(),
 };
 

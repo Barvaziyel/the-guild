@@ -109,7 +109,7 @@ function PlannerForm({ state, locationId }: { state: GameState; locationId: stri
         </p>
       </header>
 
-      <section className="panel" aria-labelledby="crew-title">
+      <section className="panel" aria-labelledby="crew-title" data-tour="crew">
         <h3 id="crew-title" className="panel-title">
           Crew <span className="count">{plan.crew.length} of {MAX_CREW}</span>
         </h3>

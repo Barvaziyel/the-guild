@@ -18,7 +18,7 @@ export function Reach({ state, selected }: { state: GameState; selected?: string
           {places.length} places known. Tap one to see it, or a question mark to see how to find it.
         </p>
       </div>
-      <div className="map-page">
+      <div className="map-page" data-tour="map">
         <ReachMapSvg state={state} selected={sel} onPick={pick} />
       </div>
       {sel && <PlacePanel state={state} id={sel} />}

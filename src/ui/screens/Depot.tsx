@@ -58,7 +58,7 @@ export function Depot({ state, now, away, onDismissAway }: Props) {
         </div>
       )}
 
-      <div className="panel">
+      <div className="panel" data-tour="buildings">
         <h3 className="panel-title">Buildings</h3>
         <ul className="buildings">
           {built.map((r) => (
@@ -83,7 +83,7 @@ export function Depot({ state, now, away, onDismissAway }: Props) {
       </div>
 
       {unbuilt.length > 0 && (
-        <div className="panel">
+        <div className="panel" data-tour="to-build">
           <h3 className="panel-title">Still to build</h3>
           <ul className="buildings">
             {unbuilt.map((r) => (

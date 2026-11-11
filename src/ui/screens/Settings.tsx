@@ -1,6 +1,7 @@
 import { useRef, useState, type ChangeEvent } from 'react';
 import { SAVE_VERSION, dayAt, serialize, type GameState } from '../../engine/index.ts';
 import { ConfirmButton } from '../components/Confirm.tsx';
+import { startTour } from '../components/TourCard.tsx';
 import { usePrefs, useServices } from '../hooks.ts';
 import { fastForward, type FastForwardResult } from '../dev.ts';
 import { saveFileLabel, saveTextFile } from '../files.ts';
@@ -22,6 +23,7 @@ export function Settings({ state, now, day }: Props) {
         </h2>
       </div>
       <GameSettings state={state} />
+      <TourSettings state={state} />
       <SaveSettings state={state} now={now} day={day} />
       <DeveloperSettings />
       <About />
@@ -29,9 +31,18 @@ export function Settings({ state, now, day }: Props) {
   );
 }
 
-function Toggle({ label, help, checked, onChange }: { label: string; help: string; checked: boolean; onChange: (v: boolean) => void }) {
+interface ToggleProps {
+  label: string;
+  help: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  /** What the tour calls this setting when it points at it. */
+  tour?: string;
+}
+
+function Toggle({ label, help, checked, onChange, tour }: ToggleProps) {
   return (
-    <label className="toggle">
+    <label className="toggle" data-tour={tour}>
       <span className="toggle-text">
         <span className="toggle-label">{label}</span>
         <span className="toggle-help">{help}</span>
@@ -60,6 +71,7 @@ function GameSettings({ state }: { state: GameState }) {
       />
       <Toggle
         label="Tell me when crews come back"
+        tour="notices"
         help={
           isNative()
             ? 'A notice when a crew is due home, even with the game closed. Android may hold it a few minutes to save battery.'
@@ -85,6 +97,19 @@ function GameSettings({ state }: { state: GameState }) {
         checked={wobble}
         onChange={(on) => prefs.set({ wobble: on })}
       />
+    </div>
+  );
+}
+
+function TourSettings({ state }: { state: GameState }) {
+  const { prefs } = useServices();
+  return (
+    <div className="panel">
+      <h3 className="panel-title">Tour</h3>
+      <p className="panel-help">A walk through what the supplies are for, why crews go out, and what to build first. Skip any part you know.</p>
+      <button type="button" className="btn" onClick={() => startTour(prefs, state)}>
+        Show the tour
+      </button>
     </div>
   );
 }

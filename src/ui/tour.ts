@@ -1,0 +1,347 @@
+/**
+ * The tour: a walk through the game for a new guild. Each step shows a screen,
+ * may point at one thing on it (an element with a matching `data-tour`
+ * attribute), and explains it in a few sentences, with live numbers where
+ * they help. Steps are grouped into parts so the player can skip what they
+ * already know. Plain TypeScript so it can be tested in Node.
+ */
+import {
+  DAY_MS,
+  LOCATIONS,
+  MAX_CATCHUP_DAYS,
+  MAX_CREW,
+  dailyUpkeep,
+  gardenYield,
+  knownLocations,
+  type BuildingId,
+  type GameState,
+} from '../engine/index.ts';
+import { buildingRow, homeCounts } from './depot-view.ts';
+import type { Route } from './route.ts';
+import { joinNames } from './runs-view.ts';
+
+export interface TourPart {
+  id: string;
+  title: string;
+}
+
+export interface TourStep {
+  id: string;
+  part: string;
+  title: string;
+  /** The screen this step shows. */
+  route: (state: GameState) => Route;
+  /** The `data-tour` value of the thing to point at, if any. */
+  target?: string;
+  text: (state: GameState) => string;
+}
+
+export const TOUR_PARTS: readonly TourPart[] = [
+  { id: 'supplies', title: 'Supplies' },
+  { id: 'food', title: 'Food' },
+  { id: 'people', title: 'Your people' },
+  { id: 'runs', title: 'Runs' },
+  { id: 'building', title: 'Building' },
+  { id: 'recruits', title: 'Recruits' },
+  { id: 'time', title: 'Time' },
+];
+
+const depot = (): Route => ({ screen: 'depot' });
+
+const SMALL = ['No', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve'];
+
+/** "Four survivors", "One survivor", "14 survivors": a count to start a sentence with. */
+function countOf(n: number, one: string, many: string): string {
+  return `${SMALL[n] ?? n} ${n === 1 ? one : many}`;
+}
+
+/** "10 minutes", "an hour", "2½ hours", in prose. */
+export function proseDuration(minutes: number): string {
+  if (minutes < 60) return `${minutes} minutes`;
+  const halves = Math.round(minutes / 30) / 2;
+  if (halves === 1) return 'an hour';
+  const whole = Math.floor(halves);
+  return `${whole}${halves > whole ? '½' : ''} hours`;
+}
+
+/** Someone to show on the sheet: the first survivor, or the roster if nobody's left. */
+function firstSurvivorRoute(state: GameState, tab: 'stats' | 'story'): Route {
+  const s = state.survivors[0];
+  return s ? { screen: 'survivor', id: s.id, tab } : { screen: 'roster' };
+}
+
+/** The safest known place, for a first run. */
+function easiestPlace(state: GameState) {
+  return [...knownLocations(state)].sort((a, b) => a.danger - b.danger || a.durationMin - b.durationMin)[0];
+}
+
+/** What to build first, with what it costs now: up to three suggestions. */
+export function firstBuildSuggestions(state: GameState): string[] {
+  const ideas: { id: BuildingId; level: number; why: string }[] = [
+    { id: 'bunks', level: 2, why: 'to make room for a recruit' },
+    { id: 'infirmary', level: 1, why: 'to heal faster' },
+    { id: 'watchtower', level: 1, why: 'against raids' },
+    { id: 'workshop', level: 1, why: 'to make gear and ammo' },
+  ];
+  const out: string[] = [];
+  for (const idea of ideas) {
+    const row = buildingRow(state, idea.id);
+    if (row.level + 1 !== idea.level || !row.next) continue;
+    const name = idea.level > 1 ? `${row.name} level ${idea.level}` : `${/^[AEIOU]/.test(row.name) ? 'an' : 'a'} ${row.name}`;
+    out.push(`${name} (${row.next.cost}) ${idea.why}`);
+    if (out.length === 3) break;
+  }
+  return out;
+}
+
+export const TOUR_STEPS: readonly TourStep[] = [
+  // ---------------------------------------------------------------- supplies
+  {
+    id: 'welcome',
+    part: 'supplies',
+    title: 'Welcome to the Depot',
+    route: depot,
+    text: () =>
+      'Your guild lives in an old rail depot, forty years after the Burn. This tour shows what everything is for. Skip a part you know, or the whole tour; Settings can show it again.',
+  },
+  {
+    id: 'supplies',
+    part: 'supplies',
+    title: 'Five supplies',
+    route: depot,
+    target: 'resources',
+    text: () =>
+      'Scrap builds buildings and gear. Rations feed everyone. Meds patch people up, on runs and in the Infirmary. Ammo feeds guns. Tech goes into better buildings and gear.',
+  },
+  {
+    id: 'more-supplies',
+    part: 'supplies',
+    title: 'Getting more',
+    route: depot,
+    target: 'resources',
+    text: () =>
+      'Almost everything comes home with crews from runs in the Reach. The Garden grows rations, the Workshop turns scrap into ammo, and now and then a trader offers a swap.',
+  },
+
+  // ---------------------------------------------------------------- food
+  {
+    id: 'garden',
+    part: 'food',
+    title: 'The Garden',
+    route: () => ({ screen: 'building', id: 'garden' }),
+    target: 'workers',
+    text: (state) =>
+      `Everyone at home eats a ration a day, and a few eat two. Right now the guild eats ${dailyUpkeep(state)} a day, and the Garden grows about ${Math.round(gardenYield(state))}. Every gardener, and every level, grows more.`,
+  },
+  {
+    id: 'hungry',
+    part: 'food',
+    title: 'Running out',
+    route: () => ({ screen: 'building', id: 'garden' }),
+    text: () =>
+      "If the rations run out, nobody starves, but hungry people can't rest and their stress climbs. Hunting runs bring back food, and a bigger Garden feeds a bigger guild.",
+  },
+
+  // ---------------------------------------------------------------- people
+  {
+    id: 'roster',
+    part: 'people',
+    title: 'Your survivors',
+    route: () => ({ screen: 'roster' }),
+    text: (state) => {
+      return `${countOf(state.survivors.length, 'survivor', 'survivors')}, each with health and stress. Stress builds out in the Reach and fades at home. At 100, someone breaks, and comes out of it changed.`;
+    },
+  },
+  {
+    id: 'stats',
+    part: 'people',
+    title: 'Getting better',
+    route: (state) => firstSurvivorRoute(state, 'stats'),
+    target: 'stats',
+    text: () =>
+      'Five stats: Grit, Brawn, Aim, Wits and Nerve. Nobody spends points. People get better at what they actually do, on runs and at their posts.',
+  },
+  {
+    id: 'story',
+    part: 'people',
+    title: 'Their story',
+    route: (state) => firstSurvivorRoute(state, 'story'),
+    text: () =>
+      "What happens to people changes them: scars, new traits, friends and feuds. It's all written in their Chronicle, here on their sheet.",
+  },
+
+  // ---------------------------------------------------------------- runs
+  {
+    id: 'reach',
+    part: 'runs',
+    title: 'The Reach',
+    route: () => ({ screen: 'reach' }),
+    target: 'map',
+    text: (state) =>
+      `You know ${countOf(knownLocations(state).length, 'place', 'places').toLowerCase()}. Each has a danger from 1 to 5, and a ring that fills as you explore it. Question marks are roads to places nobody has found yet.`,
+  },
+  {
+    id: 'why-runs',
+    part: 'runs',
+    title: 'Why go out',
+    route: () => ({ screen: 'reach' }),
+    target: 'map',
+    text: () =>
+      'Runs are how the guild gets nearly everything. Scavenge for supplies, scout to explore and find new places, or hunt for food. Dangerous places pay better and hurt more.',
+  },
+  {
+    id: 'plan',
+    part: 'runs',
+    title: 'Planning a run',
+    route: (state) => {
+      const place = easiestPlace(state);
+      return place ? { screen: 'plan', locationId: place.id } : { screen: 'reach' };
+    },
+    target: 'crew',
+    text: (state) => {
+      const place = easiestPlace(state);
+      const first = place ? ` A good first run: three people scavenging ${place.name}.` : '';
+      return `Pick a crew of 1 to ${MAX_CREW}, a job, supplies and orders. The bar at the bottom shows the risk: how often someone gets hurt.${first}`;
+    },
+  },
+  {
+    id: 'out',
+    part: 'runs',
+    title: 'Out in real time',
+    route: () => ({ screen: 'runs' }),
+    text: () => {
+      const minutes = LOCATIONS.map((l) => l.durationMin);
+      return `Runs take real time, ${proseDuration(Math.min(...minutes))} to ${proseDuration(Math.max(...minutes))}, and crews come home even with the game closed. Their report tells you what happened out there, and who came back changed.`;
+    },
+  },
+
+  // ---------------------------------------------------------------- building
+  {
+    id: 'buildings',
+    part: 'building',
+    title: 'Buildings',
+    route: depot,
+    target: 'buildings',
+    text: () =>
+      'Scrap and tech go into buildings. The Bunks hold beds, the Garden grows food, the Firepit eases stress. Tap a building to see what its next level does.',
+  },
+  {
+    id: 'posts',
+    part: 'building',
+    title: 'Posts',
+    route: depot,
+    target: 'buildings',
+    text: () =>
+      "People at home work a post, and practice its stat every day: gardeners sharpen their Wits, firekeepers their Nerve. Change posts from a building or from someone's sheet.",
+  },
+  {
+    id: 'build-first',
+    part: 'building',
+    title: 'What to build first',
+    route: depot,
+    target: 'to-build',
+    text: (state) => {
+      const ideas = firstBuildSuggestions(state);
+      if (ideas.length === 0) return 'Every building can go higher. Tap one to see its next level and what it costs.';
+      return `Good first goals: ${joinNames(ideas)}. You'll need runs to pay for them.`;
+    },
+  },
+  {
+    id: 'raids',
+    part: 'building',
+    title: 'Raids',
+    route: depot,
+    text: () =>
+      'Raiders sometimes hit the Depot. Whoever is home holds the fence, so the best shot at home matters, and a Watchtower helps. Send everyone out, and the Depot is easy pickings.',
+  },
+
+  // ---------------------------------------------------------------- recruits
+  {
+    id: 'gate',
+    part: 'recruits',
+    title: 'At the gate',
+    route: () => ({ screen: 'recruits' }),
+    text: (state) => {
+      const { beds, cap } = homeCounts(state);
+      const room = beds >= cap ? `all ${cap} beds are taken, so build the Bunks up first` : `${cap - beds} ${cap - beds === 1 ? 'bed is' : 'beds are'} free`;
+      return `Each day a few people answer the radio and wait at the gate. Taking someone in is free, but they need a bed: ${room}.`;
+    },
+  },
+
+  // ---------------------------------------------------------------- time
+  {
+    id: 'days',
+    part: 'time',
+    title: 'Days pass',
+    route: depot,
+    text: () => {
+      const hours = Math.round(DAY_MS / 3_600_000);
+      return `The game keeps going when it's closed. A day passes every ${hours === 1 ? 'hour' : `${hours} hours`}: the Garden grows, people eat, heal and rest, and visitors come and go. Days you missed are played when you come back, up to ${MAX_CATCHUP_DAYS}.`;
+    },
+  },
+  {
+    id: 'notices',
+    part: 'time',
+    title: 'Notices',
+    route: () => ({ screen: 'settings' }),
+    target: 'notices',
+    text: () => 'Turn this on to get a notice when a crew is due home.',
+  },
+  {
+    id: 'done',
+    part: 'time',
+    title: "That's the tour",
+    route: depot,
+    text: () => "Send your first crew out when you're ready. Settings can show this tour again.",
+  },
+];
+
+export const FIRST_STEP = TOUR_STEPS[0]!.id;
+
+export function tourStep(id: string | null | undefined): TourStep | undefined {
+  return id ? TOUR_STEPS.find((s) => s.id === id) : undefined;
+}
+
+/** The step after this one, or null when the tour is over. */
+export function nextStepId(id: string): string | null {
+  const i = TOUR_STEPS.findIndex((s) => s.id === id);
+  return i < 0 ? null : (TOUR_STEPS[i + 1]?.id ?? null);
+}
+
+/** The first step of the next part, or null when this is the last part. */
+export function nextPartStepId(id: string): string | null {
+  const step = tourStep(id);
+  if (!step) return null;
+  const part = TOUR_PARTS.findIndex((p) => p.id === step.part);
+  const next = TOUR_PARTS[part + 1];
+  return next ? (TOUR_STEPS.find((s) => s.part === next.id)?.id ?? null) : null;
+}
+
+export interface TourCard {
+  title: string;
+  text: string;
+  /** "Supplies: 2 of 3" */
+  where: string;
+  /** "Part 1 of 7" */
+  partOf: string;
+  /** No more steps after this one. */
+  last: boolean;
+  /** The last step of its part, so skipping the part is the same as Next. */
+  lastInPart: boolean;
+}
+
+export function tourCard(state: GameState, id: string): TourCard | null {
+  const step = tourStep(id);
+  if (!step) return null;
+  const partIndex = TOUR_PARTS.findIndex((p) => p.id === step.part);
+  const inPart = TOUR_STEPS.filter((s) => s.part === step.part);
+  const n = inPart.indexOf(step) + 1;
+  return {
+    title: step.title,
+    text: step.text(state),
+    where: inPart.length > 1 ? `${TOUR_PARTS[partIndex]!.title}: ${n} of ${inPart.length}` : TOUR_PARTS[partIndex]!.title,
+    partOf: `Part ${partIndex + 1} of ${TOUR_PARTS.length}`,
+    last: nextStepId(id) === null,
+    lastInPart: n === inPart.length,
+  };
+}

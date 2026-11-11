@@ -440,7 +440,8 @@ At most one event a day (a 20% chance), weighted:
    - **A crew that is out:** a countdown, and the log so far, revealed beat by beat as time passes.
    - **Run report:** what came home, deaths, places found, the beat-by-beat log with the dice under each line, then what changed for each person. For example: *"Mara gained Rad-Hardened"*, *"Dex & Ava are now Friends"*, and the loot. It opens in place of the countdown when the crew gets back.
 7. **Memorial Wall:** faded portraits with the day and cause of death; tap one for their sheet and Chronicle. Opened from the bottom of the roster. *Built (PR 5).*
-8. **Settings:** mercy mode, notices when crews come back, portrait wobble, export and import save, load the backup copy, start a new guild, developer shortcuts and fast-forward (§11, §13). *Built (PR 5, 6).*
+8. **Settings:** mercy mode, notices when crews come back, portrait wobble, the tour, export and import save, load the backup copy, start a new guild, developer shortcuts and fast-forward (§11, §13). *Built (PR 5, 6, 10).*
+9. **The tour** (PR 10). A new guild starts with it, and Settings can show it again. A card pinned above the tab bar walks through 20 short steps in 7 parts: supplies, food, your people, runs, building, recruits, and time. Each step opens its screen and outlines what it's talking about, with live numbers where they help (what the Garden grows, what the first buildings cost). *Next*, *Skip this part* and *Skip tour* are always there. Opening the game mid-tour (from a notice, say) stays where it opened; the next step moves on from there.
 
 **Navigation.** Tabs along the bottom: Depot, Roster, Reach, Runs, Settings. Survivors who are out show where they are and when they're back, on the roster and on their sheet.
 
@@ -532,7 +533,7 @@ Planned 2026-11-11, in this order, all on Opus:
 | # | PR | Status |
 |---|---|---|
 | 9 | Slower pace: a game day lasts 3 real hours (§11) | **done** |
-| 10 | Tutorial for a new guild | |
+| 10 | Tutorial for a new guild (the tour, §12) | **done** |
 | 11 | Stories: nemeses, nicknames, named gear | |
 | 12 | Partners: romance | |
 | 13 | Vehicles and gas | |
@@ -540,7 +541,7 @@ Planned 2026-11-11, in this order, all on Opus:
 | 15 | What's missing: rescue jobs, feuds that make someone quit, pets, the last gear drawings | |
 | 16 | The Vultures, a rival guild | |
 
-- **Tutorial.** Offered when a new guild starts, and can be replayed from Settings. It walks through the resources and how to get more of each, food and the Garden, why crews go out on runs, why to build, and taking in recruits. It's optional: the player can skip the whole thing, or skip ahead to the next part.
+- **Tutorial.** Starts with a new guild, and can be replayed from Settings. It walks through the resources and how to get more of each, food and the Garden, why crews go out on runs, why to build, and taking in recruits. It's optional: the player can skip the whole thing, or skip ahead to the next part. Built as the tour (§12); later steps that add something to explain (gas, vehicles) add a step to it.
 - **Stories.** An enemy that downs a survivor and gets away becomes a named, recurring foe (a nemesis). Survivors earn nicknames from feats. A weapon with 10 kills earns a name and a history.
 - **Partners.** Uncommon, and a step beyond Bonded. About 96% of couples are a man and a woman, and 99% are monogamous. Losing a partner hits harder than losing a friend.
 - **Vehicles and gas.** This is how crew size changes: on foot, a crew stays at 1–4.
