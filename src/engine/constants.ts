@@ -6,12 +6,12 @@
 import type { Quality, RelationshipLabel, Resources } from './types.ts';
 
 /** Save format version. Bump together with a migration in save.ts. */
-export const SAVE_VERSION = 5;
+export const SAVE_VERSION = 6;
 
 // ---------------------------------------------------------------- time
 
-/** Real milliseconds per game day (1 real hour). */
-export const DAY_MS = 60 * 60 * 1000;
+/** Real milliseconds per game day (3 real hours). Runs take real time and don't scale with this. */
+export const DAY_MS = 3 * 60 * 60 * 1000;
 
 // ---------------------------------------------------------------- stats
 
