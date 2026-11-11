@@ -11,10 +11,12 @@ export interface Prefs {
   notify: boolean;
   /** Show developer shortcuts on game screens (skip ahead to a crew's return). */
   devTools: boolean;
+  /** The tour step on screen (see tour.ts), or null when the tour isn't running. */
+  tour: string | null;
 }
 
 export const PREFS_KEY = 'the-guild:prefs';
-const DEFAULT_PREFS: Prefs = { wobble: true, notify: false, devTools: false };
+const DEFAULT_PREFS: Prefs = { wobble: true, notify: false, devTools: false, tour: null };
 
 export interface PrefsStore {
   get(): Prefs;

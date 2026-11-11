@@ -2240,3 +2240,77 @@ li:nth-child(even) .pinned {
     transition: none !important;
   }
 }
+
+/* ---------------------------------------------------------------- tour */
+
+/* A note pinned above the tab bar, like the return toast. Screens make room
+   for it (--tour-h is the card's height, measured in TourCard.tsx). */
+.tour-card {
+  position: fixed;
+  left: 0.75rem;
+  right: 0.75rem;
+  bottom: calc(var(--tabbar-h) + var(--sa-bottom) + 0.75rem);
+  z-index: 5;
+  max-width: 32.5rem;
+  margin: 0 auto;
+  padding: 0.75rem 1rem 0.875rem;
+  background: var(--paper);
+  color: var(--ink);
+  border-left: 4px solid var(--rust);
+  box-shadow: 0 4px 0 rgb(0 0 0 / 0.35);
+}
+
+.tour-where {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0;
+  font-size: var(--step--1);
+  color: var(--ink-2);
+}
+
+.tour-title {
+  margin: 0.125rem 0 0.25rem;
+  font-family: var(--stencil);
+  font-size: var(--step-2);
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.tour-text {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.tour-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.tour-card .btn:not(.btn-primary) {
+  border-color: var(--ink-2);
+  color: var(--ink);
+}
+
+.tour-card .btn-quiet:not(.btn-primary) {
+  border-color: transparent;
+  color: var(--ink-2);
+}
+
+/* What the tour is talking about. The scroll margin clears a detail screen's sticky back bar. */
+.tour-target {
+  outline: 3px solid var(--rust-hi);
+  outline-offset: 4px;
+  scroll-margin-top: calc(var(--sa-top) + 4.5rem);
+}
+
+.app.is-touring {
+  padding-bottom: calc(var(--tabbar-h) + var(--sa-bottom) + var(--tour-h, 0px) + 2rem);
+}
+
+.app.is-touring .toast,
+.app.is-touring .action-bar {
+  bottom: calc(var(--tabbar-h) + var(--sa-bottom) + var(--tour-h, 0px) + 1.25rem);
+}

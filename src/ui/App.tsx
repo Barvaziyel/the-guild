@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useState } from 'react';
 import { advanceTime, dayAt, dueRuns, getLocation, nextDayAt, type AdvanceResult, type DepotSummary, type GameState } from '../engine/index.ts';
 import { mergeSummaries } from './depot-view.ts';
+import { TourCard } from './components/TourCard.tsx';
 import { navigate, savedScroll, useHash, useNow, usePrefs, useRoute, useServices, useSnapshot } from './hooks.ts';
 import { tabFor, type Route, type TabScreen } from './route.ts';
 import { joinNames, noticesFor, reportFirstNames, unreadCount } from './runs-view.ts';
@@ -16,6 +17,7 @@ import { Runs } from './screens/Runs.tsx';
 import { RunView } from './screens/RunView.tsx';
 import { Settings } from './screens/Settings.tsx';
 import { SurvivorSheet } from './screens/SurvivorSheet.tsx';
+import { tourStep } from './tour.ts';
 import { resourceList } from './view.ts';
 
 /** Screens that have their own back bar instead of the guild header. */
@@ -31,6 +33,7 @@ export function App() {
   const now = useNow(30_000, wakeAt);
   const time = useTime(state, now, route);
   useNotices(state);
+  const { tour } = usePrefs();
 
   // Each screen opens at the top, or where it was left when coming back to it.
   useLayoutEffect(() => {
@@ -78,8 +81,10 @@ export function App() {
       break;
   }
 
+  const touring = tourStep(tour) !== undefined;
+
   return (
-    <div className="app">
+    <div className={touring ? 'app is-touring' : 'app'}>
       {!DETAIL_SCREENS.includes(route.screen) && <TopBar state={s} day={day} />}
       {snap.saveError && (
         <p className="banner" role="alert">
@@ -88,6 +93,7 @@ export function App() {
       )}
       <main className="screen">{screen}</main>
       {time.current && <ReturnToast state={s} reportId={time.current} more={time.more} onClose={time.dismiss} />}
+      {touring && tour && <TourCard state={s} stepId={tour} />}
       <TabBar current={tabFor(route)} unread={unreadCount(s)} />
     </div>
   );
@@ -181,7 +187,7 @@ function TopBar({ state, day }: { state: GameState; day: number }) {
         <h1 className="guild-name">{state.guildName}</h1>
         <span className="day">Day {day}</span>
       </div>
-      <ul className="resources" aria-label="Supplies at the Depot">
+      <ul className="resources" aria-label="Supplies at the Depot" data-tour="resources">
         {resourceList(state).map((r) => (
           <li key={r.id}>
             <span className="res-name">{r.name}</span> <span className="res-amount">{r.amount}</span>
