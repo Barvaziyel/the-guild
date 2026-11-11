@@ -74,7 +74,7 @@ describe('content integrity', () => {
   test('name pools are non-empty', () => {
     assert.ok(FIRST_NAMES.he.length > 10);
     assert.ok(FIRST_NAMES.she.length > 10);
-    assert.ok(FIRST_NAMES.they.length > 10);
+    assert.ok(FIRST_NAMES.either.length > 10);
     assert.ok(LAST_NAMES.length > 20);
   });
 });

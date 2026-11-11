@@ -31,7 +31,8 @@ Inspirations: Fallout Shelter (individual characters, gear, base rooms), Civ 5 (
 
 | Field | Notes |
 |---|---|
-| Name, pronouns | Generated; player can rename. The backstory follows the new name; old log lines keep the name used at the time |
+| Name | Generated; player can rename. The backstory follows the new name; old log lines keep the name used at the time |
+| Sex | Male or female, half each (he or she in text). First names come from a list for men, one for women, and one for either |
 | Nickname | Earned through feats (§7.7), e.g. *Dex "Two-Shot" Arlo* |
 | Origin | Bunker-born, Caravan Kid, City Rat, Farmhand, Ex-Raider, Old Medic, Scrapper. Tilts stats, may grant a trait |
 | Backstory | One generated line |
@@ -365,7 +366,7 @@ The Depot plays one **Depot day** for every game day that passes (§11). Each da
 1. Conditions that have run their course wear off.
 2. **Food.** The Garden grows rations, and everyone eats 1 (Gluttons and Drinkers 2). If there isn't enough, they eat what there is and go hungry: +10 stress each instead of any rest. Nobody starves to death. The log notes when the food runs out and when it's back.
    - **Warnings (1.1.2).** When the Garden grows less than the whole guild eats (counting those out on runs), the Depot shows how long the stores last, from 10 days out, or that they're gone, with what to do about it. The gate notes when another person would eat more than the Garden can spare.
-3. **Work.** People at their posts work and get +1 practice a day in the building's stat. Serious wounds (anything that blocks runs) keep people in bed.
+3. **Work.** People at their posts work and get +1 practice a day in the building's stat. Serious wounds (anything that blocks runs) keep people in bed: they keep their post but don't work, and can't take a new one until healed.
 4. **Care.** Everyone heals 15% of max HP a day, +10% per Infirmary level, and +2% per point of Wits among the Infirmary's medics. A staffed Infirmary also closes wounds sooner, and treats rad sickness and fever with meds, one patient per medic a day.
 5. **Rest.** Everyone sheds 5 stress a day, plus the Firepit's share, plus 2 with a Bonded friend at home. Optimists and Drinkers shed half as much again.
 6. **People.** Co-workers drift toward or away from each other by their trait affinity (a 50% chance each day). A Bar warms everyone a little.
@@ -576,7 +577,7 @@ Planned 2026-11-11, in this order, all on Opus:
 - **Expansion.** Outposts on fully explored places extend the guild's reach (the Civ-style expansion). Places get deeper, more dangerous areas with better loot.
 - **The Vultures.** A rival guild competing for places. They raid, trade, and turn up on runs.
 
-**Later ideas:** weather and seasons, planned Depot defense during raids.
+**Later ideas:** weather and seasons, planned Depot defense during raids, interactive combat. Runs are decided at departure, so a hands-on fight would fit where the player is there when it happens: a raid on the Depot, or a nemesis met again.
 
 ## 16. Decisions and open questions
 
@@ -586,5 +587,7 @@ Decided 2026-11-11:
 - Pace: 1 game day = 3 real hours.
 - Crew size: bigger crews come from vehicles, not a higher cap.
 - The player doesn't name the guild.
+- Survivors are male or female (until 1.2.2 some were *they*).
+- People resting until healed can't take a new post.
 
 No open questions right now.

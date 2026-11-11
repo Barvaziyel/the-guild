@@ -3,10 +3,18 @@ import { addGuildLog } from './chronicle.ts';
 import { buildingName, defaultPosts, initialBuildings, trimPosts } from './depot/buildings.ts';
 import { fullName } from './text.ts';
 import { initialLocations } from './locations.ts';
-import type { GameState } from './types.ts';
+import { FIRST_NAMES } from './content/index.ts';
+import type { GameState, Pronouns, Survivor } from './types.ts';
 
 /** A game day lasted one real hour until save version 6. */
 const HOUR_DAY_MS = 60 * 60 * 1000;
+
+/** Until save version 9 survivors could be 'they'. A man or a woman by first name, else by whether the portrait had a beard. */
+function manOrWoman(s: Survivor): Pronouns {
+  if ((FIRST_NAMES.he as readonly string[]).includes(s.firstName)) return 'he';
+  if ((FIRST_NAMES.she as readonly string[]).includes(s.firstName)) return 'she';
+  return s.appearance.facialHair % 5 === 0 ? 'he' : 'she';
+}
 
 /**
  * Migrations from version N to N + 1. When the GameState shape changes:
@@ -61,6 +69,22 @@ const MIGRATIONS: Record<number, (save: Record<string, unknown>) => void> = {
     for (const { survivor, building } of trimPosts(state)) {
       addGuildLog(state, state.depot.lastDay, `The ${buildingName(state, building)} had more workers than room, so ${fullName(survivor)} is off it now. Choose a new post from the sheet.`, ['post', survivor.id]);
     }
+  },
+  // v9: survivors are men or women. Anyone who was 'they' becomes one or the
+  // other, the same way everywhere they appear (at home, out on a run, at the gate).
+  8: (save) => {
+    const state = save as unknown as GameState;
+    const chosen = new Map<string, Pronouns>();
+    const fix = (s: Survivor): void => {
+      if ((s.pronouns as string) !== 'they') return;
+      const p = chosen.get(s.id) ?? manOrWoman(s);
+      chosen.set(s.id, p);
+      s.pronouns = p;
+    };
+    for (const s of state.survivors) fix(s);
+    for (const s of state.memorial) fix(s);
+    for (const r of state.runs) for (const s of r.result.crew) fix(s);
+    for (const c of state.depot.recruits) fix(c.survivor);
   },
 };
 

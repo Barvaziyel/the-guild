@@ -20,7 +20,6 @@ interface PronounForms {
 const PRONOUNS: Record<Pronouns, PronounForms> = {
   he: { they: 'he', them: 'him', their: 'his', theirs: 'his', themself: 'himself', is: 'is', was: 'was', has: 'has', does: 'does' },
   she: { they: 'she', them: 'her', their: 'her', theirs: 'hers', themself: 'herself', is: 'is', was: 'was', has: 'has', does: 'does' },
-  they: { they: 'they', them: 'them', their: 'their', theirs: 'theirs', themself: 'themself', is: 'are', was: 'were', has: 'have', does: 'do' },
 };
 
 export function pronounForms(p: Pronouns): PronounForms {

@@ -19,9 +19,8 @@ export interface GenerateOptions {
 }
 
 const PRONOUN_WEIGHTS: { item: Pronouns; weight: number }[] = [
-  { item: 'he', weight: 45 },
-  { item: 'she', weight: 45 },
-  { item: 'they', weight: 10 },
+  { item: 'he', weight: 50 },
+  { item: 'she', weight: 50 },
 ];
 
 /** Hidden trait picks favor traits that are fun to discover. */
@@ -62,8 +61,7 @@ export function rollStats(rng: Rng, origin: OriginDef): Stats {
 }
 
 function rollName(rng: Rng, pronouns: Pronouns, taken: ReadonlySet<string>): { first: string; last: string } {
-  const pool: readonly string[] =
-    pronouns === 'they' ? [...FIRST_NAMES.they, ...FIRST_NAMES.he, ...FIRST_NAMES.she] : [...FIRST_NAMES[pronouns], ...FIRST_NAMES.they];
+  const pool: readonly string[] = [...FIRST_NAMES[pronouns], ...FIRST_NAMES.either];
   for (let attempt = 0; attempt < 50; attempt++) {
     const first = rng.pick(pool);
     const last = rng.pick(LAST_NAMES);

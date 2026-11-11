@@ -1,4 +1,4 @@
-/** First names by pronoun. Pools are mixed for 'they' (all three lists). */
+/** First names for men, for women, and for either. */
 export const FIRST_NAMES = {
   he: [
     'Abe', 'Arlo', 'Bram', 'Cal', 'Cyrus', 'Dex', 'Eli', 'Ezra', 'Finn', 'Gus',
@@ -10,7 +10,7 @@ export const FIRST_NAMES = {
     'Kit', 'Lena', 'Mara', 'Nell', 'Opal', 'Petra', 'Rhea', 'Sadie', 'Tess', 'Una',
     'Vera', 'Wren', 'Yara', 'Zora', 'Ava', 'Maya', 'Noa', 'Rosa', 'Lila', 'Iris',
   ],
-  they: [
+  either: [
     'Ash', 'Briar', 'Cass', 'Dune', 'Echo', 'Flint', 'Gray', 'Harper', 'Indy', 'Jules',
     'Kai', 'Lark', 'Moss', 'Nico', 'Onyx', 'Quinn', 'Reed', 'Sage', 'Tam', 'Vale',
   ],

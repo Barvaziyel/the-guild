@@ -9,6 +9,7 @@ export {
   bunksCap,
   canAfford,
   canWork,
+  resting,
   costText,
   defaultPosts,
   hasFreeBunk,
