@@ -12,6 +12,8 @@ export type Route =
   | { screen: 'building'; id: string }
   /** Who is at the gate. */
   | { screen: 'recruits' }
+  /** The stash, and what everyone carries. */
+  | { screen: 'gear' }
   | { screen: 'roster' }
   | { screen: 'survivor'; id: string; tab: SheetTab }
   | { screen: 'memorial' }
@@ -36,6 +38,8 @@ export function parseRoute(hash: string): Route {
       return { screen: 'roster' };
     case 'recruits':
       return { screen: 'recruits' };
+    case 'gear':
+      return { screen: 'gear' };
     case 'b':
       return a ? { screen: 'building', id: a } : DEFAULT_ROUTE;
     case 'memorial':
@@ -65,6 +69,7 @@ export function routeHash(route: Route): string {
   switch (route.screen) {
     case 'depot':
     case 'recruits':
+    case 'gear':
     case 'roster':
     case 'memorial':
     case 'settings':
@@ -89,6 +94,7 @@ export function tabFor(route: Route): TabScreen {
     case 'depot':
     case 'building':
     case 'recruits':
+    case 'gear':
       return 'depot';
     case 'roster':
     case 'survivor':

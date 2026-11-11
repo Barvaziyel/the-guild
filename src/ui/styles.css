@@ -2314,3 +2314,31 @@ li:nth-child(even) .pinned {
 .app.is-touring .action-bar {
   bottom: calc(var(--tabbar-h) + var(--sa-bottom) + var(--tour-h, 0px) + 1.25rem);
 }
+
+/* ---------------------------------------------------------------- gear */
+
+.stash-group + .stash-group {
+  margin-top: 1.25rem;
+}
+
+.stash-group > .slot-name {
+  margin: 0 0 0.5rem;
+  font-weight: 400;
+}
+
+.stash-group .gear-slot:first-child {
+  border-top: 1px solid var(--line);
+  padding-top: 0.75rem;
+}
+
+/* A link inside a sentence. The padding grows the tap area without moving the text. */
+.text-link {
+  padding: 0.75rem 0.25rem;
+  margin: -0.75rem -0.25rem;
+  border: 0;
+  background: none;
+  color: var(--rust-hi);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}

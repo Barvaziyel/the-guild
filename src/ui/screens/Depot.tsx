@@ -11,6 +11,7 @@ import { Portrait } from '../components/Portrait.tsx';
 import { navigate, useAction } from '../hooks.ts';
 import { activeRuns, backIn, joinNames, runCrewNames } from '../runs-view.ts';
 import { buildingRows, depotNews, homeCounts, summaryLines, type BuildingRow } from '../depot-view.ts';
+import { stashLine } from '../gear-view.ts';
 
 interface Props {
   state: GameState;
@@ -80,6 +81,14 @@ export function Depot({ state, now, away, onDismissAway }: Props) {
             See who&rsquo;s at the gate
           </button>
         )}
+      </div>
+
+      <div className="panel" data-tour="gear">
+        <h3 className="panel-title">Gear</h3>
+        <p className="panel-help">{stashLine(state)} Hand it out, or see who carries what.</p>
+        <button type="button" className="btn" onClick={() => navigate({ screen: 'gear' })}>
+          See the gear
+        </button>
       </div>
 
       {unbuilt.length > 0 && (
