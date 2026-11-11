@@ -1,6 +1,6 @@
 # The Guild — Game Design Document
 
-> Version 0.8 · 2026-11-11 · Living document. Numbers are starting points for tuning, not promises.
+> Version 0.9 · 2026-11-11 · Living document. Numbers are starting points for tuning, not promises.
 
 ## 1. Pitch
 
@@ -145,7 +145,7 @@ The survivor sheet shows the Chronicle as their story. When a survivor dies, the
 - **Flags** add special relationships:
   - *Owes a Life* (one-way)
   - *Mentor / Protégé*: a survivor with 10+ runs who is friends with a newcomer (3 runs or fewer). The protégé learns faster on runs with their mentor
-  - *Partners*: romance, optional (see open questions)
+  - *Partners*: romance, uncommon (Phase 2, §15)
 
 **What changes a relationship:**
 
@@ -412,9 +412,11 @@ At most one event a day (a 20% chance), weighted:
 ## 11. Time model
 
 - The game runs on real time and keeps going while the app is closed.
-- **1 game day = 1 real hour** (a tunable constant). For testing, Settings → Developer → *Developer shortcuts* adds a button to a crew's run that skips ahead to their return (the whole timeline moves, as if the time had passed).
-- Runs take 10 minutes for the nearest locations and up to 2.5 hours for far ones.
-- **Catch-up** (`advanceTime`). When the app opens, and at each new day while it's open, the days that passed are played in order. Crews due back before a day begins come home first, then the Depot has its day. At most **7 days** are played at once; older missed days are skipped, so a long absence never spirals out of control. The Depot screen sums up what the days brought ("Since you last looked").
+- **1 game day = 3 real hours** (`DAY_MS`), so about 8 Depot days pass in a real day. For testing, Settings → Developer → *Developer shortcuts* adds a button to a crew's run that skips ahead to their return (the whole timeline moves, as if the time had passed).
+  - Until save version 6 a day was 1 real hour. Loading an older save moves its start back so the guild stays on the same day.
+  - Everything counted in days follows the day: healing and conditions, Depot work and food, how long visitors stay. A wound that keeps someone home 2–5 days is 6–15 real hours.
+- Runs take real time, not game days: 10 minutes for the nearest locations and up to 2.5 hours for far ones. So almost every run is within one day, and packs one ration per person.
+- **Catch-up** (`advanceTime`). When the app opens, and at each new day while it's open, the days that passed are played in order. Crews due back before a day begins come home first, then the Depot has its day. At most **7 days** (21 real hours) are played at once; older missed days are skipped, so a long absence never spirals out of control. The Depot screen sums up what the days brought ("Since you last looked").
 
 ## 12. Screens
 
@@ -523,20 +525,43 @@ At most one event a day (a 20% chance), weighted:
 
 **First playable = PRs 1–8.**
 
-### Phase 2 ideas
+### Phase 2
 
-- **Nemeses:** an enemy that downs a survivor and gets away becomes a named, recurring foe.
-- **Nicknames** earned by feats.
-- **Outposts** on fully explored locations, extending the guild's reach (the Civ-style expansion).
-- **Named gear** with a kill history.
-- **Pets:** strays that follow an Animal Lover home.
-- **The Vultures:** a rival guild competing for locations.
-- **Weather and seasons.**
-- **Planned Depot defense** during raids.
+Planned 2026-11-11, in this order, all on Opus:
 
-## 16. Open questions
+| # | PR | Status |
+|---|---|---|
+| 9 | Slower pace: a game day lasts 3 real hours (§11) | **done** |
+| 10 | Tutorial for a new guild | |
+| 11 | Stories: nemeses, nicknames, named gear | |
+| 12 | Partners: romance | |
+| 13 | Vehicles and gas | |
+| 14 | Expansion: outposts and deeper areas | |
+| 15 | What's missing: rescue jobs, feuds that make someone quit, pets, the last gear drawings | |
+| 16 | The Vultures, a rival guild | |
 
-- Should romance (*Partners*) be part of the relationship system?
-- Is 1 game day = 1 real hour the right pace?
-- Should the player name the guild?
-- Is 4 the right maximum crew size?
+- **Tutorial.** Offered when a new guild starts, and can be replayed from Settings. It walks through the resources and how to get more of each, food and the Garden, why crews go out on runs, why to build, and taking in recruits. It's optional: the player can skip the whole thing, or skip ahead to the next part.
+- **Stories.** An enemy that downs a survivor and gets away becomes a named, recurring foe (a nemesis). Survivors earn nicknames from feats. A weapon with 10 kills earns a name and a history.
+- **Partners.** Uncommon, and a step beyond Bonded. About 96% of couples are a man and a woman, and 99% are monogamous. Losing a partner hits harder than losing a friend.
+- **Vehicles and gas.** This is how crew size changes: on foot, a crew stays at 1–4.
+  - Most vehicles seat 5. Motorcycles seat 1–2, and bigger vehicles more. No bicycles.
+  - **Gas** is a new resource, and every run with a vehicle burns some.
+  - Vehicles are **rare**: found on runs (a wreck to get running), sold by traders now and then, or built in the Workshop.
+  - A vehicle makes runs **faster** and **carries more** loot. It's **noisy**: enemies spot it more easily, and a crew in one can't sneak past. It **wears down**, and the Workshop repairs it.
+  - A run can take **several vehicles** and more people. A vehicle can be **lost**: wrecked on a run (its riders walk home, which takes longer) or stolen in a raid.
+  - Big crews leave **fewer people at home**. Today an empty Depot only loses a little more in a raid, and the Garden still grows its base. This step makes a thin Depot clearly riskier, so a big convoy has a cost at home.
+- **Expansion.** Outposts on fully explored places extend the guild's reach (the Civ-style expansion). Places get deeper, more dangerous areas with better loot.
+- **The Vultures.** A rival guild competing for places. They raid, trade, and turn up on runs.
+
+**Later ideas:** weather and seasons, planned Depot defense during raids.
+
+## 16. Decisions and open questions
+
+Decided 2026-11-11:
+
+- Romance: yes, uncommon (*Partners*, Phase 2).
+- Pace: 1 game day = 3 real hours.
+- Crew size: bigger crews come from vehicles, not a higher cap.
+- The player doesn't name the guild.
+
+No open questions right now.

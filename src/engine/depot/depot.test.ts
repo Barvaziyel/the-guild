@@ -36,6 +36,9 @@ import { boardSize, recruitProblem, refreshRecruits, takeIn } from './recruits.t
 import { advanceTime, dayStart, nextDayAt } from './time.ts';
 import { craft, craftProblem, upgradeItem, upgradeProblem } from './workshop.ts';
 
+/** How long a game day lasted before save version 6. */
+const HOUR = 60 * 60 * 1000;
+
 const rich = (state: GameState): void => {
   state.resources = { scrap: 500, rations: 500, meds: 50, ammo: 50, tech: 100 };
 };
@@ -378,11 +381,31 @@ describe('save migration', () => {
     delete old.buildings;
     delete old.depot;
     for (const s of old.survivors as Record<string, unknown>[]) delete s.post;
-    old.lastUpdate = T0 + 5 * DAY_MS + 10;
+    old.lastUpdate = T0 + 5 * HOUR + 10;
     const loaded = deserialize(JSON.stringify(old));
     assert.equal(loaded.version, SAVE_VERSION);
     assert.equal(buildingLevel(loaded, 'garden'), 1);
     assert.equal(loaded.depot.lastDay, 6);
+    assert.equal(dayAt(loaded, loaded.lastUpdate), 6);
     assert.equal(postedTo(loaded, 'garden').length, 2);
+  });
+
+  test('a version 5 save, from when a day was an hour, stays on the same day', () => {
+    const state = testGame('v5');
+    // Played up to 40% of the way through day 35, an hour a day.
+    const last = T0 + 34 * HOUR + 0.4 * HOUR;
+    const old = structuredClone(state) as unknown as Record<string, unknown>;
+    old.version = 5;
+    old.lastUpdate = last;
+    (old.depot as { lastDay: number }).lastDay = 35;
+    const loaded = deserialize(JSON.stringify(old));
+    assert.equal(loaded.lastUpdate, last);
+    assert.equal(dayAt(loaded, last), 35);
+    assert.equal(loaded.depot.lastDay, 35);
+    // 40% through the day: the next one starts 60% of a (now 3-hour) day later.
+    assert.equal(dayStart(loaded, 36) - last, Math.round(0.6 * DAY_MS));
+    // Six real hours later is two days on, not six.
+    assert.equal(dayAt(loaded, last + 6 * HOUR), 37);
+    assert.equal(advanceTime(loaded, last + 6 * HOUR).depot.days, 2);
   });
 });

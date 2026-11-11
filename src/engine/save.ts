@@ -3,6 +3,9 @@ import { defaultPosts, initialBuildings } from './depot/buildings.ts';
 import { initialLocations } from './locations.ts';
 import type { GameState } from './types.ts';
 
+/** A game day lasted one real hour until save version 6. */
+const HOUR_DAY_MS = 60 * 60 * 1000;
+
 /**
  * Migrations from version N to N + 1. When the GameState shape changes:
  *   1. bump SAVE_VERSION in constants.ts
@@ -31,8 +34,19 @@ const MIGRATIONS: Record<number, (save: Record<string, unknown>) => void> = {
     save.buildings = initialBuildings();
     const created = Number(save.createdAt);
     const last = Number(save.lastUpdate ?? created);
-    save.depot = { lastDay: Math.floor(Math.max(0, last - created) / DAY_MS) + 1, recruits: [], offers: [] };
+    save.depot = { lastDay: Math.floor(Math.max(0, last - created) / HOUR_DAY_MS) + 1, recruits: [], offers: [] };
     defaultPosts(save as unknown as GameState);
+  },
+  // v6: a game day lasts 3 real hours instead of 1. The day number is worked
+  // out from createdAt, so move createdAt back to keep the guild on the same
+  // day, the same way through it, as when it was last played.
+  5: (save) => {
+    const created = Number(save.createdAt);
+    const last = Number(save.lastUpdate ?? created);
+    const elapsed = Math.max(0, last - created);
+    const days = Math.floor(elapsed / HOUR_DAY_MS);
+    const intoDay = (elapsed - days * HOUR_DAY_MS) / HOUR_DAY_MS;
+    save.createdAt = last - Math.round((days + intoDay) * DAY_MS);
   },
 };
 
