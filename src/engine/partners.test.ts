@@ -1,18 +1,13 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import {
-  PARTNER_DAILY_CHANCE,
-  PARTNER_OTHER_PAIR_FACTOR,
-  PARTNER_RELIEF,
-  PARTNER_SECOND_FACTOR,
-} from './constants.ts';
+import { ORIENTATION_PER_MILLE, PARTNER_DAILY_CHANCE, PARTNER_RELIEF, PARTNER_SECOND_FACTOR } from './constants.ts';
 import { emptySummary, playDepotDay } from './depot/day.ts';
-import { generateSurvivor } from './generator.ts';
-import { adjustRelationship, arePartners, becomePartners, getRelationship, initRelationships, partnerOf, romanceChance } from './relationships.ts';
+import { generateSurvivor, orientationFor } from './generator.ts';
+import { adjustRelationship, arePartners, becomePartners, drawnTo, getRelationship, initRelationships, partnerOf, romanceChance } from './relationships.ts';
 import { Rng } from './rng.ts';
 import { testGame } from './test-utils.ts';
 import { addTrait } from './traits.ts';
-import type { GameState, Survivor } from './types.ts';
+import type { GameState, Orientation, Survivor } from './types.ts';
 
 /** A new guild where everyone is Bonded with everyone. */
 function closeGuild(seed: string): GameState {
@@ -23,11 +18,13 @@ function closeGuild(seed: string): GameState {
 
 const manAndWoman = (a: Survivor, b: Survivor): boolean => a.pronouns !== b.pronouns;
 
-/** Two people of the given sexes from a new guild, made so if need be. */
-function pair(state: GameState, a: 'he' | 'she', b: 'he' | 'she'): [Survivor, Survivor] {
+/** The first two people of a new guild, made the given sexes (and straight, unless said otherwise). */
+function pair(state: GameState, a: 'he' | 'she', b: 'he' | 'she', ao: Orientation = 'straight', bo: Orientation = 'straight'): [Survivor, Survivor] {
   const [x, y] = state.survivors as [Survivor, Survivor];
   x.pronouns = a;
   y.pronouns = b;
+  x.orientation = ao;
+  y.orientation = bo;
   return [x, y];
 }
 
@@ -46,16 +43,44 @@ describe('partners', () => {
     assert.equal(romanceChance(state, a, b), 0, 'adults only');
   });
 
-  test('two men or two women are much less likely, and someone with a partner far less', () => {
-    const state = closeGuild('pairs');
-    const [a, b] = pair(state, 'she', 'she');
-    assert.equal(romanceChance(state, a, b), PARTNER_DAILY_CHANCE * PARTNER_OTHER_PAIR_FACTOR);
-    b.pronouns = 'he';
+  test('people fall only for those they are drawn to, and both ways', () => {
+    const state = closeGuild('drawn');
+    const cases: [Survivor['pronouns'], Orientation, Survivor['pronouns'], Orientation, boolean][] = [
+      ['he', 'straight', 'she', 'straight', true],
+      ['he', 'straight', 'he', 'straight', false],
+      ['he', 'gay', 'he', 'gay', true],
+      ['she', 'gay', 'she', 'bi', true],
+      ['she', 'bi', 'he', 'straight', true],
+      ['he', 'gay', 'she', 'straight', false],
+      ['he', 'gay', 'he', 'straight', false],
+      ['she', 'bi', 'she', 'straight', false],
+    ];
+    for (const [as, ao, bs, bo, can] of cases) {
+      const [a, b] = pair(state, as, bs, ao, bo);
+      assert.equal(drawnTo(a, b) && drawnTo(b, a), can, `${ao} ${as} and ${bo} ${bs}`);
+      assert.equal(romanceChance(state, a, b), can ? PARTNER_DAILY_CHANCE : 0, `${ao} ${as} and ${bo} ${bs}`);
+    }
+  });
+
+  test('someone with a partner is far less likely to find another', () => {
+    const state = closeGuild('second');
+    const [a, b] = pair(state, 'she', 'he');
     const c = state.survivors[2]!;
     c.pronouns = 'she';
+    c.orientation = 'straight';
     becomePartners(state, a, b, 3);
     assert.equal(romanceChance(state, a, b), 0, 'already partners');
     assert.equal(romanceChance(state, b, c), PARTNER_DAILY_CHANCE * PARTNER_SECOND_FACTOR);
+  });
+
+  test('most people are straight, some gay, some bi', () => {
+    const rng = new Rng('orientation');
+    const counts: Record<Orientation, number> = { straight: 0, gay: 0, bi: 0 };
+    for (let i = 0; i < 20000; i++) counts[orientationFor(rng.seed32())] += 1;
+    for (const o of ['straight', 'gay', 'bi'] as const) {
+      const share = (counts[o] / 20000) * 1000;
+      assert.ok(Math.abs(share - ORIENTATION_PER_MILLE[o]) < 10, `${o}: ${share.toFixed(0)} per 1000`);
+    }
   });
 
   test('about 96% of couples are a man and a woman', () => {

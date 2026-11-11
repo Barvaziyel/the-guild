@@ -47,6 +47,7 @@ export const TOUR_PARTS: readonly TourPart[] = [
 ];
 
 const depot = (): Route => ({ screen: 'depot' });
+const depotBuildings = (): Route => ({ screen: 'depot', tab: 'buildings' });
 
 const SMALL = ['No', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve'];
 
@@ -65,7 +66,7 @@ export function proseDuration(minutes: number): string {
 }
 
 /** Someone to show on the sheet: the first survivor, or the roster if nobody's left. */
-function firstSurvivorRoute(state: GameState, tab: 'stats' | 'story'): Route {
+function firstSurvivorRoute(state: GameState, tab: 'stats' | 'bonds' | 'story'): Route {
   const s = state.survivors[0];
   return s ? { screen: 'survivor', id: s.id, tab } : { screen: 'roster' };
 }
@@ -171,6 +172,15 @@ export const TOUR_STEPS: readonly TourStep[] = [
       'Five stats: Grit, Brawn, Aim, Wits and Nerve. Nobody spends points. People get better at what they actually do, on runs and at their posts.',
   },
   {
+    id: 'bonds',
+    part: 'people',
+    title: 'Who gets along',
+    route: (state) => firstSurvivorRoute(state, 'bonds'),
+    target: 'bonds',
+    text: () =>
+      'People grow closer or further apart with everything they go through. Bonded friends look after each other on runs and help each other rest at home; rivals make it all harder. Now and then two Bonded people become partners.',
+  },
+  {
     id: 'story',
     part: 'people',
     title: 'Their story',
@@ -229,7 +239,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     id: 'buildings',
     part: 'building',
     title: 'Buildings',
-    route: depot,
+    route: depotBuildings,
     target: 'buildings',
     text: () =>
       'Scrap and tech go into buildings. The Bunks hold beds, the Garden grows food, the Firepit eases stress. Tap a building to see what its next level does.',
@@ -238,7 +248,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     id: 'posts',
     part: 'building',
     title: 'Posts',
-    route: depot,
+    route: depotBuildings,
     target: 'buildings',
     text: () =>
       "People at home work a post, and practice its stat every day: gardeners sharpen their Wits, firekeepers their Nerve. Change posts from a building or from someone's sheet.",
@@ -247,7 +257,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     id: 'build-first',
     part: 'building',
     title: 'What to build first',
-    route: depot,
+    route: depotBuildings,
     target: 'to-build',
     text: (state) => {
       const ideas = firstBuildSuggestions(state);

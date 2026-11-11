@@ -9,6 +9,7 @@ import {
 } from '../../engine/index.ts';
 import { Portrait } from '../components/Portrait.tsx';
 import { navigate, useAction } from '../hooks.ts';
+import type { DepotTab } from '../route.ts';
 import { activeRuns, backIn, joinNames, runCrewNames } from '../runs-view.ts';
 import { buildingRows, depotNews, foodWarning, homeCounts, summaryLines, type BuildingRow } from '../depot-view.ts';
 import { stashLine } from '../gear-view.ts';
@@ -16,18 +17,15 @@ import { stashLine } from '../gear-view.ts';
 interface Props {
   state: GameState;
   now: number;
+  tab: DepotTab;
   away: DepotSummary | null;
   onDismissAway: () => void;
 }
 
-export function Depot({ state, now, away, onDismissAway }: Props) {
+const TAB_LABELS: Record<DepotTab, string> = { today: 'Today', buildings: 'Buildings', news: 'News' };
+
+export function Depot({ state, now, tab, away, onDismissAway }: Props) {
   const counts = homeCounts(state);
-  const rows = buildingRows(state);
-  const built = rows.filter((r) => r.built);
-  const unbuilt = rows.filter((r) => !r.built);
-  const out = activeRuns(state);
-  const atGate = state.depot.recruits.length;
-  const food = foodWarning(state);
 
   return (
     <section aria-labelledby="depot-title">
@@ -41,6 +39,41 @@ export function Depot({ state, now, away, onDismissAway }: Props) {
         </p>
       </div>
 
+      <div className="sheet-tabs depot-tabs" role="tablist" aria-label="Depot">
+        {(['today', 'buildings', 'news'] as const).map((t) => (
+          <button
+            key={t}
+            type="button"
+            role="tab"
+            id={`depot-tab-${t}`}
+            aria-selected={t === tab}
+            aria-controls="depot-panel"
+            className="sheet-tab"
+            onClick={() => navigate(t === 'today' ? { screen: 'depot' } : { screen: 'depot', tab: t }, { replace: true })}
+          >
+            {TAB_LABELS[t]}
+          </button>
+        ))}
+      </div>
+
+      <div id="depot-panel" role="tabpanel" aria-labelledby={`depot-tab-${tab}`}>
+        {tab === 'today' && <Today state={state} now={now} away={away} onDismissAway={onDismissAway} />}
+        {tab === 'buildings' && <Buildings state={state} />}
+        {tab === 'news' && <News state={state} limit={60} />}
+      </div>
+    </section>
+  );
+}
+
+/** What needs a look: the note from while you were away, food, traders, crews out, the gate, the gear. */
+function Today({ state, now, away, onDismissAway }: Omit<Props, 'tab'>) {
+  const counts = homeCounts(state);
+  const out = activeRuns(state);
+  const atGate = state.depot.recruits.length;
+  const food = foodWarning(state);
+
+  return (
+    <>
       {away && away.days > 0 && <AwayNote summary={away} onDismiss={onDismissAway} />}
 
       {food && (
@@ -67,15 +100,6 @@ export function Depot({ state, now, away, onDismissAway }: Props) {
         </div>
       )}
 
-      <div className="panel" data-tour="buildings">
-        <h3 className="panel-title">Buildings</h3>
-        <ul className="buildings">
-          {built.map((r) => (
-            <BuildingCard key={r.id} row={r} />
-          ))}
-        </ul>
-      </div>
-
       <div className="panel">
         <h3 className="panel-title">At the gate</h3>
         <p className="panel-help">
@@ -99,6 +123,25 @@ export function Depot({ state, now, away, onDismissAway }: Props) {
         </button>
       </div>
 
+      <News state={state} limit={3} more />
+    </>
+  );
+}
+
+function Buildings({ state }: { state: GameState }) {
+  const rows = buildingRows(state);
+  const built = rows.filter((r) => r.built);
+  const unbuilt = rows.filter((r) => !r.built);
+  return (
+    <>
+      <div className="panel" data-tour="buildings">
+        <h3 className="panel-title">Built</h3>
+        <ul className="buildings">
+          {built.map((r) => (
+            <BuildingCard key={r.id} row={r} />
+          ))}
+        </ul>
+      </div>
       {unbuilt.length > 0 && (
         <div className="panel" data-tour="to-build">
           <h3 className="panel-title">Still to build</h3>
@@ -109,9 +152,7 @@ export function Depot({ state, now, away, onDismissAway }: Props) {
           </ul>
         </div>
       )}
-
-      <News state={state} />
-    </section>
+    </>
   );
 }
 
@@ -193,12 +234,15 @@ function Offers({ state }: { state: GameState }) {
   );
 }
 
-function News({ state }: { state: GameState }) {
-  const news = depotNews(state);
-  if (news.length === 0) return null;
+/** The latest Depot news; `more` adds a way to the News tab. */
+function News({ state, limit, more = false }: { state: GameState; limit: number; more?: boolean }) {
+  const news = depotNews(state, limit);
+  if (news.length === 0) {
+    return more ? null : <p className="empty">Nothing has happened at the Depot yet.</p>;
+  }
   return (
     <div className="panel">
-      <h3 className="panel-title">Depot news</h3>
+      <h3 className="panel-title">{more ? 'Latest news' : 'Depot news'}</h3>
       <ul className="news">
         {news.map((n, i) => (
           <li key={i}>
@@ -206,6 +250,11 @@ function News({ state }: { state: GameState }) {
           </li>
         ))}
       </ul>
+      {more && (
+        <button type="button" className="btn btn-small btn-quiet" onClick={() => navigate({ screen: 'depot', tab: 'news' }, { replace: true })}>
+          All the news
+        </button>
+      )}
     </div>
   );
 }

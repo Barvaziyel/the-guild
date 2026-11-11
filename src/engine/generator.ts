@@ -1,4 +1,4 @@
-import { STAT_BASE, STAT_GEN_MAX, STAT_GEN_POINTS } from './constants.ts';
+import { ORIENTATION_PER_MILLE, STAT_BASE, STAT_GEN_MAX, STAT_GEN_POINTS } from './constants.ts';
 import { FIRST_NAMES, LAST_NAMES, ORIGINS, TRAITS, getGear, getOrigin, type OriginDef } from './content/index.ts';
 import { createItem } from './gear.ts';
 import { newId } from './ids.ts';
@@ -6,7 +6,7 @@ import type { Rng, Weighted } from './rng.ts';
 import { emptyStats, maxHp } from './stats.ts';
 import { fill } from './text.ts';
 import { addTrait, hasTrait } from './traits.ts';
-import type { Appearance, GameState, LifeCounters, Pronouns, Quality, Stats, Survivor } from './types.ts';
+import type { Appearance, GameState, LifeCounters, Orientation, Pronouns, Quality, Stats, Survivor } from './types.ts';
 import { STAT_IDS } from './types.ts';
 
 export interface GenerateOptions {
@@ -22,6 +22,17 @@ const PRONOUN_WEIGHTS: { item: Pronouns; weight: number }[] = [
   { item: 'he', weight: 50 },
   { item: 'she', weight: 50 },
 ];
+
+/**
+ * Who someone can fall for, worked out from their appearance seed so it takes
+ * nothing from the random stream (and old saves get the same answer).
+ */
+export function orientationFor(seed: number): Orientation {
+  const roll = (Math.imul((seed ^ 0x9e3779b9) >>> 0, 0x85ebca6b) >>> 0) % 1000;
+  if (roll < ORIENTATION_PER_MILLE.gay) return 'gay';
+  if (roll < ORIENTATION_PER_MILLE.gay + ORIENTATION_PER_MILLE.bi) return 'bi';
+  return 'straight';
+}
 
 /** Hidden trait picks favor traits that are fun to discover. */
 const HIDDEN_WEIGHT_MULT: Record<string, number> = { unlucky: 3, cowardly: 1.5, greedy: 1.5, lucky: 1.5 };
@@ -141,6 +152,7 @@ export function generateSurvivor(state: GameState, rng: Rng, opts: GenerateOptio
     firstName: first,
     lastName: last,
     pronouns,
+    orientation: 'straight',
     age: rng.int(origin.ageRange[0], origin.ageRange[1]),
     origin: origin.id,
     backstory: '',
@@ -157,6 +169,7 @@ export function generateSurvivor(state: GameState, rng: Rng, opts: GenerateOptio
     joinedDay: opts.day,
   };
 
+  s.orientation = orientationFor(s.appearance.seed);
   s.backstory = fill(rng.pick(origin.backstories), s);
   rollTraits(rng, s, origin, opts.day, opts.hiddenTraitChance ?? 0.5);
   rollStartingGear(state, rng, s, origin);

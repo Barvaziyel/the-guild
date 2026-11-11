@@ -102,6 +102,7 @@ npm run android:sync  # build the web app and copy it into android/; android:ope
 4. The engine is type-checked without DOM types; the UI has its own `src/ui/tsconfig.json` with them. `npm run typecheck` runs both.
 5. **Look:** steel-green surfaces, bone text, rust for actions (CSS variables at the top of `styles.css`). Big Shoulders Stencil for names, titles and big numbers; Atkinson Hyperlegible Next for everything else. Sentence case, no all-caps labels. Fonts are bundled, nothing loads from the network.
 6. **Phone first.** Test at 390 px wide. Touch targets at least 44 px. Respect the safe-area insets.
+   - When a screen grows long (the Depot did), split it into tabs or reorganize it rather than adding to the scroll.
 7. **Time passes in `App.tsx`:** `advanceTime` runs when the clock reaches a crew's return or a new Depot day, and on opening the game. Screens never complete runs or play days themselves.
 8. **The tour explains the game** (`tour.ts`, shown by `components/TourCard.tsx`). A step opens a screen and may outline an element marked `data-tour="..."`; a test fails if a step points at something no screen has. When a step adds something a new player needs to understand (a resource, a building, vehicles), add or update a tour step in the same PR.
 9. **A new location needs a spot on the map** in `reach-map.ts` (a test fails otherwise). Keep roads from crossing; labels have a paper halo for where a road runs under them.
@@ -110,5 +111,6 @@ npm run android:sync  # build the web app and copy it into android/; android:ope
 ## Workflow
 
 - One PR per roadmap step (`docs/DESIGN.md` §15). Keep `npm run check` green.
+- **Every PR: check whether the tour needs a new or changed step** (UI rule 8), and say in the PR what you decided.
 - Bump `version` in `package.json` (shown in Settings → About and as the Android version name) with each PR that changes the game: the minor number for a roadmap step (1.2.0), the patch number for a fix (1.1.1). PRs 9 and 10 were made together and share 1.1.0.
 - CI (`.github/workflows/ci.yml`) runs the typecheck, tests and build on every PR.

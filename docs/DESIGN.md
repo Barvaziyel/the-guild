@@ -33,6 +33,7 @@ Inspirations: Fallout Shelter (individual characters, gear, base rooms), Civ 5 (
 |---|---|
 | Name | Generated; player can rename. The backstory follows the new name; old log lines keep the name used at the time |
 | Sex | Male or female, half each (he or she in text). First names come from a list for men, one for women, and one for either |
+| Orientation | Straight, gay or bi (§5.1). Not shown on the sheet |
 | Nickname | Earned through feats (§7.7), e.g. *Dex "Two-Shot" Arlo* |
 | Origin | Bunker-born, Caravan Kid, City Rat, Farmhand, Ex-Raider, Old Medic, Scrapper. Tilts stats, may grant a trait |
 | Backstory | One generated line |
@@ -174,8 +175,8 @@ The survivor sheet shows the Chronicle as their story. When a survivor dies, the
 
 Romance is uncommon, and a step beyond Bonded.
 
-- **Falling for each other.** Each Depot day, two Bonded adults at home together who aren't Grieving become partners with a 1.5% chance, so a Bonded man and woman get together after about two months at home on average. In 60-run test careers it came to about one couple per guild.
-  - For any pair but a man and a woman, the chance is ×0.015. Measured on guilds of 4 and 8 over two to four months, **about 96% of couples are a man and a woman** (lower than ×0.04 would suggest, because people with no one of the other sex free keep rolling).
+- **Orientation.** Everyone has one: 85% straight, 6% gay, 9% bi, worked out from their appearance seed. It isn't shown on its own; it shows in who they end up with. Measured on guilds of 4 and 8 over two to four months, **about 96% of couples are a man and a woman**.
+- **Falling for each other.** Each Depot day, two Bonded adults at home together, drawn to each other and not Grieving, become partners with a 1.5% chance. A Bonded pair gets together after about two months at home on average; in 60-run test careers it came to about one couple per guild.
   - Someone who already has a partner is ×0.01 as likely to find another: **about 99% have one partner**.
   - It's in both Chronicles ("Became partners with Wren Gale.") and the news ("Dex and Wren are together now.").
 - **Together.** Partners are Bonded, so they get everything Bonded friends do, plus:
@@ -459,10 +460,10 @@ At most one event a day (a 20% chance), weighted:
 ## 12. Screens
 
 1. **Depot (home):** resource bar, buildings and their workers, active runs (countdown plus the latest beat), event inbox. *Built (PR 7):*
-   - The first tab and the screen the game opens on.
-   - "Since you last looked": the days that passed, what the Garden grew and the guild ate, ammo made, health healed, and the news.
-   - A trader's offers, with Trade and Send them on.
-   - Crews out, each building with its live numbers and workers, who is at the gate, buildings still to build, and Depot news.
+   - The first tab and the screen the game opens on. It grew long, so since 1.3.1 it has three tabs of its own:
+     - **Today** (the default): "Since you last looked" (the days that passed, what the Garden grew and the guild ate, ammo made, health healed, and the news), a food warning, a trader's offers (Trade, Send them on), crews out, who is at the gate, the gear, and the three latest news lines.
+     - **Buildings:** each building with its live numbers and workers, then those still to build. Coming back from a building returns here.
+     - **News:** the Depot news, up to 60 lines.
    - **A building's screen:** what it does now, the next level and its cost, and its workers (post someone, take them off; Training Yard workers pick a stat). The Workshop adds Make and Improve.
    - **At the gate:** the recruit board (§10).
    - Survivor sheets have a post picker.
@@ -479,7 +480,7 @@ At most one event a day (a 20% chance), weighted:
    - **Run report:** what came home, deaths, places found, the beat-by-beat log with the dice under each line, then what changed for each person. For example: *"Mara gained Rad-Hardened"*, *"Dex & Ava are now Friends"*, and the loot. It opens in place of the countdown when the crew gets back.
 7. **Memorial Wall:** faded portraits with the day and cause of death; tap one for their sheet and Chronicle. Opened from the bottom of the roster. *Built (PR 5).*
 8. **Settings:** mercy mode, notices when crews come back, portrait wobble, the tour, export and import save, load the backup copy, start a new guild, developer shortcuts and fast-forward (§11, §13). *Built (PR 5, 6, 10).*
-9. **The tour** (PR 10). A new guild starts with it, and Settings can show it again. A card pinned above the tab bar walks through 21 short steps in 7 parts: supplies, food, your people, runs, building, recruits, and time. Each step opens its screen and outlines what it's talking about, with live numbers where they help (what the Garden grows, what the first buildings cost). *Next*, *Skip this part* and *Skip tour* are always there. Opening the game mid-tour (from a notice, say) stays where it opened; the next step moves on from there.
+9. **The tour** (PR 10). A new guild starts with it, and Settings can show it again. A card pinned above the tab bar walks through 22 short steps in 7 parts: supplies, food, your people, runs, building, recruits, and time. Each step opens its screen and outlines what it's talking about, with live numbers where they help (what the Garden grows, what the first buildings cost). *Next*, *Skip this part* and *Skip tour* are always there. Opening the game mid-tour (from a notice, say) stays where it opened; the next step moves on from there.
 10. **Gear** (1.1.1). The stash by slot (weapons, armor, tools, trinkets), each piece with a *Give* button that lists everyone: those at the Depot can take it, those out on a run can't yet. Below, what each person carries; tap someone for their sheet. Opened from the Depot's Gear panel, from the stash line on a survivor's sheet, and from a run report that found gear.
 
 **Navigation.** Tabs along the bottom: Depot, Roster, Reach, Runs, Settings. Survivors who are out show where they are and when they're back, on the roster and on their sheet.
@@ -577,7 +578,7 @@ Planned 2026-11-11, in this order, all on Opus:
 | 12 | Partners: romance (§5.1) | **done** (1.3.0) |
 | 13 | Vehicles and gas | |
 | 14 | Expansion: outposts and deeper areas | |
-| 15 | What's missing: rescue jobs, feuds that make someone quit, pets, the last gear drawings | |
+| 15 | What's missing: rescue jobs, feuds that make someone quit, pets, **ageing and babies**, the last gear drawings | |
 | 16 | The Vultures, a rival guild | |
 
 - **Tutorial.** Starts with a new guild, and can be replayed from Settings. It walks through the resources and how to get more of each, food and the Garden, why crews go out on runs, why to build, and taking in recruits. It's optional: the player can skip the whole thing, or skip ahead to the next part. Built as the tour (§12); later steps that add something to explain (gas, vehicles) add a step to it.
@@ -591,6 +592,22 @@ Planned 2026-11-11, in this order, all on Opus:
   - A run can take **several vehicles** and more people. A vehicle can be **lost**: wrecked on a run (its riders walk home, which takes longer) or stolen in a raid.
   - Big crews leave **fewer people at home**. Today an empty Depot only loses a little more in a raid, and the Garden still grows its base. This step makes a thin Depot clearly riskier, so a big convoy has a cost at home.
 - **Expansion.** Outposts on fully explored places extend the guild's reach (the Civ-style expansion). Places get deeper, more dangerous areas with better loot.
+- **Ageing** (part of step 15, asked for 2026-11-11, alongside babies). Everyone gets older in game time: a year every 365 game days, which is about 45 real days.
+  - Ages are fixed today. The portrait already greys hair by age, so faces would age on their own.
+  - To settle when building it:
+    - what old age does (stats slowly slipping past 60, say);
+    - whether anyone can die of old age;
+    - whether birthdays go in the Chronicle.
+- **Babies** (part of step 15, asked for 2026-11-11). Partners at the Depot sometimes have a baby, who grows up into a survivor.
+  - **Growing up in real time,** at the same pace as everyone else: 16 game years from birth to joining the roster, which is about two real years of play. Children are a long-term thing.
+  - **Meanwhile:** children eat and need a bed. Everyone at home sheds a little more stress with a child around, and older children (about 12, so roughly a year and a half in) can take light posts such as the Garden. They never go on runs.
+  - **From their parents:** a face that mixes both parents', stats that lean toward theirs, a chance to inherit a personality trait, and the family surname.
+  - To settle when building it:
+    - how often a couple has a baby;
+    - whether the mother stays home for the last stretch before the birth;
+    - whether couples who can't have children can take in an orphan (rescue jobs, also in step 15 — Claude's suggestion);
+    - what losing a parent does to a child;
+    - a tour step or a news line for the first birth.
 - **The Vultures.** A rival guild competing for places. They raid, trade, and turn up on runs.
 
 **Later ideas:** weather and seasons, planned Depot defense during raids, interactive combat. Runs are decided at departure, so a hands-on fight would fit where the player is there when it happens: a raid on the Depot, or a nemesis met again.
@@ -605,5 +622,7 @@ Decided 2026-11-11:
 - The player doesn't name the guild.
 - Survivors are male or female (until 1.2.2 some were *they*).
 - People resting until healed can't take a new post.
+- Survivors have an orientation (85% straight, 6% gay, 9% bi), so about 96% of couples are a man and a woman.
+- Ageing and babies: yes, in step 15. Everyone ages a year every 365 game days, and children grow up at that pace (about two real years to 16). They help a little at the Depot and inherit looks, a stat lean and maybe a trait.
 
 No open questions right now.

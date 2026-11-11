@@ -6,6 +6,8 @@ describe('routes', () => {
   test('round-trip through the hash', () => {
     const routes: Route[] = [
       { screen: 'depot' },
+      { screen: 'depot', tab: 'buildings' },
+      { screen: 'depot', tab: 'news' },
       { screen: 'building', id: 'garden' },
       { screen: 'recruits' },
       { screen: 'gear' },
@@ -27,6 +29,8 @@ describe('routes', () => {
   test('anything unknown or incomplete lands somewhere sensible', () => {
     assert.deepEqual(parseRoute(''), { screen: 'depot' });
     assert.deepEqual(parseRoute('#/nowhere'), { screen: 'depot' });
+    assert.deepEqual(parseRoute('#/depot/today'), { screen: 'depot' });
+    assert.deepEqual(parseRoute('#/depot/attic'), { screen: 'depot' });
     assert.deepEqual(parseRoute('#/s/'), { screen: 'depot' });
     assert.deepEqual(parseRoute('#/b'), { screen: 'depot' });
     assert.deepEqual(parseRoute('#/s/s1/nonsense'), { screen: 'survivor', id: 's1', tab: 'stats' });

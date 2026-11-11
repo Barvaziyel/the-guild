@@ -48,7 +48,7 @@ export function App() {
   let screen;
   switch (route.screen) {
     case 'depot':
-      screen = <Depot state={s} now={now} away={time.away} onDismissAway={time.dismissAway} />;
+      screen = <Depot state={s} now={now} tab={route.tab ?? 'today'} away={time.away} onDismissAway={time.dismissAway} />;
       break;
     case 'building':
       screen = <Building key={route.id} state={s} id={route.id} />;

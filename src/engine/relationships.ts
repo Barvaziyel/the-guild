@@ -3,7 +3,6 @@ import {
   AFFINITY_MAX,
   AFFINITY_MIN,
   PARTNER_DAILY_CHANCE,
-  PARTNER_OTHER_PAIR_FACTOR,
   PARTNER_SECOND_FACTOR,
   PARTNER_SPLIT_SCORE,
   REL_AFFINITY_SCALE,
@@ -187,19 +186,24 @@ export function partnerOf(state: GameState, id: string): Survivor | undefined {
   return state.survivors.find((o) => o.id !== id && arePartners(state, id, o.id));
 }
 
-const isCouple = (a: Survivor, b: Survivor): boolean => (a.pronouns === 'he' && b.pronouns === 'she') || (a.pronouns === 'she' && b.pronouns === 'he');
+/** Whether `a` could fall for `b`: straight for the other sex, gay for their own, bi for either. */
+export function drawnTo(a: Survivor, b: Survivor): boolean {
+  if (a.orientation === 'bi') return true;
+  const sameSex = a.pronouns === b.pronouns;
+  return a.orientation === 'gay' ? sameSex : !sameSex;
+}
 
 /**
  * The chance, on a day at the Depot together, that two survivors become
- * partners. Only Bonded adults who aren't grieving. About 96% of couples are a
- * man and a woman, and about 99% of people stay with one partner.
+ * partners: Bonded adults drawn to each other who aren't grieving. About 99%
+ * of people stay with one partner.
  */
 export function romanceChance(state: GameState, a: Survivor, b: Survivor): number {
   if (a.id === b.id || a.age < 18 || b.age < 18) return 0;
+  if (!drawnTo(a, b) || !drawnTo(b, a)) return 0;
   if (relationshipLabel(state, a.id, b.id) !== 'bonded' || arePartners(state, a.id, b.id)) return 0;
   if (a.traits.some((t) => t.id === 'grieving') || b.traits.some((t) => t.id === 'grieving')) return 0;
   let p = PARTNER_DAILY_CHANCE;
-  if (!isCouple(a, b)) p *= PARTNER_OTHER_PAIR_FACTOR;
   if (partnerOf(state, a.id) || partnerOf(state, b.id)) p *= PARTNER_SECOND_FACTOR;
   return p;
 }
