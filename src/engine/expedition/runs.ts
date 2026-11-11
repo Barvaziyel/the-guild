@@ -3,7 +3,8 @@
  * log while they're away, and applying the outcome when they come home.
  */
 import { addChronicle, addGuildLog } from '../chronicle.ts';
-import { MAX_REPORTS } from '../constants.ts';
+import { MAX_REPORTS, STRESS_MAX } from '../constants.ts';
+import { buildingName, trimPosts } from '../depot/buildings.ts';
 import { ENEMIES, getLocation } from '../content/index.ts';
 import { dayAt, withRng } from '../game.ts';
 import { newId } from '../ids.ts';
@@ -12,7 +13,7 @@ import { pairKey, relationshipLabel } from '../relationships.ts';
 import { Rng } from '../rng.ts';
 import { fullName } from '../text.ts';
 import { addTrait, hasTrait } from '../traits.ts';
-import type { Beat, GameState, Run, RunDeath, RunPlan, RunReport, RunSummary, Survivor } from '../types.ts';
+import type { Beat, DepartureMark, GameState, Run, RunDeath, RunPlan, RunReport, RunSummary, Survivor } from '../types.ts';
 import { RESOURCE_IDS, SLOTS } from '../types.ts';
 import { rationsPacked, validatePlan } from './plan.ts';
 import { simulateRun } from './sim.ts';
@@ -47,6 +48,7 @@ export function startRun(state: GameState, plan: RunPlan, now: number): Run {
   state.resources.ammo -= plan.ammo;
   for (const id of plan.crew) {
     const s = state.survivors.find((x) => x.id === id)!;
+    run.departed = { ...run.departed, [s.id]: { traits: s.traits.map((t) => t.id), stress: s.stress, chronicle: s.chronicle.length } };
     s.status = 'away';
   }
   state.runs.push(run);
@@ -69,6 +71,25 @@ export function dueRuns(state: GameState, now: number): Run[] {
 function summaryOf(run: Run): RunSummary {
   const { crew: _crew, relationships: _relationships, ...summary } = run.result;
   return summary;
+}
+
+/**
+ * A crew member coming home: the run's copy of them (taken at departure),
+ * plus what happened to them at the Depot while they were out. Their post is
+ * the Depot's to change; Grief over another crew's dead, news of a nemesis,
+ * and the Chronicle lines that came with them were written to the real record.
+ */
+function homecoming(home: Survivor, after: Survivor, departed: DepartureMark | undefined): Survivor {
+  if (home.post) after.post = home.post;
+  else delete after.post;
+  if (!departed) return after;
+  for (const t of home.traits) {
+    if (!departed.traits.includes(t.id) && !after.traits.some((x) => x.id === t.id)) after.traits.push(t);
+  }
+  after.stress = Math.max(0, Math.min(STRESS_MAX, after.stress + home.stress - departed.stress));
+  const notes = home.chronicle.slice(departed.chronicle);
+  if (notes.length > 0) after.chronicle = [...after.chronicle, ...notes].sort((a, b) => a.day - b.day);
+  return after;
 }
 
 /** Those left behind: friends grieve, and the closest are changed by it. */
@@ -113,11 +134,12 @@ export function completeRun(state: GameState, runId: string, now: number): RunRe
   const crewNames: Record<string, string> = {};
   const lost = result.outcome === 'lost';
 
-  // The crew as the run left them.
-  for (const after of result.crew) {
-    crewNames[after.id] = fullName(after);
-    const i = state.survivors.findIndex((s) => s.id === after.id);
+  // The crew as the run left them, with what happened to them at home meanwhile.
+  for (const ran of result.crew) {
+    const i = state.survivors.findIndex((s) => s.id === ran.id);
     if (i < 0) continue;
+    const after = homecoming(state.survivors[i]!, ran, run.departed?.[ran.id]);
+    crewNames[after.id] = fullName(after);
     if (after.status === 'dead') {
       state.survivors.splice(i, 1);
       state.memorial.push(after);
@@ -150,6 +172,9 @@ export function completeRun(state: GameState, runId: string, now: number): RunRe
   }
 
   for (const id of result.events) state.eventsSeen[id] = (state.eventsSeen[id] ?? 0) + 1;
+  for (const { survivor, building } of trimPosts(state)) {
+    addGuildLog(state, day, `The ${buildingName(state, building)} had no room left, so ${fullName(survivor)} is off it now.`, ['post', survivor.id]);
+  }
 
   const solo = result.crew.length === 1 ? result.crew[0]!.firstName : undefined;
   const outcomeText = { completed: 'returned from', turnedBack: 'came back early from', routed: solo ? 'was routed at' : 'were routed at', lost: 'never came back from' }[result.outcome];

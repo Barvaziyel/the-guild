@@ -7,6 +7,9 @@ import { adjustRelationship } from '../relationships.ts';
 import { deserialize, serialize } from '../save.ts';
 import { T0, openGame, testGame, testPlan } from '../test-utils.ts';
 import { addTrait, hasTrait } from '../traits.ts';
+import { addChronicle } from '../chronicle.ts';
+import { assignPost, postedTo, trimPosts, workerSlots } from '../depot/buildings.ts';
+import { Rng } from '../rng.ts';
 import type { GameState, Run } from '../types.ts';
 import { hungryCrew, planWarnings, rationsNeeded, rationsPacked, runDuration, validatePlan } from './plan.ts';
 import { completeDueRuns, completeRun, dueRuns, estimateRisk, markReportRead, startRun, visibleBeats } from './runs.ts';
@@ -309,5 +312,71 @@ describe('save migration', () => {
     assert.equal(locationState(loaded, 'rail_yard').discovered, true);
     assert.equal(locationState(loaded, 'the_glow').discovered, false);
     assert.deepEqual(loaded.survivors, state.survivors);
+  });
+});
+
+describe('coming home', () => {
+  test('a post changed while someone was out sticks, and nobody overfills a building', () => {
+    const state = openGame('home-post');
+    for (const s of state.survivors) delete s.post;
+    const [a, b, c] = state.survivors;
+    assignPost(state, a!.id, { building: 'garden' });
+    assignPost(state, b!.id, { building: 'garden' });
+    const run = startRun(state, testPlan(state, 'maple_street', { crew: [a!.id] }), T0);
+    assignPost(state, a!.id, undefined);
+    assignPost(state, c!.id, { building: 'garden' });
+    completeRun(state, run.id, run.returnAt);
+    assert.equal(state.survivors.find((s) => s.id === a!.id)!.post, undefined);
+    assert.deepEqual(
+      postedTo(state, 'garden').map((s) => s.id).sort(),
+      [b!.id, c!.id].sort(),
+    );
+  });
+
+  test('what happened at the Depot meanwhile (grief, news, stress) survives the return', () => {
+    const state = openGame('home-merge');
+    const plan = testPlan(state, 'maple_street');
+    const a = state.survivors.find((s) => s.id === plan.crew[0])!;
+    a.traits = a.traits.filter((t) => t.id !== 'grieving');
+    a.stress = 40;
+    const run = startRun(state, plan, T0);
+    const runStress = run.result.crew.find((s) => s.id === a.id)!.stress;
+    // While the crew is out, a friend dies on another run and news arrives.
+    const away = state.survivors.find((s) => s.id === a.id)!;
+    addTrait(away, 'grieving', { day: 1, rng: new Rng('g') });
+    addChronicle(away, 1, 'Mourned someone from another crew.');
+    away.stress -= 10;
+    completeRun(state, run.id, run.returnAt);
+    const back = state.survivors.find((s) => s.id === a.id)!;
+    assert.ok(hasTrait(back, 'grieving'));
+    assert.ok(back.chronicle.some((c) => c.text === 'Mourned someone from another crew.'));
+    assert.equal(back.stress, Math.max(0, runStress - 10));
+    const days = back.chronicle.map((c) => c.day);
+    assert.deepEqual(days, [...days].sort((x, y) => x - y), 'the Chronicle stays in day order');
+  });
+
+  test('an over-full building keeps those at home first', () => {
+    const state = openGame('trim');
+    for (const s of state.survivors) delete s.post;
+    const [a, b, c] = state.survivors;
+    for (const s of [a!, b!, c!]) s.post = { building: 'garden' };
+    a!.status = 'away';
+    const removed = trimPosts(state);
+    assert.deepEqual(
+      removed.map((r) => r.survivor.id),
+      [a!.id],
+    );
+    assert.equal(postedTo(state, 'garden').length, workerSlots(state, 'garden'));
+  });
+
+  test('a save with an over-full building is put right when loaded, with a note in the news', () => {
+    const state = openGame('v7');
+    for (const s of state.survivors) delete s.post;
+    for (const s of state.survivors.slice(0, 3)) s.post = { building: 'garden' };
+    const old = structuredClone(state) as unknown as Record<string, unknown>;
+    old.version = 7;
+    const loaded = deserialize(JSON.stringify(old));
+    assert.equal(postedTo(loaded, 'garden').length, workerSlots(loaded, 'garden'));
+    assert.ok(loaded.log.some((l) => /had more workers than room, so .* is off it now\./.test(l.text)));
   });
 });

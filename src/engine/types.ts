@@ -421,6 +421,14 @@ export interface RunResult extends RunSummary {
   relationships: Relationship[];
 }
 
+/** A crew member as they left, so what happens to them at the Depot meanwhile survives their return. */
+export interface DepartureMark {
+  traits: string[];
+  stress: number;
+  /** Chronicle length when they left. */
+  chronicle: number;
+}
+
 export interface Run {
   id: string;
   plan: RunPlan;
@@ -430,6 +438,8 @@ export interface Run {
   rations: number;
   beats: Beat[];
   result: RunResult;
+  /** By survivor id. Missing on runs sent before save version 8. */
+  departed?: Record<string, DepartureMark>;
 }
 
 /** A finished run kept for the report screen. */

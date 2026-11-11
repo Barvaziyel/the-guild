@@ -1,5 +1,7 @@
 import { DAY_MS, SAVE_VERSION } from './constants.ts';
-import { defaultPosts, initialBuildings } from './depot/buildings.ts';
+import { addGuildLog } from './chronicle.ts';
+import { buildingName, defaultPosts, initialBuildings, trimPosts } from './depot/buildings.ts';
+import { fullName } from './text.ts';
 import { initialLocations } from './locations.ts';
 import type { GameState } from './types.ts';
 
@@ -51,6 +53,14 @@ const MIGRATIONS: Record<number, (save: Record<string, unknown>) => void> = {
   // v7: nemeses (roadmap step 11). Named weapons and nicknames only fill fields that were already optional.
   6: (save) => {
     save.nemeses ??= [];
+  },
+  // v8: a crew coming home used to bring back the post they left with, even if
+  // someone else had taken it meanwhile, overfilling the building. Undo that.
+  7: (save) => {
+    const state = save as unknown as GameState;
+    for (const { survivor, building } of trimPosts(state)) {
+      addGuildLog(state, state.depot.lastDay, `The ${buildingName(state, building)} had more workers than room, so ${fullName(survivor)} is off it now. Choose a new post from the sheet.`, ['post', survivor.id]);
+    }
   },
 };
 
