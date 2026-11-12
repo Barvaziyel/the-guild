@@ -23,6 +23,7 @@ import {
 } from '../../engine/index.ts';
 import { keeperLine } from '../animals-view.ts';
 import { postChoices } from '../depot-view.ts';
+import { childOriginLine, familyLines, growingLine, isChild, noRoomLine } from '../family-view.ts';
 import { outpostChoices } from '../outposts-view.ts';
 import { postLink, postValue, projectChoices } from '../projects-view.ts';
 import { BondBar, Meter, Vitals } from '../components/Bars.tsx';
@@ -73,7 +74,9 @@ export function SurvivorSheet({ state, id, tab, day, now }: Props) {
   }
   // The dead and those who walked out are kept for their story, and can't be changed.
   const dead = s.status === 'dead' || s.status === 'left';
-  const tabs: SheetTab[] = dead ? ['stats', 'story'] : ['stats', 'bonds', 'story'];
+  // Children aren't in the guild yet: no bonds, posts or gear.
+  const child = isChild(state, s.id);
+  const tabs: SheetTab[] = dead || child ? ['stats', 'story'] : ['stats', 'bonds', 'story'];
   const current = tabs.includes(tab) ? tab : 'stats';
 
   return (
@@ -93,7 +96,7 @@ export function SurvivorSheet({ state, id, tab, day, now }: Props) {
             className="sheet-tab"
             onClick={() => navigate({ screen: 'survivor', id, tab: t }, { replace: true })}
           >
-            {TAB_LABELS[t]}
+            {t === 'stats' && (dead || child) ? 'Stats' : TAB_LABELS[t]}
           </button>
         ))}
       </div>
@@ -101,9 +104,9 @@ export function SurvivorSheet({ state, id, tab, day, now }: Props) {
       <div id="sheet-panel" role="tabpanel" aria-labelledby={`tab-${current}`}>
         {current === 'stats' && (
           <>
-            <StatsPanel survivor={s} />
+            <StatsPanel survivor={s} growing={child} />
             <TraitsPanel survivor={s} />
-            {!dead && <GearPanel state={state} survivor={s} />}
+            {!dead && !child && <GearPanel state={state} survivor={s} />}
           </>
         )}
         {current === 'bonds' && <BondsPanel state={state} survivor={s} />}
@@ -130,6 +133,8 @@ function SheetHeader({ state, survivor: s, day, now }: { state: GameState; survi
   const [renaming, setRenaming] = useState(false);
   const dead = s.status === 'dead';
   const gone = dead || s.status === 'left';
+  const child = isChild(state, s.id);
+  const family = [...familyLines(state, s, day), ...(gone ? [] : [noRoomLine(state, s)].filter((l): l is string => l !== undefined))];
   const status = survivorStatus(s, day);
   const keeps = gone ? undefined : keeperLine(state, s.id);
   const run = runOfSurvivor(state, s.id);
@@ -143,10 +148,15 @@ function SheetHeader({ state, survivor: s, day, now }: { state: GameState; survi
             {s.nickname && <span className="nick">&ldquo;{s.nickname}&rdquo;</span>}
             <span className="last">{s.lastName}</span>
           </h2>
-          <p className="sheet-origin">{originLine(s)}</p>
+          <p className="sheet-origin">{child ? childOriginLine(s, day) : originLine(s)}</p>
           <p className="sheet-sex">{sexLabel(s)}</p>
           {!gone && partnerLine(state, s) && <p className="sheet-partner">{partnerLine(state, s)}</p>}
           {keeps && <p className="sheet-partner">{keeps}</p>}
+          {family.map((line) => (
+            <p key={line} className="sheet-partner">
+              {line}
+            </p>
+          ))}
           {!gone && !renaming && (
             <button type="button" className="btn btn-small btn-quiet rename-btn" onClick={() => setRenaming(true)}>
               Rename
@@ -156,7 +166,11 @@ function SheetHeader({ state, survivor: s, day, now }: { state: GameState; survi
       </div>
       {renaming && <RenameForm survivor={s} onDone={() => setRenaming(false)} />}
       <p className="backstory">{s.backstory}</p>
-      {gone ? (
+      {child ? (
+        <div className="sheet-condition">
+          <p className="status status-ready">{growingLine(s, day)}</p>
+        </div>
+      ) : gone ? (
         <div className="death">
           <p>
             {dead ? `Died on day ${s.diedDay}. ${s.causeOfDeath ? `${s.causeOfDeath}.` : ''}` : `Gone since day ${s.leftDay}. ${s.leftReason ?? ''}`}
@@ -298,13 +312,14 @@ function RenameForm({ survivor: s, onDone }: { survivor: Survivor; onDone: () =>
 
 // ---------------------------------------------------------------- stats
 
-function StatsPanel({ survivor: s }: { survivor: Survivor }) {
+function StatsPanel({ survivor: s, growing = false }: { survivor: Survivor; growing?: boolean }) {
   const d = derived(s);
   return (
     <section className="panel" aria-labelledby="stats-title" data-tour="stats">
       <h3 id="stats-title" className="panel-title">
         Stats
       </h3>
+      {growing && <p className="panel-help">What {pronounForms(s.pronouns).they} will bring to the guild at 16.</p>}
       <ul className="stats">
         {statRows(s).map((r) => (
           <li key={r.id} className="stat">
@@ -319,7 +334,8 @@ function StatsPanel({ survivor: s }: { survivor: Survivor }) {
               {r.maxed ? (
                 <span className="stat-note">As good as anyone gets.</span>
               ) : (
-                s.status !== 'dead' && (
+                s.status !== 'dead' &&
+                !growing && (
                   <Meter label="Practice" value={r.practice} max={r.needed} reading={`${r.practice} / ${r.needed} to reach ${r.base + 1}`} kind="practice" />
                 )
               )}

@@ -39,7 +39,8 @@ describe('content integrity', () => {
 
   test('conditions have durations', () => {
     for (const t of TRAITS) {
-      if (t.kind === 'condition') {
+      // Expecting and Nearly Due end with the birth, not after a set time (§5.3).
+      if (t.kind === 'condition' && !['expecting', 'nearly_due'].includes(t.id)) {
         assert.ok(t.durationDays, `${t.id} needs durationDays`);
         assert.ok(t.durationDays[0] <= t.durationDays[1]);
       }
@@ -67,7 +68,8 @@ describe('content integrity', () => {
       for (const id of o.startingExtras?.gear ?? []) assert.ok(findGear(id), `${o.id} -> ${id}`);
       for (const stat of STAT_IDS) assert.ok(o.statWeights[stat] > 0, `${o.id}.${stat}`);
       assert.ok(o.backstories.length > 0);
-      assert.ok(o.ageRange[0] >= 18, 'all survivors are adults');
+      // Recruits are adults; the Depot-born join at 16 and are never rolled.
+      assert.ok(o.ageRange[0] >= (o.weight > 0 ? 18 : 16), 'all survivors are adults');
     }
   });
 

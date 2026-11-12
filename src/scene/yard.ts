@@ -7,7 +7,7 @@ import type { AnimalKind, BuildingId, ProjectId } from '../engine/types.ts';
 import { BUILDING_BASE, BUILDING_DRAWINGS, bulbs, flame, stationHouse } from './buildings.ts';
 import { C, circle, hash, hit, ink, line, mix, pathEl, rect, tappable } from './draw.ts';
 import { figure, trader } from './figures.ts';
-import { BUILDING_AREAS, GATE, GATE_SPOTS, H, IDLE_SPOTS, PARKING_X, POST_SPOTS, PROJECT_SPOTS, REST_SPOTS, W, Y, type Spot } from './layout.ts';
+import { BUILDING_AREAS, CHILD_SPOTS, GATE, GATE_SPOTS, H, IDLE_SPOTS, PARKING_X, POST_SPOTS, PROJECT_SPOTS, REST_SPOTS, W, Y, type Spot } from './layout.ts';
 import { PROJECT_BASE, PROJECT_DRAWINGS, wallRun, wallShare, type ProjectLook } from './projects.ts';
 import type { DayPhase, YardModel, YardPerson } from './model.ts';
 import { vehicle } from './vehicles.ts';
@@ -46,6 +46,10 @@ export function spotFor(person: YardPerson): Spot | undefined {
       return (p.infirmary ? REST_SPOTS.infirmary : REST_SPOTS.bunks)[p.slot];
     case 'gate':
       return GATE_SPOTS[p.slot];
+    case 'child': {
+      const spot = CHILD_SPOTS[p.slot];
+      return spot && p.baby ? { ...spot, pose: 'sit' } : spot;
+    }
   }
 }
 
@@ -211,8 +215,9 @@ export function yardSvg(model: YardModel): string {
     if (!spot) continue;
     // People at a building stand in front of it, even up on a platform.
     const y = p.place.kind === 'post' ? Math.max(spot.y, BUILDING_BASE[p.place.building] + 0.5) : p.place.kind === 'project' ? Math.max(spot.y, (PROJECT_BASE[p.place.project] ?? 0) + 0.5) : spot.y;
-    const tall = spot.pose === 'lie' ? 14 : 30;
-    const wide = spot.pose === 'lie' ? 30 : 16;
+    const size = p.look.size ?? 1;
+    const tall = (spot.pose === 'lie' ? 14 : 30) * size;
+    const wide = (spot.pose === 'lie' ? 30 : 16) * Math.max(size, 0.8);
     const body = hit(spot.x - wide / 2, spot.y - tall, wide, tall + 2) + figure(p.look, spot, p.id);
     items.push({ y, svg: tappable(`s:${p.id}`, p.go, p.label, body) });
   }

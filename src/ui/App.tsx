@@ -7,6 +7,7 @@ import { tabFor, type Route, type TabScreen } from './route.ts';
 import { joinNames, noticesFor, reportFirstNames, unreadCount } from './runs-view.ts';
 import { dilemmaNotices } from './dilemma-view.ts';
 import { rescueNotices } from './rescue-view.ts';
+import { familyNoticeKey, familyNotices } from './family-view.ts';
 import { Building } from './screens/Building.tsx';
 import { Depot } from './screens/Depot.tsx';
 import { Gear } from './screens/Gear.tsx';
@@ -160,10 +161,11 @@ function useNotices(state: GameState | null): void {
         ...state.runs.map((r) => `${r.id}@${r.returnAt}`),
         d ? `d${d.day}` : `n${state.dilemmas.nextDay}`,
         call ? `c${call.day}${call.runId ?? ''}` : `h${state.rescue.nextDay}@${state.buildings.radio_tower ?? 0}`,
+        familyNoticeKey(state),
       ].join(',')
     : '';
   useEffect(() => {
-    notifier.sync(notify && state ? [...noticesFor(state), ...dilemmaNotices(state), ...rescueNotices(state)] : []);
+    notifier.sync(notify && state ? [...noticesFor(state), ...dilemmaNotices(state), ...rescueNotices(state), ...familyNotices(state)] : []);
     // Re-sync only when the crews, their return times, or the decisions due change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, notify, notifier]);

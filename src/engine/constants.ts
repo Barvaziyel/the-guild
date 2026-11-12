@@ -6,7 +6,7 @@
 import type { BuildingId, Quality, RelationshipLabel, ResourceId, Resources } from './types.ts';
 
 /** Save format version. Bump together with a migration in save.ts. */
-export const SAVE_VERSION = 16;
+export const SAVE_VERSION = 17;
 
 // ---------------------------------------------------------------- time
 
@@ -580,3 +580,46 @@ export const GOAT_MILK = 1;
 export const CROW_SCRAP_CHANCE = 0.15;
 export const CROW_SCRAP: readonly [number, number] = [1, 3];
 export const CROW_TRINKET_CHANCE = 0.01;
+
+// ---------------------------------------------------------------- ageing (§5.2, 1.10.0)
+
+/** Game days in a year: everyone has a birthday this often (about 45 real days). */
+export const YEAR_DAYS = 365;
+/** From this age, each birthday may take a point off Grit, Brawn or Aim. */
+export const DECLINE_AGE = 60;
+export const DECLINE_CHANCE = 0.5;
+/** Stats don't decline below this. */
+export const DECLINE_FLOOR = 2;
+/** From this age, a small chance each day at the Depot of dying peacefully: the base times (age - 64)². About 10% a year at 70. */
+export const OLD_AGE_AGE = 65;
+export const OLD_AGE_DEATH_BASE = 0.0000076;
+
+// ---------------------------------------------------------------- babies and children (§5.3, 1.10.0)
+
+/**
+ * The day's chance that partners, both at the Depot with an empty bed, find a
+ * baby is on the way: about one in every 100 days they're home together (12
+ * real days). A busy guild keeps them apart most days, so in play it's rarer.
+ */
+export const CONCEIVE_CHANCE = 0.01;
+/** Mothers between these ages. */
+export const MOTHER_AGES: readonly [number, number] = [18, 42];
+/** Game days from finding out to the birth (about 34 real days). */
+export const PREGNANCY_DAYS = 270;
+/** For the last of them she stays at the Depot (about 10 real days). */
+export const NEARLY_DUE_DAYS = 80;
+/** Game days after a birth before the same couple has another (about 3 real months). */
+export const BABY_GAP_DAYS = 730;
+/** Children join the guild at this age, and help in the Garden from that one. */
+export const ADULT_AGE = 16;
+export const CHILD_HELP_AGE = 12;
+/** What a child eats a day, and what one of 12 or more adds to the Garden. */
+export const CHILD_RATIONS = 0.5;
+export const CHILD_GARDEN = 0.5;
+/** Stress everyone at the Depot sheds with children around: per child, at most the cap. */
+export const CHILD_RELIEF = 1;
+export const CHILD_RELIEF_MAX = 2;
+/** New parents shed this much stress. */
+export const BIRTH_RELIEF = 15;
+/** Relationship between someone who grows up at the Depot and each parent. */
+export const REL_FAMILY = 50;

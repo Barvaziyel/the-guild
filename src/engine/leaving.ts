@@ -4,6 +4,7 @@
  * (`content/dilemmas.ts`). They're kept in `state.departed` for their story.
  */
 import { rehomeAnimals } from './animals.ts';
+import { parentGone } from './family.ts';
 import { addChronicle, addGuildLog } from './chronicle.ts';
 import { PARTNER_LEFT_STRESS } from './constants.ts';
 import { arePartners, removeFlag } from './relationships.ts';
@@ -34,6 +35,7 @@ export function leaveGuild(state: GameState, s: Survivor, day: number, reason: s
     addChronicle(o, day, `Was left behind when ${fullName(s)} walked out.`, ['left', s.id]);
   }
   rehomeAnimals(state, s, day, 'left');
+  parentGone(state, s, day, 'left');
 }
 
 /** ", taking a Hunting Rifle and a Scrap Vest", or nothing. */

@@ -362,5 +362,5 @@ export function memorialOrder(state: GameState): Survivor[] {
 }
 
 export function findAnySurvivor(state: GameState, id: string): Survivor | undefined {
-  return state.survivors.find((s) => s.id === id) ?? state.memorial.find((s) => s.id === id) ?? state.departed.find((s) => s.id === id);
+  return [...state.survivors, ...state.children, ...state.memorial, ...state.departed].find((s) => s.id === id);
 }

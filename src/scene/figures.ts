@@ -104,7 +104,7 @@ export function figure(look: FigureLook, spot: Spot, seedKey: string): string {
   const delay = (hash(seedKey) % 2000) / 1000;
   const anim = spot.pose === 'lie' ? 'yard-breathe' : 'yard-bob';
   return (
-    `<g transform="translate(${spot.x} ${spot.y}) scale(1.12)">` +
+    `<g transform="translate(${spot.x} ${spot.y}) scale(${+(1.12 * (look.size ?? 1)).toFixed(3)})">` +
     `<g class="${anim}" style="animation-delay:-${delay}s">${POSES[spot.pose](look, spot.facing)}</g>` +
     '</g>'
   );

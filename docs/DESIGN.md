@@ -199,6 +199,40 @@ Romance is uncommon, and a step beyond Bonded.
 - **Losing a partner** hits harder than losing a friend: Grieving lasts **7 days longer**, **+25 stress**, and the Chronicle says "Lost Dex Arlo, her partner." A widowed survivor can find someone new once the grief has passed.
 - **On screen:** the sheet says "Together with Wren Gale." under the name, and the partner comes first in Bonds, marked *Partners*.
 
+### 5.2 Ageing (1.10.0)
+
+Everyone gets a year older every 365 game days, about 45 real days. Asked for 2026-11-11; Aviel chose a slow decline and a rare peaceful death (2026-11-12).
+
+- **Birthdays.** Each survivor's falls on a day of the year from their appearance seed (no dice spent). It goes in the Chronicle: "Turned 31." Away on a run, it waits until they're home.
+- **The years tell, from 60.** Each birthday from 60 has a half chance of taking a point off Grit, Brawn or Aim, never below 2: "Turned 62, and the years are starting to tell: Brawn down to 5."
+- **Dying of old age, from 65.** Only at home, a chance each day of 0.0000076 × (age − 64)², which is about 10% a year at 70 and about 30% at 75. They go to the Memorial Wall ("Died peacefully at the Depot, at 72"), their gear goes to the stash, and friends grieve as for any death.
+- **Portraits** already grey with age and gain lines at 50, so faces age on their own.
+- **Measured** (the simulated player, 30 guilds over 10 real weeks): one guild in ten or so has someone over 60 by the end, and nobody died of old age. It's a long-game thing.
+- *Before 1.10.0, ages were fixed. Old saves get a birthday for everyone (save version 17).*
+
+### 5.3 Families (1.10.0)
+
+Partners at the Depot sometimes have a baby, who grows up there and joins the guild at 16. Asked for 2026-11-11; Aviel chose babies that are rare and come with a pregnancy (2026-11-12).
+
+- **A baby on the way.** Each day, a woman of 18 to 42 and her partner (a man), both at the Depot, find out a baby is on the way with a 1% chance, if a bed is empty. In the Chronicle of both and the news ("Mara and Tom are expecting a baby."). A mother waits about two years (730 days) after one baby before the next.
+  - **A bed.** The baby has one kept from the start, so nobody new takes it.
+  - **The pregnancy** lasts 270 game days (about 5 real weeks). The mother has *Expecting*; for the last 80 days (10 real days) she's *Nearly due*, and stays home. The baby comes on the day she's home and due.
+  - **The birth.** In both Chronicles ("Had a daughter, Nico.", "Became a father: a son, Kai.") and the news; each parent sheds 15 stress.
+- **A bed for a family.** The Bunks can keep a bed free (a switch on its screen): nobody new takes it, not recruits, not people crews bring home, and a couple can use it. Without it, an active guild's beds are always full (rescues and finds take them, §10), and babies almost never come. A couple's sheets say so when every bed is taken.
+- **Measured** (30 guilds over 10 real weeks, a person-like simulated player): with a bed kept free, about 0.8 to 0.9 pregnancies a guild and 0.3 to 0.6 babies born (more for a player who checks in less and leaves people home); without it, about 0.1 pregnancies. A busy guild has a couple home together on about one day in eight.
+- **The child.** Born *Depot-Born*, with the father's surname, and:
+  - a face that mixes theirs: the skin tone between the two, each other feature from one or the other;
+  - stats that lean toward theirs (a point up where their average is 6 or more, down where it's 3 or less);
+  - a half chance of one of a parent's ways (a visible personality trait), and their own hidden ones.
+- **Growing up in real time.** 16 game years, about two real years. Children live at the Depot and never go out, take posts, or turn up in events.
+  - They eat half a ration a day, and take a bed.
+  - Everyone at home sheds 1 more stress a day for each child (2 at most).
+  - From 12 they help in the Garden: half a ration a day each.
+  - At 16 they join the guild with a rusty pipe, on Friend terms with their parents ("Turned 16 and joined the guild.").
+- **Losing a parent** goes in the child's Chronicle: "Lost her mother, Mara Kell, at 6." or "Watched his father, Tom Voss, walk out of the Depot, at 9."
+- **Only a woman and a man** have babies. Taking in an orphan (a child to rescue, for couples without children) is a later idea.
+- **On screen:** a Children panel at the bottom of the Roster, each child with a sheet (stats and Chronicle; they can be renamed); family lines on the parents' sheets ("Expecting a baby, due in about 5 real weeks.", "Mother of Nico."); children smaller in the portrait and playing in front of the fire in the yard; beds counted with them; a notice on the due day and the day a child joins. The tour's bonds step mentions babies.
+
 ## 6. Stress
 
 - Stress runs from **0 to 100**.
@@ -680,7 +714,7 @@ Several kinds, each with its own effect (Aviel's choice). The guild keeps at mos
   - **Wanderers** (§9.3) turn up on their own and wait 3 days.
   - **Measured** with the person-like player over 5 weeks: of the people in a guild at day 35 who weren't founders, about 5 came from rescues and finds and about 3 from the radio and wanderers. Guilds fill their beds as fast as before, because beds are the limit.
 - **Candidate info.** Each candidate shows their origin, age, backstory, visible traits, and a hint when they have a hidden one. Without a Radio Tower, their stats show as rough ranges (one either side). A Radio Tower at level 2 or 3 brings recruits with 1 or 2 extra stat points, still no higher than 7.
-- **Taking someone in** is free but needs a free bed in the Bunks. They join with relationships to everyone and a first Chronicle entry.
+- **Taking someone in** is free but needs a free bed in the Bunks (not one kept for a family, §5.3). They join with relationships to everyone and a first Chronicle entry.
 - **Rescue jobs** (§10.1) bring in people who owe their rescuer a life.
 - **New game.** The guild starts with 4 generated survivors, 3 known locations, level 1 Bunks, Garden and Firepit, and 50 scrap, 24 rations, 3 meds and 15 ammo (20 scrap before 1.7.2). With 4 beds, the first recruit needs better Bunks.
 
@@ -863,7 +897,7 @@ Planned 2026-11-11, in this order, all on Opus:
 | — | Balance D: checked to the end of the content with a person-like simulated player; a faster first week, bigger trades (§9.1) | **done** (1.7.2) |
 | — | Projects and salvage (§9.6, §9.4), the long goal after the Depot | **done** (1.8.0) |
 | 17 | What's missing, in two parts (Aviel, 2026-11-12): **rescue jobs, feuds that make someone quit, animals and the last gear drawings** (§10.1, §9.5, §9.7) | **done** (1.9.0) |
-| 17b | **Ageing and babies** | next (1.10.0) |
+| 17b | **Ageing and babies** (§5.2, §5.3) | **done** (1.10.0) |
 | 18 | The Vultures, a rival guild | |
 
 - **Tutorial.** Starts with a new guild, and can be replayed from Settings. It walks through the resources and how to get more of each, food and the Garden, why crews go out on runs, why to build, and taking in recruits. It's optional: the player can skip the whole thing, or skip ahead to the next part. Built as the tour (§12); later steps that add something to explain (gas, vehicles) add a step to it.
@@ -885,19 +919,7 @@ Planned 2026-11-11, in this order, all on Opus:
 - **Weapon mods** (Aviel liked them, 2026-11-12): a scope, a suppressor, a bayonet, made from tech and spare gear.
 - **Second and third depots** (Aviel, 2026-11-12): new regions beyond the Reach that can be settled for real, not just held as outposts.
 - **The economy** (Aviel, 2026-11-12, after `claude/economy-design.md`): finishing the Depot should take about five real weeks; the road should cost stress so people's time is the limit (both in 1.7.1); **projects** (big multi-stage works, like Civ's wonders) are the long goal; later, **expanding to new places** beyond the Reach. What comes after Balance C is decided once it has been played. Other ideas on the table: long expeditions, improving outposts, contracts from other settlements, training courses that teach a trait, feasts on demand, weapon mods.
-- **Ageing** (part of step 17, asked for 2026-11-11, alongside babies). Everyone gets older in game time: a year every 365 game days, which is about 45 real days.
-  - Ages are fixed today. The portrait already greys hair by age, so faces would age on their own.
-  - **Decided (Aviel, 2026-11-12):** old age brings a slow decline, and the very old can rarely die peacefully at home, with a Chronicle line and grief for those close to them.
-  - Still to settle when building it: whether birthdays go in the Chronicle.
-- **Babies** (part of step 17, asked for 2026-11-11). Partners at the Depot sometimes have a baby, who grows up into a survivor.
-  - **Growing up in real time,** at the same pace as everyone else: 16 game years from birth to joining the roster, which is about two real years of play. Children are a long-term thing.
-  - **Meanwhile:** children eat and need a bed. Everyone at home sheds a little more stress with a child around, and older children (about 12, so roughly a year and a half in) can take light posts such as the Garden. They never go on runs.
-  - **From their parents:** a face that mixes both parents', stats that lean toward theirs, a chance to inherit a personality trait, and the family surname.
-  - **Decided (Aviel, 2026-11-12):** babies are rare (every few real months at most, with a free bed), and come with a pregnancy: the mother stays home for the last ~10 real days.
-  - Still to settle when building it:
-    - whether couples who can't have children can take in an orphan (a child to rescue, now that calls for help exist — Claude's suggestion);
-    - what losing a parent does to a child;
-    - a tour step or a news line for the first birth.
+- **Ageing and babies** (part of step 17, asked for 2026-11-11). *Built in 1.10.0 as §5.2 and §5.3.* Decided while building it: birthdays go in the Chronicle; losing a parent goes in the child's; no tour step (the bonds step mentions babies); orphans for couples without children come later.
 - **The Vultures.** A rival guild competing for places. They raid, trade, and turn up on runs.
 
 **Later ideas:** weather and seasons, planned Depot defense during raids, interactive combat. Runs are decided at departure, so a hands-on fight would fit where the player is there when it happens: a raid on the Depot, or a nemesis met again.
@@ -913,6 +935,6 @@ Decided 2026-11-11:
 - Survivors are male or female (until 1.2.2 some were *they*).
 - People resting until healed can't take a new post.
 - Survivors have an orientation (85% straight, 6% gay, 9% bi), so about 96% of couples are a man and a woman.
-- Ageing and babies: yes, in step 16. Everyone ages a year every 365 game days, and children grow up at that pace (about two real years to 16). They help a little at the Depot and inherit looks, a stat lean and maybe a trait.
+- Ageing and babies: yes. Everyone ages a year every 365 game days, and children grow up at that pace (about two real years to 16). They help a little at the Depot and inherit looks, a stat lean and maybe a trait. Built in 1.10.0 (§5.2, §5.3).
 
 No open questions right now.

@@ -1,4 +1,11 @@
-import { DAY_MS, RESCUE_FIRST_GAP, SAVE_VERSION } from './constants.ts';
+import { DAY_MS, RESCUE_FIRST_GAP, SAVE_VERSION, YEAR_DAYS } from './constants.ts';
+
+/** A small stable number from a string, for spreading birthdays over the year. */
+function hashText(text: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 16777619);
+  return h >>> 0;
+}
 import { addGuildLog } from './chronicle.ts';
 import { buildingName, defaultPosts, initialBuildings, trimPosts } from './depot/buildings.ts';
 import { fullName } from './text.ts';
@@ -138,6 +145,12 @@ const MIGRATIONS: Record<number, (save: Record<string, unknown>) => void> = {
     state.depot.strays ??= [];
     state.rescue ??= { nextDay: state.depot.lastDay + RESCUE_FIRST_GAP };
   },
+  16: (save) => {
+    // Ageing and children (1.10.0): everyone gets a birthday some time in the next year.
+    const state = save as unknown as GameState;
+    state.children ??= [];
+    for (const s of state.survivors) s.nextBirthday ??= state.depot.lastDay + 1 + (hashText(s.id) % YEAR_DAYS);
+  },
 };
 
 export function serialize(state: GameState): string {
@@ -188,7 +201,7 @@ function shapeProblem(data: Record<string, unknown>): string | undefined {
   for (const key of ['createdAt', 'lastUpdate', 'nextId'] as const) {
     if (typeof data[key] !== 'number' || !Number.isFinite(data[key])) return `${key} is missing`;
   }
-  for (const key of ['survivors', 'memorial', 'departed', 'animals', 'stash', 'runs', 'reports', 'log'] as const) {
+  for (const key of ['survivors', 'memorial', 'departed', 'children', 'animals', 'stash', 'runs', 'reports', 'log'] as const) {
     if (!Array.isArray(data[key])) return `${key} is missing`;
   }
   for (const key of ['rng', 'relationships', 'resources', 'locations', 'eventsSeen', 'settings', 'buildings', 'depot'] as const) {

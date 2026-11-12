@@ -1,14 +1,13 @@
-import { bunksCap, dayAt, getOrigin, recruitProblem, takeIn, withRng, type GameState } from '../../engine/index.ts';
+import { dayAt, getOrigin, hasFreeBunk, recruitProblem, takeIn, withRng, type GameState } from '../../engine/index.ts';
 import { Portrait } from '../components/Portrait.tsx';
 import { goBack, navigate, useAction } from '../hooks.ts';
-import { candidateNote, candidateStats, newMouthNote } from '../depot-view.ts';
+import { bedsLine, candidateNote, candidateStats, newMouthNote } from '../depot-view.ts';
 import { candidateTraitsLine as traitsLine } from '../depot-view.ts';
 import { hiddenTraitCount, sexLabel, traitName } from '../view.ts';
 
 export function Recruits({ state, day }: { state: GameState; day: number }) {
   const { act, error } = useAction();
-  const cap = bunksCap(state);
-  const full = state.survivors.length >= cap;
+  const full = !hasFreeBunk(state);
 
   return (
     <article className="sheet" aria-labelledby="gate-title">
@@ -22,7 +21,8 @@ export function Recruits({ state, day }: { state: GameState; day: number }) {
           At the gate
         </h2>
         <p className="place-facts">
-          {state.survivors.length} of {cap} beds taken.{full ? ' Improve the Bunks to take anyone in.' : ''}
+          {bedsLine(state)}
+          {full ? ' Improve the Bunks to take anyone in.' : ''}
         </p>
         {!full && state.depot.recruits.length > 0 && newMouthNote(state) && <p className="place-facts food-note">{newMouthNote(state)}</p>}
       </header>

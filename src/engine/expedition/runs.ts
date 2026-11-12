@@ -22,6 +22,7 @@ import { gasNeeded, planVehicles, vehicleName } from '../vehicles.ts';
 import { addStory, applyNemesisNews } from './stories.ts';
 import { answerCall, applyRescue, bringHomeFound } from '../rescue.ts';
 import { animalsFollowHome, rehomeAnimals } from '../animals.ts';
+import { parentGone } from '../family.ts';
 
 /**
  * Send a crew out. The whole run is simulated now and stored; nothing that
@@ -105,7 +106,7 @@ function homecoming(home: Survivor, after: Survivor, departed: DepartureMark | u
 }
 
 /** Those left behind: friends grieve, and the closest are changed by it. */
-function mourn(state: GameState, death: RunDeath, rng: Rng, day: number, cameBack: readonly string[] = []): void {
+export function mourn(state: GameState, death: RunDeath, rng: Rng, day: number, cameBack: readonly string[] = []): void {
   for (const s of state.survivors) {
     const label = relationshipLabel(state, s.id, death.survivorId);
     if (label !== 'friend' && label !== 'bonded') continue;
@@ -186,6 +187,7 @@ export function completeRun(state: GameState, runId: string, now: number): RunRe
       state.survivors.splice(i, 1);
       state.memorial.push(after);
       rehomeAnimals(state, after, day, 'died');
+      parentGone(state, after, day, 'died');
       if (!lost) bringGearHome(state, after, day, loc.name);
       addGuildLog(state, day, `${fullName(after)} died at ${loc.name}.`, ['death', after.id]);
     } else {

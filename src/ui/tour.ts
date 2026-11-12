@@ -187,7 +187,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     route: (state) => firstSurvivorRoute(state, 'bonds'),
     target: 'bonds',
     text: () =>
-      'People grow closer or further apart with everything they go through. Bonded friends look after each other on runs and help each other rest at home; rivals make it all harder, and a feud can end with someone walking out. Now and then two Bonded people become partners.',
+      'People grow closer or further apart with everything they go through. Bonded friends look after each other on runs and help each other rest at home; rivals make it all harder, and a feud can end with someone walking out. Now and then two Bonded people become partners, and partners sometimes have a baby, who grows up at the Depot and joins the guild at 16.',
   },
   {
     id: 'story',
@@ -195,7 +195,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     title: 'Their story',
     route: (state) => firstSurvivorRoute(state, 'story'),
     text: () =>
-      "What happens to people changes them: scars, new traits, friends and feuds. It's all written in their Chronicle, here on their sheet.",
+      "What happens to people changes them: scars, new traits, friends and feuds, and the years, a birthday every game year. It's all written in their Chronicle, here on their sheet.",
   },
 
   // ---------------------------------------------------------------- runs

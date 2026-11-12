@@ -278,6 +278,13 @@ export interface Survivor {
   post?: Post;
   /** Living at the guild's outpost at this place (§7.9), not at the Depot. */
   outpost?: string;
+  /** The game day of their next birthday (§5.2). Missed while away on a run, it comes when they're home. */
+  nextBirthday?: number;
+  /** Born at the Depot: the game day, and their mother's and father's ids (§5.3). */
+  bornDay?: number;
+  parents?: { mother: string; father: string };
+  /** Expecting a baby (§5.3): who the father is, and the game day it's due. */
+  expecting?: { father: string; dueDay: number };
 }
 
 // ---------------------------------------------------------------- relationships
@@ -683,6 +690,8 @@ export interface DepotState {
   unpaid?: BuildingId[];
   /** Animals at the gate (§9.7). */
   strays: Stray[];
+  /** One bed is kept free for a family (§5.3): nobody new takes it, and a couple at home can have a baby. */
+  familyBed?: boolean;
 }
 
 // ---------------------------------------------------------------- guild
@@ -715,6 +724,8 @@ export interface GameState {
   memorial: Survivor[];
   /** Survivors who walked out of the guild (status 'left'), kept for their story. */
   departed: Survivor[];
+  /** Children born at the Depot, until they turn 16 and join the guild (§5.3). */
+  children: Survivor[];
   /** Keyed by pairKey(a, b). */
   relationships: Record<string, Relationship>;
   stash: ItemInstance[];
