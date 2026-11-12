@@ -243,7 +243,9 @@ The guild starts with 3 known locations (The Rail Yard, Maple Street, Kessler Fa
    - **Retreat:** when anyone is below half HP (Wounded), when anyone is Downed, or never. Whatever the order, the crew heads home after a fight in which someone went down.
    - **Loot priority:** the resource to keep when there's more than the crew can carry.
 
-The planner shows the duration, warnings (rivals or feuds in the crew, injuries, high stress, guns without ammo) and a **simulated risk**. To get it, the engine quietly runs the same run with 50 different seeds and reports how often someone goes down or dies. The result is shown as Low, Moderate, High or Deadly.
+**Coming home tired** (1.6.1): everyone back from a run is **Exhausted** until the next game day (−1 Grit, −1 Brawn), so sending the same crew straight back out costs something. The planner warns about it.
+
+The planner shows the duration, warnings (rivals or feuds in the crew, injuries, high stress, guns without ammo, tired from the last run) and a **simulated risk**. To get it, the engine quietly runs the same run with 50 different seeds and reports how often someone goes down or dies. The result is shown as Low, Moderate, High or Deadly.
 
 ### 7.3 Resolution
 
@@ -285,14 +287,20 @@ A run has **3–8 beats**, depending on distance. Each beat is a type, weighted 
    - Beat it by 3 or more: the crew gets a free round.
    - **Sneaking past.** A Sneaky crew that spots the enemy (and isn't hunting) tries to slip by. The crew member with the *lowest* Wits rolls against 6 + danger. Heavy armor makes it harder.
    - **Talking it down.** Raiders can be stared down with a Nerve check against 12 + danger. Ferals can be calmed, but only by someone with a way with animals.
-2. **Rounds** (up to 6). Every combatant attacks: d10 + attack stat + weapon bonus vs. the target's defense of 7 + armor.
+2. **Rounds** (up to 6). Every combatant attacks: d10 + attack stat + weapon bonus vs. the target's defense.
    - Ranged attacks use Aim and spend ammo. Melee attacks use Brawn.
-   - A hit deals weapon damage minus armor soak, at least 1.
+   - **Survivors hit enemies** against the enemy's defense, for weapon damage minus the enemy's armor, at least 1.
+   - **Enemies hit survivors** against 7 + armor. Armor counts once (1.6.1): it makes hits rarer, and only heavy armor (3 or more) also takes 1 off each hit. Before 1.6.1 it also came off every hit in full, and a crew in Solid Scrap Vests was nearly untouchable even in the Glow.
    - Enemies pick targets at random, weighted toward Brave survivors. Survivors prefer enemies that are already hurt.
 3. **Trait hooks.** Cowardly survivors may flee. Hotheads charge in. Loyal survivors cover downed Bonded friends. Lucky survivors reroll.
 4. **Enemy morale.** Raiders and Ferals run once more than half the group is dead. Hollows and Scrapbots never break.
 5. **Retreat orders.** When the crew's standing order triggers, they attempt to withdraw with a group check. Failing gives the enemy one more round. A Vengeful survivor facing their sworn enemy blocks the retreat.
    - Enemy group size comes from a threat budget: (5 + 1.5 × danger) × a crew-size factor (0.6 / 0.85 / 1.1 / 1.35 for 1–4), up to 6 enemies.
+   - **Enemies are worse in dangerous places** (1.6.1). Deeper levels count with their extra danger.
+     - +1 attack and +1 damage at danger 3, +2 at 5, +3 at 7 (the heart of the Glow).
+     - From danger 4, +1 defense and +20% HP for each point (danger 4: +1, 5: +2, 7: +4).
+     - Two heavy kinds: the **Raider Enforcer** (Checkpoint Bravo, Red Hand Camp) and the **Hollow Hulk** (the Glow), each threat 8 and hitting for 7–8.
+     - Nemeses are scaled the same way before their own bonuses.
 6. **Log.** The log summarizes the fight rather than listing every swing, e.g. *"Rad-hounds burst out of the dark. Dex drops one with two shots. Mara is bitten (−5 HP)."*
 7. **Nemeses** (§7.7) can lead a fight at their place.
 
@@ -318,17 +326,28 @@ The wounded can't be sent on runs until they heal. If an ally's help lifted the 
 **Death save.** If a standing ally can reach a Medkit (theirs or the casualty's), it is used up and the survivor lives. A Medkit gives no bonus to the wound roll itself: it is one guaranteed life. Otherwise the survivor makes a Grit check against DC 12. If they fail, **they die**. Anyone who survives a mortal wound gains the **Survivor** trait.
 
 - **Target:** about 1 death per 30–50 runs at moderate danger with sensible orders. Reckless play at Deadly danger is much worse. Monte Carlo balance tests (`balance.test.ts`) simulate thousands of runs and check these rates stay in range.
-- **Measured** (fresh crew of 3, scavenging, Balanced, retreat when Downed, no Medkit; `npm run balance`):
+- **Measured in 1.6.1** (fresh crew of 3 with no gear, scavenging, Balanced, retreat when Downed, no Medkit; `npm run balance`):
 
-  | Danger | Someone goes down | Deaths |
+  | Danger | Someone goes down | Deaths | Runs finished |
+  |---|---|---|---|
+  | 1 | 0–1% of runs | almost never | 99–100% |
+  | 2 | 6–16% | 1 per 80–400 runs | 84–95% |
+  | 3 | 41–49% | 1 per 22–44 runs | 51–59% |
+  | 4 | 59–79% | 1 per 10–17 runs | 21–41% |
+  | 5 | 87% | 1 per 9 runs | 14% |
+
+  - A Medkit in the crew cuts deaths by 60–90% at danger 3 and 35–65% at danger 4–5.
+  - Never retreating and attacking aggressively at danger 4–5 costs a life every 6–8 runs.
+- **Gear matters, but danger 4–5 stay dangerous** (1.6.1). A *seasoned* crew has +1 to every stat (about two real weeks of growth), a Solid Hunting Rifle and a Solid Scrap Vest each, ammo and a Medkit. Over 300 runs each:
+
+  | Danger | Runs finished | Deaths |
   |---|---|---|
-  | 1 | 1% of runs | almost never |
-  | 2 | 6–17% | 1 per 90–290 runs |
-  | 3 | 23–39% | 1 per 30–45 runs |
-  | 4 | 49–67% | 1 per 14–21 runs |
-  | 5 | 76% | 1 per 14 runs |
+  | 1–2 | 100% | none |
+  | 3 | 99–100% | none |
+  | 4 | 75–83% | 1 per 300 runs or fewer |
+  | 5 | 42% | 1 per 100 runs |
 
-  A Medkit in the crew cuts deaths by 60–85%. Never retreating and attacking aggressively at danger 4–5 costs a life every 8 runs.
+  Before 1.6.1 the same crew finished every run at every place, the Glow included, with no deaths. `balance.test.ts` checks that a seasoned crew is safe at danger 3 but finishes under 65% of runs in the Glow, with deaths.
 - **Whole crew downed (a rout):** with nobody standing, nobody can help. Wound rolls get no ally bonuses and Medkits can't be used. The crew loses all loot and everyone gains +30 stress. In a crew of two or more, at least one member always survives to drag the others home, so there are no total wipes. A survivor who goes out **alone** has no such guarantee.
 - **Death:** the survivor goes to the Memorial Wall with their portrait, name, days survived, cause of death and Chronicle. Their gear comes home with the survivors.
 - **Mercy mode:** an optional setting where survivors are never killed and mortal wounds become scars instead. It's off by default.
@@ -337,7 +356,12 @@ The wounded can't be sent on runs until they heal. If an ally's help lifted the 
 
 - Loot comes as resource units and gear drops.
 - The crew can carry the sum of everyone's Carry. Anything beyond that is left behind.
-- Gear quality, from worst to best: **Rusty (−1) · Common · Solid (+1) · Prime (+2) · Relic (+2 and a unique perk)**. Relics come from deep locations and named enemies.
+- Gear quality, from worst to best: **Rusty (−1) · Common · Solid (+1) · Prime (+2) · Relic (+2 and a unique perk)**.
+- **Danger pays** (1.6.1): every load a crew carries home is worth 25% more for each point of the place's danger above 1, so the Glow gives double. Deeper levels multiply it further (§7.10). The report says so. Loot per run with a fresh crew is about 5 at danger 1, 9–13 at danger 2, 13 at danger 3. For a seasoned crew (§7.5) it's 6–7 at danger 1, 12–17 at danger 2, 23–27 at danger 3, 26–28 at danger 4 and 19 at danger 5, where they turn back more often.
+- **Relics** (1.6.1) turn up in two ways, and can't be made:
+  - at **the heart of a place** (§7.10), as a rare quality among found gear (weight 6, against about 100 for the others);
+  - from a **nemesis** killed for good, which always leaves one: a weapon or armor it hoarded.
+- A Relic's perk is +1 to one stat, fixed for each Relic and shown with its stats.
 
 ### 7.7 Stories: nemeses, nicknames, named weapons (1.2.0)
 
@@ -420,7 +444,8 @@ Each place has three levels: **the outskirts**, **deeper in** and **the heart of
 | The heart of it | +2 | +50% | ×2 | ×2 |
 
 - Danger past 5 is possible deep in the worst places.
-- Measured with crews of 4 at the Drowned Mall: deaths 1 in 200 runs at the outskirts, 1 in 38 deeper in, 1 in 29 at the heart. Loot per run 11.8, 15.6 and 13.9, because crews turn back more deep in; gear 0.27, 0.35, 0.39 a run. Deeper is for strong, well-equipped crews.
+- Since 1.6.1 the extra danger also makes the enemies there hit harder (§7.4), loot is worth more for the place's own danger on top of the level (§7.6), and Relics turn up only at the heart.
+- Measured in 1.6.1 with fresh crews of 4 (no gear) at the Drowned Mall: deaths 1 in 200 runs at the outskirts, 1 in 32 deeper in, 1 in 12 at the heart. Loot per run 14.8, 20.9 and 20.6 (crews turn back more at the heart); gear 0.27, 0.33, 0.30 a run. At Maple Street: deaths 1 in 600, 300 and 67, loot 7.1, 15.7 and 23.5. Deeper is for strong, well-equipped crews.
 - The news says when each level is fully explored, and the place's *About* tab lists the levels with their danger and progress. The planner offers only open levels.
 
 ## 8. Gear

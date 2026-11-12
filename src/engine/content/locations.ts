@@ -256,7 +256,7 @@ export const LOCATIONS: readonly LocationDef[] = [
     durationMin: 60,
     encounters: [
       { enemies: ['scrapbot_sentry', 'scrap_drone'], weight: 6 },
-      { enemies: ['raider_gunner', 'raider_brute'], weight: 4 },
+      { enemies: ['raider_gunner', 'raider_brute', 'raider_enforcer'], weight: 4 },
     ],
     loot: { scrap: 3, rations: 1, meds: 2, ammo: 8, tech: 3, gas: 3 },
     gearChance: 0.15,
@@ -278,7 +278,8 @@ export const LOCATIONS: readonly LocationDef[] = [
     radiation: 0,
     durationMin: 100,
     encounters: [
-      { enemies: ['raider_gunner', 'raider_brute', 'raider_scav'], weight: 9 },
+      { enemies: ['raider_gunner', 'raider_brute', 'raider_scav'], weight: 6 },
+      { enemies: ['raider_enforcer', 'raider_gunner', 'raider_scav'], weight: 4 },
       { enemies: ['rad_hound'], weight: 1 },
     ],
     loot: { scrap: 4, rations: 5, meds: 2, ammo: 5, tech: 1, gas: 3 },
@@ -301,7 +302,8 @@ export const LOCATIONS: readonly LocationDef[] = [
     radiation: 3,
     durationMin: 150,
     encounters: [
-      { enemies: ['glowing_hollow', 'hollow'], weight: 7 },
+      { enemies: ['glowing_hollow', 'hollow'], weight: 5 },
+      { enemies: ['hollow_hulk', 'glowing_hollow'], weight: 3 },
       { enemies: ['mire_stalker'], weight: 2 },
       { enemies: ['scrapbot_sentry'], weight: 1 },
     ],

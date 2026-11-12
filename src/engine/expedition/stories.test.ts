@@ -54,7 +54,7 @@ describe('nemeses', () => {
     completeRun(state, run.id, run.returnAt);
     const kept = state.nemeses.find((x) => x.name === n.name)!;
     assert.ok(kept);
-    assert.ok(state.log.some((l) => l.text.startsWith(`${n.name}, a`) && l.text.endsWith(`haunts ${place} now.`)), JSON.stringify(state.log.slice(-3)));
+    assert.ok(state.log.some((l) => l.text.toLowerCase().startsWith(`${n.name}, a`.toLowerCase()) && l.text.endsWith(`haunts ${place} now.`)), JSON.stringify(state.log.slice(-3)));
     const victim = [...state.survivors, ...state.memorial].find((s) => s.id === kept.downed[0])!;
     assert.ok(victim.chronicle.some((c) => c.text.includes(`calls it ${n.name} now`)));
   });

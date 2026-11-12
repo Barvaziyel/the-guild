@@ -6,9 +6,11 @@
  */
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
+import { createItem } from '../gear.ts';
+import { maxHp } from '../stats.ts';
 import { openGame, testPlan } from '../test-utils.ts';
 import type { RunPlan } from '../types.ts';
-import { RESOURCE_IDS } from '../types.ts';
+import { RESOURCE_IDS, STAT_IDS } from '../types.ts';
 import { simulateRun } from './sim.ts';
 
 interface Tally {
@@ -46,7 +48,7 @@ describe('balance: permadeath is rare', () => {
 
   test('injuries are far more common than deaths', () => {
     const downs = moderate.reduce((n, t) => n + t.downs, 0) / (N * 3);
-    assert.ok(downs > 0.25 && downs < 0.6, `downs per run ${downs.toFixed(2)}`);
+    assert.ok(downs > 0.4 && downs < 0.8, `downs per run ${downs.toFixed(2)}`);
     assert.ok(downs > moderateDeaths * 8);
   });
 
@@ -89,7 +91,47 @@ describe('balance: permadeath is rare', () => {
   });
 });
 
+describe('balance: gear matters, but danger 4 and 5 stay dangerous', () => {
+  /** A crew with two weeks of growth: +1 to every stat, a Solid Hunting Rifle and a Solid Scrap Vest each, ammo, no Medkit. */
+  const seasoned = (state: ReturnType<typeof openGame>): void => {
+    for (const s of state.survivors) {
+      for (const st of STAT_IDS) s.stats[st] = Math.min(10, s.stats[st] + 1);
+      s.hp = maxHp(s);
+      s.equipment.weapon = createItem(state, 'hunting_rifle', 'solid');
+      s.equipment.armor = createItem(state, 'scrap_vest', 'solid');
+    }
+  };
+  const run = (id: string): Tally => simulate(id, 1000, { ammo: 20 }, seasoned);
+
+  test('a seasoned crew makes danger 3 safe, but not the Glow', () => {
+    const d3 = run('water_plant');
+    assert.ok(d3.completed / d3.runs > 0.9, `danger 3: ${d3.completed} of ${d3.runs} finished`);
+    assert.ok(d3.deaths / d3.runs < 0.01);
+    const glow = run('the_glow');
+    assert.ok(glow.completed / glow.runs < 0.65, `the Glow: ${glow.completed} of ${glow.runs} finished`);
+    assert.ok(glow.deaths / glow.runs > 0.015, `the Glow: ${glow.deaths} deaths in ${glow.runs}`);
+  });
+});
+
 describe('balance: rewards', () => {
+  test('a seasoned crew brings home more from more dangerous places', () => {
+    const seasoned = (state: ReturnType<typeof openGame>): void => {
+      for (const s of state.survivors) {
+        s.equipment.weapon = createItem(state, 'hunting_rifle', 'solid');
+        s.equipment.armor = createItem(state, 'scrap_vest', 'solid');
+      }
+    };
+    const per = (id: string): number => {
+      const t = simulate(id, 600, { ammo: 20 }, seasoned);
+      return t.loot / t.runs;
+    };
+    const d1 = per('rail_yard');
+    const d3 = per('water_plant');
+    const d4 = per('checkpoint_bravo');
+    assert.ok(d3 > d1 * 2.5, `danger 3 ${d3.toFixed(1)} vs danger 1 ${d1.toFixed(1)}`);
+    assert.ok(d4 > d1 * 2.5, `danger 4 ${d4.toFixed(1)} vs danger 1 ${d1.toFixed(1)}`);
+  });
+
   test('more dangerous places pay better per finished run', () => {
     const perFinished = (id: string): number => {
       const t = simulate(id, 1500);

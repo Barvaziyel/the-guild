@@ -13,6 +13,8 @@ import {
   REL_FLED,
   REL_FLED_DOWNED,
   STRESS_COMBAT,
+  HEAVY_ARMOR,
+  HEAVY_ARMOR_SOAK,
   SURVIVOR_DEFENSE,
   UNARMED_DAMAGE,
 } from '../constants.ts';
@@ -44,6 +46,8 @@ import {
   withArticle,
   type Member,
   type Sim,
+  dangerEdge,
+  toughened,
 } from './context.ts';
 import { afterFight, announceNemesis, enemyRef, grudgeBonus, maybeNemesisEscape, nemesisEnemy, nemesisJoins, nemesisKilled } from './stories.ts';
 
@@ -52,6 +56,8 @@ export interface Enemy {
   hp: number;
   maxHp: number;
   attack: number;
+  /** Damage per hit: its kind's, more in dangerous places. */
+  damage: number;
   defense: number;
   dead: boolean;
   /** Ran away. */
@@ -64,8 +70,15 @@ export interface Enemy {
   escapeTried?: boolean;
 }
 
-export function newEnemy(def: EnemyDef): Enemy {
-  return { def, hp: def.hp, maxHp: def.hp, attack: def.attack, defense: def.defense, dead: false, fled: false, downed: [] };
+export function newEnemy(def: EnemyDef, danger = 1): Enemy {
+  const edge = dangerEdge(danger);
+  const { hp, defense } = toughened(def.hp, def.defense, danger);
+  return { def, hp, maxHp: hp, attack: def.attack + edge, damage: def.damage + edge, defense, dead: false, fled: false, downed: [] };
+}
+
+/** Damage a hit does through armor: armor makes hits rarer, and only heavy armor takes something off them. */
+export function damageThrough(damage: number, armor: number): number {
+  return Math.max(1, damage - (armor >= HEAVY_ARMOR ? HEAVY_ARMOR_SOAK : 0));
 }
 
 export type CombatEnd = 'won' | 'withdrew' | 'stalemate' | 'routed';
@@ -94,7 +107,7 @@ export function buildEncounter(sim: Sim): Enemy[] {
 
   const out: Enemy[] = [];
   if (nemesis) {
-    const e = nemesisEnemy(nemesis);
+    const e = nemesisEnemy(nemesis, sim.loc.danger);
     out.push(e);
     budget -= e.def.threat * NEMESIS_HP_MULT;
   }
@@ -102,12 +115,12 @@ export function buildEncounter(sim: Sim): Enemy[] {
     const affordable = defs.filter((d) => d.threat <= budget);
     if (affordable.length === 0) break;
     const def = sim.rng.pick(affordable);
-    out.push(newEnemy(def));
+    out.push(newEnemy(def, sim.loc.danger));
     budget -= def.threat;
   }
   if (out.length === 0) {
     const cheapest = defs.reduce((a, b) => (b.threat < a.threat ? b : a));
-    out.push(newEnemy(cheapest));
+    out.push(newEnemy(cheapest, sim.loc.danger));
   }
   return out;
 }
@@ -225,7 +238,7 @@ function enemyRound(sim: Sim, fight: FightState): void {
     const armor = target.s.equipment.armor ? armorValue(target.s.equipment.armor) : 0;
     if (sim.rng.d10() + enemy.attack < SURVIVOR_DEFENSE + armor) continue;
 
-    const damage = Math.max(1, enemy.def.damage - armor);
+    const damage = damageThrough(enemy.damage, armor);
     if (enemy.def.rads) absorbRads(target, enemy.def.rads);
     const wentDown = hurt(sim, target, damage, enemyRef(enemy), enemy.def.type, enemy.nemesis?.id);
     say(sim, `${target.s.firstName} is ${enemy.def.hitVerb} ${enemyRef(enemy)} (-${damage} HP)${wentDown ? ' and goes down.' : '.'}`, { tone: 'bad' });
