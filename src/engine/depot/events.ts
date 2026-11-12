@@ -12,6 +12,12 @@ import {
   RAID_FULL_FENCE,
   RAID_LOSS,
   RAID_MAX_TAKE,
+  RAID_TAKE_FREE,
+  RAID_TAKE_OVER,
+  TRADER_BUYS,
+  TRADER_BUY_CHANCE,
+  TRADER_BUY_KEEP,
+  TRADER_BUY_KEEP_RATION_DAYS,
   RAID_THIN_PENALTY,
   REL_ARGUMENT,
   TRADER_VEHICLE_CHANCE,
@@ -29,8 +35,9 @@ import { addPractice, changeStress, checkBonus, effectiveStat, rollCheck } from 
 import { fullName } from '../text.ts';
 import { addTrait, anyTraitHook } from '../traits.ts';
 import type { GameState, ResourceId, Resources, Survivor, TradeOffer } from '../types.ts';
+import { guildUpkeep } from './day.ts';
 import { RESOURCE_IDS } from '../types.ts';
-import { atDepot, buildingLevel, canWork, canAfford, costText, payCost, workingAt } from './buildings.ts';
+import { atDepot, buildingLevel, canWork, workingLevel, canAfford, costText, payCost, workingAt } from './buildings.ts';
 import { addWanderer } from './recruits.ts';
 
 type EventKind = 'wanderer' | 'trader' | 'raid' | 'celebration' | 'sickness' | 'stray';
@@ -113,7 +120,7 @@ const HANDLERS: Record<EventKind, (state: GameState, day: number, rng: Rng, home
  */
 export function raidDefense(state: GameState): number {
   const defenders = state.survivors.filter(canWork);
-  const tower = buildingLevel(state, 'watchtower');
+  const tower = workingLevel(state, 'watchtower');
   const lookouts = tower > 0 ? workingAt(state, 'watchtower') : [];
   const best = Math.max(0, ...defenders.map((s) => effectiveStat(s, 'aim')));
   const thin = Math.max(0, RAID_FULL_FENCE - defenders.length) * RAID_THIN_PENALTY;
@@ -124,7 +131,7 @@ export function raidDefense(state: GameState): number {
 export function raid(state: GameState, day: number, rng: Rng): boolean {
   const home = state.survivors.filter(atDepot);
   const defenders = home.filter(canWork);
-  const tower = buildingLevel(state, 'watchtower');
+  const tower = workingLevel(state, 'watchtower');
   const roll = rollCheck(rng, raidDefense(state), RAID_DC);
   const names = defenders.slice(0, 3).map((s) => s.firstName);
 
@@ -140,7 +147,7 @@ export function raid(state: GameState, day: number, rng: Rng): boolean {
   const share = RAID_LOSS * (tower > 0 ? 0.5 : 1) * (defenders.length === 0 ? 1.5 : defenders.length === 1 ? 1.25 : 1);
   const taken: Partial<Resources> = {};
   for (const r of ['scrap', 'rations', 'ammo', 'gas'] as const) {
-    const n = Math.min(RAID_MAX_TAKE, Math.floor(state.resources[r] * share));
+    const n = Math.min(raidCap(state.resources[r]), Math.floor(state.resources[r] * share));
     if (n > 0) {
       state.resources[r] -= n;
       taken[r] = n;
@@ -191,10 +198,34 @@ function listNames(names: string[]): string {
   return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
 }
 
+/** The most raiders can carry off of one supply: more from a bigger pile (1.6.2). */
+export function raidCap(stored: number): number {
+  return RAID_MAX_TAKE + Math.floor(RAID_TAKE_OVER * Math.max(0, stored - RAID_TAKE_FREE));
+}
+
 // ---------------------------------------------------------------- traders
 
+/** How much of a supply is spare for a trader to buy: what's left after keeping some back. */
+export function spare(state: GameState, r: ResourceId): number {
+  const keep = r === 'rations' ? Math.max(TRADER_BUY_KEEP, TRADER_BUY_KEEP_RATION_DAYS * guildUpkeep(state)) : TRADER_BUY_KEEP;
+  return Math.max(0, state.resources[r] - keep);
+}
+
+/**
+ * A caravan offering to buy what the guild has too much of, for scrap
+ * (1.6.2): the supply with the most spare, up to about a third of the spare.
+ */
+function buyOffer(state: GameState, id: string, expiresDay: number, rng: Rng): TradeOffer | undefined {
+  const options = (Object.keys(TRADER_BUYS) as ResourceId[]).map((r) => ({ r, spare: spare(state, r) })).filter((o) => o.spare >= 10);
+  if (options.length === 0) return undefined;
+  const { r, spare: extra } = rng.weightedBy(options, (o) => o.spare * TRADER_BUYS[o.r]!);
+  const give = Math.max(10, Math.round(extra * (0.2 + rng.next() * 0.2)));
+  const get = Math.max(1, Math.round(give * TRADER_BUYS[r]! * (0.85 + rng.next() * 0.3)));
+  return { id, give: { [r]: give }, get: { scrap: get }, expiresDay };
+}
+
 /** A caravan's offer: a swap of supplies, or a piece of gear for scrap and tech. */
-function makeOffer(state: GameState, day: number, rng: Rng): TradeOffer {
+export function makeOffer(state: GameState, day: number, rng: Rng): TradeOffer {
   const id = newId(state, 'o');
   const expiresDay = day + TRADE_DAYS;
   if (rng.chance(TRADER_VEHICLE_CHANCE)) {
@@ -205,6 +236,10 @@ function makeOffer(state: GameState, day: number, rng: Rng): TradeOffer {
     const give: Partial<Resources> = {};
     for (const r of RESOURCE_IDS) if (def.price[r]) give[r] = Math.round(def.price[r]! * scale);
     return { id, give, get: {}, vehicle, expiresDay };
+  }
+  if (rng.chance(TRADER_BUY_CHANCE)) {
+    const buying = buyOffer(state, id, expiresDay, rng);
+    if (buying) return buying;
   }
   if (rng.chance(0.35)) {
     const gear = rng.weightedBy(

@@ -19,6 +19,7 @@ import {
   recipeRows,
   summaryLines,
   upgradeRows,
+  upkeepLines,
   workerLine,
 } from './depot-view.ts';
 
@@ -32,7 +33,7 @@ describe('buildings on screen', () => {
     assert.equal(garden.slots, 2);
     const infirmary = buildingRow(state, 'infirmary');
     assert.equal(infirmary.built, false);
-    assert.equal(infirmary.next?.cost, '25 scrap, 2 tech');
+    assert.equal(infirmary.next?.cost, '25 scrap, 2 tech, 5 meds');
     assert.match(infirmary.next?.problem ?? '', /Needs/);
     assert.equal(buildingRows(state).length, 8);
     assert.match(buildingRow(state, 'bunks').status, /^4 of 4 beds taken\.$/);
@@ -167,5 +168,30 @@ describe('food on the Depot', () => {
     const tight = guild(0, 2);
     assert.ok(gardenYield(tight) < guildUpkeep(tight) + 1);
     assert.match(newMouthNote(tight)!, /^Another person eats at least a ration a day\. The guild already eats \d+, and the Garden grows about [\d.]+\.$/);
+  });
+});
+
+describe('upkeep on screen', () => {
+  test('says what an upper level uses, and warns when the stores run out', () => {
+    const state = testGame('upkeep-view');
+    state.resources = { scrap: 500, rations: 100, meds: 50, ammo: 50, tech: 50, gas: 0 };
+    assert.deepEqual(upkeepLines(state, 'firepit'), {}, 'a level 1 Firepit costs nothing to run');
+    build(state, 'firepit', 1);
+    assert.deepEqual(upkeepLines(state, 'firepit'), { upkeep: 'Uses 1 ration a day.' });
+    for (let i = 0; i < 2; i++) build(state, 'infirmary', 1);
+    assert.deepEqual(upkeepLines(state, 'infirmary'), { upkeep: 'Uses a med about every 4 days.' });
+    state.resources.meds = 0;
+    assert.equal(upkeepLines(state, 'infirmary').unpaid, "Out of meds: it works as level 1 on days it can't be kept going.");
+    state.depot.unpaid = ['infirmary'];
+    assert.equal(upkeepLines(state, 'infirmary').unpaid, 'Ran out of meds on the last day, so it worked as level 1.');
+  });
+
+  test('the note says what the buildings used and which ran short', () => {
+    const state = testGame('upkeep-note');
+    const s = { ...emptySummary(), days: 2, upkeep: { rations: 2 }, unpaid: ['firepit' as const] };
+    build(Object.assign(state, { resources: { ...state.resources, scrap: 99, tech: 9, rations: 99 } }), 'firepit', 1);
+    const lines = summaryLines(s, state);
+    assert.ok(lines.includes('Keeping the buildings going used 2 rations.'));
+    assert.ok(lines.includes('The Bar ran short and worked a level lower.'));
   });
 });

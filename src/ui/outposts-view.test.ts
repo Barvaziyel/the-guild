@@ -71,8 +71,8 @@ describe('outposts on screen', () => {
     assert.equal(v.built, false);
     assert.match(v.pitch, /^A camp out here, and a hard posting\. Up to three people live at it, keep watch, and send home a share of what Maple Street gives up every day\./);
     assert.match(v.hardship, /^Out here people heal a third as fast as at home and rest only a little\. Trouble comes calling: prowlers at the fence, long nights, accidents\. Raiders/);
-    assert.match(outpostView(state, 'checkpoint_bravo').hardship, /keeping watch wears on them: about 1 more stress a day than they shed, less with a close friend out here\..*accidents, radiation\./);
-    assert.match(outpostView(state, 'kessler_farm').hardship, /keeping watch wears on them, though they still calm down a little each day\./);
+    assert.match(outpostView(state, 'checkpoint_bravo').hardship, /keeping watch wears on them: about 2 more stress a day than they shed, less with a close friend out here\..*accidents, radiation\./);
+    assert.match(outpostView(state, 'kessler_farm').hardship, /keeping watch wears on them about as fast as they rest, unless they have a close friend out here\./);
     assert.equal(v.buildCost, '40 scrap, 6 tech');
     assert.match(v.buildProblem!, /Radio Tower first/);
     assert.equal(v.contactLine, 'Outposts need the Radio Tower to keep in contact.');

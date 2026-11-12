@@ -5,6 +5,8 @@ export {
   buildProblem,
   buildingDef,
   buildingLevel,
+  upkeepOf,
+  workingLevel,
   buildingName,
   bunksCap,
   canAfford,

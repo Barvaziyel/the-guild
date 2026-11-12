@@ -19,6 +19,7 @@ import {
   RADS_PER_BEAT,
   RAD_SICKNESS_THRESHOLD,
   REL_COMBAT_TOGETHER,
+  REL_ARGUMENT,
   REL_RUN_BASE,
   REL_RUN_PER_AFFINITY,
   STRESS_PER_DANGER_BEAT,
@@ -78,6 +79,7 @@ import {
   stress,
   type Member,
   type Sim,
+  revealHook,
 } from './context.ts';
 import { tryEvent } from './events.ts';
 import { footDuration, hungryCrew, rationsPacked, runDuration } from './plan.ts';
@@ -273,7 +275,9 @@ function aftermath(sim: Sim): void {
     for (let j = i + 1; j < crew.length; j++) {
       const a = crew[i]!;
       const b = crew[j]!;
-      const delta = REL_RUN_BASE + REL_RUN_PER_AFFINITY * traitAffinity(a.s, b.s) + (sim.hadCombat ? REL_COMBAT_TOGETHER : 0);
+      // A fight side by side brings together those who get along; it doesn't mend the rest (1.6.2).
+      const affinity = traitAffinity(a.s, b.s);
+      const delta = REL_RUN_BASE + REL_RUN_PER_AFFINITY * affinity + (sim.hadCombat && affinity >= 0 ? REL_COMBAT_TOGETHER : 0);
       const change = adjustRelationship(sim.state, a.s.id, b.s.id, delta, { day });
       if (change.labelChange) {
         say(sim, relationshipLine(a, b, change.labelChange.to, change.after > change.before), {
@@ -296,6 +300,17 @@ function aftermath(sim: Sim): void {
           }
         }
       }
+    }
+  }
+
+  // Shares: someone Greedy, or quick to anger, may fall out with another over who carried what (1.6.2).
+  if (crew.length >= 2 && RESOURCE_IDS.some((r) => sim.loot[r] > 0)) {
+    for (const m of crew) {
+      if (!sim.rng.chance(sumTraitHook(m.s, 'lootArgueChance'))) continue;
+      const other = sim.rng.pick(crew.filter((o) => o !== m));
+      adjustRelationship(sim.state, m.s.id, other.s.id, REL_ARGUMENT, { day });
+      say(sim, `${m.s.firstName} and ${other.s.firstName} argue over the shares the whole way home.`, { tone: 'bad' });
+      revealHook(sim, m, 'lootArgueChance');
     }
   }
 
@@ -435,6 +450,8 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
         rerollSuccesses: rerolls.successes,
         chronicleStart: s.chronicle.length,
         weaponKillsAtStart: s.equipment.weapon?.kills ?? 0,
+        countersAtStart: { ...s.counters },
+        traitsAtStart: s.traits.map((t) => t.id),
       };
     }),
     departAt,
