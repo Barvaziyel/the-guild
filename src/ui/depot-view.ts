@@ -26,13 +26,16 @@ import {
   gardenYield,
   guildUpkeep,
   getGear,
+  getProject,
   getLocation,
   healRate,
   itemName,
   nextLevel,
+  postBuilding,
   postProblem,
   postStat,
   postedTo,
+  projectTitle,
   pronounForms,
   resting,
   statName,
@@ -156,7 +159,7 @@ export function buildingRows(state: GameState): BuildingRow[] {
 
 /** A worker's line on a building screen: "Wits 5", plus why they aren't working today. */
 export function workerLine(state: GameState, s: Survivor): { stat: string; away?: string } {
-  const stat = s.post ? postStat(s, s.post) : 'wits';
+  const stat = !s.post ? 'wits' : 'project' in s.post ? getProject(s.post.project).workStat : postStat(s, s.post);
   const away = !atDepot(s) ? 'Out on a run.' : resting(s) ? 'Resting until healed.' : undefined;
   return { stat: `${statName(stat)} ${effectiveStat(s, stat)}`, ...(away ? { away } : {}) };
 }
@@ -165,13 +168,13 @@ export function workerLine(state: GameState, s: Survivor): { stat: string; away?
 export function postCandidates(state: GameState, id: BuildingId): { survivor: Survivor; current: string; stat: string; problem?: string }[] {
   const workStat = buildingDef(id).workStat;
   return state.survivors
-    .filter((s) => s.post?.building !== id && !resting(s))
+    .filter((s) => postBuilding(s.post) !== id && !resting(s))
     .map((s) => {
-      const stat: StatId = workStat && workStat !== 'any' ? workStat : s.post ? postStat(s, s.post) : 'wits';
+      const stat: StatId = workStat && workStat !== 'any' ? workStat : s.post && 'building' in s.post ? postStat(s, s.post) : 'wits';
       const problem = s.outpost ? `${s.firstName} lives at the outpost at ${getLocation(s.outpost).name}.` : postProblem(state, s.id, { building: id });
       return {
         survivor: s,
-        current: s.outpost ? `At the outpost at ${getLocation(s.outpost).name}` : s.post ? `Now at the ${buildingName(state, s.post.building)}` : 'No post',
+        current: s.outpost ? `At the outpost at ${getLocation(s.outpost).name}` : s.post ? ('project' in s.post ? `On the crew of ${projectTitle(s.post.project)}` : `Now at the ${buildingName(state, s.post.building)}`) : 'No post',
         stat: workStat === 'any' ? '' : `${statName(stat)} ${effectiveStat(s, stat)}`,
         ...(problem ? { problem } : {}),
       };
@@ -182,7 +185,7 @@ export function postCandidates(state: GameState, id: BuildingId): { survivor: Su
 /** Posts a survivor could take, for the picker on their sheet. */
 export function postChoices(state: GameState, s: Survivor): { id: BuildingId; name: string; problem?: string }[] {
   return BUILDING_IDS.filter((id) => buildingDef(id).workStat && buildingLevel(state, id) > 0).map((id) => {
-    const problem = s.post?.building === id ? undefined : postProblem(state, s.id, { building: id });
+    const problem = postBuilding(s.post) === id ? undefined : postProblem(state, s.id, { building: id });
     return { id, name: buildingName(state, id), ...(problem ? { problem } : {}) };
   });
 }

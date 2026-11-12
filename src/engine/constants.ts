@@ -6,7 +6,7 @@
 import type { BuildingId, Quality, RelationshipLabel, ResourceId, Resources } from './types.ts';
 
 /** Save format version. Bump together with a migration in save.ts. */
-export const SAVE_VERSION = 14;
+export const SAVE_VERSION = 15;
 
 // ---------------------------------------------------------------- time
 
@@ -436,6 +436,33 @@ export const VEHICLE_KNOCKS: readonly [number, number] = [2, 6];
 export const FOUND_VEHICLE_CONDITION: readonly [number, number] = [10, 35];
 /** Walking home after a wreck: stress for each walker... */
 export const WALK_HOME_STRESS = 8;
+// ---------------------------------------------------------------- salvage (§9.4)
+
+/** Taking gear apart gives back this share of what making it costs (1.8.0). */
+export const SALVAGE_SHARE: Record<Quality, number> = { rusty: 0.25, common: 0.4, solid: 0.6, prime: 0.8, relic: 0 };
+/** What a trinket's parts are worth (they have no recipe). */
+export const SALVAGE_TRINKET_SCRAP = 2;
+
+// ---------------------------------------------------------------- projects (§9.6)
+
+/** Most people on one project's crew. */
+export const PROJECT_CREW = 3;
+/** Work a crew member at the Depot adds a day: this, plus their work stat times PROJECT_WORK_PER_STAT. */
+export const PROJECT_WORK_BASE = 1;
+export const PROJECT_WORK_PER_STAT = 0.25;
+/** Hard work: each crew member at the Depot eats this many more rations a day while a stage is under way. */
+export const PROJECT_CREW_RATIONS = 1;
+/** The Line: runs to its stops take this share of the time. */
+export const LINE_TIME = 0.5;
+/** The Wall: added to holding off raids. */
+export const WALL_DEFENSE = 4;
+/** The Clinic: healing at the Depot is multiplied by this, and wounds lose an extra day each day. */
+export const CLINIC_HEAL_MULT = 2;
+/** The Relay: more outposts. */
+export const RELAY_OUTPOSTS = 2;
+/** The Memorial Garden: more stress shed a day, and grief loses an extra day each day. */
+export const MEMORIAL_RELIEF = 1;
+
 /** Stress every run costs for the road itself (§6), on top of what happens on it, plus 1 for every ROAD_STRESS_MINUTES away. */
 export const ROAD_STRESS = 5;
 /** Runs at this danger or more count toward Veteran (§4.5). */

@@ -2,7 +2,7 @@
  * The Gear screen: what's in the guild's stash, who could take each piece,
  * and what everyone is carrying. Plain TypeScript so it can be tested in Node.
  */
-import { SLOTS, canChangeGear, itemDef, itemName, type GameState, type Slot, type Survivor } from '../engine/index.ts';
+import { SLOTS, buildingLevel, canChangeGear, costText, itemDef, itemName, salvageProblem, salvageValue, spareGear, spareValue, type GameState, type Slot, type Survivor } from '../engine/index.ts';
 import { itemView, stashFor, type ItemView } from './view.ts';
 
 export const SLOT_GROUPS: Record<Slot, string> = { weapon: 'Weapons', armor: 'Armor', tool: 'Tools', trinket: 'Trinkets' };
@@ -67,4 +67,25 @@ export function carriedRows(state: GameState): CarriedRow[] {
     }))
     .filter((r) => r.items.length > 0)
     .sort((a, b) => a.survivor.firstName.localeCompare(b.survivor.firstName));
+}
+
+/** Taking one piece apart: "Take apart for 10 scrap, 2 tech", or why it can't be. */
+export function salvageButton(state: GameState, uid: string): { label: string; problem?: string } {
+  const item = state.stash.find((i) => i.uid === uid);
+  if (!item) return { label: 'Take apart', problem: 'Only gear in the stash can be taken apart.' };
+  const problem = salvageProblem(state, uid);
+  return { label: `Take apart for ${costText(salvageValue(item))}`, ...(problem ? { problem } : {}) };
+}
+
+/** The spare gear panel: Rusty and Common weapons and armor nobody needs, or undefined if there are none. */
+export function sparesPanel(state: GameState): { text: string; button?: string } | undefined {
+  if (buildingLevel(state, 'workshop') === 0) {
+    const plain = state.stash.filter((i) => i.quality === 'rusty' || i.quality === 'common').length;
+    return plain > 0 ? { text: 'With a Workshop, spare gear can be taken apart for scrap.' } : undefined;
+  }
+  const spares = spareGear(state);
+  if (spares.length === 0) return undefined;
+  const value = costText(spareValue(state));
+  const what = spares.length === 1 ? `One Rusty or Common piece of gear` : `${spares.length} Rusty and Common weapons and pieces of armor`;
+  return { text: `${what} in the stash would come to ${value} in the Workshop.`, button: `Take ${spares.length === 1 ? 'it' : 'them all'} apart` };
 }

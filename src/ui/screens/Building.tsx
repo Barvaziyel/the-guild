@@ -106,7 +106,7 @@ function Workers({ state, id }: { state: GameState; id: BuildingId }) {
                   <label className="train-pick">
                     Trains
                     <select
-                      value={s.post?.stat ?? ''}
+                      value={(s.post && 'stat' in s.post ? s.post.stat : undefined) ?? ''}
                       onChange={(e) => act((st) => assignPost(st, s.id, { building: id, stat: e.target.value as StatId }))}
                     >
                       {trainableStats(s).map((stat) => (

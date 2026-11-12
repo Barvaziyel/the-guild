@@ -42,6 +42,7 @@ import { guildUpkeep } from './day.ts';
 import { RESOURCE_IDS } from '../types.ts';
 import { atDepot, buildingLevel, canWork, workingLevel, canAfford, costText, payCost, workingAt } from './buildings.ts';
 import { addWanderer } from './recruits.ts';
+import { wallDefense } from '../projects.ts';
 
 type EventKind = 'wanderer' | 'trader' | 'raid' | 'celebration' | 'sickness' | 'stray';
 
@@ -127,7 +128,7 @@ export function raidDefense(state: GameState): number {
   const lookouts = tower > 0 ? workingAt(state, 'watchtower') : [];
   const best = Math.max(0, ...defenders.map((s) => effectiveStat(s, 'aim')));
   const thin = Math.max(0, RAID_FULL_FENCE - defenders.length) * RAID_THIN_PENALTY;
-  return best + tower * WATCHTOWER_DEFENSE + lookouts.length - thin;
+  return best + tower * WATCHTOWER_DEFENSE + lookouts.length - thin + wallDefense(state);
 }
 
 /** Raiders come for the Depot. Returns whether they broke in. */

@@ -125,6 +125,11 @@ const MIGRATIONS: Record<number, (save: Record<string, unknown>) => void> = {
     };
     walk(save);
   },
+  14: (save) => {
+    // Projects (1.8.0).
+    const state = save as unknown as GameState;
+    state.projects ??= {};
+  },
 };
 
 export function serialize(state: GameState): string {

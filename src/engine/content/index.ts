@@ -26,6 +26,7 @@ export { BUILDINGS, type BuildingDef, type BuildingLevel } from './buildings.ts'
 export { RECIPES, UPGRADES, type Recipe, type Upgrade } from './workshop.ts';
 export { NEMESIS_NAMES, NICKNAMES, WEAPON_NAMES, type NicknameRule } from './stories.ts';
 export { VEHICLES, type VehicleDef } from './vehicles.ts';
+export { LINE_STOPS, PROJECTS, getProject, type ProjectDef, type ProjectStage } from './projects.ts';
 
 const traitById = new Map<string, TraitDef>(TRAITS.map((t) => [t.id, t]));
 const gearById = new Map<string, GearDef>(GEAR.map((g) => [g.id, g]));

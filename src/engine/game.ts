@@ -112,6 +112,7 @@ export function newGame(opts: NewGameOptions): GameState {
     vehicles: [],
     outposts: [],
     dilemmas: { nextDay: DILEMMA_FIRST_DAY, seen: {} },
+    projects: {},
     log: [],
     settings: { mercyMode: false },
   };

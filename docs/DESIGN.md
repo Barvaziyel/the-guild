@@ -491,9 +491,9 @@ The Depot plays one **Depot day** for every game day that passes (§11). Each da
 1. Conditions that have run their course wear off.
 2. **Food.** The Garden grows rations, and everyone eats 1 (Gluttons and Drinkers 2). If there isn't enough, they eat what there is and go hungry: +4 stress each instead of any rest, never past 70 on hunger alone, and they heal at half the rate (+10 stress with no limit before 1.7.1). Nobody starves to death. The log notes when the food runs out and when it's back.
    - **Warnings (1.1.2).** When the Garden grows less than the whole guild eats (counting those out on runs), the Depot shows how long the stores last, from 10 days out, or that they're gone, with what to do about it. The gate notes when another person would eat more than the Garden can spare.
-3. **Work.** People at their posts work and get +1 practice a day in the building's stat. Serious wounds (anything that blocks runs) keep people in bed: they keep their post but don't work, and can't take a new one until healed.
-4. **Care.** Everyone heals 8% of max HP a day, +8% per Infirmary level, and +2% per point of Wits among the Infirmary's medics (15% and +10% before 1.6.2). A staffed Infirmary also closes wounds sooner, and treats rad sickness and fever with meds, one patient per medic a day.
-5. **Rest.** Everyone sheds 2 stress a day, plus the Firepit's share, plus 2 with a Bonded friend at home (§6: together, about 50 a real day at level 1 and 80 with the Bar and Stage). Optimists and Drinkers shed half as much again.
+3. **Work.** People at their posts work and get +1 practice a day in the building's stat (a project's crew works its stage instead, §9.6). Serious wounds (anything that blocks runs) keep people in bed: they keep their post but don't work, and can't take a new one until healed.
+4. **Care.** Everyone heals 8% of max HP a day, +8% per Infirmary level, and +2% per point of Wits among the Infirmary's medics (15% and +10% before 1.6.2). A staffed Infirmary also closes wounds sooner, and treats rad sickness and fever with meds, one patient per medic a day. The Clinic (§9.6) doubles the healing, and wounds close in half the time.
+5. **Rest.** Everyone sheds 2 stress a day, plus the Firepit's share, plus 2 with a Bonded friend at home, plus 1 with the Memorial Garden (§9.6) (§6: together, about 50 a real day at level 1 and 80 with the Bar and Stage). Optimists and Drinkers shed half as much again.
 6. **People.** Co-workers drift toward or away from each other by their trait affinity (a 50% chance each day). A Bar warms everyone a little. Neither goes past Friends or Rivals (§5).
 7. **Evolution.** Days at the Depot count toward evolution rules, such as Haunted → Hardened with a Bonded friend home.
 8. Something may happen (§9.3), and a new set of recruits answers the radio (§10).
@@ -515,7 +515,7 @@ The Depot plays one **Depot day** for every game day that passes (§11). Each da
 
 **Costs across supplies** (1.6.2). Before, every building cost scrap and a little tech, and rations, meds, tech, ammo and gas piled up with nothing to spend them on. All the levels together cost 975 scrap, 149 tech, 105 rations, 35 meds and 45 ammo in 1.6.2. The Garden never costs rations, so a guild that has run out of food can still build the thing that grows it.
 
-**A five-week Depot** (1.7.1, Aviel's choice). Income grows about 18× in a guild's first real month (21 supplies on day 1, about 390 a day by week four, measured), so with flat prices everything was built by about real day 18 and there was nothing left to buy. Now the first levels stay cheap (Bunks 2 takes no rations and Infirmary 1 takes 2 meds, so neither traps a new guild), the other level 2s cost about twice as much and the level 3s three times. All the levels together: 2,295 scrap, 388 tech, 250 rations, 82 meds and 120 ammo. Projects (big multi-stage works) are planned for after that.
+**A five-week Depot** (1.7.1, Aviel's choice). Income grows about 18× in a guild's first real month (21 supplies on day 1, about 390 a day by week four, measured), so with flat prices everything was built by about real day 18 and there was nothing left to buy. Now the first levels stay cheap (Bunks 2 takes no rations and Infirmary 1 takes 2 meds, so neither traps a new guild), the other level 2s cost about twice as much and the level 3s three times. All the levels together: 2,295 scrap, 388 tech, 250 rations, 82 meds and 120 ammo. Projects (big multi-stage works, §9.6) come after that, since 1.8.0.
 
 **Checked to the end of the content** (1.7.2, `claude/balance-5-weeks.md` in the project). A simulated player that plays like a person (kits out its runners, goes where what it needs is, goes deeper, drives, sets up outposts, takes useful trades) played 24 guilds for five real weeks at each of three paces. Level 1s come in the first real week (Garden 2 by day 4), level 2s in weeks 2–3, level 3s in weeks 3–5, and the Depot is finished around real day 31; a casual player (four check-ins a day) is about 15% behind. Two early changes came out of it: a new guild starts with 50 scrap instead of 20, and Infirmary 1 no longer takes tech, which the danger-1 places barely have (it came around real day 11; now day one).
 
@@ -557,7 +557,7 @@ At most one event a day (a 20% chance), weighted:
 |---|---|
 | A wanderer | Someone turns up at the gate and waits there 3 days (§10). |
 | A trader caravan | Offers a swap of supplies (gas among them; 8–20 of what the guild gives, or up to an eighth of a big stockpile, at most 200, since 1.7.2, so a guild rich in scrap and short of tech can turn one into the other), or a Solid or Prime piece of gear for scrap (and tech for guns), or now and then a vehicle (§7.8). Since 1.6.2, half the time it offers to **buy** what the guild has spare for scrap. Rations bring 0.5 scrap each, meds 1.2, tech 2, gas 1 and ammo 0.4. Spare means beyond 25, or beyond ten days of eating for rations, and the caravan takes 20–40% of it. Stays 2 days. |
-| A raid | d10 + the best Aim at home + 2 per Watchtower level + 1 per lookout, −2 for each hand short of three at home, vs 12. Held: the defenders get Aim practice and a little stress. Broken: raiders take 25% of the scrap, rations, ammo and gas (half that with a Watchtower, a quarter more with one person home and half more with nobody), never more than 30 of each plus a fifth of whatever is stored beyond 100 (1.6.2; before, 30 at most, which meant nothing against stockpiles in the hundreds), may drive off a parked vehicle (§7.8), one defender is Wounded, and everyone gains +10 stress. Raids come twice as often when no more than one person is home. |
+| A raid | d10 + the best Aim at home + 2 per Watchtower level + 1 per lookout (+4 with the Wall, §9.6), −2 for each hand short of three at home, vs 12. Held: the defenders get Aim practice and a little stress. Broken: raiders take 25% of the scrap, rations, ammo and gas (half that with a Watchtower, a quarter more with one person home and half more with nobody), never more than 30 of each plus a fifth of whatever is stored beyond 100 (1.6.2; before, 30 at most, which meant nothing against stockpiles in the hundreds), may drive off a parked vehicle (§7.8), one defender is Wounded, and everyone gains +10 stress. Raids come twice as often when no more than one person is home. |
 | A celebration | Costs a ration per two people. Everyone at home sheds 15 stress, and every pair warms by 3. Only when food is plentiful. |
 | A fever | Someone at home becomes Feverish (−1 Grit, −1 Wits, 2–4 days) unless the Infirmary treats it. |
 | A stray dog | Someone with a way with animals feeds it and sheds 10 stress; otherwise it moves on. |
@@ -569,6 +569,10 @@ At most one event a day (a 20% chance), weighted:
 - **Make:** everything but trinkets. Basic weapons, armor and tools need level 1; guns other than the Pipe Pistol and Crossbow, Riot Gear, the Hazmat Suit, Binoculars, the Multitool and the Geiger Counter need level 2. Recipes are in `content/workshop.ts`. A Medkit costs 4 scrap and 3 meds.
 - **Vehicles** (§7.8): repairs back to full condition at any level; a Motorcycle at level 2 and a Hatchback at level 3. Trucks and vans can't be built.
 - **Improve:** weapons and armor only, since quality doesn't change anything else. Rusty → Common: 4 scrap. Common → Solid: 10 scrap, 2 tech. Solid → Prime: 20 scrap, 6 tech, and a level 2 Workshop. Relics can't be made. The Workshop can improve what's in the stash and what anyone at home is carrying.
+- **Take apart** (salvage, 1.8.0, Aviel's idea). A guild four weeks in carried 34–66 pieces nobody used (measured). Now any piece in the stash can be taken apart at a Workshop of any level, for a share of what its recipe costs: a quarter for Rusty, 0.4 for Common, 0.6 for Solid, 0.8 for Prime (at least 1 scrap; guns give tech too, rounded down). Trinkets, which have no recipe, give 2 scrap.
+  - **Not taken apart:** relics ("worth more whole"), named weapons, Medkits, and a trinket someone cherishes while they're alive.
+  - **Spare gear:** the Gear screen gathers Rusty and Common weapons and armor into one panel, with what they'd come to and *Take them all apart*. Each piece's *Give* list also has *Take apart* with its value.
+  - It's a small income (about 220 scrap and 15 tech over ten real weeks, measured), not a way to get rich: the point is a tidy stash.
 
 ### 9.5 Decisions at the Depot (1.7.0)
 
@@ -600,6 +604,40 @@ Now and then something comes up that the player has to decide (Aviel's idea, 202
   - With notices on, a notice comes when the next one is due, and a reminder two hours before one is settled without the player. Tapping either opens the Depot.
 - `dilemmas.test.ts` checks every decision's references and placeholders, and that each can come up and every outcome of every answer (and of leaving it) can happen.
 
+### 9.6 Projects (1.8.0)
+
+Big works that change the Depot for good, like Civ's wonders: the long goal once the buildings are done (Aviel's choice, from `claude/economy-design.md`). The projects are data in `content/projects.ts`; `projects.ts` plays them.
+
+| Project | Needs | Each stage costs | Crew works with | What it does when finished |
+|---|---|---|---|---|
+| The Line: track and a handcar | Workshop 2 | 700 scrap, 100 tech, 50 rations | Brawn | Runs to Hilltop, Checkpoint Bravo, Blackwater, Red Hand Camp and the Glow take half the time |
+| The Wall | Watchtower 3 | 650 scrap, 130 ammo, 40 rations | Brawn | +4 to holding off raids |
+| The Clinic | Infirmary 3 | 270 scrap, 200 meds, 65 tech, 30 rations | Wits | Everyone at the Depot heals twice as fast, and wounds close in half the time |
+| The Relay | Radio Tower 3 | 330 scrap, 90 tech, 60 gas, 20 rations | Wits | Two more outposts, and word of every place not yet found |
+| The Memorial Garden | Someone has died | 170 scrap, 50 rations | Nerve | Everyone at the Depot sheds 1 more stress a day; grief passes in half the time |
+
+- **Three stages each.** The player pays for a stage, then a crew works it off: each crew member at the Depot and fit adds 1 + their work stat × 0.25 a day. A big stage takes 150 work (about 20 game days, or 2.5 real days, for three people with the stat at 6); the Memorial Garden's take 60.
+- **One stage at a time,** across all projects. When one stage is done, the next has to be paid for. So there is one crew: starting another project brings along whoever was on a paused one.
+- **The crew** is a post (three people at most). They leave their old post, practice the project's stat as they work, and eat a ration more each while a stage is under way. Out on a run or in bed, they don't work.
+- **Each stage** writes a line in the news ("The rails are mended as far as the river."). The last frees the crew and writes a line in each one's Chronicle ("Helped rebuild the Line.").
+- **The Line** halves the time to its stops; where an outpost already shortens a run, the bigger cut counts, not both.
+- **Seen in the yard:** the Line's track along the bottom with a handcar, the Wall replacing the chain-link stage by stage, the Relay's mast and dish on the station roof, an awning and a flag over the Clinic's cots, and the Memorial Garden's plot with its tree and stone.
+
+**Balance** (measured with the person-like player for ten real weeks, 16 guilds at each pace):
+
+| | No projects | Engaged | Casual (4 check-ins a day) | Bold |
+|---|---|---|---|---|
+| Stages done by day 70 (of 15) | — | 11 (8–13) | 8 (2–12) | 10 (4–15) |
+| Projects finished | — | 3.2 | 2.4 | 3.3 |
+| Scrap left at day 70 | 11,770 | 2,410 | 1,510 | 2,870 |
+| Stash | 195 | 76 | 51 | 77 |
+| Hungry days | 5.2 | 5.2 | 3.6 | 1.5 |
+
+- Projects start around real day 35, once the buildings are done, and run past real day 70: about five more weeks of goals.
+- What holds a guild back is people's time (three of about twelve on the crew) and, for some guilds, tech or meds, not scrap. A guild short of tech has a reason to go to the Glow or trade for it.
+- The Relay took 130 tech a stage at first; with gas piling up (1,200 at day 70 with nothing to spend it on), its generator takes 60 gas and the tech came down to 90.
+- Deaths, stress and food are unchanged.
+
 ## 10. Recruitment
 
 - **Recruit board.** Each day, 2 + the Radio Tower's level answer the radio. They're there for that day only. Wanderers (§9.3) wait 3 days.
@@ -623,10 +661,11 @@ Now and then something comes up that the player has to decide (Aviel's idea, 202
    - The first tab and the screen the game opens on. It grew long, so since 1.3.1 it has three tabs of its own:
      - **Today** (the default): a decision waiting, when there is one (§9.5; the Depot tab carries a mark meanwhile), "Since you last looked" (the days that passed, what the Garden grew and the guild ate, ammo made, health healed, and the news), a food warning, a trader's offers (Trade, Send them on), crews out, who is at the gate, the gear, and the three latest news lines.
      - **Buildings:** each building with its live numbers and workers, then those still to build. Coming back from a building returns here.
+     - **Projects** (1.8.0, §9.6): an intro, then each project as a card: what it is and does, a progress bar marked in stages, what the next stage costs with *Start*, or what it needs first, the crew (with *Take off* and *Add to the crew*), and how long the stage has left at this pace. Under way first, finished last. The Today tab says how the stage under way is coming along.
      - **News:** the Depot news, up to 60 lines.
    - **A building's screen:** what it does now, the next level and its cost, and its workers (post someone, take them off; Training Yard workers pick a stat). The Workshop adds Make and Improve.
    - **At the gate:** the recruit board (§10).
-   - Survivor sheets have a post picker.
+   - Survivor sheets have a post picker; since 1.8.0 it lists the projects under way too.
 2. **Roster:** survivor cards showing portrait, name, status, HP and stress bars, and top traits. *Built (PR 5).*
 3. **Survivor sheet:** portrait wearing their gear, stats with practice bars, traits (tap for an explanation and how it was gained), relationships, gear slots and Chronicle. Three tabs: *Stats and gear*, *Bonds*, *Chronicle*. If a survivor has a hidden trait, the sheet says something about them hasn't shown yet, without naming it. *Built (PR 5).* Since 1.2.0: the nickname between first and last name (also on the roster and the Memorial Wall), named weapons with what they are, their kills and their story, and *Scores to settle* on the Bonds tab (nemeses that put them down).
 4. **Reach map:** locations with explored %, danger and radiation. Tap a location for details and to plan a run. *Built (PR 6):* (since 1.2.0, a place names the nemesis that haunts it, a *Known by name* list under the places gives every nemesis's record and story, and the planner warns when a nemesis haunts the place and who has a score to settle)
@@ -641,11 +680,11 @@ Now and then something comes up that the player has to decide (Aviel's idea, 202
    - **Run report:** what came home, deaths, places found, the beat-by-beat log with the dice under each line, then what changed for each person. For example: *"Mara gained Rad-Hardened"*, *"Dex & Ava are now Friends"*, and the loot. It opens in place of the countdown when the crew gets back.
 7. **Memorial Wall:** faded portraits with the day and cause of death; tap one for their sheet and Chronicle. Opened from the bottom of the roster. *Built (PR 5).*
 8. **Settings:** mercy mode, notices when crews come back (and when something needs deciding, since 1.7.0), portrait wobble, the tour, export and import save, load the backup copy, start a new guild, developer shortcuts and fast-forward (§11, §13). *Built (PR 5, 6, 10).*
-9. **The tour** (PR 10). A new guild starts with it, and Settings can show it again. A card pinned above the tab bar walks through 26 short steps in 7 parts: supplies, food, your people, runs, building, recruits, and time. Each step opens its screen and outlines what it's talking about, with live numbers where they help (what the Garden grows, what the first buildings cost). *Next*, *Skip this part* and *Skip tour* are always there. Opening the game mid-tour (from a notice, say) stays where it opened; the next step moves on from there.
-10. **Gear** (1.1.1). The stash by slot (weapons, armor, tools, trinkets), each piece with a *Give* button that lists everyone: those at the Depot can take it, those out on a run can't yet. Below, what each person carries; tap someone for their sheet. Opened from the Depot's Gear panel, from the stash line on a survivor's sheet, and from a run report that found gear.
+9. **The tour** (PR 10). A new guild starts with it, and Settings can show it again. A card pinned above the tab bar walks through 27 short steps in 7 parts (the Projects tab joined in 1.8.0): supplies, food, your people, runs, building, recruits, and time. Each step opens its screen and outlines what it's talking about, with live numbers where they help (what the Garden grows, what the first buildings cost). *Next*, *Skip this part* and *Skip tour* are always there. Opening the game mid-tour (from a notice, say) stays where it opened; the next step moves on from there.
+10. **Gear** (1.1.1). The stash by slot (weapons, armor, tools, trinkets), each piece with a *Give* button that lists everyone: those at the Depot can take it, those out on a run can't yet. Since 1.8.0, a *Spare gear* panel above it takes the Rusty and Common weapons and armor apart at once, and each *Give* list ends with *Take apart* and what it gives (§9.4). Below, what each person carries; tap someone for their sheet. Opened from the Depot's Gear panel, from the stash line on a survivor's sheet, and from a run report that found gear.
 11. **Vehicles** (1.4.0). Each vehicle with what it does, a condition bar, where it is, and *Repair* with its cost; below, what the Workshop can build. Opened from the Depot's Vehicles panel (which says what the guild has, or how to get one), the Workshop and a report that found one. The planner lists the vehicles above the crew, with seats, condition, and the gas the trip needs; the crew limit follows the seats. Reports say what became of each vehicle taken. The resource bar shows gas, in two rows of three on a phone.
-12. **The yard** (1.5.0). A tab on the Depot screen (Today, Yard, Buildings, News) with the Depot drawn as it is right now, in the portraits' style.
-    - **What's in it:** the station house, the water tower and the signal gantry behind; the rails with a freight car per Bunks level; the Workshop, Infirmary, Garden, Firepit and Training Yard, each drawn by level (an empty lot with pegs and string before it's built); the Radio Tower's mast and the Watchtower's platform when built; vehicles at home parked in the yard (a broken one on bricks); the fence and the gate; recruits queuing outside; a trader's cart while a caravan is in.
+12. **The yard** (1.5.0). A tab on the Depot screen (Today, Yard, Buildings, Projects, News) with the Depot drawn as it is right now, in the portraits' style.
+    - **What's in it:** the station house, the water tower and the signal gantry behind; the rails with a freight car per Bunks level; the Workshop, Infirmary, Garden, Firepit and Training Yard, each drawn by level (an empty lot with pegs and string before it's built); the Radio Tower's mast and the Watchtower's platform when built; vehicles at home parked in the yard (a broken one on bricks); the fence and the gate; recruits queuing outside; a trader's cart while a caravan is in; projects as they're built (§9.6), each tappable to open the Projects tab.
     - **People** are small figures in their portrait colors (skin, hair, clothes, armor, hat, a bandage when wounded): workers at their posts (with a hoe in the Garden, on the platform at the Watchtower), the wounded on cots by the Infirmary (or by the Bunks without one), everyone else on the logs around the fire and then about the yard, partners side by side. Those out on a run aren't there; a panel below says where they are and when they're back.
     - **Time of day** follows the phone's clock: dawn, day, dusk and night, with lit windows, the fire's glow, the string lights and the radio light after dark. The fire flickers, smoke drifts and people shift a little; nothing moves with *reduce motion* on.
     - **Taps:** tapping someone or something picks it (it's drawn again on top, glowing) and the line under the drawing says who or what it is, with a button to open their sheet, the building, the recruits, the vehicles, or the trader's offer.
@@ -751,6 +790,7 @@ Planned 2026-11-11, in this order, all on Opus:
 | 16 | Decisions at the Depot (§9.5), asked for 2026-11-12 | **done** (1.7.0) |
 | — | Balance C: people's time and a five-week Depot (§6, §9.1), from the economy design in `claude/economy-design.md` | **done** (1.7.1) |
 | — | Balance D: checked to the end of the content with a person-like simulated player; a faster first week, bigger trades (§9.1) | **done** (1.7.2) |
+| — | Projects and salvage (§9.6, §9.4), the long goal after the Depot | **done** (1.8.0) |
 | 17 | What's missing: rescue jobs, feuds that make someone quit, pets, **ageing and babies**, the last gear drawings | |
 | 18 | The Vultures, a rival guild | |
 
@@ -768,7 +808,7 @@ Planned 2026-11-11, in this order, all on Opus:
 - **The yard** (step 14, asked for 2026-11-11). A drawing of the Depot on a tab of its own: the buildings as they are, everyone at home where they are (at their posts, around the fire, resting on cots), recruits outside the gate, a trader's cart, the vehicles parked in the yard, and the light of the time of day. Tap anything to see what it is and open it. A view only: nothing in the game changes.
 - **Expansion.** Outposts on fully explored places extend the guild's reach (the Civ-style expansion). Places get deeper, more dangerous areas with better loot. Decided 2026-11-12: outposts send supplies home every day, shorten runs nearby, are a rest stop on the way home, and can be raided; people live there and can be swapped out any time; deeper levels open by exploring; the Radio Tower's level sets how many outposts. *Built in 1.6.0 as §7.9 and §7.10.*
 - **Decisions** (step 16, Aviel, 2026-11-12). Now and then something comes up that the player decides: two people fighting over something, a dilemma. Four answers, with costs and rewards that aren't obvious. If he doesn't answer within about a day, the people involved settle it themselves, usually not the best way. *Built in 1.7.0 as §9.5.*
-- **The order from here** (Aviel, 2026-11-12): first, balance everything up to where the content runs out (1.7.2); then what was already planned (step 17, step 18 and projects); then the next steps below.
+- **The order from here** (Aviel, 2026-11-12): first, balance everything up to where the content runs out (1.7.2); then what was already planned (projects with salvage, which was Aviel's addition, in 1.8.0; then step 17 and step 18); then the next steps below.
 - **Interactive combat** (Aviel, 2026-11-12): runs can get repetitive, so fights should be playable, turn-based RPG style, at least as an option. Since runs are decided at departure, this needs a way to stop a run at a fight and wait for the player.
 - **Weapon mods** (Aviel liked them, 2026-11-12): a scope, a suppressor, a bayonet, made from tech and spare gear.
 - **Second and third depots** (Aviel, 2026-11-12): new regions beyond the Reach that can be settled for real, not just held as outposts.

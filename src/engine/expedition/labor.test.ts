@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import { HUNGER_STRESS_CAP, ROAD_STRESS, SAVE_VERSION } from '../constants.ts';
 import { firepitRelief } from '../depot/day.ts';
-import { assignPost, build } from '../depot/buildings.ts';
+import { assignPost, build, postBuilding } from '../depot/buildings.ts';
 import { Rng } from '../rng.ts';
 import { deserialize } from '../save.ts';
 import { hungerStress } from '../stats.ts';
@@ -51,8 +51,8 @@ describe('the road costs stress', () => {
     build(state, 'firepit', 1);
     build(state, 'firepit', 1);
     for (const s of state.survivors) {
-      const keepers = state.survivors.filter((x) => x.post?.building === 'firepit').length;
-      if (keepers < 3 && s.post?.building !== 'firepit') assignPost(state, s.id, { building: 'firepit' });
+      const keepers = state.survivors.filter((x) => postBuilding(x.post) === 'firepit').length;
+      if (keepers < 3 && postBuilding(s.post) !== 'firepit') assignPost(state, s.id, { building: 'firepit' });
     }
     const three = realDay(state);
     assert.ok(three >= 65 && three <= 95, `Bar and Stage: ${three}`);

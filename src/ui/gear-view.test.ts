@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { createItem, equipFromStash, itemName, startRun } from '../engine/index.ts';
+import { build, createItem, equipFromStash, itemName, startRun } from '../engine/index.ts';
 import { T0, testGame, testPlan } from '../engine/test-utils.ts';
-import { carriedRows, gearTakers, stashGroups, stashLine } from './gear-view.ts';
+import { carriedRows, gearTakers, salvageButton, sparesPanel, stashGroups, stashLine } from './gear-view.ts';
 
 describe('gear screen', () => {
   test('the stash is grouped by slot, best first, without empty groups', () => {
@@ -85,5 +85,26 @@ describe('gear screen', () => {
     assert.deepEqual(rowA.items, ['Pipe', 'Lucky Coin']);
     assert.equal(rowA.away, false);
     assert.equal(rows.find((r) => r.survivor.id === b!.id)!.away, true);
+  });
+});
+
+describe('salvage on the Gear screen', () => {
+  test('each piece says what taking it apart gives, or why not; spares can go all at once', () => {
+    const state = testGame('salvage-view');
+    state.stash = [];
+    const pipe = createItem(state, 'pipe', 'rusty');
+    const named = { ...createItem(state, 'sledge', 'solid'), name: 'Old Faithful' };
+    state.stash.push(pipe, named);
+    assert.deepEqual(salvageButton(state, pipe.uid), { label: 'Take apart for 1 scrap', problem: 'Build the Workshop first.' });
+    assert.deepEqual(sparesPanel(state), { text: 'With a Workshop, spare gear can be taken apart for scrap.' });
+    state.resources.scrap = 100;
+    build(state, 'workshop', 1);
+    assert.deepEqual(salvageButton(state, pipe.uid), { label: 'Take apart for 1 scrap' });
+    assert.equal(salvageButton(state, named.uid).problem, 'Nobody will take apart Old Faithful.');
+    assert.deepEqual(sparesPanel(state), { text: 'One Rusty or Common piece of gear in the stash would come to 1 scrap in the Workshop.', button: 'Take it apart' });
+    state.stash.push(createItem(state, 'leather_jacket', 'common'));
+    assert.equal(sparesPanel(state)?.button, 'Take them all apart');
+    state.stash = [named];
+    assert.equal(sparesPanel(state), undefined, 'nothing spare');
   });
 });

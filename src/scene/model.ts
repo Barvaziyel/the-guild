@@ -4,7 +4,7 @@
  * business: the model says where someone is (at a post, by the fire, on a cot,
  * at the gate), and `layout.ts` turns that into a spot.
  */
-import type { BuildingId } from '../engine/types.ts';
+import type { BuildingId, ProjectId } from '../engine/types.ts';
 
 /** How a small figure is drawn: colors from the survivor's portrait. */
 export interface FigureLook {
@@ -27,6 +27,8 @@ export interface FigureLook {
 export type Place =
   /** Working a post at a building: slot 0, 1 or 2. */
   | { kind: 'post'; building: BuildingId; slot: number }
+  /** On a project's crew, at work on it: slot 0, 1 or 2. */
+  | { kind: 'project'; project: ProjectId; slot: number }
   /** Hanging out, around the fire first. Partners get neighbouring slots. */
   | { kind: 'idle'; slot: number }
   /** Resting until healed, on a cot by the Infirmary (or by the Bunks without one). */
@@ -56,6 +58,8 @@ export type DayPhase = 'dawn' | 'day' | 'dusk' | 'night';
 export interface YardModel {
   /** Level of every building; 0 is an empty lot. */
   buildings: Record<BuildingId, number>;
+  /** How far each project has got (§9.6). */
+  projects: Record<ProjectId, { done: number; working: boolean }>;
   /** Everyone at the Depot, and the recruits at the gate. */
   people: YardPerson[];
   /** A trader's cart at the gate. */

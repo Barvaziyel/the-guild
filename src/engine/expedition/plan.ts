@@ -11,6 +11,7 @@ import { fullName } from '../text.ts';
 import { maxTraitHook, mulTraitHook } from '../traits.ts';
 import type { GameState, RunPlan, Survivor } from '../types.ts';
 import { crewLimit, findVehicle, gasNeeded, planVehicles, vehicleDef, vehicleName, vehicleProblem } from '../vehicles.ts';
+import { lineShare } from '../projects.ts';
 
 function crewOf(state: GameState, plan: RunPlan): Survivor[] {
   const out: Survivor[] = [];
@@ -38,9 +39,9 @@ export function placeMinutes(plan: RunPlan): number {
   return getLocation(plan.locationId).durationMin * (1 + DEPTH_DURATION * (planDepth(plan) - 1));
 }
 
-/** The share of the trip left when it starts from an outpost nearby (§7.9). */
+/** The share of the trip left when it starts from an outpost nearby (§7.9), or rides the Line (§9.6). */
 export function shortcut(state: GameState, plan: RunPlan): number {
-  return outpostNear(state, plan.locationId) ? OUTPOST_SHORTCUT : 1;
+  return Math.min(outpostNear(state, plan.locationId) ? OUTPOST_SHORTCUT : 1, lineShare(state, plan.locationId));
 }
 
 /** Run length in ms: on foot or at the pace of the slowest vehicle, and shorter from an outpost nearby. */

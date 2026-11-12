@@ -3,9 +3,9 @@
  */
 import { addGuildLog } from '../chronicle.ts';
 import { BUILDING_UPKEEP, BUNKS_CAP, MAX_BUILDING_LEVEL, WORKER_SLOTS } from '../constants.ts';
-import { BUILDINGS, getLocation, getTrait, type BuildingDef, type BuildingLevel } from '../content/index.ts';
+import { BUILDINGS, getLocation, getProject, getTrait, type BuildingDef, type BuildingLevel } from '../content/index.ts';
 import { statName } from '../stats.ts';
-import type { BuildingId, GameState, Post, ResourceId, Resources, StatId, Survivor } from '../types.ts';
+import type { BuildingId, BuildingPost, GameState, Post, ResourceId, Resources, StatId, Survivor } from '../types.ts';
 import { BUILDING_IDS, RESOURCE_IDS, STAT_IDS } from '../types.ts';
 
 const byId = new Map<BuildingId, BuildingDef>(BUILDINGS.map((b) => [b.id, b]));
@@ -120,9 +120,14 @@ export function workerSlots(state: GameState, id: BuildingId): number {
   return WORKER_SLOTS[Math.min(buildingLevel(state, id), MAX_BUILDING_LEVEL)] ?? 0;
 }
 
+/** The building a post is at, or undefined for a project's crew. */
+export function postBuilding(post: Post | undefined): BuildingId | undefined {
+  return post && 'building' in post ? post.building : undefined;
+}
+
 /** Everyone posted to a building, home or not. */
 export function postedTo(state: GameState, id: BuildingId): Survivor[] {
-  return state.survivors.filter((s) => s.post?.building === id);
+  return state.survivors.filter((s) => postBuilding(s.post) === id);
 }
 
 /**
@@ -151,7 +156,7 @@ export function workingAt(state: GameState, id: BuildingId): Survivor[] {
 }
 
 /** The stat a worker practices at their post. */
-export function postStat(s: Survivor, post: Post): StatId {
+export function postStat(s: Survivor, post: BuildingPost): StatId {
   const workStat = buildingDef(post.building).workStat;
   if (workStat && workStat !== 'any') return workStat;
   return post.stat ?? weakestStat(s);
@@ -162,14 +167,14 @@ export function weakestStat(s: Survivor): StatId {
 }
 
 /** Why this post can't be given, or undefined if it can. */
-export function postProblem(state: GameState, survivorId: string, post: Post): string | undefined {
+export function postProblem(state: GameState, survivorId: string, post: BuildingPost): string | undefined {
   const def = buildingDef(post.building);
   if (!def.workStat) return `Nobody works the ${def.name}.`;
   if (buildingLevel(state, post.building) === 0) return `The ${def.name} isn't built yet.`;
   const others = postedTo(state, post.building).filter((s) => s.id !== survivorId);
   if (others.length >= workerSlots(state, post.building)) return `The ${buildingName(state, post.building)} has no room for another worker.`;
   const s = state.survivors.find((x) => x.id === survivorId);
-  if (s && s.post?.building !== post.building && resting(s)) return `${s.firstName} is resting until healed.`;
+  if (s && postBuilding(s.post) !== post.building && resting(s)) return `${s.firstName} is resting until healed.`;
   return undefined;
 }
 
@@ -178,7 +183,7 @@ export function postProblem(state: GameState, survivorId: string, post: Post): s
  * run can be given one; they start when they're back. Someone living at an
  * outpost has to come home first. Throws if it can't be done.
  */
-export function assignPost(state: GameState, survivorId: string, post: Post | undefined): void {
+export function assignPost(state: GameState, survivorId: string, post: BuildingPost | undefined): void {
   const s = state.survivors.find((x) => x.id === survivorId);
   if (!s) throw new Error(`Unknown survivor: ${survivorId}`);
   if (post && s.outpost) throw new Error(`${s.firstName} lives at the outpost at ${getLocation(s.outpost).name}.`);
@@ -192,11 +197,18 @@ export function assignPost(state: GameState, survivorId: string, post: Post | un
   s.post = workStat === 'any' ? { building: post.building, stat: post.stat ?? weakestStat(s) } : { building: post.building };
 }
 
-/** "Works the Garden", "Trains Aim in the Training Yard", or "No post". */
+/** "Works the Garden", "Trains Aim in the Training Yard", "Works on the Wall", or "No post". */
 export function postText(state: GameState, s: Survivor): string {
   if (!s.post) return 'No post';
+  if ('project' in s.post) return `Works on ${projectTitle(s.post.project)}`;
   const name = buildingName(state, s.post.building);
   return buildingDef(s.post.building).workStat === 'any' ? `Trains ${statName(postStat(s, s.post))} in the ${name}` : `Works the ${name}`;
+}
+
+/** "the Wall", "the Memorial Garden": a project's name inside a sentence. */
+export function projectTitle(id: Parameters<typeof getProject>[0]): string {
+  const name = getProject(id).name;
+  return name.startsWith('The ') ? `the ${name.slice(4)}` : name;
 }
 
 /**

@@ -4,6 +4,9 @@
  */
 import {
   BUILDING_IDS,
+  PROJECT_IDS,
+  projectState,
+  workingOnProject,
   buildingLevel,
   buildingName,
   canWork,
@@ -18,6 +21,7 @@ import {
   workerSlots,
   workingAt,
   type BuildingId,
+  type ProjectId,
   type GameState,
   type Run,
   type Survivor,
@@ -90,6 +94,14 @@ export function yardModel(state: GameState, hour: number, day?: number): YardMod
     });
   }
 
+  // On a project's crew, while a stage is under way.
+  for (const id of PROJECT_IDS) {
+    workingOnProject(state, id).slice(0, 3).forEach((s, slot) => {
+      working.add(s.id);
+      people.push({ id: s.id, look: figureLook(s), place: { kind: 'project', project: id, slot }, go: sheet(s), label: `${fullName(s)} ${lower(postText(state, s))}.` });
+    });
+  }
+
   // Everyone else, by the fire and about the yard.
   const idle = idleOrder(state, home.filter((s) => canWork(s) && !working.has(s.id)));
   idle.slice(0, IDLE_SPOTS.length).forEach((s, slot) => {
@@ -113,7 +125,13 @@ export function yardModel(state: GameState, hour: number, day?: number): YardMod
   const buildings = {} as Record<BuildingId, number>;
   for (const id of BUILDING_IDS) buildings[id] = buildingLevel(state, id);
 
-  return { buildings, people, trader: state.depot.offers.length > 0, vehicles, phase: dayPhase(hour) };
+  const projects = {} as Record<ProjectId, { done: number; working: boolean }>;
+  for (const id of PROJECT_IDS) {
+    const ps = projectState(state, id);
+    projects[id] = { done: ps.done, working: ps.work !== undefined };
+  }
+
+  return { buildings, projects, people, trader: state.depot.offers.length > 0, vehicles, phase: dayPhase(hour) };
 }
 
 /** What a tap on a building says: "Garden, level 2. 2 of 3 working." or what it would cost. */

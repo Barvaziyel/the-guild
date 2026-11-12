@@ -500,11 +500,33 @@ export interface Outpost {
 export const BUILDING_IDS = ['bunks', 'garden', 'firepit', 'infirmary', 'workshop', 'radio_tower', 'watchtower', 'training_yard'] as const;
 export type BuildingId = (typeof BUILDING_IDS)[number];
 
-/** A survivor's job at the Depot. */
-export interface Post {
+/** A job at one of the Depot's buildings. */
+export interface BuildingPost {
   building: BuildingId;
   /** Training Yard: the stat they practice. */
   stat?: StatId;
+}
+
+/** A place on a project's crew (§9.6). */
+export interface ProjectPost {
+  project: ProjectId;
+}
+
+/** A survivor's job at the Depot: a building, or a project's crew. */
+export type Post = BuildingPost | ProjectPost;
+
+export const PROJECT_IDS = ['the_line', 'the_wall', 'the_clinic', 'the_relay', 'memorial_garden'] as const;
+export type ProjectId = (typeof PROJECT_IDS)[number];
+
+/** How far a project has got (§9.6). */
+export interface ProjectState {
+  /** Stages finished, 0 to 3. */
+  done: number;
+  /** Work put into the stage under way. Absent: no stage under way (the next one isn't paid for). */
+  work?: number;
+  /** The day its first stage was started, and the day its last was finished. */
+  startedDay?: number;
+  finishedDay?: number;
 }
 
 /** Someone at the gate who could join. */
@@ -637,6 +659,8 @@ export interface GameState {
   outposts: Outpost[];
   /** Decisions the player is asked to make at the Depot (§9.5). */
   dilemmas: DilemmaState;
+  /** Big works at the Depot, by id; absent ones haven't been started (§9.6). */
+  projects: Partial<Record<ProjectId, ProjectState>>;
   log: GuildLogEntry[];
   settings: {
     mercyMode: boolean;

@@ -2,7 +2,7 @@
  * Where everything sits in the yard drawing: a 400 x 600 canvas, seen from
  * the front like a stage. Things lower down are closer and drawn later.
  */
-import type { BuildingId } from '../engine/types.ts';
+import type { BuildingId, ProjectId } from '../engine/types.ts';
 
 export const W = 400;
 export const H = 600;
@@ -61,6 +61,15 @@ export const POST_SPOTS: Record<BuildingId, readonly Spot[]> = {
   radio_tower: [s(328, 196), s(350, 198), s(372, 196, 'stand', -1)],
   watchtower: [s(264, 140), s(280, 140), s(296, 140, 'stand', -1)],
   training_yard: [s(300, 422), s(340, 424), s(380, 422, 'stand', -1)],
+};
+
+/** Where a project's crew works (§9.6). */
+export const PROJECT_SPOTS: Record<ProjectId, readonly Spot[]> = {
+  the_relay: [s(52, 198), s(96, 200, 'stand', -1), s(118, 198, 'stand', -1)],
+  the_clinic: [s(312, 362), s(336, 364, 'stand', -1), s(366, 362, 'stand', -1)],
+  memorial_garden: [s(140, 340, 'kneel'), s(198, 340, 'kneel', -1), s(126, 336)],
+  the_line: [s(236, 592), s(262, 594, 'kneel'), s(288, 592, 'stand', -1)],
+  the_wall: [s(40, 506), s(128, 508, 'stand', -1), s(300, 506)],
 };
 
 /** Hanging out: on the logs around the fire first, then about the yard. */
