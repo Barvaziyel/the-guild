@@ -8,17 +8,17 @@ import type { Rng } from '../rng.ts';
 import { maxHp } from '../stats.ts';
 import type { Candidate, GameState, Survivor } from '../types.ts';
 import { STAT_IDS } from '../types.ts';
-import { buildingLevel, bunksCap, hasFreeBunk } from './buildings.ts';
+import { bunksCap, hasFreeBunk, workingLevel } from './buildings.ts';
 
 /** How many answer the radio each day. */
 export function boardSize(state: GameState): number {
-  return RECRUITS_BASE + buildingLevel(state, 'radio_tower');
+  return RECRUITS_BASE + workingLevel(state, 'radio_tower');
 }
 
 /** A new face. A better Radio Tower draws people who've been around a bit. */
 export function generateCandidate(state: GameState, rng: Rng, day: number): Survivor {
   const s = generateSurvivor(state, rng, { day });
-  let extra = RECRUIT_BONUS_POINTS[buildingLevel(state, 'radio_tower')] ?? 0;
+  let extra = RECRUIT_BONUS_POINTS[workingLevel(state, 'radio_tower')] ?? 0;
   while (extra > 0) {
     const room = STAT_IDS.filter((id) => s.stats[id] < STAT_GEN_MAX);
     if (room.length === 0) break;

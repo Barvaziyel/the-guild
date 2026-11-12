@@ -3,6 +3,7 @@ import {
   AFFINITY_MAX,
   AFFINITY_MIN,
   PARTNER_DAILY_CHANCE,
+  PARTNER_GUILD_FACTOR,
   PARTNER_SECOND_FACTOR,
   PARTNER_SPLIT_SCORE,
   REL_AFFINITY_SCALE,
@@ -205,7 +206,17 @@ export function romanceChance(state: GameState, a: Survivor, b: Survivor): numbe
   if (a.traits.some((t) => t.id === 'grieving') || b.traits.some((t) => t.id === 'grieving')) return 0;
   let p = PARTNER_DAILY_CHANCE;
   if (partnerOf(state, a.id) || partnerOf(state, b.id)) p *= PARTNER_SECOND_FACTOR;
-  return p;
+  return p * PARTNER_GUILD_FACTOR ** couplesIn(state);
+}
+
+/** How many couples the guild has among the living. */
+export function couplesIn(state: GameState): number {
+  let n = 0;
+  for (const rel of Object.values(state.relationships)) {
+    if (!rel.flags.some((f) => f.kind === 'partners')) continue;
+    if (state.survivors.some((s) => s.id === rel.a) && state.survivors.some((s) => s.id === rel.b)) n += 1;
+  }
+  return n;
 }
 
 /** Two survivors become partners. */

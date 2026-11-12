@@ -30,6 +30,8 @@ export interface CheckMod {
 export interface TraitHooks {
   /** Chance per combat to flee when hurt or when an ally goes down. */
   fleeChance?: number;
+  /** Chance, after a run that found something, to fall out with another crew member over the shares (1.6.2). */
+  lootArgueChance?: number;
   /** Never flees, even under retreat pressure. */
   neverFlees?: boolean;
   /** Relative weight for being targeted by enemies (1 = normal). */
@@ -556,6 +558,8 @@ export interface DepotState {
   offers: TradeOffer[];
   /** Ran out of rations on the last day played. */
   hungry?: boolean;
+  /** Buildings whose upkeep couldn't be paid on the last day played: they work one level lower (1.6.2). */
+  unpaid?: BuildingId[];
 }
 
 // ---------------------------------------------------------------- guild

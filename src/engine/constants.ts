@@ -3,7 +3,7 @@
  * not inside logic. See docs/DESIGN.md for the reasoning behind each value.
  */
 
-import type { Quality, RelationshipLabel, Resources } from './types.ts';
+import type { BuildingId, Quality, RelationshipLabel, ResourceId, Resources } from './types.ts';
 
 /** Save format version. Bump together with a migration in save.ts. */
 export const SAVE_VERSION = 12;
@@ -171,9 +171,19 @@ export const RADS_PER_BEAT = 3;
 export const RAD_SICKNESS_THRESHOLD = 15;
 
 /** Relationship changes. */
-export const REL_RUN_BASE = 1;
+/**
+ * A run together: base plus affinity, and a fight side by side helps those who
+ * get along. Before 1.6.2 every pair warmed (+1 base, +3 for any fight), so
+ * nearly everyone ended up friends and feuds were rare.
+ */
+export const REL_RUN_BASE = 0;
 export const REL_RUN_PER_AFFINITY = 2;
-export const REL_COMBAT_TOGETHER = 3;
+export const REL_COMBAT_TOGETHER = 2;
+/** After a run with something to share: chance a Greedy or Hothead crew member argues over the shares. */
+export const LOOT_ARGUMENT_CHANCE = 0.2;
+/** After a death on a run: chance the person closest to the dead blames someone who came back, and how much it costs. */
+export const BLAME_CHANCE = 0.5;
+export const REL_BLAME = -20;
 export const REL_SAVED = 30;
 export const REL_ARGUMENT = -10;
 export const REL_CAUGHT_STEALING = -25;
@@ -233,10 +243,10 @@ export const GARDEN_BASE = 2;
 export const GARDEN_PER_WORKER = 0.5;
 export const GARDEN_PER_WITS = 0.25;
 
-/** Stress shed per day at the Depot, before Firepit and traits. */
-export const REST_RELIEF = 5;
-/** Extra stress shed per day by Firepit level. */
-export const FIREPIT_RELIEF = [0, 5, 8, 12] as const;
+/** Stress shed per day at the Depot, before Firepit and traits. 5 before 1.6.2: with 8 Depot days a real day, people were calm again by every check-in. */
+export const REST_RELIEF = 2;
+/** Extra stress shed per day by Firepit level (5, 8 and 12 before 1.6.2). */
+export const FIREPIT_RELIEF = [0, 3, 5, 8] as const;
 /** Each Firepit keeper adds this plus Nerve * FIREPIT_PER_NERVE. */
 export const FIREPIT_PER_KEEPER = 1;
 export const FIREPIT_PER_NERVE = 0.25;
@@ -245,9 +255,9 @@ export const BAR_DRIFT_CHANCE = [0, 0, 0.25, 0.5] as const;
 /** Extra stress shed per day with a Bonded friend at the Depot. */
 export const BONDED_RELIEF = 2;
 
-/** HP healed per day, as a share of max HP: base, per Infirmary level, per medic Wits point. */
-export const HEAL_BASE = 0.15;
-export const HEAL_PER_INFIRMARY = 0.1;
+/** HP healed per day, as a share of max HP: base, per Infirmary level, per medic Wits point (0.15 and 0.1 before 1.6.2). */
+export const HEAL_BASE = 0.08;
+export const HEAL_PER_INFIRMARY = 0.08;
 export const HEAL_PER_MEDIC_WITS = 0.02;
 /** Daily chance, by Infirmary level, that a staffed Infirmary closes a wound a day early. */
 export const INFIRMARY_SPEEDUP = [0, 0.25, 0.5, 0.75] as const;
@@ -286,8 +296,34 @@ export const RAID_DC = 12;
 export const WATCHTOWER_DEFENSE = 2;
 /** Share of scrap, rations and ammo raiders take; halved with a Watchtower... */
 export const RAID_LOSS = 0.25;
-/** ...but no more of each than they can carry. */
+/** ...but no more of each than they can carry: this much, plus a share of whatever is stored beyond RAID_TAKE_FREE (a big stockpile draws a bigger crew). */
 export const RAID_MAX_TAKE = 30;
+export const RAID_TAKE_FREE = 100;
+export const RAID_TAKE_OVER = 0.2;
+
+/**
+ * Upkeep (1.6.2): what the upper levels of some buildings use up each day, by
+ * level. Fractions are a chance of one more. A building whose upkeep can't be
+ * paid works one level lower that day.
+ */
+export const BUILDING_UPKEEP: Partial<Record<BuildingId, { res: ResourceId; perLevel: readonly number[] }>> = {
+  firepit: { res: 'rations', perLevel: [0, 0, 1, 2] },
+  infirmary: { res: 'meds', perLevel: [0, 0, 0.25, 0.5] },
+  workshop: { res: 'tech', perLevel: [0, 0, 0.25, 0.5] },
+  radio_tower: { res: 'tech', perLevel: [0, 0, 0.25, 0.5] },
+  watchtower: { res: 'ammo', perLevel: [0, 0, 0.5, 1] },
+};
+
+/**
+ * Traders buy what the guild has too much of (1.6.2): scrap paid for each one
+ * sold, and how much is kept back before any counts as spare (rations: this
+ * many days of eating).
+ */
+export const TRADER_BUYS: Partial<Record<ResourceId, number>> = { rations: 0.5, meds: 1.2, tech: 2, gas: 1, ammo: 0.4 };
+export const TRADER_BUY_KEEP = 25;
+export const TRADER_BUY_KEEP_RATION_DAYS = 10;
+/** Chance a caravan offers to buy, when the guild has something spare. */
+export const TRADER_BUY_CHANCE = 0.5;
 
 // ---------------------------------------------------------------- names
 
@@ -329,10 +365,10 @@ export const NEMESIS_GRUDGE_BONUS = 1;
 /** Stress shed by everyone it ever put down, when it dies. */
 export const NEMESIS_DEATH_RELIEF = 10;
 
-/** A weapon earns a name at this many kills... */
-export const NAMED_GEAR_KILLS = 10;
+/** A weapon earns a name at this many kills (10 before 1.6.2, when most of the guild's weapons had names within a month)... */
+export const NAMED_GEAR_KILLS = 25;
 /** ...and a line in its story at these. */
-export const NAMED_GEAR_MILESTONES = [25, 50, 100] as const;
+export const NAMED_GEAR_MILESTONES = [50, 100, 200] as const;
 /** Story lines kept for a nemesis or a named weapon. */
 export const STORY_MAX_LINES = 12;
 
@@ -348,6 +384,8 @@ export const PARTNER_DAILY_CHANCE = 0.015;
 export const ORIENTATION_PER_MILLE = { straight: 850, gay: 60, bi: 90 } as const;
 /** ...and by this when either already has a partner: about 99% stay with one. */
 export const PARTNER_SECOND_FACTOR = 0.01;
+/** ...and by this for every couple already in the guild, so couples stay uncommon over months (1.6.2). */
+export const PARTNER_GUILD_FACTOR = 0.4;
 /** Extra stress shed a day with their partner at the Depot, on top of a Bonded friend's. */
 export const PARTNER_RELIEF = 2;
 /** Extra stress on seeing their partner go down. */
@@ -410,10 +448,10 @@ export const OUTPOST_SHORTCUT = 0.5;
 /** A crew stopping at an outpost on the way home sheds this stress and heals this much. */
 export const OUTPOST_REST_STRESS = 8;
 export const OUTPOST_REST_HP = 2;
-/** Each person living there heals this share of their health a day: a third of the Depot's, with no Infirmary. */
-export const OUTPOST_HEAL = 0.05;
-/** Stress shed a day out there (the Depot gives 5, plus its Firepit), before a Bonded friend or partner there. */
-export const OUTPOST_RELIEF = 2;
+/** Each person living there heals this share of their health a day: about a third of the Depot's, with no Infirmary. */
+export const OUTPOST_HEAL = 0.03;
+/** Stress shed a day out there (the Depot gives 2, plus its Firepit), before a Bonded friend or partner there. */
+export const OUTPOST_RELIEF = 1;
 /** Keeping watch: stress a day for every point of the place's danger above 1. */
 export const OUTPOST_WATCH_STRESS = 1;
 /** Trouble at an outpost (prowlers, a long night, an accident, radiation): chance a day, base plus per point of danger. */

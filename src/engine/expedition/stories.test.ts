@@ -152,7 +152,7 @@ describe('nemeses', () => {
 });
 
 describe('named weapons', () => {
-  test('a weapon earns a name at its tenth kill, with the start of its story', () => {
+  test('a weapon earns a name at its 25th kill, with the start of its story', () => {
     const { found } = findRun(
       'named',
       (i) => {
@@ -168,8 +168,8 @@ describe('named weapons', () => {
     const w = found.equipment.weapon!;
     assert.ok(WEAPON_NAMES.melee.includes(w.name!));
     assert.equal(w.kills, NAMED_GEAR_KILLS);
-    assert.match(w.history![0]!.text, new RegExp(`^Named after its tenth kill, in .*'s hands at ${getLocation('drowned_mall').name}\\.$`));
-    assert.ok(found.chronicle.some((c) => c.text === `Carried the Solid Machete to its tenth kill. The guild calls it ${w.name} now.`));
+    assert.match(w.history![0]!.text, new RegExp(`^Named after its ${NAMED_GEAR_KILLS}th kill, in .*'s hands at ${getLocation('drowned_mall').name}\\.$`));
+    assert.ok(found.chronicle.some((c) => c.text === `Carried the Solid Machete to its ${NAMED_GEAR_KILLS}th kill. The guild calls it ${w.name} now.`));
   });
 
   test('names are never handed out twice', () => {
@@ -207,7 +207,7 @@ describe('nicknames', () => {
       'nick',
       (i) => {
         const state = openGame(`nick-${i % 6}`);
-        for (const s of state.survivors) s.counters.rangedKills = 20;
+        for (const s of state.survivors) s.counters.rangedKills = s.counters.meleeKills = 11;
         return { state, plan: testPlan(state, 'maple_street') };
       },
       (_s, sim) => sim.result.crew.find((s) => s.nickname),
@@ -215,6 +215,24 @@ describe('nicknames', () => {
     const rule = NICKNAMES.find((r) => r.names.includes(found.nickname!))!;
     assert.ok(rule);
     assert.ok(found.chronicle.some((c) => c.text.startsWith(`Earned a name: "${found.nickname}", for`)));
+  });
+
+  test('a mark already passed earns nothing: a name is one roll, on the run that reaches it', () => {
+    const counted = new Set(['sharpshooter', 'brawler', 'old_hand', 'scav']);
+    for (let i = 0; i < 300; i++) {
+      const state = openGame(`past-${i % 6}`);
+      for (const s of state.survivors) {
+        s.counters.rangedKills = s.counters.meleeKills = 30;
+        s.counters.runs = 60;
+        s.counters.scavenges = 40;
+      }
+      const run = startRun(state, testPlan(state, 'maple_street'), T0);
+      for (const s of run.result.crew) {
+        if (!s.nickname) continue;
+        const rule = NICKNAMES.find((r) => r.names.includes(s.nickname!))!;
+        assert.ok(!counted.has(rule.id), `${s.nickname} from ${rule.id}, a mark passed long ago`);
+      }
+    }
   });
 
   test('someone with a nickname keeps it', () => {

@@ -3,13 +3,13 @@
  * log while they're away, and applying the outcome when they come home.
  */
 import { addChronicle, addGuildLog } from '../chronicle.ts';
-import { MAX_REPORTS, PARTNER_GRIEF_EXTRA_DAYS, PARTNER_LOSS_STRESS, STRESS_MAX } from '../constants.ts';
+import { BLAME_CHANCE, MAX_REPORTS, PARTNER_GRIEF_EXTRA_DAYS, PARTNER_LOSS_STRESS, REL_BLAME, STRESS_MAX } from '../constants.ts';
 import { buildingName, trimPosts } from '../depot/buildings.ts';
 import { ENEMIES, getLocation } from '../content/index.ts';
 import { dayAt, withRng } from '../game.ts';
 import { newId } from '../ids.ts';
 import { addExplored, ensureLocationState, exploredAt, planDepth } from '../locations.ts';
-import { arePartners, pairKey, relationshipLabel } from '../relationships.ts';
+import { adjustRelationship, arePartners, pairKey, relationshipLabel, relationshipScore } from '../relationships.ts';
 import { Rng } from '../rng.ts';
 import { changeStress } from '../stats.ts';
 import { fullName, pronounForms } from '../text.ts';
@@ -102,7 +102,7 @@ function homecoming(home: Survivor, after: Survivor, departed: DepartureMark | u
 }
 
 /** Those left behind: friends grieve, and the closest are changed by it. */
-function mourn(state: GameState, death: RunDeath, rng: Rng, day: number): void {
+function mourn(state: GameState, death: RunDeath, rng: Rng, day: number, cameBack: readonly string[] = []): void {
   for (const s of state.survivors) {
     const label = relationshipLabel(state, s.id, death.survivorId);
     if (label !== 'friend' && label !== 'bonded') continue;
@@ -125,6 +125,28 @@ function mourn(state: GameState, death: RunDeath, rng: Rng, day: number): void {
       addTrait(s, 'haunted', { day, source: `losing ${death.name}`, force: true });
     }
   }
+  blame(state, death, rng, day, cameBack);
+}
+
+/**
+ * Whoever was closest to the dead may blame someone who came back (1.6.2):
+ * the one they like least. A rift that can turn into a feud.
+ */
+function blame(state: GameState, death: RunDeath, rng: Rng, day: number, cameBack: readonly string[]): void {
+  const closeness = (s: Survivor): number => (arePartners(state, s.id, death.survivorId) ? 1000 : relationshipScore(state, s.id, death.survivorId));
+  const closest = state.survivors
+    .filter((s) => ['friend', 'bonded'].includes(relationshipLabel(state, s.id, death.survivorId)))
+    .sort((a, b) => closeness(b) - closeness(a))[0];
+  if (!closest) return;
+  const blamed = cameBack
+    .filter((id) => id !== closest.id)
+    .map((id) => state.survivors.find((s) => s.id === id))
+    .filter((s): s is Survivor => s !== undefined)
+    .sort((a, b) => relationshipScore(state, closest.id, a.id) - relationshipScore(state, closest.id, b.id))[0];
+  if (!blamed || !rng.chance(BLAME_CHANCE)) return;
+  adjustRelationship(state, closest.id, blamed.id, REL_BLAME, { day });
+  addChronicle(closest, day, `Blames ${fullName(blamed)} for ${death.name}'s death.`, ['blame', blamed.id]);
+  addChronicle(blamed, day, `Blamed by ${fullName(closest)} for ${death.name}'s death.`, ['blame', closest.id]);
 }
 
 const ENEMY_TYPE_NAMES: Record<string, string> = { raider: 'raiders', feral: 'ferals', hollow: 'Hollows', scrapbot: 'Scrapbots' };
@@ -177,7 +199,8 @@ export function completeRun(state: GameState, runId: string, now: number): RunRe
       if (s) addTrait(s, 'exhausted', { day, rng, silent: true });
     }
   }
-  for (const death of result.deaths) mourn(state, death, rng, day);
+  const cameBack = result.crew.filter((s) => s.status !== 'dead').map((s) => s.id);
+  for (const death of result.deaths) mourn(state, death, rng, day, cameBack);
   for (const news of result.nemeses ?? []) applyNemesisNews(state, news, result.crew, day, rng);
 
   for (const res of RESOURCE_IDS) state.resources[res] += result.loot[res];

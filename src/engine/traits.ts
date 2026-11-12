@@ -44,7 +44,7 @@ export interface AddTraitOptions {
 
 export interface AddTraitResult {
   added: boolean;
-  /** Trait id that was replaced by this one (its opposite). */
+  /** Trait id that was replaced by this one: its opposite, or at the cap the oldest one it pushed out. */
   replaced?: string;
   reason?: 'duplicate' | 'full' | 'extended';
 }
@@ -74,8 +74,17 @@ export function addTrait(s: Survivor, id: string, opts: AddTraitOptions): AddTra
     s.traits = s.traits.filter((t) => t.id !== def.opposite);
   }
 
+  // At the cap, something new pushes out the oldest habit: the earliest earned
+  // or personality trait the player can see, never Veteran or Survivor (1.6.2;
+  // before, people simply stopped changing once they had six).
+  let pushedOut: string | undefined;
   if (def.kind !== 'condition' && !opts.force && !replaced && traitSlotsUsed(s) >= MAX_TRAITS) {
-    return { added: false, reason: 'full' };
+    const oldest = s.traits
+      .filter((t) => !t.hidden && !KEPT_AT_CAP.has(t.id) && ['earned', 'personality'].includes(getTrait(t.id).kind))
+      .sort((a, b) => a.gainedDay - b.gainedDay)[0];
+    if (!oldest || opts.hidden) return { added: false, reason: 'full' };
+    pushedOut = oldest.id;
+    s.traits = s.traits.filter((t) => t !== oldest);
   }
 
   const instance: TraitInstance = { id, gainedDay: opts.day };
@@ -89,12 +98,18 @@ export function addTrait(s: Survivor, id: string, opts: AddTraitOptions): AddTra
     const because = opts.source ? `: ${opts.source}` : '';
     const text = replaced
       ? `No longer ${getTrait(replaced).name}. Became ${def.name}${because}.`
-      : gainText(def, because);
+      : pushedOut
+        ? `Became ${def.name}${because}, and left being ${getTrait(pushedOut).name} behind.`
+        : gainText(def, because);
     addChronicle(s, opts.day, text, ['trait', id]);
   }
 
-  return replaced ? { added: true, replaced } : { added: true };
+  const gone = replaced ?? pushedOut;
+  return gone ? { added: true, replaced: gone } : { added: true };
 }
+
+/** Traits a new one never pushes out at the cap: they mark what someone has lived through. */
+const KEPT_AT_CAP = new Set(['veteran', 'survivor']);
 
 function gainText(def: TraitDef, because: string): string {
   switch (def.kind) {

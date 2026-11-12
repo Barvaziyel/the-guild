@@ -78,7 +78,7 @@ describe('tour', () => {
     const state = openGame('tour-build');
     const before = firstBuildSuggestions(state);
     assert.equal(before.length, 3);
-    assert.match(before[0]!, /^Bunks level 2 \(\d+ scrap\) to make room for a recruit$/);
+    assert.match(before[0]!, /^Bunks level 2 \(\d+ scrap, \d+ rations\) to make room for a recruit$/);
     assert.match(before[1]!, /^an Infirmary \(/);
     state.resources.scrap = 500;
     state.resources.tech = 50;
