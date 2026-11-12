@@ -163,6 +163,15 @@ export const TOUR_STEPS: readonly TourStep[] = [
     },
   },
   {
+    id: 'yard',
+    part: 'people',
+    title: 'The yard',
+    route: () => ({ screen: 'depot', tab: 'yard' }),
+    target: 'yard',
+    text: () =>
+      "The Yard shows the Depot as it is right now: who's at work, who's by the fire, who's resting, and who's at the gate. It darkens with the evening. Tap anyone or anything to see what it is.",
+  },
+  {
     id: 'stats',
     part: 'people',
     title: 'Getting better',

@@ -7,7 +7,7 @@ export const SHEET_TABS = ['stats', 'bonds', 'story'] as const;
 export type SheetTab = (typeof SHEET_TABS)[number];
 
 /** The Depot's tabs. 'today' is the default and has no part in the hash. */
-export const DEPOT_TABS = ['today', 'buildings', 'news'] as const;
+export const DEPOT_TABS = ['today', 'yard', 'buildings', 'news'] as const;
 export type DepotTab = (typeof DEPOT_TABS)[number];
 
 export type Route =

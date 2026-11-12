@@ -9,7 +9,8 @@ import {
 } from '../../engine/index.ts';
 import { Portrait } from '../components/Portrait.tsx';
 import { navigate, useAction } from '../hooks.ts';
-import type { DepotTab } from '../route.ts';
+import { DEPOT_TABS, type DepotTab } from '../route.ts';
+import { Yard } from '../components/Yard.tsx';
 import { activeRuns, backIn, joinNames, runCrewNames } from '../runs-view.ts';
 import { buildingRows, depotNews, foodWarning, homeCounts, summaryLines, type BuildingRow } from '../depot-view.ts';
 import { stashLine } from '../gear-view.ts';
@@ -23,7 +24,7 @@ interface Props {
   onDismissAway: () => void;
 }
 
-const TAB_LABELS: Record<DepotTab, string> = { today: 'Today', buildings: 'Buildings', news: 'News' };
+const TAB_LABELS: Record<DepotTab, string> = { today: 'Today', yard: 'Yard', buildings: 'Buildings', news: 'News' };
 
 export function Depot({ state, now, tab, away, onDismissAway }: Props) {
   const counts = homeCounts(state);
@@ -41,7 +42,7 @@ export function Depot({ state, now, tab, away, onDismissAway }: Props) {
       </div>
 
       <div className="sheet-tabs depot-tabs" role="tablist" aria-label="Depot">
-        {(['today', 'buildings', 'news'] as const).map((t) => (
+        {DEPOT_TABS.map((t) => (
           <button
             key={t}
             type="button"
@@ -59,6 +60,7 @@ export function Depot({ state, now, tab, away, onDismissAway }: Props) {
 
       <div id="depot-panel" role="tabpanel" aria-labelledby={`depot-tab-${tab}`}>
         {tab === 'today' && <Today state={state} now={now} away={away} onDismissAway={onDismissAway} />}
+        {tab === 'yard' && <Yard state={state} now={now} />}
         {tab === 'buildings' && <Buildings state={state} />}
         {tab === 'news' && <News state={state} limit={60} />}
       </div>
