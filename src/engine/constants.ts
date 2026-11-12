@@ -297,6 +297,14 @@ export const RECRUIT_BONUS_POINTS = [0, 0, 1, 2] as const;
 export const WANDERER_DAYS = 3;
 /** Days a trader caravan waits. */
 export const TRADE_DAYS = 2;
+/**
+ * A swap asks for this share of what the guild holds of the supply it gives, if that's more than 8-20,
+ * up to TRADE_MAX_GIVE (1.7.2). Before, every swap was 8-20, so traders meant nothing to a guild holding
+ * hundreds, and a guild rich in scrap but short of tech had no way to turn one into the other.
+ */
+export const TRADE_SHARE_MIN = 0.08;
+export const TRADE_SHARE_MAX = 0.15;
+export const TRADE_MAX_GIVE = 200;
 
 /** Chance per day that something happens at the Depot (one event at most). */
 export const DEPOT_EVENT_CHANCE = 0.2;
@@ -344,8 +352,9 @@ export const NAME_MAX_LENGTH = 20;
 // ---------------------------------------------------------------- new game
 
 export const STARTING_SURVIVORS = 4;
+/** What a new guild starts with. 50 scrap (20 before 1.7.2) buys Bunks 2 or Garden 2 on day one: the first week brings in only about 10 scrap a day. */
 export const STARTING_RESOURCES: Resources = {
-  scrap: 20,
+  scrap: 50,
   rations: 24,
   meds: 3,
   ammo: 15,
