@@ -52,6 +52,7 @@ export function emptyCounters(): LifeCounters {
     alliesSaved: 0,
     scavenges: 0,
     daysAtDepot: 0,
+    hardRuns: 0,
   };
 }
 

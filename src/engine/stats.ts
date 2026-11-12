@@ -3,6 +3,8 @@ import {
   CARRY_BASE,
   HP_BASE,
   HP_PER_GRIT,
+  HUNGER_STRESS,
+  HUNGER_STRESS_CAP,
   NERVE_STRESS_DIVISOR,
   PRACTICE_PER_LEVEL,
   STAT_MAX,
@@ -200,4 +202,12 @@ export function changeStress(
     result.after = s.stress;
   }
   return result;
+}
+
+/** A hungry day: stress, but never past HUNGER_STRESS_CAP on hunger alone (§9). Only runs can break someone. */
+export function hungerStress(s: Survivor, rng: Rng, day: number): void {
+  const room = HUNGER_STRESS_CAP - s.stress;
+  if (room <= 0) return;
+  changeStress(s, Math.min(HUNGER_STRESS, room), { rng, day, source: 'hunger' });
+  if (s.stress > HUNGER_STRESS_CAP) s.stress = HUNGER_STRESS_CAP;
 }

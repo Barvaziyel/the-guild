@@ -38,6 +38,28 @@ describe('relationship labels', () => {
 });
 
 describe('adjustRelationship', () => {
+  test('everyday life stops at Friends or Rivals; something that happened can go further', () => {
+    const state = twoPeople();
+    const set = (score: number): void => {
+      adjustRelationship(state, 'a', 'b', score - relationshipScore(state, 'a', 'b'), { day: 1, useTraitMult: false, silent: true });
+    };
+    set(55);
+    adjustRelationship(state, 'a', 'b', 10, { day: 1, everyday: true });
+    assert.equal(relationshipScore(state, 'a', 'b'), 59, 'stops at the top of Friends');
+    adjustRelationship(state, 'a', 'b', 10, { day: 1 });
+    assert.equal(labelFor(relationshipScore(state, 'a', 'b')), 'bonded', 'a shared event makes them Bonded');
+    const bonded = relationshipScore(state, 'a', 'b');
+    adjustRelationship(state, 'a', 'b', 5, { day: 1, everyday: true });
+    assert.equal(relationshipScore(state, 'a', 'b'), bonded, 'everyday life adds nothing past Friends');
+    adjustRelationship(state, 'a', 'b', -3, { day: 1, everyday: true });
+    assert.equal(relationshipScore(state, 'a', 'b'), bonded - 3, 'but can wear it down');
+    set(-50);
+    adjustRelationship(state, 'a', 'b', -20, { day: 1, everyday: true });
+    assert.equal(relationshipScore(state, 'a', 'b'), -59, 'stops at the bottom of Rivals');
+    adjustRelationship(state, 'a', 'b', -20, { day: 1 });
+    assert.equal(labelFor(relationshipScore(state, 'a', 'b')), 'feud');
+  });
+
   test('changes are symmetric and clamped', () => {
     const state = twoPeople();
     adjustRelationship(state, 'a', 'b', 500, { day: 1 });

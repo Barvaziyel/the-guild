@@ -6,7 +6,7 @@
 import type { BuildingId, Quality, RelationshipLabel, ResourceId, Resources } from './types.ts';
 
 /** Save format version. Bump together with a migration in save.ts. */
-export const SAVE_VERSION = 13;
+export const SAVE_VERSION = 14;
 
 // ---------------------------------------------------------------- time
 
@@ -71,6 +71,9 @@ export const REL_THRESHOLDS: readonly { label: RelationshipLabel; min: number }[
   { label: 'rival', min: -59 },
   { label: 'feud', min: REL_MIN },
 ];
+/** Everyday life moves a pair no further than this (the top of Friends) or below this (the bottom of Rivals); see AdjustOptions.everyday. */
+export const EVERYDAY_MAX = 59;
+export const EVERYDAY_MIN = -59;
 /** Starting relationship = affinity * this + random(-REL_START_NOISE..REL_START_NOISE). */
 export const REL_AFFINITY_SCALE = 5;
 export const REL_START_NOISE = 10;
@@ -235,8 +238,12 @@ export const MAX_BUILDING_LEVEL = 3;
 
 /** Rations a survivor at the Depot eats per day (Gluttons eat more). */
 export const UPKEEP_RATIONS = 1;
-/** Stress per hungry day, instead of any relief. */
-export const HUNGER_STRESS = 10;
+/** Stress per hungry day, instead of any relief (10 before 1.7.1, when it outweighed the Depot's relief and broke people). */
+export const HUNGER_STRESS = 4;
+/** Hunger alone never pushes anyone past this; only runs can break someone. */
+export const HUNGER_STRESS_CAP = 70;
+/** Share of the usual healing a hungry day still gives. */
+export const HUNGRY_HEAL_SHARE = 0.5;
 
 /** Garden rations per day = level * (GARDEN_BASE + sum over gardeners of (GARDEN_PER_WORKER + Wits * GARDEN_PER_WITS)). */
 export const GARDEN_BASE = 2;
@@ -245,11 +252,15 @@ export const GARDEN_PER_WITS = 0.25;
 
 /** Stress shed per day at the Depot, before Firepit and traits. 5 before 1.6.2: with 8 Depot days a real day, people were calm again by every check-in. */
 export const REST_RELIEF = 2;
-/** Extra stress shed per day by Firepit level (5, 8 and 12 before 1.6.2). */
-export const FIREPIT_RELIEF = [0, 3, 5, 8] as const;
-/** Each Firepit keeper adds this plus Nerve * FIREPIT_PER_NERVE. */
-export const FIREPIT_PER_KEEPER = 1;
-export const FIREPIT_PER_NERVE = 0.25;
+/**
+ * Extra stress shed per day by Firepit level (3, 5 and 8 before 1.7.1; 5, 8 and 12 before 1.6.2).
+ * Relief is the guild's labor budget (§6): with rest and keepers, about 50 a real day at level 1,
+ * 65 with the Bar and 80 with the Bar and Stage, against 8–55 stress a run.
+ */
+export const FIREPIT_RELIEF = [0, 3, 4, 5] as const;
+/** Each Firepit keeper adds this plus Nerve * FIREPIT_PER_NERVE (1 and 0.25 before 1.7.1). */
+export const FIREPIT_PER_KEEPER = 0.5;
+export const FIREPIT_PER_NERVE = 0.1;
 /** Bar levels: daily chance that each pair at the Depot warms by 1. */
 export const BAR_DRIFT_CHANCE = [0, 0, 0.25, 0.5] as const;
 /** Extra stress shed per day with a Bonded friend at the Depot. */
@@ -416,6 +427,11 @@ export const VEHICLE_KNOCKS: readonly [number, number] = [2, 6];
 export const FOUND_VEHICLE_CONDITION: readonly [number, number] = [10, 35];
 /** Walking home after a wreck: stress for each walker... */
 export const WALK_HOME_STRESS = 8;
+/** Stress every run costs for the road itself (§6), on top of what happens on it, plus 1 for every ROAD_STRESS_MINUTES away. */
+export const ROAD_STRESS = 5;
+/** Runs at this danger or more count toward Veteran (§4.5). */
+export const HARD_RUN_DANGER = 2;
+export const ROAD_STRESS_MINUTES = 15;
 /** ...and the walk takes this share of the round trip on foot. */
 export const WALK_HOME_SHARE = 0.6;
 /** Damage to each rider when a vehicle is wrecked. */

@@ -127,8 +127,10 @@ describe('chronicle and memorial', () => {
       { day: 4, entries: ['First run.', 'Wits rose to 6.'] },
     ]);
     const veteran = testSurvivor('x');
-    Object.assign(veteran.counters, { runs: 12, kills: 1, timesDowned: 2, alliesSaved: 1 });
-    assert.deepEqual(lifeSummary(veteran), ['12 runs', '1 kill', 'downed twice', '1 ally saved']);
+    Object.assign(veteran.counters, { runs: 12, hardRuns: 7, kills: 1, timesDowned: 2, alliesSaved: 1 });
+    assert.deepEqual(lifeSummary(veteran), ['12 runs', '7 past the easy places', '1 kill', 'downed twice', '1 ally saved']);
+    veteran.counters.hardRuns = 12;
+    assert.equal(lifeSummary(veteran)[1], '1 kill', 'all of them hard: no second number');
     assert.deepEqual(lifeSummary(testSurvivor('y')), ['0 runs']);
     assert.equal(daysSurvived(testSurvivor('x', { joinedDay: 3, diedDay: 12 }), 40), 10);
     assert.equal(daysSurvived(testSurvivor('x', { joinedDay: 3 }), 5), 3);

@@ -91,7 +91,7 @@ const HANDLERS: Record<EventKind, (state: GameState, day: number, rng: Rng, home
     state.resources.rations -= cost;
     for (const s of home) changeStress(s, -15, { rng, day });
     for (let i = 0; i < home.length; i++) {
-      for (let j = i + 1; j < home.length; j++) adjustRelationship(state, home[i]!.id, home[j]!.id, 3, { day });
+      for (let j = i + 1; j < home.length; j++) adjustRelationship(state, home[i]!.id, home[j]!.id, 3, { day, everyday: true });
     }
     addGuildLog(state, day, `The guild threw a party in the old ticket hall. It cost ${cost} rations and was worth every one.`, ['party']);
   },

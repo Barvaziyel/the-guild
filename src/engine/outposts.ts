@@ -10,7 +10,6 @@ import {
   BONDED_RELIEF,
   COWORKER_DRIFT_CHANCE,
   DC,
-  HUNGER_STRESS,
   OUTPOST_COST,
   OUTPOST_HEAL,
   OUTPOST_PROWLER_DC,
@@ -27,7 +26,7 @@ import {
 } from './constants.ts';
 import { getEnemy, getLocation, getTrait } from './content/index.ts';
 import { buildingLevel, canAfford, costText, payCost } from './depot/buildings.ts';
-import { addPractice, changeStress, effectiveStat, maxHp, rollCheck } from './stats.ts';
+import { addPractice, changeStress, effectiveStat, hungerStress, maxHp, rollCheck } from './stats.ts';
 import { locationState } from './locations.ts';
 import { adjustRelationship, arePartners, becomePartners, relationshipLabel, romanceChance, traitAffinity } from './relationships.ts';
 import type { Rng } from './rng.ts';
@@ -163,7 +162,7 @@ export function playOutpostsDay(state: GameState, day: number, rng: Rng, sent: P
       const watch = watchStress(outpost.locationId);
       if (watch > 0) changeStress(s, watch, { rng, day, source: `keeping watch at ${loc.name}` });
       if (hungry) {
-        changeStress(s, HUNGER_STRESS, { rng, day, source: 'hunger' });
+        hungerStress(s, rng, day);
         continue;
       }
       const bonded = staff.some((o) => o.id !== s.id && relationshipLabel(state, s.id, o.id) === 'bonded');
@@ -177,7 +176,7 @@ export function playOutpostsDay(state: GameState, day: number, rng: Rng, sent: P
         const [a, b] = [staff[i]!, staff[j]!];
         if (rng.chance(COWORKER_DRIFT_CHANCE)) {
           const delta = traitAffinity(a, b);
-          if (delta !== 0) adjustRelationship(state, a.id, b.id, delta, { day });
+          if (delta !== 0) adjustRelationship(state, a.id, b.id, delta, { day, everyday: true });
         }
         const p = romanceChance(state, a, b);
         if (p > 0 && rng.chance(p)) becomePartners(state, a, b, day);

@@ -149,7 +149,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     title: 'Running out',
     route: () => ({ screen: 'building', id: 'garden' }),
     text: () =>
-      "If the rations run out, nobody starves, but hungry people can't rest and their stress climbs. Crews can still go out hungry: hunting runs bring back food, and a bigger Garden feeds a bigger guild.",
+      "If the rations run out, nobody starves, but hungry people can't rest, heal slowly, and grow tense. Crews can still go out hungry: hunting runs bring back food, and a bigger Garden feeds a bigger guild.",
   },
 
   // ---------------------------------------------------------------- people
@@ -159,7 +159,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     title: 'Your survivors',
     route: () => ({ screen: 'roster' }),
     text: (state) => {
-      return `${countOf(state.survivors.length, 'survivor', 'survivors')}, each with health and stress. Stress builds out in the Reach and fades at home. At 100, someone breaks, and comes out of it changed.`;
+      return `${countOf(state.survivors.length, 'survivor', 'survivors')}, each with health and stress. Every run costs some stress, more the longer and more dangerous it is, and it fades at home: the Firepit decides how fast, so rest people between runs. At 100, someone breaks, and comes out of it changed.`;
     },
   },
   {

@@ -111,6 +111,20 @@ const MIGRATIONS: Record<number, (save: Record<string, unknown>) => void> = {
     const state = save as unknown as GameState;
     state.dilemmas ??= { nextDay: state.depot.lastDay + 2, seen: {} };
   },
+  13: (save) => {
+    // Veteran counts runs at danger 2 or more (1.7.1). Nobody kept that count before, so everyone,
+    // including copies inside runs and reports, starts from the runs they have.
+    const walk = (x: unknown): void => {
+      if (Array.isArray(x)) for (const y of x) walk(y);
+      else if (x && typeof x === 'object') {
+        const o = x as Record<string, unknown>;
+        const c = o.counters as Record<string, number> | undefined;
+        if (c && typeof c.runs === 'number') c.hardRuns ??= c.runs;
+        for (const v of Object.values(o)) walk(v);
+      }
+    };
+    walk(save);
+  },
 };
 
 export function serialize(state: GameState): string {

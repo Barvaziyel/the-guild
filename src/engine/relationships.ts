@@ -2,6 +2,8 @@ import { addChronicle, addGuildLog } from './chronicle.ts';
 import {
   AFFINITY_MAX,
   AFFINITY_MIN,
+  EVERYDAY_MAX,
+  EVERYDAY_MIN,
   PARTNER_DAILY_CHANCE,
   PARTNER_GUILD_FACTOR,
   PARTNER_SECOND_FACTOR,
@@ -107,6 +109,11 @@ export interface AdjustOptions {
   useTraitMult?: boolean;
   /** Skip Chronicle entries on label changes. */
   silent?: boolean;
+  /**
+   * Everyday life (working together, the Bar, a party, an outpost): moves a pair no further
+   * than Friend or Rival (§5). Bonded and feuds take something that happened.
+   */
+  everyday?: boolean;
 }
 
 export interface AdjustResult {
@@ -134,7 +141,9 @@ export function adjustRelationship(
   if (change > 0 && opts.useTraitMult !== false && a && b) {
     change *= (mulTraitHook(a, 'relGainMult') + mulTraitHook(b, 'relGainMult')) / 2;
   }
-  rel.score = clampScore(before + change);
+  let after = clampScore(before + change);
+  if (opts.everyday) after = change > 0 ? Math.min(after, Math.max(before, EVERYDAY_MAX)) : Math.max(after, Math.min(before, EVERYDAY_MIN));
+  rel.score = after;
 
   const result: AdjustResult = { before, after: rel.score };
   const from = labelFor(before);

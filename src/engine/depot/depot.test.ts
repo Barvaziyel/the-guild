@@ -71,20 +71,21 @@ describe('building', () => {
     state.resources.scrap = 100;
     state.resources.tech = 10;
     state.resources.rations = 50;
+    // The Bar: 60 scrap, 6 tech, 40 rations (1.7.1).
     assert.equal(buildingName(state, 'firepit'), 'Firepit');
     build(state, 'firepit', 3);
     assert.equal(buildingLevel(state, 'firepit'), 2);
     assert.equal(buildingName(state, 'firepit'), 'Bar');
-    assert.equal(state.resources.scrap, 70);
-    assert.equal(state.resources.tech, 7);
-    assert.equal(state.resources.rations, 30, 'stocking the Bar takes rations too');
+    assert.equal(state.resources.scrap, 40);
+    assert.equal(state.resources.tech, 4);
+    assert.equal(state.resources.rations, 10, 'stocking the Bar takes rations too');
     assert.match(state.log[state.log.length - 1]!.text, /Bar is now level 2/);
   });
 
   test('refuses what the guild cannot afford and what is already at the top', () => {
     const state = testGame();
     state.resources.scrap = 0;
-    assert.match(buildProblem(state, 'infirmary') ?? '', /Needs 25 scrap, 2 tech, 5 meds/);
+    assert.match(buildProblem(state, 'infirmary') ?? '', /Needs 25 scrap, 2 tech, 2 meds/);
     assert.throws(() => build(state, 'infirmary', 1));
     rich(state);
     build(state, 'bunks', 1);

@@ -259,6 +259,8 @@ const count = (n: number, one: string, many = `${one}s`): string => `${n} ${n ==
 export function lifeSummary(s: Survivor): string[] {
   const c = s.counters;
   const out: string[] = [count(c.runs, 'run')];
+  // Veteran counts runs past the easy places (1.7.1), so show them when they differ.
+  if (c.hardRuns && c.hardRuns < c.runs) out.push(`${c.hardRuns} past the easy places`);
   if (c.combats) out.push(count(c.combats, 'fight'));
   if (c.kills) out.push(count(c.kills, 'kill'));
   if (c.timesDowned) out.push(c.timesDowned === 1 ? 'downed once' : c.timesDowned === 2 ? 'downed twice' : `downed ${c.timesDowned} times`);

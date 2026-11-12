@@ -26,6 +26,9 @@ import {
   STRESS_RIVAL_PER_BEAT,
   OUTPOST_REST_HP,
   OUTPOST_REST_STRESS,
+  ROAD_STRESS,
+  HARD_RUN_DANGER,
+  ROAD_STRESS_MINUTES,
   VEHICLE_KNOCKS,
   VEHICLE_NOISE_CAP,
   WALK_HOME_SHARE,
@@ -259,6 +262,7 @@ function aftermath(sim: Sim): void {
 
   for (const m of crew) {
     m.s.counters.runs += 1;
+    if (sim.loc.danger >= HARD_RUN_DANGER) m.s.counters.hardRuns += 1;
     if (m.s.counters.runs === 1) addChronicle(m.s, day, `First run for the guild: ${sim.loc.name}.`, ['run']);
 
     if (m.tally.rads >= RAD_SICKNESS_THRESHOLD && !m.down) {
@@ -524,6 +528,9 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
 
   startBeat(sim, 'return', outcome === 'lost' ? 'Silence' : 'Home');
   say(sim, flavor(sim, RETURN_LINES[outcome]), outcome === 'completed' ? {} : { tone: 'bad' });
+  // The road itself wears on people (§6): a little for going out at all, more the longer they're away.
+  const road = ROAD_STRESS + Math.floor(sim.offset / 60_000 / ROAD_STRESS_MINUTES);
+  for (const m of alive(sim)) stress(sim, m, road, 'the road');
   if (sim.walkingFrom !== undefined && outcome !== 'lost') {
     say(sim, sim.members.length === 1 ? 'It is a long way on foot.' : 'It is a long way on foot, and nobody talks much.', { tone: 'bad' });
     for (const m of alive(sim)) stress(sim, m, WALK_HOME_STRESS, 'the long walk home');

@@ -11,13 +11,14 @@ const tally = (over: Partial<RunTally> = {}): RunTally => ({
 });
 
 describe('trait evolution', () => {
-  test('twenty-five runs make a Veteran, with the reason in the Chronicle', () => {
+  test('forty runs past the easy places make a Veteran, with the reason in the Chronicle', () => {
     const s = testSurvivor();
-    s.counters.runs = 24;
-    assert.deepEqual(applyEvolutions(s, { when: 'run', rng: new Rng(1), day: 5, tally: tally() }), []);
-    s.counters.runs = 25;
+    s.counters.runs = 80;
+    s.counters.hardRuns = 39;
+    assert.deepEqual(applyEvolutions(s, { when: 'run', rng: new Rng(1), day: 5, tally: tally() }), [], 'easy runs do not count');
+    s.counters.hardRuns = 40;
     assert.deepEqual(applyEvolutions(s, { when: 'run', rng: new Rng(1), day: 6, tally: tally() }), ['veteran']);
-    assert.match(s.chronicle.at(-1)!.text, /Became Veteran: twenty-five runs/);
+    assert.match(s.chronicle.at(-1)!.text, /Became Veteran: forty runs past the easy places/);
     assert.deepEqual(applyEvolutions(s, { when: 'run', rng: new Rng(1), day: 7, tally: tally() }), [], 'only once');
   });
 
