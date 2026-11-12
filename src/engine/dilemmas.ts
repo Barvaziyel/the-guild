@@ -14,6 +14,7 @@ import { frontier } from './depot/day.ts';
 import { addWanderer, generateCandidate } from './depot/recruits.ts';
 import { dayAt, recruit, withRng } from './game.ts';
 import { ensureLocationState } from './locations.ts';
+import { leaveGuild } from './leaving.ts';
 import { adjustRelationship, arePartners, relationshipLabel } from './relationships.ts';
 import type { Rng } from './rng.ts';
 import { addPractice, changeStress, effectiveStat, maxHp, rollCheck } from './stats.ts';
@@ -65,6 +66,7 @@ function cast(state: GameState, def: DilemmaDef, rng: Rng): Record<string, strin
       const label = relationshipLabel(state, a.id, b.id);
       if (want === 'close') return label === 'friend' || label === 'bonded';
       if (want === 'apart') return label === 'rival' || label === 'feud';
+      if (want === 'feud') return label === 'feud';
       if (want === 'partner') return arePartners(state, a.id, b.id);
       return true;
     });
@@ -240,6 +242,11 @@ function apply(state: GameState, e: DilemmaEffect, roles: Record<string, Survivo
     case 'wanderer':
       addWanderer(state, day, rng);
       return undefined;
+    case 'leaves': {
+      const s = roles[e.who];
+      if (s && state.survivors.includes(s)) leaveGuild(state, s, day, fillRoles(e.reason, roles), rng);
+      return undefined;
+    }
   }
 }
 

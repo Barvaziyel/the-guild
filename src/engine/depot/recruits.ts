@@ -3,6 +3,7 @@
  */
 import { RECRUITS_BASE, RECRUIT_BONUS_POINTS, STAT_GEN_MAX, WANDERER_DAYS } from '../constants.ts';
 import { recruit } from '../game.ts';
+import { joinRescued } from '../rescue.ts';
 import { generateSurvivor } from '../generator.ts';
 import type { Rng } from '../rng.ts';
 import { maxHp } from '../stats.ts';
@@ -63,6 +64,11 @@ export function takeIn(state: GameState, candidateId: string, rng: Rng, day: num
   const [c] = state.depot.recruits.splice(index, 1);
   const s = c!.survivor;
   s.joinedDay = day;
+  if (c!.rescued) {
+    // Brought home by a rescue run and waiting for a bed (§10.1).
+    joinRescued(state, s, state.survivors.find((x) => x.id === c!.rescued!.by), c!.rescued.locationId, rng, day);
+    return s;
+  }
   recruit(state, s, rng, day, c!.wanderer ? 'Came in off the road and stayed.' : 'Answered the radio and joined the guild.');
   return s;
 }

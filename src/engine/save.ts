@@ -1,4 +1,4 @@
-import { DAY_MS, SAVE_VERSION } from './constants.ts';
+import { DAY_MS, RESCUE_FIRST_GAP, SAVE_VERSION } from './constants.ts';
 import { addGuildLog } from './chronicle.ts';
 import { buildingName, defaultPosts, initialBuildings, trimPosts } from './depot/buildings.ts';
 import { fullName } from './text.ts';
@@ -130,6 +130,14 @@ const MIGRATIONS: Record<number, (save: Record<string, unknown>) => void> = {
     const state = save as unknown as GameState;
     state.projects ??= {};
   },
+  15: (save) => {
+    // Calls for help, animals, and people who leave (1.9.0).
+    const state = save as unknown as GameState;
+    state.animals ??= [];
+    state.departed ??= [];
+    state.depot.strays ??= [];
+    state.rescue ??= { nextDay: state.depot.lastDay + RESCUE_FIRST_GAP };
+  },
 };
 
 export function serialize(state: GameState): string {
@@ -180,7 +188,7 @@ function shapeProblem(data: Record<string, unknown>): string | undefined {
   for (const key of ['createdAt', 'lastUpdate', 'nextId'] as const) {
     if (typeof data[key] !== 'number' || !Number.isFinite(data[key])) return `${key} is missing`;
   }
-  for (const key of ['survivors', 'memorial', 'stash', 'runs', 'reports', 'log'] as const) {
+  for (const key of ['survivors', 'memorial', 'departed', 'animals', 'stash', 'runs', 'reports', 'log'] as const) {
     if (!Array.isArray(data[key])) return `${key} is missing`;
   }
   for (const key of ['rng', 'relationships', 'resources', 'locations', 'eventsSeen', 'settings', 'buildings', 'depot'] as const) {

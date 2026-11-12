@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react';
-import { dayAt, type GameState } from '../../engine/index.ts';
+import { dayAt, setKeeper, type GameState } from '../../engine/index.ts';
+import { animalRows } from '../animals-view.ts';
+import { navigate, useAction } from '../hooks.ts';
 import { yardSvg } from '../../scene/index.ts';
-import { navigate } from '../hooks.ts';
+
 import { parseRoute } from '../route.ts';
 import { awayLines, yardModel } from '../yard-view.ts';
 
@@ -68,9 +70,15 @@ export function Yard({ state, now }: { state: GameState; now: number }) {
         {picked ? (
           <>
             <p>{picked.label}</p>
-            <button type="button" className="btn btn-small" onClick={() => navigate(parseRoute(picked.go))}>
-              {picked.key.startsWith('s:') ? 'Open their sheet' : picked.key === 'trader' ? 'See the offer' : 'Open'}
-            </button>
+            {picked.key.startsWith('a:') ? (
+              <button type="button" className="btn btn-small" onClick={() => document.getElementById('animals')?.scrollIntoView({ behavior: 'smooth' })}>
+                See the animals
+              </button>
+            ) : (
+              <button type="button" className="btn btn-small" onClick={() => navigate(parseRoute(picked.go))}>
+                {picked.key.startsWith('s:') ? 'Open their sheet' : picked.key === 'trader' ? 'See the offer' : 'Open'}
+              </button>
+            )}
           </>
         ) : (
           <p className="panel-help">Tap anyone or anything to see who or what it is.</p>
@@ -86,6 +94,41 @@ export function Yard({ state, now }: { state: GameState; now: number }) {
           ))}
         </div>
       )}
+      <Animals state={state} />
     </section>
+  );
+}
+
+/** The guild's animals (§9.7): what each does, and who looks after it. */
+function Animals({ state }: { state: GameState }) {
+  const { act, error } = useAction();
+  const rows = animalRows(state);
+  if (rows.length === 0) return null;
+  return (
+    <div className="panel" id="animals">
+      <h3 className="panel-title">Animals</h3>
+      <p className="panel-help">Whoever looks after an animal sheds a little more stress at home with it.</p>
+      <ul className="animal-list">
+        {rows.map((r) => (
+          <li key={r.id} className="animal">
+            <p className="animal-title">{r.title}</p>
+            <p className="panel-help">{r.description}</p>
+            <p>{r.effect}</p>
+            <label className="field select-field">
+              Looked after by
+              <select value={r.keeperId ?? ''} onChange={(e) => act((s) => setKeeper(s, r.id, e.target.value, dayAt(s, Date.now())))}>
+                {!r.keeperId && <option value="">Nobody</option>}
+                {r.keepers.map((k) => (
+                  <option key={k.id} value={k.id}>
+                    {k.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </li>
+        ))}
+      </ul>
+      {error && <p className="error">{error}</p>}
+    </div>
   );
 }

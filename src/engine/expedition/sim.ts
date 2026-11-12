@@ -91,24 +91,27 @@ import { outpostNear } from '../outposts.ts';
 import { seating } from '../vehicles.ts';
 import { earnNickname, nameWeapon, nemesisNewsList, takenNames } from './stories.ts';
 import { resolveWounds } from './wounds.ts';
+import { rescueBeat, rescueNews } from './rescue.ts';
 
 type MidKind = Exclude<BeatKind, 'depart' | 'return'>;
 
 /** How often each kind of beat comes up, by job. */
 const JOB_WEIGHTS: Record<RunJob, Record<MidKind, number>> = {
-  scavenge: { scavenge: 40, combat: 18, hazard: 14, travel: 10, social: 10, discovery: 6 },
-  scout: { discovery: 26, travel: 18, hazard: 18, combat: 14, social: 12, scavenge: 10 },
-  hunt: { combat: 42, travel: 14, hazard: 10, scavenge: 10, social: 10, discovery: 8 },
+  scavenge: { scavenge: 40, combat: 18, hazard: 14, travel: 10, social: 10, discovery: 6, rescue: 0 },
+  scout: { discovery: 26, travel: 18, hazard: 18, combat: 14, social: 12, scavenge: 10, rescue: 0 },
+  hunt: { combat: 42, travel: 14, hazard: 10, scavenge: 10, social: 10, discovery: 8, rescue: 0 },
+  // Getting there is most of it, and the rescue comes once (§10.1).
+  rescue: { rescue: 40, travel: 16, hazard: 14, combat: 14, social: 8, scavenge: 6, discovery: 2 },
 };
 
 /** The beat every run of this job gets at least once. */
-const MAIN_BEAT: Record<RunJob, MidKind> = { scavenge: 'scavenge', scout: 'discovery', hunt: 'combat' };
+const MAIN_BEAT: Record<RunJob, MidKind> = { scavenge: 'scavenge', scout: 'discovery', hunt: 'combat', rescue: 'rescue' };
 
-const MID_KINDS = ['scavenge', 'combat', 'hazard', 'travel', 'social', 'discovery'] as const;
+const MID_KINDS = ['scavenge', 'combat', 'hazard', 'travel', 'social', 'discovery', 'rescue'] as const;
 
 function pickBeatKind(sim: Sim, previous: MidKind | undefined, isLast: boolean): MidKind {
   const main = MAIN_BEAT[sim.plan.job];
-  if (isLast && !sim.beatCounts[main]) return main;
+  if (isLast && !sim.beatCounts[main] && (main !== 'rescue' || sim.rescue)) return main;
 
   const crew = standing(sim);
   const weights = { ...JOB_WEIGHTS[sim.plan.job] };
@@ -125,6 +128,7 @@ function pickBeatKind(sim: Sim, previous: MidKind | undefined, isLast: boolean):
   // Crews with bad blood or short tempers find more to argue about.
   weights.social += 10 * temper + 3 * conflictPairs(sim);
   if (crew.length < 2 || previous === 'social') weights.social = 0;
+  if (!sim.rescue || sim.beatCounts.rescue) weights.rescue = 0;
   return sim.rng.weightedBy(MID_KINDS, (k) => weights[k]);
 }
 
@@ -147,6 +151,7 @@ const BEAT_FNS: Record<MidKind, (sim: Sim) => void> = {
   travel: travelBeat,
   social: socialBeat,
   discovery: discoveryBeat,
+  rescue: rescueBeat,
 };
 
 // ---------------------------------------------------------------- between beats
@@ -483,7 +488,11 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
       return { v, def: getVehicleDef(v.defId), riders, wrecked: false };
     }),
     foundVehicles: [],
+    animals: [],
   };
+  // A rescue run carries the person who called for help, and what trouble they're in (§10.1).
+  const call = state.rescue?.call;
+  if (plan.job === 'rescue' && call && call.locationId === plan.locationId) sim.rescue = { person: structuredClone(call.person), trouble: call.trouble };
 
   startBeat(sim, 'depart', 'Setting Out');
   say(sim, flavor(sim, DEPART_LINES));
@@ -528,6 +537,7 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
 
   startBeat(sim, 'return', outcome === 'lost' ? 'Silence' : 'Home');
   say(sim, flavor(sim, RETURN_LINES[outcome]), outcome === 'completed' ? {} : { tone: 'bad' });
+  const rescue = rescueNews(sim, outcome);
   // The road itself wears on people (§6): a little for going out at all, more the longer they're away.
   const road = ROAD_STRESS + Math.floor(sim.offset / 60_000 / ROAD_STRESS_MINUTES);
   for (const m of alive(sim)) stress(sim, m, road, 'the road');
@@ -599,6 +609,8 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
       nemeses: nemesisNewsList(sim),
       ...(vehicleNews.length > 0 ? { vehicles: vehicleNews } : {}),
       ...(sim.foundVehicles.length > 0 && outcome !== 'lost' ? { foundVehicles: sim.foundVehicles } : {}),
+      ...(rescue ? { rescue } : {}),
+      ...(sim.animals.length > 0 && (outcome === 'completed' || outcome === 'turnedBack') ? { animals: sim.animals } : {}),
     },
   };
 }

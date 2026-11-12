@@ -20,6 +20,8 @@ import { rationsPacked, validatePlan } from './plan.ts';
 import { simulateRun } from './sim.ts';
 import { gasNeeded, planVehicles, vehicleName } from '../vehicles.ts';
 import { addStory, applyNemesisNews } from './stories.ts';
+import { answerCall, applyRescue } from '../rescue.ts';
+import { animalsFollowHome, rehomeAnimals } from '../animals.ts';
 
 /**
  * Send a crew out. The whole run is simulated now and stored; nothing that
@@ -60,6 +62,7 @@ export function startRun(state: GameState, plan: RunPlan, now: number): Run {
     s.status = 'away';
   }
   state.runs.push(run);
+  answerCall(state, run);
 
   const names = plan.crew.map((id) => state.survivors.find((x) => x.id === id)!.firstName);
   const riding = vehicles.length === 0 ? '' : ` in the ${vehicles.map(vehicleName).join(' and the ')}`;
@@ -182,6 +185,7 @@ export function completeRun(state: GameState, runId: string, now: number): RunRe
     if (after.status === 'dead') {
       state.survivors.splice(i, 1);
       state.memorial.push(after);
+      rehomeAnimals(state, after, day, 'died');
       if (!lost) bringGearHome(state, after, day, loc.name);
       addGuildLog(state, day, `${fullName(after)} died at ${loc.name}.`, ['death', after.id]);
     } else {
@@ -202,6 +206,8 @@ export function completeRun(state: GameState, runId: string, now: number): RunRe
   const cameBack = result.crew.filter((s) => s.status !== 'dead').map((s) => s.id);
   for (const death of result.deaths) mourn(state, death, rng, day, cameBack);
   for (const news of result.nemeses ?? []) applyNemesisNews(state, news, result.crew, day, rng);
+  if (result.rescue) applyRescue(state, run, result.rescue, day, rng);
+  if (result.animals) animalsFollowHome(state, result.animals, day, loc.name);
 
   for (const res of RESOURCE_IDS) state.resources[res] += result.loot[res];
   state.resources.meds += result.medsLeft;

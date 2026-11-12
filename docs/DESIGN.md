@@ -112,7 +112,7 @@ Some trait behaviors:
 - **Greedy**: finds more loot and may pocket some of it. Getting caught hurts relationships.
 - **Hothead**: +1 to melee, starts arguments, and clashes with other Hotheads.
 - **Lucky**: rerolls one failed check per run. **Unlucky**, usually hidden, rerolls one *success* per run.
-- **Animal Lover**: Ferals sometimes back off, and a stray may follow them home (phase 2: pets).
+- **Animal Lover**: Ferals sometimes back off, and a stray may follow them home (animals, §9.7).
 
 ### 4.5 Traits that evolve (the "change over time" engine)
 
@@ -249,7 +249,7 @@ The guild starts with 3 known locations (The Rail Yard, Maple Street, Kessler Fa
    - Scavenge: loot
    - Scout: explore the location and discover new ones
    - Hunt: fight, get rations from Ferals, clear threats
-   - Rescue: only available when an event spawns a survivor to save (not built yet)
+   - Rescue: only while someone is calling for help from that place (§10.1, 1.9.0)
 4. **Supplies:** meds and ammo. Rations are packed automatically: one per crew member per game day away. **A crew can always leave:** if the Depot is short, rations go to the crew in order, and whoever gets none goes out hungry (+10 stress, shown in the planner and the log). That way an empty larder never traps the guild; a hunt or a scavenging run is always possible (1.1.2).
 5. **Standing orders:**
    - **Approach:**
@@ -560,9 +560,9 @@ At most one event a day (a 20% chance), weighted:
 | A raid | d10 + the best Aim at home + 2 per Watchtower level + 1 per lookout (+4 with the Wall, §9.6), −2 for each hand short of three at home, vs 12. Held: the defenders get Aim practice and a little stress. Broken: raiders take 25% of the scrap, rations, ammo and gas (half that with a Watchtower, a quarter more with one person home and half more with nobody), never more than 30 of each plus a fifth of whatever is stored beyond 100 (1.6.2; before, 30 at most, which meant nothing against stockpiles in the hundreds), may drive off a parked vehicle (§7.8), one defender is Wounded, and everyone gains +10 stress. Raids come twice as often when no more than one person is home. |
 | A celebration | Costs a ration per two people. Everyone at home sheds 15 stress, and every pair warms by 3. Only when food is plentiful. |
 | A fever | Someone at home becomes Feverish (−1 Grit, −1 Wits, 2–4 days) unless the Infirmary treats it. |
-| A stray dog | Someone with a way with animals feeds it and sheds 10 stress; otherwise it moves on. |
+| A stray | An animal of a kind the guild doesn't keep waits at the gate for 3 days, to be kept or sent off (§9.7). Someone with a way with animals feeds it and sheds 10 stress. With one of each kind, a stray dog just moves on. |
 
-**Feuds at home:** each feuding pair at the Depot has a 20% chance a day to come to blows. The loser (on a Brawn roll) is Wounded, both gain stress, and the feud deepens. Nobody dies at the Depot. Leaving the guild over a feud is not built yet.
+**Feuds at home:** each feuding pair at the Depot has a 20% chance a day to come to blows. The loser (on a Brawn roll) is Wounded, both gain stress, and the feud deepens. Nobody dies at the Depot. A feud can end with someone walking out (*Them or me*, §9.5, 1.9.0).
 
 ### 9.4 Workshop
 
@@ -591,12 +591,14 @@ Now and then something comes up that the player has to decide (Aviel's idea, 202
   - whose kill was it;
   - an old map (needs a place left to find);
   - a couple who want a party;
-  - someone asleep on watch.
+  - someone asleep on watch;
+  - *Them or me* (1.9.0): one of a feuding pair has packed a bag. Asking either to go sends them; talking it through or a week apart can keep both (a Nerve check, or luck). Left alone, one of them leaves, with a week of rations or after one last fight.
 
   New ones come up first.
 - **Four answers.** What follows isn't on the button: each answer has outcomes tried in order. Whether one happens depends on the people involved: a stat check (a Wits check to spot what's really going on, Brawn in a fight), a trait (a Greedy suspect really did it), whether the two get along, or luck. The last outcome always fits.
-- **Effects:** stress, the pair's relationship, how everyone else feels about someone, supplies gained or lost, a hurt (never fatal), a trait or condition, practice, a stranger joining (if there's a bed), word of a new place, someone new at the gate.
+- **Effects:** stress, the pair's relationship, how everyone else feels about someone, supplies gained or lost, a hurt (never fatal), a trait or condition, practice, a stranger joining (if there's a bed), word of a new place, someone new at the gate, someone leaving the guild.
 - **Unanswered:** after 8 game days (about a real day), the people involved settle it themselves, with outcomes of their own that are usually worse. If someone it's about dies or leaves first, it's dropped.
+- **Leaving the guild** (`leaving.ts`, 1.9.0). Whoever walks out takes what they carry and is gone for good. Their last Chronicle line says why; they're kept in `state.departed`, and the Memorial Wall lists them under *Gone their own way*, with their sheet still readable. A partner left behind is upset (+15 stress) and it's over between them. Their animals go to whoever was closest to them.
 - **What's written:** the news gets a line with the title and what happened. Those involved get a subject-less Chronicle line: *Argued with Wren over a good coat.*
 - **On screen:**
   - The Depot's Today tab opens with the card: who it's about (their faces), what's going on, the four answers, and when it has to be decided by. After answering, the card says what happened until dismissed.
@@ -638,13 +640,65 @@ Big works that change the Depot for good, like Civ's wonders: the long goal once
 - The Relay took 130 tech a stage at first; with gas piling up (1,200 at day 70 with nothing to spend it on), its generator takes 60 gas and the tech came down to 90.
 - Deaths, stress and food are unchanged.
 
+### 9.7 Animals (1.9.0)
+
+Several kinds, each with its own effect (Aviel's choice). The guild keeps at most one of each; they're data in `content/animals.ts`, and `animals.ts` plays them.
+
+| Animal | What it does |
+|---|---|
+| Dog | +2 to holding off raids |
+| Cat | Each day, whoever at the Depot is most on edge sheds 3 more stress |
+| Goat | Milk: a ration a day, counted with what the Garden grows |
+| Crow | Brings home shiny things: 15% a day for 1–3 scrap, 1% a day for a trinket |
+
+- **Keepers.** Each animal has a keeper, who sheds 1 more stress a day at home with it. The keeper can be changed. When a keeper dies or leaves, the animal goes to whoever was closest to them.
+- **Not on an empty stomach.** On a hungry day nobody rests, so the keepers and the cat give no relief either.
+- **Arriving.**
+  - **At the gate:** a stray of a kind the guild doesn't keep turns up (the Depot's stray event) and waits 3 days to be kept or sent off.
+  - **Following a crew home:** some events on runs bring one, kept by whoever won it over. That's the stray dog (60%, when an Animal Lover wins it over), a goat on the road, a cat in the ruins, and a crow with a key.
+- **They cost nothing:** they live on scraps. The cost is the choice of who looks after them.
+- **The dog stays home.** Taking it on runs could come later.
+- **On screen:**
+  - strays at the gate on the Today tab, with *Keep it* and *Send it off*;
+  - the Animals panel under the yard drawing, with each animal's keeper picker;
+  - a line on the keeper's sheet;
+  - in the yard: the dog at its keeper's side (or waiting by the gate while they're away), the cat asleep on the Bunks, the goat grazing by the Garden, the crow on a fence post.
+- **Measured** with the person-like player: a guild that keeps every stray has all four by week 5.
+
 ## 10. Recruitment
 
 - **Recruit board.** Each day, 2 + the Radio Tower's level answer the radio. They're there for that day only. Wanderers (§9.3) wait 3 days.
 - **Candidate info.** Each candidate shows their origin, age, backstory, visible traits, and a hint when they have a hidden one. Without a Radio Tower, their stats show as rough ranges (one either side). A Radio Tower at level 2 or 3 brings recruits with 1 or 2 extra stat points, still no higher than 7.
 - **Taking someone in** is free but needs a free bed in the Bunks. They join with relationships to everyone and a first Chronicle entry.
-- **Rescue jobs** can bring in free recruits. They start with *Owes a Life* toward their rescuer (not built yet).
+- **Rescue jobs** (§10.1) bring in people who owe their rescuer a life.
 - **New game.** The guild starts with 4 generated survivors, 3 known locations, level 1 Bunks, Garden and Firepit, and 50 scrap, 24 rations, 3 meds and 15 ammo (20 scrap before 1.7.2). With 4 beds, the first recruit needs better Bunks.
+
+### 10.1 Calls for help (1.9.0)
+
+With a Radio Tower, now and then someone calls for help from a known place; `rescue.ts` plays the calls, and `expedition/rescue.ts` the run.
+
+- **How often:** one call at a time. The first comes 3 days after the Radio Tower can hear it. After that, the next comes 10–20 game days after one is settled, which is about every 2–3 real days.
+- **How long:** a call lasts 6 game days (about three quarters of a real day). Unanswered, the voice goes quiet, with a line in the news.
+- **Who's calling:** a recruit with 2 more stat points, in one of four kinds of trouble:
+  - **trapped** under a fallen wall: a crew Brawn check. Failing by a little still gets them out, but the lifter is hurt; failing by more loses them.
+  - **hurt and bleeding:** a Wits (medicine) check. On a failure, meds brought along save them 60% of the time.
+  - **cornered** with something prowling: a fight. Winning saves them, but 8% + 4% per danger of the time one of the enemies got to them first. Pulling back or a rout leaves them behind.
+  - **lost** and out of water: a crew Wits (scouting) check. If it fails, the search goes on (+4 stress each) for a second try.
+
+  Each check is against 11 + the place's danger.
+- **The run:** the Rescue job, in the outskirts only, and one crew at a time. The rescue beat comes once, early-to-middle of the run, in place of the job's usual beat. Brought out alive, the person shows the crew their stash (6–12 of a supply, plus the danger), and travels home with the crew. A rout on the way home loses them.
+- **Measured** (crew of 3 with Leather Jackets and Machetes, 300 runs each): saved about 70–85% of the time at danger 1–2 and 55–75% at danger 3. At danger 4 that crew mostly turns back before finding them.
+- **Coming home:**
+  - **Joining:** the person joins if a bed is free. Their first Chronicle line is *Brought out of The Rail Yard alive by Dex Holt.* They start at +30 with their rescuer and owe them a life (the *Owes a Life* flag); the rescuer writes *Brought Echo Arden out of The Rail Yard alive.*
+  - **No bed free:** they wait at the gate for 6 days and join the same way when taken in.
+  - **Lost or never found:** a line in the news, and one in each crew member's Chronicle.
+- **On screen:**
+  - **Today tab:** a card with the person's face, their trouble, when the call goes quiet, and *Plan a rescue* (or *Follow the run* once a crew is out).
+  - **Reach:** the place is tagged *Calling for help*, and its panel says so.
+  - **Planner:** it offers Rescue first there and starts with it.
+  - **Report:** it says how it went, with a link to the person.
+  - **Notices:** with notices on, one when a call comes in, and a reminder two hours before it goes quiet.
+- **Measured** with the person-like player, who answers every call at a place it can manage: about 9 rescue runs per guild in 5 weeks. Building pace, food, deaths and stress are unchanged. Most of the people saved after week 3 wait at the gate, because the beds are full by then.
 
 ## 11. Time model
 
@@ -659,7 +713,7 @@ Big works that change the Depot for good, like Civ's wonders: the long goal once
 
 1. **Depot (home):** resource bar, buildings and their workers, active runs (countdown plus the latest beat), event inbox. *Built (PR 7):*
    - The first tab and the screen the game opens on. It grew long, so since 1.3.1 it has three tabs of its own:
-     - **Today** (the default): a decision waiting, when there is one (§9.5; the Depot tab carries a mark meanwhile), "Since you last looked" (the days that passed, what the Garden grew and the guild ate, ammo made, health healed, and the news), a food warning, a trader's offers (Trade, Send them on), crews out, who is at the gate, the gear, and the three latest news lines.
+     - **Today** (the default): a decision waiting, when there is one (§9.5; the Depot tab carries a mark meanwhile), a call for help (§10.1), "Since you last looked" (the days that passed, what the Garden grew and the guild ate, ammo made, health healed, and the news), a food warning, a trader's offers (Trade, Send them on), crews out, who is at the gate (and any stray, with *Keep it* and *Send it off*, §9.7), the gear, and the three latest news lines.
      - **Buildings:** each building with its live numbers and workers, then those still to build. Coming back from a building returns here.
      - **Projects** (1.8.0, §9.6): an intro, then each project as a card: what it is and does, a progress bar marked in stages, what the next stage costs with *Start*, or what it needs first, the crew (with *Take off* and *Add to the crew*), and how long the stage has left at this pace. Under way first, finished last. The Today tab says how the stage under way is coming along.
      - **News:** the Depot news, up to 60 lines.
@@ -678,13 +732,13 @@ Big works that change the Depot for good, like Civ's wonders: the long goal once
 6. **Runs:** crews out now (last thing heard, progress, back in how long) and the last 20 reports, new ones marked. *Built (PR 6).*
    - **A crew that is out:** a countdown, and the log so far, revealed beat by beat as time passes.
    - **Run report:** what came home, deaths, places found, the beat-by-beat log with the dice under each line, then what changed for each person. For example: *"Mara gained Rad-Hardened"*, *"Dex & Ava are now Friends"*, and the loot. It opens in place of the countdown when the crew gets back.
-7. **Memorial Wall:** faded portraits with the day and cause of death; tap one for their sheet and Chronicle. Opened from the bottom of the roster. *Built (PR 5).*
+7. **Memorial Wall:** faded portraits with the day and cause of death; tap one for their sheet and Chronicle. Opened from the bottom of the roster. *Built (PR 5).* Since 1.9.0, *Gone their own way* below lists those who walked out (§9.5), and their sheets say when and why.
 8. **Settings:** mercy mode, notices when crews come back (and when something needs deciding, since 1.7.0), portrait wobble, the tour, export and import save, load the backup copy, start a new guild, developer shortcuts and fast-forward (§11, §13). *Built (PR 5, 6, 10).*
 9. **The tour** (PR 10). A new guild starts with it, and Settings can show it again. A card pinned above the tab bar walks through 27 short steps in 7 parts (the Projects tab joined in 1.8.0): supplies, food, your people, runs, building, recruits, and time. Each step opens its screen and outlines what it's talking about, with live numbers where they help (what the Garden grows, what the first buildings cost). *Next*, *Skip this part* and *Skip tour* are always there. Opening the game mid-tour (from a notice, say) stays where it opened; the next step moves on from there.
 10. **Gear** (1.1.1). The stash by slot (weapons, armor, tools, trinkets), each piece with a *Give* button that lists everyone: those at the Depot can take it, those out on a run can't yet. Since 1.8.0, a *Spare gear* panel above it takes the Rusty and Common weapons and armor apart at once, and each *Give* list ends with *Take apart* and what it gives (§9.4). Below, what each person carries; tap someone for their sheet. Opened from the Depot's Gear panel, from the stash line on a survivor's sheet, and from a run report that found gear.
 11. **Vehicles** (1.4.0). Each vehicle with what it does, a condition bar, where it is, and *Repair* with its cost; below, what the Workshop can build. Opened from the Depot's Vehicles panel (which says what the guild has, or how to get one), the Workshop and a report that found one. The planner lists the vehicles above the crew, with seats, condition, and the gas the trip needs; the crew limit follows the seats. Reports say what became of each vehicle taken. The resource bar shows gas, in two rows of three on a phone.
 12. **The yard** (1.5.0). A tab on the Depot screen (Today, Yard, Buildings, Projects, News) with the Depot drawn as it is right now, in the portraits' style.
-    - **What's in it:** the station house, the water tower and the signal gantry behind; the rails with a freight car per Bunks level; the Workshop, Infirmary, Garden, Firepit and Training Yard, each drawn by level (an empty lot with pegs and string before it's built); the Radio Tower's mast and the Watchtower's platform when built; vehicles at home parked in the yard (a broken one on bricks); the fence and the gate; recruits queuing outside; a trader's cart while a caravan is in; projects as they're built (§9.6), each tappable to open the Projects tab.
+    - **What's in it:** the station house, the water tower and the signal gantry behind; the rails with a freight car per Bunks level; the Workshop, Infirmary, Garden, Firepit and Training Yard, each drawn by level (an empty lot with pegs and string before it's built); the Radio Tower's mast and the Watchtower's platform when built; vehicles at home parked in the yard (a broken one on bricks); the fence and the gate; recruits queuing outside; a trader's cart while a caravan is in; projects as they're built (§9.6), each tappable to open the Projects tab; the guild's animals (§9.7), with an Animals panel under the drawing.
     - **People** are small figures in their portrait colors (skin, hair, clothes, armor, hat, a bandage when wounded): workers at their posts (with a hoe in the Garden, on the platform at the Watchtower), the wounded on cots by the Infirmary (or by the Bunks without one), everyone else on the logs around the fire and then about the yard, partners side by side. Those out on a run aren't there; a panel below says where they are and when they're back.
     - **Time of day** follows the phone's clock: dawn, day, dusk and night, with lit windows, the fire's glow, the string lights and the radio light after dark. The fire flickers, smoke drifts and people shift a little; nothing moves with *reduce motion* on.
     - **Taps:** tapping someone or something picks it (it's drawn again on top, glowing) and the line under the drawing says who or what it is, with a button to open their sheet, the building, the recruits, the vehicles, or the trader's offer.
@@ -752,7 +806,13 @@ Big works that change the Depot for good, like Civ's wonders: the long goal once
     - stress of 70 or more adds sweat and a knotted brow
     - the Memorial Wall shows the portrait faded
     - hidden traits never show
-  - **Not drawn yet:** Lockpicks, Multitool, Old Photo and Music Box have no look. Bad Leg and Missing Fingers are out of frame.
+  - **Tools and trinkets** all have a look since 1.9.0:
+    - Lockpicks: a leather roll at the hip with the picks showing;
+    - Multitool: a red handle on a chest strap;
+    - Old Photo: taped to the chest;
+    - Music Box: a little wooden box on the cord, with its crank.
+
+    Bad Leg and Missing Fingers are out of frame.
   - A hand-drawn wobble is applied with an SVG filter. It can be turned off (`wobble: false`) if long lists of portraits scroll slowly on the phone.
   - `npm run portraits` writes a gallery to `out/portraits.html`.
 - **Image generation** (after Nov 16) covers location cards, event vignettes, item icons and buildings. Use one locked style prompt and a reference image.
@@ -791,7 +851,8 @@ Planned 2026-11-11, in this order, all on Opus:
 | — | Balance C: people's time and a five-week Depot (§6, §9.1), from the economy design in `claude/economy-design.md` | **done** (1.7.1) |
 | — | Balance D: checked to the end of the content with a person-like simulated player; a faster first week, bigger trades (§9.1) | **done** (1.7.2) |
 | — | Projects and salvage (§9.6, §9.4), the long goal after the Depot | **done** (1.8.0) |
-| 17 | What's missing: rescue jobs, feuds that make someone quit, pets, **ageing and babies**, the last gear drawings | |
+| 17 | What's missing, in two parts (Aviel, 2026-11-12): **rescue jobs, feuds that make someone quit, animals and the last gear drawings** (§10.1, §9.5, §9.7) | **done** (1.9.0) |
+| 17b | **Ageing and babies** | next (1.10.0) |
 | 18 | The Vultures, a rival guild | |
 
 - **Tutorial.** Starts with a new guild, and can be replayed from Settings. It walks through the resources and how to get more of each, food and the Garden, why crews go out on runs, why to build, and taking in recruits. It's optional: the player can skip the whole thing, or skip ahead to the next part. Built as the tour (§12); later steps that add something to explain (gas, vehicles) add a step to it.
@@ -815,18 +876,15 @@ Planned 2026-11-11, in this order, all on Opus:
 - **The economy** (Aviel, 2026-11-12, after `claude/economy-design.md`): finishing the Depot should take about five real weeks; the road should cost stress so people's time is the limit (both in 1.7.1); **projects** (big multi-stage works, like Civ's wonders) are the long goal; later, **expanding to new places** beyond the Reach. What comes after Balance C is decided once it has been played. Other ideas on the table: long expeditions, improving outposts, contracts from other settlements, training courses that teach a trait, feasts on demand, weapon mods.
 - **Ageing** (part of step 17, asked for 2026-11-11, alongside babies). Everyone gets older in game time: a year every 365 game days, which is about 45 real days.
   - Ages are fixed today. The portrait already greys hair by age, so faces would age on their own.
-  - To settle when building it:
-    - what old age does (stats slowly slipping past 60, say);
-    - whether anyone can die of old age;
-    - whether birthdays go in the Chronicle.
+  - **Decided (Aviel, 2026-11-12):** old age brings a slow decline, and the very old can rarely die peacefully at home, with a Chronicle line and grief for those close to them.
+  - Still to settle when building it: whether birthdays go in the Chronicle.
 - **Babies** (part of step 17, asked for 2026-11-11). Partners at the Depot sometimes have a baby, who grows up into a survivor.
   - **Growing up in real time,** at the same pace as everyone else: 16 game years from birth to joining the roster, which is about two real years of play. Children are a long-term thing.
   - **Meanwhile:** children eat and need a bed. Everyone at home sheds a little more stress with a child around, and older children (about 12, so roughly a year and a half in) can take light posts such as the Garden. They never go on runs.
   - **From their parents:** a face that mixes both parents', stats that lean toward theirs, a chance to inherit a personality trait, and the family surname.
-  - To settle when building it:
-    - how often a couple has a baby;
-    - whether the mother stays home for the last stretch before the birth;
-    - whether couples who can't have children can take in an orphan (rescue jobs, also in step 17 — Claude's suggestion);
+  - **Decided (Aviel, 2026-11-12):** babies are rare (every few real months at most, with a free bed), and come with a pregnancy: the mother stays home for the last ~10 real days.
+  - Still to settle when building it:
+    - whether couples who can't have children can take in an orphan (a child to rescue, now that calls for help exist — Claude's suggestion);
     - what losing a parent does to a child;
     - a tour step or a news line for the first birth.
 - **The Vultures.** A rival guild competing for places. They raid, trade, and turn up on runs.

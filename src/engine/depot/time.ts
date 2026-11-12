@@ -9,6 +9,8 @@ import { emptySummary, playDepotDay, type DepotSummary } from './day.ts';
 import { expireOffers, rollDepotEvents } from './events.ts';
 import { refreshRecruits } from './recruits.ts';
 import { playDilemmaDay } from '../dilemmas.ts';
+import { playRescueDay } from '../rescue.ts';
+import { expireStrays } from '../animals.ts';
 
 export interface AdvanceResult {
   /** Crews that came home, oldest first. */
@@ -50,10 +52,12 @@ export function advanceTime(state: GameState, now: number): AdvanceResult {
     result.reports.push(...completeDueRuns(state, dayStart(state, day)));
     withRng(state, (rng) => {
       expireOffers(state, day);
+      expireStrays(state, day);
       playDepotDay(state, day, rng, result.depot);
       rollDepotEvents(state, day, rng);
       refreshRecruits(state, day, rng);
       playDilemmaDay(state, day, rng);
+      playRescueDay(state, day, rng);
     });
     state.depot.lastDay = day;
   }

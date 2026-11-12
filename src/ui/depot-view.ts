@@ -280,9 +280,13 @@ export function candidateWait(c: Candidate, day: number): string {
   return c.expiresDay <= day + 1 ? 'Here today only.' : `Waits at the gate until day ${c.expiresDay - 1}.`;
 }
 
-/** How long a candidate waits, and "Came on her own." first for a wanderer. */
-export function candidateNote(c: Candidate, day: number): string {
+/** How long a candidate waits, and "Came on her own." first for a wanderer, or who brought them home from a rescue. */
+export function candidateNote(c: Candidate, day: number, state?: GameState): string {
   const wait = candidateWait(c, day);
+  if (c.rescued) {
+    const by = state?.survivors.find((s) => s.id === c.rescued!.by);
+    return `Brought home from ${getLocation(c.rescued.locationId).name}${by ? ` by ${by.firstName}` : ''}, waiting for a bed. ${wait}`;
+  }
   return c.wanderer ? `Came on ${pronounForms(c.survivor.pronouns).their} own. ${wait}` : wait;
 }
 

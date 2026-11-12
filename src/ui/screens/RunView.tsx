@@ -31,6 +31,8 @@ import {
   runProgress,
 } from '../runs-view.ts';
 import { clockTime } from '../time.ts';
+import { rescueLine, rescuedWhere } from '../rescue-view.ts';
+import { followedHome } from '../animals-view.ts';
 import { findAnySurvivor } from '../view.ts';
 
 export function RunView({ state, id }: { state: GameState; id: string }) {
@@ -150,6 +152,8 @@ function Report({ state, report }: { state: GameState; report: RunReport }) {
   const names = reportFirstNames(report);
   const crew = report.plan.crew.map((cid) => ({ id: cid, name: names[cid] ?? cid, survivor: findAnySurvivor(state, cid) }));
   const loot = lootList(s);
+  const rescue = rescueLine(s);
+  const rescuedAt = rescuedWhere(state, s);
   const changes = changesByPerson(report);
 
   return (
@@ -169,7 +173,30 @@ function Report({ state, report }: { state: GameState; report: RunReport }) {
             {d.name} died. {d.cause}.
           </p>
         ))}
+        {rescue && (
+          <p className={s.rescue!.outcome === 'saved' ? 'summary-found' : 'summary-death'}>
+            {rescue}{' '}
+            {rescuedAt === 'sheet' && (
+              <button type="button" className="link" onClick={() => navigate({ screen: 'survivor', id: s.rescue!.person.id, tab: 'stats' })}>
+                See {s.rescue!.person.firstName}
+              </button>
+            )}
+            {rescuedAt === 'gate' && (
+              <button type="button" className="link" onClick={() => navigate({ screen: 'recruits' })}>
+                {s.rescue!.person.firstName} is waiting at the gate for a bed
+              </button>
+            )}
+          </p>
+        )}
         <p>{loot.length > 0 ? `Brought home ${loot.join(', ')}.` : 'Brought nothing home.'}</p>
+        {followedHome(s, names).map((line) => (
+          <p key={line} className="summary-found">
+            {line}{' '}
+            <button type="button" className="link" onClick={() => navigate({ screen: 'depot', tab: 'yard' })}>
+              See the yard
+            </button>
+          </p>
+        ))}
         {s.items.length > 0 && (
           <p className="summary-minor">
             The gear went into the stash.{' '}

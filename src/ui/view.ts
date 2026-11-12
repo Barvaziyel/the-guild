@@ -95,7 +95,7 @@ export function partnerLine(state: GameState, s: Survivor): string | undefined {
 
 /** Days from joining to death (or to `day` for the living), counting both ends. */
 export function daysSurvived(s: Survivor, day: number): number {
-  return Math.max(1, (s.diedDay ?? day) - s.joinedDay + 1);
+  return Math.max(1, (s.diedDay ?? s.leftDay ?? day) - s.joinedDay + 1);
 }
 
 // ---------------------------------------------------------------- stats
@@ -362,5 +362,5 @@ export function memorialOrder(state: GameState): Survivor[] {
 }
 
 export function findAnySurvivor(state: GameState, id: string): Survivor | undefined {
-  return state.survivors.find((s) => s.id === id) ?? state.memorial.find((s) => s.id === id);
+  return state.survivors.find((s) => s.id === id) ?? state.memorial.find((s) => s.id === id) ?? state.departed.find((s) => s.id === id);
 }

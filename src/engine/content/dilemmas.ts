@@ -44,7 +44,9 @@ export type DilemmaEffect =
   /** Word of a place nobody in the guild has found. */
   | { kind: 'reveal' }
   /** Someone new turns up at the gate. */
-  | { kind: 'wanderer' };
+  | { kind: 'wanderer' }
+  /** They walk out of the guild for good, with what they carry (1.9.0). `reason` is their last Chronicle line. */
+  | { kind: 'leaves'; who: 'a' | 'b'; reason: string };
 
 export interface DilemmaOutcome {
   test?: DilemmaTest;
@@ -64,7 +66,7 @@ export interface DilemmaDef {
   /** Who it's about: `a` and, for most, `b`. */
   cast: {
     a?: { trait?: string };
-    b?: { with?: 'close' | 'apart' | 'partner' };
+    b?: { with?: 'close' | 'apart' | 'feud' | 'partner' };
   };
   /** What has to be true for it to come up. */
   needs?: { supplies?: Partial<Resources>; stranger?: true; undiscovered?: true };
@@ -1051,6 +1053,117 @@ export const DILEMMAS: readonly DilemmaDef[] = [
         effects: [
           { kind: 'standing', who: 'a', amount: -5 },
           { kind: 'stress', who: 'a', amount: 5 },
+        ],
+      },
+    ],
+  },
+  {
+    // A feud bad enough that someone walks out (step 17, 1.9.0).
+    id: 'them_or_me',
+    title: 'Them or me',
+    text: '{a.first} has a bag packed by the gate. "{b.first} goes, or I do," {a.they} says, loud enough for the whole Depot to hear. {b.first} says nothing, which is worse.',
+    cast: { a: {}, b: { with: 'feud' } },
+    chronicle: { a: 'Told the guild it was {b.first} or {a.them}.', b: 'Heard {a.first} say it was {b.them} or {a.them}.' },
+    choices: [
+      {
+        label: 'Ask {b.first} to leave.',
+        outcomes: [
+          {
+            test: { trait: 'loyal', who: 'b' },
+            text: '{b.first} goes without a word, and stops at the gate to look back once. Some of the others think the wrong one went.',
+            effects: [
+              { kind: 'leaves', who: 'b', reason: 'Left the guild when asked to, rather than live with {a.first}.' },
+              { kind: 'stress', who: 'a', amount: -10 },
+              { kind: 'standing', who: 'a', amount: -8 },
+            ],
+          },
+          {
+            text: '{b.first} doesn\'t argue. By noon {b.they} is a speck on the road with what {b.they} carries, and the Depot is quieter.',
+            effects: [
+              { kind: 'leaves', who: 'b', reason: 'Left the guild when asked to, rather than live with {a.first}.' },
+              { kind: 'stress', who: 'a', amount: -10 },
+              { kind: 'standing', who: 'a', amount: -4 },
+            ],
+          },
+        ],
+      },
+      {
+        label: 'Let {a.first} go, then.',
+        outcomes: [
+          {
+            test: { chance: 0.25 },
+            text: '{a.first} gets as far as the gate, puts the bag down, and comes back for dinner. Nobody mentions it. It is not over with {b.first}, but it is quieter.',
+            effects: [
+              { kind: 'stress', who: 'a', amount: 6 },
+              { kind: 'bond', amount: 5 },
+            ],
+          },
+          {
+            text: 'Nobody stops {a.first}. {b.first} watches from the fire until {a.they} is out of sight.',
+            effects: [
+              { kind: 'leaves', who: 'a', reason: 'Left the guild over the feud with {b.first}.' },
+              { kind: 'stress', who: 'b', amount: -8 },
+            ],
+          },
+        ],
+      },
+      {
+        label: 'Sit them down and talk it through.',
+        outcomes: [
+          {
+            test: { stat: 'nerve', who: 'best', dc: 13 },
+            text: 'It takes all night and most of a bottle. By morning they aren\'t friends, but {a.first} unpacks the bag.',
+            effects: [
+              { kind: 'bond', amount: 30 },
+              { kind: 'stress', who: 'both', amount: -5 },
+            ],
+          },
+          {
+            test: { chance: 0.5 },
+            text: '{a.first} unpacks the bag. Nothing is settled; they just ran out of shouting.',
+            effects: [{ kind: 'stress', who: 'both', amount: 5 }],
+          },
+          {
+            text: 'Halfway through, {a.first} stands up, picks up the bag and walks out of the gate without another word.',
+            effects: [
+              { kind: 'leaves', who: 'a', reason: 'Walked out in the middle of a talk meant to settle the feud with {b.first}.' },
+              { kind: 'stress', who: 'b', amount: 5 },
+            ],
+          },
+        ],
+      },
+      {
+        label: 'Give them a week apart.',
+        outcomes: [
+          {
+            test: { chance: 0.4 },
+            text: 'A week of not seeing each other does more than any talk would have. The bag goes back under {a.first}\'s bunk.',
+            effects: [{ kind: 'bond', amount: 15 }],
+          },
+          {
+            text: 'A week apart, and on the eighth morning they meet at the water barrel and it starts all over again.',
+            effects: [
+              { kind: 'bond', amount: -5 },
+              { kind: 'stress', who: 'both', amount: 4 },
+            ],
+          },
+        ],
+      },
+    ],
+    unanswered: [
+      {
+        test: { chance: 0.5 },
+        text: '{a.first} didn\'t wait for an answer. The bag, and a week of rations, were gone by morning.',
+        effects: [
+          { kind: 'leaves', who: 'a', reason: 'Left the guild in the night over the feud with {b.first}.' },
+          { kind: 'supplies', change: { rations: -7 } },
+        ],
+      },
+      {
+        text: '{a.first} and {b.first} settled it with fists behind the bunks. {b.first} limps for a week, and {a.first} left anyway.',
+        effects: [
+          { kind: 'hurt', who: 'b', amount: 4 },
+          { kind: 'leaves', who: 'a', reason: 'Fought {b.first} one last time, and left the guild.' },
         ],
       },
     ],

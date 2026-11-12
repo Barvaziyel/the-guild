@@ -6,7 +6,7 @@
 import type { BuildingId, Quality, RelationshipLabel, ResourceId, Resources } from './types.ts';
 
 /** Save format version. Bump together with a migration in save.ts. */
-export const SAVE_VERSION = 15;
+export const SAVE_VERSION = 16;
 
 // ---------------------------------------------------------------- time
 
@@ -217,10 +217,11 @@ export const RELIC_HEART_WEIGHT = 6;
 export const RELIC_STAT_BONUS = 1;
 
 /** Explored % gained per finished run, by job. */
-export const EXPLORE_GAIN: Record<'scavenge' | 'scout' | 'hunt', readonly [number, number]> = {
+export const EXPLORE_GAIN: Record<'scavenge' | 'scout' | 'hunt' | 'rescue', readonly [number, number]> = {
   scavenge: [4, 6],
   scout: [10, 15],
   hunt: [2, 4],
+  rescue: [2, 4],
 };
 
 // ---------------------------------------------------------------- the Depot
@@ -531,3 +532,42 @@ export const DILEMMA_GAP: readonly [number, number] = [5, 11];
 export const DILEMMA_DAYS = 8;
 /** The first one in a new guild, on this day. */
 export const DILEMMA_FIRST_DAY = 4;
+
+// ---------------------------------------------------------------- calls for help (§10.1, 1.9.0)
+
+/** Game days between one call for help and the next, with a Radio Tower. */
+export const RESCUE_GAP: readonly [number, number] = [10, 20];
+/** The first call comes this many days after the Radio Tower can hear it. */
+export const RESCUE_FIRST_GAP = 3;
+/** Game days a call lasts unanswered (about three quarters of a real day). */
+export const RESCUE_DAYS = 6;
+/** Stat points a rescued person has on top of a recruit's. */
+export const RESCUE_BONUS_POINTS = 2;
+/** Days a rescued person waits at the gate when no bed is free. */
+export const RESCUE_WAIT_DAYS = 6;
+/** Stress for a crew that gets there too late. */
+export const RESCUE_LOST_STRESS = 8;
+/** What a rescued person had put by, brought home with them (plus the place's danger). */
+export const RESCUE_STASH: readonly [number, number] = [6, 12];
+
+// ---------------------------------------------------------------- leaving the guild (1.9.0)
+
+/** Stress for a partner left behind when someone walks out. */
+export const PARTNER_LEFT_STRESS = 15;
+
+// ---------------------------------------------------------------- animals (§9.7, 1.9.0)
+
+/** Days a stray waits at the gate. */
+export const STRAY_DAYS = 3;
+/** Stress an animal's keeper sheds each day at home with it. */
+export const KEEPER_RELIEF = 1;
+/** The dog: added to holding off raids. */
+export const DOG_DEFENSE = 2;
+/** The cat: stress the most strained person at home sheds each day. */
+export const CAT_RELIEF = 3;
+/** The goat: rations of milk a day. */
+export const GOAT_MILK = 1;
+/** The crow: a day's chance of bringing home scrap, how much, and the chance of a trinket. */
+export const CROW_SCRAP_CHANCE = 0.15;
+export const CROW_SCRAP: readonly [number, number] = [1, 3];
+export const CROW_TRINKET_CHANCE = 0.01;

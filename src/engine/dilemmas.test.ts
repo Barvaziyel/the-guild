@@ -21,6 +21,7 @@ function guildFor(def: DilemmaDef, seed: string): GameState {
   const [a, b, c, d] = state.survivors as [GameState['survivors'][0], GameState['survivors'][0], GameState['survivors'][0], GameState['survivors'][0]];
   if (def.cast.a?.trait) for (const s of state.survivors) addTrait(s, def.cast.a.trait, { day: 1, silent: true, force: true, rng: new Rng(seed) });
   if (def.cast.b?.with === 'apart') for (const rel of Object.values(state.relationships)) rel.score = -40;
+  if (def.cast.b?.with === 'feud') for (const rel of Object.values(state.relationships)) rel.score = -70;
   if (def.cast.b?.with === 'close') for (const rel of Object.values(state.relationships)) rel.score = 60;
   // Pairs with no condition: friends in half the guilds, so outcomes for friends and for the rest both come up.
   if (def.cast.b && !def.cast.b.with && new Rng(`close-${seed}`).chance(0.5)) for (const rel of Object.values(state.relationships)) rel.score = 60;

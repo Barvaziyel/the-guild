@@ -27,6 +27,12 @@ function model(change?: (m: YardModel) => void): YardModel {
     people,
     trader: true,
     vehicles: ['motorcycle', 'car', 'pickup', 'van'].map((defId, i) => ({ id: `v${i}`, defId, broken: i === 2, label: defId })),
+    animals: [
+      { id: 'a1', kind: 'dog', keeperId: 's1', label: 'Rust, the dog.' },
+      { id: 'a2', kind: 'cat', label: 'Smudge, the cat.' },
+      { id: 'a3', kind: 'goat', label: 'Clover, the goat.' },
+      { id: 'a4', kind: 'crow', label: 'Jinx, the crow.' },
+    ],
     phase: 'day',
   };
   change?.(m);
@@ -91,7 +97,15 @@ describe('the yard drawing', () => {
     for (const v of m.vehicles) assert.ok(svg.includes(`data-key="v:${v.id}" data-go="#/vehicles"`));
     assert.ok(svg.includes('data-key="gate" data-go="#/recruits"'));
     assert.ok(svg.includes('data-key="trader"'));
+    for (const a of m.animals) assert.equal(svg.split(`data-key="a:${a.id}"`).length, 2, `${a.id} drawn once`);
     assert.ok(svg.includes('Person 1 &amp; &quot;friend&quot; &lt;x&gt;'), 'labels are escaped');
+  });
+
+  test('the dog keeps by its keeper, or waits by the gate while they are away', () => {
+    const at = (svg: string): string => svg.split('data-key="a:a1"')[1]!.slice(0, 400);
+    const home = at(yardSvg(model()));
+    const away = at(yardSvg(model((m) => (m.animals[0]!.keeperId = 'nobody'))));
+    assert.notEqual(home, away);
   });
 
   test('every place the model can name has a spot', () => {

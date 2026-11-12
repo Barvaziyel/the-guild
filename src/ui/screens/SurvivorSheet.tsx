@@ -21,6 +21,7 @@ import {
   type Slot,
   type Survivor,
 } from '../../engine/index.ts';
+import { keeperLine } from '../animals-view.ts';
 import { postChoices } from '../depot-view.ts';
 import { outpostChoices } from '../outposts-view.ts';
 import { postLink, postValue, projectChoices } from '../projects-view.ts';
@@ -70,7 +71,8 @@ export function SurvivorSheet({ state, id, tab, day, now }: Props) {
       </div>
     );
   }
-  const dead = s.status === 'dead';
+  // The dead and those who walked out are kept for their story, and can't be changed.
+  const dead = s.status === 'dead' || s.status === 'left';
   const tabs: SheetTab[] = dead ? ['stats', 'story'] : ['stats', 'bonds', 'story'];
   const current = tabs.includes(tab) ? tab : 'stats';
 
@@ -127,7 +129,9 @@ function BackLink({ to }: { to: 'roster' | 'memorial' }) {
 function SheetHeader({ state, survivor: s, day, now }: { state: GameState; survivor: Survivor; day: number; now: number }) {
   const [renaming, setRenaming] = useState(false);
   const dead = s.status === 'dead';
+  const gone = dead || s.status === 'left';
   const status = survivorStatus(s, day);
+  const keeps = gone ? undefined : keeperLine(state, s.id);
   const run = runOfSurvivor(state, s.id);
   return (
     <header className="sheet-head">
@@ -141,8 +145,9 @@ function SheetHeader({ state, survivor: s, day, now }: { state: GameState; survi
           </h2>
           <p className="sheet-origin">{originLine(s)}</p>
           <p className="sheet-sex">{sexLabel(s)}</p>
-          {!dead && partnerLine(state, s) && <p className="sheet-partner">{partnerLine(state, s)}</p>}
-          {!dead && !renaming && (
+          {!gone && partnerLine(state, s) && <p className="sheet-partner">{partnerLine(state, s)}</p>}
+          {keeps && <p className="sheet-partner">{keeps}</p>}
+          {!gone && !renaming && (
             <button type="button" className="btn btn-small btn-quiet rename-btn" onClick={() => setRenaming(true)}>
               Rename
             </button>
@@ -151,10 +156,10 @@ function SheetHeader({ state, survivor: s, day, now }: { state: GameState; survi
       </div>
       {renaming && <RenameForm survivor={s} onDone={() => setRenaming(false)} />}
       <p className="backstory">{s.backstory}</p>
-      {dead ? (
+      {gone ? (
         <div className="death">
           <p>
-            Died on day {s.diedDay}. {s.causeOfDeath ? `${s.causeOfDeath}.` : ''}
+            {dead ? `Died on day ${s.diedDay}. ${s.causeOfDeath ? `${s.causeOfDeath}.` : ''}` : `Gone since day ${s.leftDay}. ${s.leftReason ?? ''}`}
           </p>
           <p className="death-days">
             {daysSurvived(s, day)} days with the guild, {s.counters.runs} {s.counters.runs === 1 ? 'run' : 'runs'}.

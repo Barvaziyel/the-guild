@@ -47,7 +47,7 @@ export function Recruits({ state, day }: { state: GameState; day: number }) {
                       {getOrigin(s.origin).name}, {s.age}
                     </p>
                     <p className="sheet-sex">{sexLabel(s)}</p>
-                    <p className="candidate-wait">{candidateNote(c, day)}</p>
+                    <p className="candidate-wait">{candidateNote(c, day, state)}</p>
                   </div>
                 </div>
                 <p className="backstory">{s.backstory}</p>

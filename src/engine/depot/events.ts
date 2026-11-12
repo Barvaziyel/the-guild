@@ -43,6 +43,7 @@ import { RESOURCE_IDS } from '../types.ts';
 import { atDepot, buildingLevel, canWork, workingLevel, canAfford, costText, payCost, workingAt } from './buildings.ts';
 import { addWanderer } from './recruits.ts';
 import { wallDefense } from '../projects.ts';
+import { dogDefense, strayArrives } from '../animals.ts';
 
 type EventKind = 'wanderer' | 'trader' | 'raid' | 'celebration' | 'sickness' | 'stray';
 
@@ -107,6 +108,8 @@ const HANDLERS: Record<EventKind, (state: GameState, day: number, rng: Rng, home
   },
 
   stray(state, day, rng, home) {
+    // A kind the guild doesn't keep waits at the gate to be kept (§9.7); with one of each, it moves on.
+    if (strayArrives(state, day, rng)) return;
     const friend = home.find((s) => anyTraitHook(s, 'likesAnimals'));
     if (friend) {
       changeStress(friend, -10, { rng, day });
@@ -128,7 +131,7 @@ export function raidDefense(state: GameState): number {
   const lookouts = tower > 0 ? workingAt(state, 'watchtower') : [];
   const best = Math.max(0, ...defenders.map((s) => effectiveStat(s, 'aim')));
   const thin = Math.max(0, RAID_FULL_FENCE - defenders.length) * RAID_THIN_PENALTY;
-  return best + tower * WATCHTOWER_DEFENSE + lookouts.length - thin + wallDefense(state);
+  return best + tower * WATCHTOWER_DEFENSE + lookouts.length - thin + wallDefense(state) + dogDefense(state);
 }
 
 /** Raiders come for the Depot. Returns whether they broke in. */

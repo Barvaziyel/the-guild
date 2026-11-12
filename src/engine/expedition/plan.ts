@@ -103,6 +103,14 @@ export function validatePlan(state: GameState, plan: RunPlan): string[] {
   if (plan.depth !== undefined && (plan.depth < 1 || plan.depth > 3 || !Number.isInteger(plan.depth))) problems.push('That level does not exist.');
   else if (!depthOpen(state, loc.id, depth)) problems.push(`${DEPTH_NAMES[depth - 1]} opens once ${DEPTH_NAMES[depth - 2]!.toLowerCase()} ${depth === 2 ? 'are' : 'is'} fully explored.`);
 
+  if (plan.job === 'rescue') {
+    // Only while someone is calling for help from here, and nobody has gone yet (§10.1).
+    const call = state.rescue?.call;
+    if (!call || call.locationId !== plan.locationId) problems.push('Nobody is calling for help from here.');
+    else if (call.runId) problems.push('A crew is already on the way.');
+    else if (depth > 1) problems.push('The call came from the outskirts.');
+  }
+
   if (plan.crew.length < 1) problems.push('Pick at least one survivor.');
   const vehicleIds = plan.vehicles ?? [];
   const limit = crewLimit(state, plan);

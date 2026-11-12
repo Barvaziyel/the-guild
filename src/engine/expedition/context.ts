@@ -25,6 +25,7 @@ import { addPractice, changeStress, checkBonus, maxHp, rollCheck, statName, type
 import { fillRoles } from '../text.ts';
 import { mulTraitHook, revealTrait, sumTraitHook } from '../traits.ts';
 import type {
+  Animal,
   Beat,
   BeatKind,
   CheckInfo,
@@ -33,6 +34,7 @@ import type {
   LogLine,
   Nemesis,
   NemesisNews,
+  RescueTrouble,
   Resources,
   RunDeath,
   RunPlan,
@@ -108,6 +110,10 @@ export interface Sim {
   foundVehicles: Vehicle[];
   /** Set when a wreck leaves the crew short of seats: the time they started walking home. */
   walkingFrom?: number;
+  /** A rescue run (§10.1): the person who called (a copy), their trouble, and how it went. */
+  rescue?: { person: Survivor; trouble: RescueTrouble; outcome?: 'saved' | 'lost' | 'missed'; by?: string };
+  /** Animals following the crew home (§9.7). */
+  animals: Animal[];
 }
 
 /** A vehicle on a run. */

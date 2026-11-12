@@ -3,6 +3,8 @@
  * the line shown when something in it is tapped. Plain TypeScript, tested in Node.
  */
 import {
+  getAnimal,
+  keeperOf,
   BUILDING_IDS,
   PROJECT_IDS,
   projectState,
@@ -131,7 +133,11 @@ export function yardModel(state: GameState, hour: number, day?: number): YardMod
     projects[id] = { done: ps.done, working: ps.work !== undefined };
   }
 
-  return { buildings, projects, people, trader: state.depot.offers.length > 0, vehicles, phase: dayPhase(hour) };
+  const animals = state.animals.map((a) => {
+    const keeper = keeperOf(state, a);
+    return { id: a.id, kind: a.kind, ...(keeper ? { keeperId: keeper.id } : {}), label: `${a.name}, the ${getAnimal(a.kind).name}.${keeper ? ` Looked after by ${keeper.firstName}.` : ''}` };
+  });
+  return { buildings, projects, people, trader: state.depot.offers.length > 0, vehicles, animals, phase: dayPhase(hour) };
 }
 
 /** What a tap on a building says: "Garden, level 2. 2 of 3 working." or what it would cost. */

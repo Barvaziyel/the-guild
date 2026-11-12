@@ -4,7 +4,7 @@
  * business: the model says where someone is (at a post, by the fire, on a cot,
  * at the gate), and `layout.ts` turns that into a spot.
  */
-import type { BuildingId, ProjectId } from '../engine/types.ts';
+import type { AnimalKind, BuildingId, ProjectId } from '../engine/types.ts';
 
 /** How a small figure is drawn: colors from the survivor's portrait. */
 export interface FigureLook {
@@ -53,6 +53,14 @@ export interface YardVehicle {
   label: string;
 }
 
+/** One of the guild's animals (§9.7). The dog keeps by its keeper when they're in the yard. */
+export interface YardAnimal {
+  id: string;
+  kind: AnimalKind;
+  keeperId?: string;
+  label: string;
+}
+
 export type DayPhase = 'dawn' | 'day' | 'dusk' | 'night';
 
 export interface YardModel {
@@ -66,6 +74,8 @@ export interface YardModel {
   trader: boolean;
   /** Vehicles at home. */
   vehicles: YardVehicle[];
+  /** The guild's animals. */
+  animals: YardAnimal[];
   phase: DayPhase;
 }
 

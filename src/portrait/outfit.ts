@@ -50,8 +50,8 @@ export const CLOTHES_COUNT = CLOTHES.length;
 
 export type ArmorLook = 'leather' | 'scrap' | 'riot' | 'hazmat';
 export type WeaponLook = 'pipe' | 'blade' | 'sledge' | 'baton' | 'holster' | 'rifle' | 'crossbow' | 'shotgun';
-export type ToolLook = 'binoculars' | 'medkit' | 'geiger' | 'crowbar';
-export type TrinketLook = 'tags' | 'coin' | 'foot';
+export type ToolLook = 'binoculars' | 'medkit' | 'geiger' | 'crowbar' | 'picks' | 'multitool';
+export type TrinketLook = 'tags' | 'coin' | 'foot' | 'photo' | 'musicbox';
 export type Accessory = 'none' | 'goggles' | 'bandana' | 'beanie';
 
 /** Content id -> how it looks. Add a line here when adding gear to the game. */
@@ -78,12 +78,16 @@ export const TOOL_LOOKS: Record<string, ToolLook> = {
   medkit: 'medkit',
   geiger_counter: 'geiger',
   crowbar: 'crowbar',
+  lockpicks: 'picks',
+  multitool: 'multitool',
 };
 
 export const TRINKET_LOOKS: Record<string, TrinketLook> = {
   dog_tags: 'tags',
   lucky_coin: 'coin',
   rabbits_foot: 'foot',
+  old_photo: 'photo',
+  music_box: 'musicbox',
 };
 
 // ---------------------------------------------------------------- clothes
@@ -349,6 +353,25 @@ function tool(look: ToolLook, sw: number): string {
         path(d`M${CX - 66},240 L${CX - 84},128 Q${CX - 86},116 ${CX - 76},118`, line(8)) +
         path(d`M${CX - 66},240 L${CX - 84},128 Q${CX - 86},116 ${CX - 76},118`, line(4.5, '#a8603f'))
       );
+    case 'picks':
+      // A leather roll at the hip with the picks' handles showing.
+      return (
+        path(d`M${CX + 46 * sw},232 l2,-10 M${CX + 51 * sw},232 l0,-12 M${CX + 56 * sw},232 l-1,-9`, line(1.6, STEEL)) +
+        path(d`M${CX + 46 * sw},232 l2,-10 M${CX + 51 * sw},232 l0,-12 M${CX + 56 * sw},232 l-1,-9`, `fill="none" stroke="${INK}" stroke-width="0.5" opacity="0.6"`) +
+        `<rect x="${n(CX + 40 * sw)}" y="231" width="24" height="16" rx="4" fill="${LEATHER}" ${ink(2)}/>` +
+        path(d`M${CX + 40 * sw},239 h24`, line(1.2, darken(LEATHER, 0.3))) +
+        `<rect x="${n(CX + 49 * sw)}" y="236" width="6" height="6" fill="#c9a23f" ${ink(1)}/>`
+      );
+    case 'multitool':
+      // Folded on a chest strap: a red handle with the pliers' jaw out.
+      return (
+        path(d`M${CX - 30},203 L${CX - 52 * sw},236`, line(3.2, darken(LEATHER, 0.15))) +
+        `<g transform="rotate(-24 ${n(CX - 56 * sw)} 238)">` +
+        `<rect x="${n(CX - 62 * sw)}" y="232" width="9" height="20" rx="3" fill="#a8402e" ${ink(1.8)}/>` +
+        path(d`M${CX - 60 * sw},232 l1,-8 l3,0 l-1,8 Z`, `fill="${STEEL}" ${ink(1.2)}`) +
+        path(d`M${CX - 57.5 * sw},236 v12`, line(0.9, darken('#a8402e', 0.35))) +
+        '</g>'
+      );
   }
 }
 
@@ -365,6 +388,27 @@ function trinket(look: TrinketLook): string {
       return cord + `<circle cx="${CX - 2}" cy="235" r="6.5" fill="#c9a23f" ${ink(1.6)}/><circle cx="${CX - 2}" cy="235" r="3" fill="none" stroke="${INK}" stroke-width="0.9" opacity="0.6"/>`;
     case 'foot':
       return cord + path(d`M${CX - 5},229 Q${CX - 9},242 ${CX - 2},248 Q${CX + 5},242 ${CX + 1},229 Z`, `fill="#cdb898" ${ink(1.6)}`) + path(d`M${CX - 4},243 l1,3 M${CX - 1},244 l0,3`, line(1));
+    case 'photo':
+      // Tucked in a chest pocket, a corner showing: a face from before.
+      return (
+        `<g transform="rotate(12 ${CX + 22} 232)">` +
+        `<rect x="${CX + 13}" y="220" width="18" height="22" fill="#efe3c4" ${ink(1.6)}/>` +
+        `<rect x="${CX + 16}" y="223" width="12" height="13" fill="#8e8a7e"/>` +
+        `<circle cx="${CX + 22}" cy="228" r="2.6" fill="#c9bfa8"/>` +
+        path(d`M${CX + 17.5},236 Q${CX + 22},230.5 ${CX + 26.5},236`, `fill="#c9bfa8"`) +
+        `<rect x="${CX + 17}" y="217.5" width="10" height="5" fill="#d9cfa6" opacity="0.92" ${ink(0.8)}/>` +
+        '</g>'
+      );
+    case 'musicbox':
+      // A little wooden box on the cord, with its crank.
+      return (
+        cord +
+        `<rect x="${CX - 10}" y="228" width="17" height="13" rx="1.5" fill="#9a6b3f" ${ink(1.6)}/>` +
+        path(d`M${CX - 10},232 h17`, line(1, darken('#9a6b3f', 0.35))) +
+        `<circle cx="${CX - 1.5}" cy="236.5" r="1.4" fill="#c9a23f" ${ink(0.8)}/>` +
+        path(d`M${CX + 7},235 h3.5 v-4`, line(1.4, STEEL)) +
+        `<circle cx="${CX + 10.5}" cy="230.5" r="1.3" fill="${BONE}" ${ink(0.8)}/>`
+      );
   }
 }
 

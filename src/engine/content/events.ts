@@ -1,5 +1,5 @@
 import type { Difficulty } from '../constants.ts';
-import type { ResourceId, StatId } from '../types.ts';
+import type { AnimalKind, ResourceId, StatId } from '../types.ts';
 
 /**
  * Scripted events for runs. An event takes the place of a plain travel,
@@ -56,7 +56,9 @@ export type EventEffect =
   | { type: 'chronicle'; who: EventTarget; text: string }
   | { type: 'turnBack' }
   /** A fight breaks out with whatever lives here. */
-  | { type: 'fight'; ambushed?: boolean };
+  | { type: 'fight'; ambushed?: boolean }
+  /** An animal follows a home, to be kept by the guild (§9.7). */
+  | { type: 'animal'; kind: AnimalKind; chance?: number };
 
 export interface EventOutcome {
   text: string;
@@ -113,11 +115,12 @@ export const EVENTS: readonly EventDef[] = [
     intro: 'A half-starved dog has been trailing along for an hour. {a.first} stops, crouches and holds out a hand.',
     check: { stat: 'nerve', dc: 'normal', contexts: ['enemy:feral'] },
     success: {
-      text: 'It comes, belly low, and eats from {a.their} palm. It trots beside {a.first} the rest of the way and is gone by morning.',
+      text: 'It comes, belly low, and eats from {a.their} palm. It trots beside {a.first} the rest of the way.',
       effects: [
         { type: 'stress', who: 'all', amount: -6 },
         { type: 'chronicle', who: 'a', text: 'Befriended a stray dog at {loc}.' },
         { type: 'trait', who: 'a', trait: 'beast_friend', chance: 0.4, source: 'a stray dog trusted {a.them} at {loc}' },
+        { type: 'animal', kind: 'dog', chance: 0.6 },
       ],
     },
     failure: {
@@ -1304,6 +1307,64 @@ export const EVENTS: readonly EventDef[] = [
         { type: 'rads', who: 'all', amount: [8, 14] },
         { type: 'stress', who: 'all', amount: 4 },
       ],
+    },
+  },
+
+  // ============================================================ animals (§9.7, 1.9.0)
+
+  {
+    id: 'goat_on_the_road',
+    title: 'A Goat',
+    kind: 'travel',
+    weight: 6,
+    locations: ['kessler_farm', 'maple_street', 'rail_yard'],
+    a: { best: 'wits' },
+    intro: 'A goat with a frayed rope round its neck is standing in the middle of the road, eating a tyre.',
+    check: { stat: 'wits', dc: 'easy' },
+    success: {
+      text: '{a.first} pulls up a handful of grass and talks to it like an old friend. It decides {a.first} is all right, and follows.',
+      effects: [{ type: 'animal', kind: 'goat' }],
+    },
+    failure: {
+      text: 'It butts {a.first} hard in the knee and trots off into the scrub, rope and all.',
+      effects: [{ type: 'damage', who: 'a', amount: [1, 2], cause: 'a goat' }],
+    },
+  },
+  {
+    id: 'cat_in_the_ruins',
+    title: 'Something Hissing',
+    kind: 'discovery',
+    weight: 6,
+    locations: BUILDINGS,
+    a: { best: 'nerve' },
+    intro: 'Something small and furious is hissing from inside a burst vending machine.',
+    check: { stat: 'nerve', dc: 'normal' },
+    success: {
+      text: '{a.first} sits very still for a long time. In the end a thin grey cat climbs out, sniffs {a.their} boots, and settles in {a.their} pack as if it had always been there.',
+      effects: [{ type: 'animal', kind: 'cat' }],
+    },
+    failure: {
+      text: 'A yowl, a blur of claws, and three red lines across the back of {a.first}\'s hand. The cat is long gone.',
+      effects: [{ type: 'damage', who: 'a', amount: [1, 1], cause: 'a cat' }],
+    },
+  },
+  {
+    id: 'crow_with_a_key',
+    title: 'A Crow',
+    kind: 'travel',
+    weight: 6,
+    a: {},
+    intro: 'A crow lands on {a.first}\'s pack and won\'t be shooed off. It has something shiny in its beak.',
+    check: { chance: 0.5 },
+    success: {
+      text: 'It drops a ring of keys into {a.first}\'s hand, and rides on the pack the whole way home.',
+      effects: [
+        { type: 'loot', resource: 'scrap', amount: [1, 2] },
+        { type: 'animal', kind: 'crow' },
+      ],
+    },
+    failure: {
+      text: 'It looks {a.first} in the eye, thinks better of it, and flies off with whatever it was.',
     },
   },
 ];
