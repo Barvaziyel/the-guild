@@ -116,14 +116,14 @@ Some trait behaviors:
 
 ### 4.5 Traits that evolve (the "change over time" engine)
 
-Each survivor keeps **life counters**: runs, combats survived, kills by enemy type, times downed, near deaths, radiation absorbed, allies lost, allies saved, successful scavenges, ranged and melee kills, and days at the Depot.
+Each survivor keeps **life counters**: runs, runs at danger 2 or more (*hard runs*, counting the level gone to), combats survived, kills by enemy type, times downed, near deaths, radiation absorbed, allies lost, allies saved, successful scavenges, ranged and melee kills, and days at the Depot.
 
 Evolution rules are data, checked after every run and every Depot day:
 
 | Rule | Trigger |
 |---|---|
 | Cowardly → **Steady** | 5 or more combats survived, then a 25% chance after each further combat |
-| Gain **Veteran** | 25 runs survived (guaranteed; 10 before 1.6.2, when nearly everyone had it within two real weeks) |
+| Gain **Veteran** | 40 hard runs (danger 2 or more) survived, guaranteed. 25 runs of any kind in 1.6.2 and 10 before; either way nearly everyone was a Veteran within a real month, many from the Rail Yard. Saves from before 1.7.1 count all past runs as hard |
 | Gain **Rad-Hardened** | 150 or more radiation absorbed (50% chance after each run with radiation) |
 | Gain **Tough as Nails** | Downed 3 or more times and survived (30% chance) |
 | Gain **Dead-Eye** | 15 or more ranged kills |
@@ -170,6 +170,8 @@ The survivor sheet shows the Chronicle as their story. When a survivor dies, the
 | Fled while they were downed | −40 (−5 with everyone else in the crew) |
 | Same Depot job | Drift of +1 per day × affinity |
 
+**Everyday life stops at Friends or Rivals** (1.7.1). Working side by side, the Bar, a party and life at an outpost move a pair no further than the top of Friends (59) or the bottom of Rivals (−59). Bonded and feuds take something that happened: a run or fight together, a rescue, an argument over shares, blame for a death, a decision. Before, life at the Depot made most pairs Bonded within a month (39 of 66 pairs in a guild of 12), so Bonded meant little.
+
 **What relationships change:**
 
 - **Bonded in the same crew:** +1 to all checks, 20% less stress, and +5 to each other's wound rolls.
@@ -209,13 +211,16 @@ Romance is uncommon, and a step beyond Bonded.
   - a failed hazard: 5–10
   - every beat in a dangerous place: danger − 1
   - a rival in the crew: +2 per beat
-  - a starving Depot: +10 per day
+  - **the road** (1.7.1): +5 for every run, and +1 for every 15 minutes away (about 6 to the Rail Yard, 8 to the Water Plant, 15 to the Glow), on top of what happens on the way
+  - a starving Depot: +4 per day, and hunger alone never pushes anyone past 70 (+10 with no limit before 1.7.1, which broke people when the Depot's relief dropped in 1.6.2)
 - **Relief:**
   - Depot rest: −2 per day (−5 before 1.6.2)
-  - Firepit or Bar: −3 more per day at level 1, −5 at 2, −8 at 3 (−5/−8/−12 before 1.6.2)
+  - Firepit or Bar: −3 more per day at level 1, −4 at 2, −5 at 3 (−3/−5/−8 in 1.6.2, −5/−8/−12 before), and each keeper 0.5 + Nerve × 0.1 more (1 + Nerve × 0.25 before 1.7.1)
   - **Why slower:** 8 Depot days pass in a real day, so with the old numbers stress was back near zero by every check-in, and the Firepit, the Bar and calming trinkets barely mattered. Now a hard run takes a few game days to shake off.
   - a Bonded friend at the Depot
   - trinkets such as an Old Photo
+- **Stress is people's time** (1.7.1, `claude/economy-design.md` in the project). The road's cost means every run uses up some of a person, and the Depot's relief decides how much they can do: about 50 a real day with a level 1 Firepit, 65 with the Bar, 80 with the Bar and Stage. A run costs about 8 at danger 1, 15 at danger 2, 27 at danger 3 and 35–55 at danger 4–5, so a person manages two or three real runs a real day past the easy places. Pushing them harder is allowed and has a cost, so the size of the guild matters more than how often the app is opened, and the Rail Yard grind stops paying (6.7 loot for 8 stress, against 27 for 27 at the Water Plant).
+  - Measured with the simulated player over two real weeks, against 1.7.0: breaking points per guild fell from 2.2 to 0.4 for a careful player, 8.4 to 0.8 for a casual one and 21.5 to 2.0 for one who takes recruits the Garden can't feed. Average stress sits around 20 instead of under 10. Deaths didn't rise.
 - Above 70 stress, a survivor takes −1 to all checks, and it shows on the portrait.
 - At 100, the survivor hits a **breaking point**:
   - 70%: they gain a negative stress trait (Jittery, Paranoid, Drinker or Haunted)
@@ -254,7 +259,7 @@ The guild starts with 3 known locations (The Rail Yard, Maple Street, Kessler Fa
    - **Retreat:** when anyone is below half HP (Wounded), when anyone is Downed, or never. Whatever the order, the crew heads home after a fight in which someone went down.
    - **Loot priority:** the resource to keep when there's more than the crew can carry.
 
-**Coming home tired** (1.6.1): everyone back from a run is **Exhausted** until the next game day (−1 Grit, −1 Brawn), so sending the same crew straight back out costs something. The planner warns about it.
+**Coming home tired** (1.6.1): everyone back from a run is **Exhausted** until the next game day (−1 Grit, −1 Brawn), so sending the same crew straight back out costs something. The planner warns about it. Every run also costs stress for the road itself (§6, 1.7.1).
 
 The planner shows the duration, warnings (rivals or feuds in the crew, injuries, high stress, guns without ammo, tired from the last run) and a **simulated risk**. To get it, the engine quietly runs the same run with 50 different seeds and reports how often someone goes down or dies. The result is shown as Low, Moderate, High or Deadly.
 
@@ -484,12 +489,12 @@ Every survivor has four slots: **Weapon · Armor · Tool · Trinket**
 The Depot plays one **Depot day** for every game day that passes (§11). Each day, for everyone at home (not out on a run):
 
 1. Conditions that have run their course wear off.
-2. **Food.** The Garden grows rations, and everyone eats 1 (Gluttons and Drinkers 2). If there isn't enough, they eat what there is and go hungry: +10 stress each instead of any rest. Nobody starves to death. The log notes when the food runs out and when it's back.
+2. **Food.** The Garden grows rations, and everyone eats 1 (Gluttons and Drinkers 2). If there isn't enough, they eat what there is and go hungry: +4 stress each instead of any rest, never past 70 on hunger alone, and they heal at half the rate (+10 stress with no limit before 1.7.1). Nobody starves to death. The log notes when the food runs out and when it's back.
    - **Warnings (1.1.2).** When the Garden grows less than the whole guild eats (counting those out on runs), the Depot shows how long the stores last, from 10 days out, or that they're gone, with what to do about it. The gate notes when another person would eat more than the Garden can spare.
 3. **Work.** People at their posts work and get +1 practice a day in the building's stat. Serious wounds (anything that blocks runs) keep people in bed: they keep their post but don't work, and can't take a new one until healed.
 4. **Care.** Everyone heals 8% of max HP a day, +8% per Infirmary level, and +2% per point of Wits among the Infirmary's medics (15% and +10% before 1.6.2). A staffed Infirmary also closes wounds sooner, and treats rad sickness and fever with meds, one patient per medic a day.
-5. **Rest.** Everyone sheds 2 stress a day, plus the Firepit's share, plus 2 with a Bonded friend at home. Optimists and Drinkers shed half as much again.
-6. **People.** Co-workers drift toward or away from each other by their trait affinity (a 50% chance each day). A Bar warms everyone a little.
+5. **Rest.** Everyone sheds 2 stress a day, plus the Firepit's share, plus 2 with a Bonded friend at home (§6: together, about 50 a real day at level 1 and 80 with the Bar and Stage). Optimists and Drinkers shed half as much again.
+6. **People.** Co-workers drift toward or away from each other by their trait affinity (a 50% chance each day). A Bar warms everyone a little. Neither goes past Friends or Rivals (§5).
 7. **Evolution.** Days at the Depot count toward evolution rules, such as Haunted → Hardened with a Bonded friend home.
 8. Something may happen (§9.3), and a new set of recruits answers the radio (§10).
 
@@ -499,16 +504,18 @@ The Depot plays one **Depot day** for every game day that passes (§11). Each da
 
 | Building | At the start | Level 1 | Level 2 | Level 3 | Workers use |
 |---|---|---|---|---|---|
-| Bunks | Level 1 | 4 beds | 8 beds (30 scrap, 15 rations) | 12 beds (60 scrap, 6 tech, 30 rations) | — |
-| Garden | Level 1 | Grows rations | ×2 (25 scrap, 10 rations) | ×3 (50 scrap, 6 tech, 20 rations) | Wits |
-| Firepit → Bar | Level 1 | −3 stress a day | Bar: −5, people warm to each other (30 scrap, 3 tech, 20 rations) | Bar and Stage: −8, warm faster (60 scrap, 8 tech, 40 rations) | Nerve |
-| Infirmary | — | 25 scrap, 2 tech, 5 meds | 45 scrap, 8 tech, 10 meds | 70 scrap, 15 tech, 20 meds | Wits |
-| Workshop | — | Basic gear, ammo (30 scrap) | Guns, armor, instruments, Prime upgrades (50 scrap, 8 tech) | Makes Solid gear (80 scrap, 18 tech) | Wits |
-| Radio Tower | — | +1 recruit, stats known, one outpost (30 scrap, 5 tech) | +2, better recruits, two outposts (50, 14) | +3, the best, three outposts (80, 22) | Wits |
-| Watchtower | — | Raid defense, halves losses (25 scrap) | Stronger (45 scrap, 5 tech, 15 ammo) | Strongest (70 scrap, 12 tech, 30 ammo) | Aim |
-| Training Yard | — | 2 practice a day (20 scrap) | 3 (40 scrap, 5 tech) | 4 (60 scrap, 12 tech) | Any stat |
+| Bunks | Level 1 | 4 beds | 8 beds (30 scrap) | 12 beds (180 scrap, 18 tech, 90 rations) | — |
+| Garden | Level 1 | Grows rations | ×2 (25 scrap) | ×3 (150 scrap, 18 tech) | Wits |
+| Firepit → Bar | Level 1 | −3 stress a day | Bar: −4, people warm to each other (60 scrap, 6 tech, 40 rations) | Bar and Stage: −5, warm faster (180 scrap, 24 tech, 120 rations) | Nerve |
+| Infirmary | — | 25 scrap, 2 tech, 2 meds | 90 scrap, 16 tech, 20 meds | 210 scrap, 45 tech, 60 meds | Wits |
+| Workshop | — | Basic gear, ammo (30 scrap) | Guns, armor, instruments, Prime upgrades (100 scrap, 16 tech) | Makes Solid gear (240 scrap, 54 tech) | Wits |
+| Radio Tower | — | +1 recruit, stats known, one outpost (30 scrap, 5 tech) | +2, better recruits, two outposts (100, 28) | +3, the best, three outposts (240, 66) | Wits |
+| Watchtower | — | Raid defense, halves losses (25 scrap) | Stronger (90 scrap, 10 tech, 30 ammo) | Strongest (210 scrap, 36 tech, 90 ammo) | Aim |
+| Training Yard | — | 2 practice a day (20 scrap) | 3 (80 scrap, 10 tech) | 4 (180 scrap, 36 tech) | Any stat |
 
-**Costs across supplies** (1.6.2). Before, every building cost scrap and a little tech, and rations, meds, tech, ammo and gas piled up with nothing to spend them on. All the levels together now cost 975 scrap, 149 tech, 135 rations, 35 meds and 45 ammo.
+**Costs across supplies** (1.6.2). Before, every building cost scrap and a little tech, and rations, meds, tech, ammo and gas piled up with nothing to spend them on. All the levels together cost 975 scrap, 149 tech, 105 rations, 35 meds and 45 ammo in 1.6.2. The Garden never costs rations, so a guild that has run out of food can still build the thing that grows it.
+
+**A five-week Depot** (1.7.1, Aviel's choice). Income grows about 18× in a guild's first real month (21 supplies on day 1, about 390 a day by week four, measured), so with flat prices everything was built by about real day 18 and there was nothing left to buy. Now the first levels stay cheap (Bunks 2 takes no rations and Infirmary 1 takes 2 meds, so neither traps a new guild), the other level 2s cost about twice as much and the level 3s three times. All the levels together: 2,295 scrap, 390 tech, 250 rations, 82 meds and 120 ammo. Measured with the simulated player: the level 2s come in real weeks 2–3 and the level 3s between real days 23 and 32. Projects (big multi-stage works) are planned for after that.
 
 **Upkeep** (1.6.2). The upper levels of some buildings use something up each Depot day. A fraction is the chance of one more.
 
@@ -528,7 +535,7 @@ The Depot plays one **Depot day** for every game day that passes (§11). Each da
 Building is instant. Numbers live in `constants.ts`, and the building text in `content/buildings.ts`; a test checks that they agree.
 
 - **Garden:** rations per day = level × (2 + for each gardener, 0.5 + Wits × 0.25). Two gardeners with Wits 4 at level 1 grow 5, enough for a guild of 4 at home.
-- **Firepit:** each keeper adds 1 + Nerve × 0.25 to the relief. A Bar gives each pair at home a 25% chance a day to warm by 1 (50% at level 3).
+- **Firepit:** each keeper adds 0.5 + Nerve × 0.1 to the relief (1 + Nerve × 0.25 before 1.7.1). A Bar gives each pair at home a 25% chance a day to warm by 1 (50% at level 3).
 - **Workshop:** each worker turns 1 scrap into 1 + Wits × 0.25 ammo a day, until the Depot holds 60 ammo.
 - **Radio Tower:** a 3% chance per level each day, +0.5% per point of the operators' Wits, of hearing about an undiscovered place one road beyond a known one.
 - **Watchtower:** +2 per level to holding off raids, and +1 per lookout.
@@ -740,6 +747,7 @@ Planned 2026-11-11, in this order, all on Opus:
 | 15 | Expansion: outposts and deeper areas (§7.9, §7.10) | **done** (1.6.0) |
 | — | Balance: combat and loot (1.6.1), economy and pace (1.6.2), from the review in `claude/balance-review.md` | **done** |
 | 16 | Decisions at the Depot (§9.5), asked for 2026-11-12 | **done** (1.7.0) |
+| — | Balance C: people's time and a five-week Depot (§6, §9.1), from the economy design in `claude/economy-design.md` | **done** (1.7.1) |
 | 17 | What's missing: rescue jobs, feuds that make someone quit, pets, **ageing and babies**, the last gear drawings | |
 | 18 | The Vultures, a rival guild | |
 
@@ -757,6 +765,7 @@ Planned 2026-11-11, in this order, all on Opus:
 - **The yard** (step 14, asked for 2026-11-11). A drawing of the Depot on a tab of its own: the buildings as they are, everyone at home where they are (at their posts, around the fire, resting on cots), recruits outside the gate, a trader's cart, the vehicles parked in the yard, and the light of the time of day. Tap anything to see what it is and open it. A view only: nothing in the game changes.
 - **Expansion.** Outposts on fully explored places extend the guild's reach (the Civ-style expansion). Places get deeper, more dangerous areas with better loot. Decided 2026-11-12: outposts send supplies home every day, shorten runs nearby, are a rest stop on the way home, and can be raided; people live there and can be swapped out any time; deeper levels open by exploring; the Radio Tower's level sets how many outposts. *Built in 1.6.0 as §7.9 and §7.10.*
 - **Decisions** (step 16, Aviel, 2026-11-12). Now and then something comes up that the player decides: two people fighting over something, a dilemma. Four answers, with costs and rewards that aren't obvious. If he doesn't answer within about a day, the people involved settle it themselves, usually not the best way. *Built in 1.7.0 as §9.5.*
+- **The economy** (Aviel, 2026-11-12, after `claude/economy-design.md`): finishing the Depot should take about five real weeks; the road should cost stress so people's time is the limit (both in 1.7.1); **projects** (big multi-stage works, like Civ's wonders) are the long goal; later, **expanding to new places** beyond the Reach. What comes after Balance C is decided once it has been played. Other ideas on the table: long expeditions, improving outposts, contracts from other settlements, training courses that teach a trait, feasts on demand, weapon mods.
 - **Ageing** (part of step 17, asked for 2026-11-11, alongside babies). Everyone gets older in game time: a year every 365 game days, which is about 45 real days.
   - Ages are fixed today. The portrait already greys hair by age, so faces would age on their own.
   - To settle when building it:

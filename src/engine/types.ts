@@ -221,6 +221,8 @@ export interface Appearance {
 
 export interface LifeCounters {
   runs: number;
+  /** Runs at danger HARD_RUN_DANGER or more, counting the level gone to (Veteran counts these). */
+  hardRuns: number;
   combats: number;
   kills: number;
   rangedKills: number;

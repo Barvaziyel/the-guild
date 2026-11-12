@@ -208,7 +208,7 @@ export const TRAITS: readonly TraitDef[] = [
     id: 'veteran',
     name: 'Veteran',
     kind: 'earned',
-    description: 'Twenty-five runs and still breathing.',
+    description: 'Forty runs past the easy places, and still breathing.',
     statMods: { nerve: 1 },
     hooks: { stressGainMult: 0.9 },
   },

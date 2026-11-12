@@ -60,9 +60,9 @@ export const EVOLUTIONS: readonly EvolutionRule[] = [
     id: 'veteran',
     gain: 'veteran',
     when: 'run',
-    counters: { runs: 25 },
+    counters: { hardRuns: 40 },
     chance: 1,
-    source: 'twenty-five runs and still breathing',
+    source: 'forty runs past the easy places, and still breathing',
   },
   {
     id: 'rad_hardened',

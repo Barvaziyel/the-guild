@@ -54,7 +54,7 @@ describe('outposts: setting up', () => {
     assert.match(buildOutpostProblem(state, 'rail_yard')!, /keep in contact with one outpost/);
     build(state, 'radio_tower', 3);
     assert.equal(buildOutpostProblem(state, 'rail_yard'), undefined);
-    assert.equal(state.resources.scrap, 500 - 30 - 40 - 50);
+    assert.equal(state.resources.scrap, 500 - 30 - 40 - 100);
     assert.ok(state.log.some((l) => l.text === 'Set up an outpost at Maple Street.'));
   });
 
@@ -218,7 +218,10 @@ describe('outposts: a hard posting', () => {
     station(state, s.id, 'maple_street', 3);
     s.stress = 30;
     playOutpostsDay(state, 4, new Rng('h'), {}, true);
-    assert.ok(s.stress >= 30 + 5, `stress ${s.stress}`);
+    assert.ok(s.stress >= 30 + 3, `stress ${s.stress}`);
+    s.stress = 69;
+    playOutpostsDay(state, 5, new Rng('h2'), {}, true);
+    assert.ok(s.stress <= 70, `hunger alone stops at 70, not ${s.stress}`);
   });
 
   test('trouble comes calling: prowlers, long nights, accidents and, where there is any, radiation', () => {

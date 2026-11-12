@@ -13,7 +13,7 @@ import { emptySummary, firepitRelief, playDepotDay } from './day.ts';
 import { makeOffer, raidCap, spare } from './events.ts';
 
 function rich(state: GameState): void {
-  state.resources = { scrap: 900, rations: 900, meds: 900, ammo: 900, tech: 900, gas: 900 };
+  state.resources = { scrap: 5000, rations: 5000, meds: 5000, ammo: 5000, tech: 5000, gas: 5000 };
 }
 
 describe('upkeep', () => {

@@ -19,7 +19,7 @@ import {
   HEAL_BASE,
   HEAL_PER_INFIRMARY,
   HEAL_PER_MEDIC_WITS,
-  HUNGER_STRESS,
+  HUNGRY_HEAL_SHARE,
   INFIRMARY_SPEEDUP,
   RADIO_REVEAL_PER_LEVEL,
   RADIO_REVEAL_PER_WITS,
@@ -34,7 +34,7 @@ import { applyEvolutions } from '../evolution.ts';
 import { ensureLocationState, locationState } from '../locations.ts';
 import { adjustRelationship, arePartners, becomePartners, relationshipLabel, romanceChance, traitAffinity } from '../relationships.ts';
 import type { Rng } from '../rng.ts';
-import { addPractice, changeStress, effectiveStat, maxHp } from '../stats.ts';
+import { addPractice, changeStress, effectiveStat, hungerStress, maxHp } from '../stats.ts';
 import { expireConditions, maxTraitHook, mulTraitHook, removeTrait } from '../traits.ts';
 import type { BuildingId, GameState, GuildLogEntry, Resources, Survivor } from '../types.ts';
 import { BUILDING_IDS } from '../types.ts';
@@ -133,7 +133,8 @@ export function playDepotDay(state: GameState, day: number, rng: Rng, summary: D
     const max = maxHp(s);
     if (s.hp >= max) continue;
     const before = s.hp;
-    s.hp = Math.min(max, s.hp + Math.max(1, Math.ceil(max * healRate(state))));
+    const rate = healRate(state) * (hungry ? HUNGRY_HEAL_SHARE : 1);
+    s.hp = Math.min(max, s.hp + Math.max(1, Math.ceil(max * rate)));
     summary.healed += s.hp - before;
   }
 
@@ -141,7 +142,7 @@ export function playDepotDay(state: GameState, day: number, rng: Rng, summary: D
   const fire = firepitRelief(state);
   for (const s of home) {
     if (hungry) {
-      changeStress(s, HUNGER_STRESS, { rng, day, source: 'hunger' });
+      hungerStress(s, rng, day);
       continue;
     }
     const bonded = home.some((o) => o.id !== s.id && relationshipLabel(state, s.id, o.id) === 'bonded');
@@ -299,7 +300,7 @@ function driftTogether(state: GameState, home: Survivor[], day: number, rng: Rng
       const together = a.post && b.post && a.post.building === b.post.building && workingAt(state, a.post.building).includes(a) && workingAt(state, b.post.building).includes(b);
       if (together && rng.chance(COWORKER_DRIFT_CHANCE)) delta += traitAffinity(a, b);
       if (barChance > 0 && rng.chance(barChance)) delta += 1;
-      if (delta !== 0) adjustRelationship(state, a.id, b.id, delta, { day });
+      if (delta !== 0) adjustRelationship(state, a.id, b.id, delta, { day, everyday: true });
     }
   }
 }
