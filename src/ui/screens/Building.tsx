@@ -51,6 +51,8 @@ function BuildingBody({ state, id }: { state: GameState; id: BuildingId }) {
             <h3 className="panel-title">Now</h3>
             <p>{r.effect}</p>
             <p className="building-now">{r.status}</p>
+            {r.upkeep && <p className="panel-help">{r.upkeep}</p>}
+            {r.unpaid && <p className="field-error">{r.unpaid}</p>}
           </>
         )}
         {r.next ? (

@@ -100,6 +100,11 @@ Each trait is a piece of data. It can carry:
 
 A survivor can hold at most **6** personality, earned, stress and scar traits combined. Conditions don't count toward the limit.
 
+- **At the cap** (1.6.2), a new earned or personality trait pushes out the oldest of the visible earned and personality traits, never Veteran or Survivor. The Chronicle says so: *Became Hardened: seen too much, and left being Optimist behind.*
+- If there's nothing it can push out, the new trait isn't gained.
+- Scars and stress traits always fit.
+- Before 1.6.2 new traits were simply refused at the cap, so the longest-lived people stopped changing.
+
 Some trait behaviors:
 
 - **Brave**: never flees and draws enemy attention. **Cowardly**: may flee when hurt or when an ally goes down.
@@ -118,7 +123,7 @@ Evolution rules are data, checked after every run and every Depot day:
 | Rule | Trigger |
 |---|---|
 | Cowardly → **Steady** | 5 or more combats survived, then a 25% chance after each further combat |
-| Gain **Veteran** | 10 runs survived (guaranteed) |
+| Gain **Veteran** | 25 runs survived (guaranteed; 10 before 1.6.2, when nearly everyone had it within two real weeks) |
 | Gain **Rad-Hardened** | 150 or more radiation absorbed (50% chance after each run with radiation) |
 | Gain **Tough as Nails** | Downed 3 or more times and survived (30% chance) |
 | Gain **Dead-Eye** | 15 or more ranged kills |
@@ -153,8 +158,10 @@ The survivor sheet shows the Chronicle as their story. When a survivor dies, the
 
 | Event | Change |
 |---|---|
-| Run together | +1 + 2 × trait affinity (so −3 to +5). Loner halves gains |
-| Survive a combat together | +3 (once per run) |
+| Run together | 2 × trait affinity (so −4 to +4). Loner halves gains |
+| Survive a combat together | +2 (once per run), only for a pair whose affinity isn't negative |
+| Argue over the shares (Greedy 25%, Hothead 15% after a run that found something) | −10 |
+| Blamed for a death (below) | −20 |
 | Quiet talk on the road | +5 |
 | Saved by them | +30, plus the *Owes a Life* flag |
 | Argument (Hothead, rival events) | −10 |
@@ -170,6 +177,8 @@ The survivor sheet shows the Chronicle as their story. When a survivor dies, the
 - **Feud:** the run planner shows a warning, and the pair may refuse to go together. At the Depot they may fight, causing a Wounded condition. Rarely, one of them **leaves the guild**; Loners, Greedy survivors and Hotheads are more likely to go.
 - **Crew cohesion** is the average pair score in a crew. It adds −2 to +2 to every crew check.
 - **When a friend dies:** their friends become Grieving. A Bonded friend either becomes Haunted (50%) or Vengeful against the killer's type (50%).
+  - **Blame** (1.6.2): the one closest to the dead (their partner, or else the best friend) blames someone who came back from that run 50% of the time, the one they like least. −20, and a line in both Chronicles: *Blames Dex Arlo for Mara Vance's death.*
+- **Why runs changed in 1.6.2:** every run used to add +1 to every pair, and every fight +3. After two real weeks a guild of about 10 had 6.5 Bonded pairs and half a feud, so the drama rarely fired. Now running together brings together the people who get along, and pushes apart the ones who grate on each other.
 
 ### 5.1 Partners
 
@@ -178,6 +187,7 @@ Romance is uncommon, and a step beyond Bonded.
 - **Orientation.** Everyone has one: 85% straight, 6% gay, 9% bi, worked out from their appearance seed. It isn't shown on its own; it shows in who they end up with. Measured on guilds of 4 and 8 over two to four months, **about 96% of couples are a man and a woman**.
 - **Falling for each other.** Each Depot day, two Bonded adults at home together, drawn to each other and not Grieving, become partners with a 1.5% chance. A Bonded pair gets together after about two months at home on average; in 60-run test careers it came to about one couple per guild.
   - Someone who already has a partner is ×0.01 as likely to find another: **about 99% have one partner**.
+  - Every couple already in the guild makes the next one ×0.4 as likely (1.6.2). Without it, 7 of 12 people had a partner after a real month.
   - It's in both Chronicles ("Became partners with Wren Gale.") and the news ("Dex and Wren are together now.").
 - **Together.** Partners are Bonded, so they get everything Bonded friends do, plus:
   - At the Depot, each sheds **2 more stress a day** with the other home.
@@ -201,8 +211,9 @@ Romance is uncommon, and a step beyond Bonded.
   - a rival in the crew: +2 per beat
   - a starving Depot: +10 per day
 - **Relief:**
-  - Depot rest: −5 per day
-  - Firepit or Bar: −5 more per day
+  - Depot rest: −2 per day (−5 before 1.6.2)
+  - Firepit or Bar: −3 more per day at level 1, −5 at 2, −8 at 3 (−5/−8/−12 before 1.6.2)
+  - **Why slower:** 8 Depot days pass in a real day, so with the old numbers stress was back near zero by every check-in, and the Firepit, the Bar and calming trinkets barely mattered. Now a hard run takes a few game days to shake off.
   - a Bonded friend at the Depot
   - trinkets such as an Old Photo
 - Above 70 stress, a survivor takes −1 to all checks, and it shows on the portrait.
@@ -317,8 +328,8 @@ When a survivor's HP hits 0, they are **Downed**. Once the fight ends, each down
 
 | Result | Outcome |
 |---|---|
-| 45 or more | **Wounded**: temporary, heals in 2–5 days |
-| 20–44 | **Serious**: Badly Wounded for 4–8 days, plus a 50% chance of a permanent **scar** |
+| 45 or more | **Wounded**: temporary, heals in 4–8 days (2–5 before 1.6.2) |
+| 20–44 | **Serious**: Badly Wounded for 8–14 days (4–8 before 1.6.2), plus a 50% chance of a permanent **scar** |
 | Under 20 | **Mortal** → death save |
 
 The wounded can't be sent on runs until they heal. If an ally's help lifted the result into a better row, that ally is credited with the **rescue**: +30 relationship, an *Owes a Life* flag, and an entry in both Chronicles.
@@ -376,9 +387,9 @@ Names the guild gives out. The names and the nickname rules are data in `content
 - **Measured** (3,000 runs a place, fresh crew of 3, retreat when downed): a nemesis turns up in 7–16% of runs at its place and barely moves the death rate. A feral or Hollow nemesis dies in about a third of the fights it's in; a raider nemesis with its crew rarely does unless the guild stops retreating. New ones are born in about 1 run in 9 at danger 3, 1 in 40 at danger 2, and almost never at danger 1.
 - Runs overlap, so a run's result carries *news* about each nemesis it met (born, put someone down, killed someone, got away, died), merged into the nemesis as it stands when the crew is back. A nemesis that died meanwhile stays dead.
 
-**Nicknames.** After each run, someone without a nickname is checked against the rules in order; the first that fits and rolls its chance gives a name from its list, never one already in use: killing a nemesis (*Bane*), a dozen ranged or melee kills (*Two-Shot*, *Knuckles*), surviving a mortal wound (*Lazarus*), going down four times (*Bounce*), saving two lives (*Doc*), losing an eye (*Patch*), 200 radiation (*Sparky*), 25 scavenges (*Magpie*), 40 runs (*Old Hand*), or running from a fight (*Rabbit*). A nickname sticks. The Chronicle says why: *Earned a name: "Two-Shot", for a dozen kills at range.*
+**Nicknames.** After each run, someone without a nickname is checked against the rules in order; the first that fits and rolls its chance gives a name from its list, never one already in use. Since 1.6.2 a rule about a count or a trait fits only on the run that reaches it, so it's one roll, not one roll on every run after. Before, nearly everyone had a name within a real month. The rules: killing a nemesis (*Bane*), a dozen ranged or melee kills (*Two-Shot*, *Knuckles*), surviving a mortal wound (*Lazarus*), going down four times (*Bounce*), saving two lives (*Doc*), losing an eye (*Patch*), 200 radiation (*Sparky*), 25 scavenges (*Magpie*), 40 runs (*Old Hand*), or running from a fight (*Rabbit*). A nickname sticks. The Chronicle says why: *Earned a name: "Two-Shot", for a dozen kills at range.*
 
-**Named weapons.** A weapon's kills are counted. At 10 it earns a name that reads well after "the" (*Widowmaker*, *Bonebreaker*), and its story starts: *Named after its tenth kill, in Mara Vance's hands at Maple Street.* The story adds kills 25, 50 and 100, a nemesis it killed, and an owner who died carrying it (*Came home from the Glow without Dex Arlo.*). It keeps its name through upgrades and new owners.
+**Named weapons.** A weapon's kills are counted. At 25 (10 before 1.6.2) it earns a name that reads well after "the" (*Widowmaker*, *Bonebreaker*), and its story starts: *Named after its 25th kill, in Mara Vance's hands at Maple Street.* The story adds kills 50, 100 and 200, a nemesis it killed, and an owner who died carrying it (*Came home from the Glow without Dex Arlo.*). It keeps its name through upgrades and new owners.
 
 ### 7.8 Vehicles and gas (1.4.0)
 
@@ -414,8 +425,8 @@ Expansion: camps out in the Reach that extend what the guild can reach and bring
   - **eat from the Depot's rations**, carried out to them, and go hungry with the Depot;
   - don't work a post, go on runs, change gear, or hold the Depot's fence;
   - each send home 2–3 supplies a day at danger 1, 3–4 at danger 2–3, 4–5 at danger 4–5, drawn from the place's loot table, and practice Wits doing it (after their ration: 1.5, 2.5 and 3.5 a day). Someone resting until healed sends nothing;
-  - **heal 5% of their health a day**, a third of the Depot's base, with no Infirmary;
-  - **rest little:** −2 stress a day (the Depot gives −5 plus its Firepit), more beside a Bonded friend or their partner;
+  - **heal 3% of their health a day**, about a third of the Depot's base, with no Infirmary;
+  - **rest little:** −1 stress a day (the Depot gives −2 plus its Firepit), more beside a Bonded friend or their partner;
   - **keep watch:** +1 stress a day for every point of danger above 1. Measured over 60 days with one person and no friend there, starting at stress 20: the Rail Yard and Maple Street 0, the Drowned Mall 1, St. Jude's 30, Checkpoint Bravo 47, the Glow 60 (about 0.8 breaking points each; 0.3 at Checkpoint Bravo). People at dangerous outposts need swapping out;
   - get to know each other and can fall for each other, like coworkers.
 - **Trouble.** Each day an outpost with someone in it has a 4% + 2% × danger chance of trouble (6% at danger 1, 14% at danger 5):
@@ -464,7 +475,7 @@ Every survivor has four slots: **Weapon · Armor · Tool · Trinket**
 - **The stash.** Gear that crews find or the Workshop makes goes into the guild's stash. The Gear screen (§12) lists it by slot, hands a piece to anyone at the Depot (their old one goes back), and shows what everyone carries.
 - **Cherished trinkets.** After 5 runs with the same trinket, it becomes *Cherished* and its effect doubles. Losing it gives +30 stress and a Chronicle entry.
 - **Workshop.** Makes gear and improves weapons and armor using Scrap and Tech (§9.4).
-- **Named gear** (§7.7). A weapon with 10 kills earns a name and a history.
+- **Named gear** (§7.7). A weapon with 25 kills earns a name and a history.
 
 ## 9. The Depot
 
@@ -476,8 +487,8 @@ The Depot plays one **Depot day** for every game day that passes (§11). Each da
 2. **Food.** The Garden grows rations, and everyone eats 1 (Gluttons and Drinkers 2). If there isn't enough, they eat what there is and go hungry: +10 stress each instead of any rest. Nobody starves to death. The log notes when the food runs out and when it's back.
    - **Warnings (1.1.2).** When the Garden grows less than the whole guild eats (counting those out on runs), the Depot shows how long the stores last, from 10 days out, or that they're gone, with what to do about it. The gate notes when another person would eat more than the Garden can spare.
 3. **Work.** People at their posts work and get +1 practice a day in the building's stat. Serious wounds (anything that blocks runs) keep people in bed: they keep their post but don't work, and can't take a new one until healed.
-4. **Care.** Everyone heals 15% of max HP a day, +10% per Infirmary level, and +2% per point of Wits among the Infirmary's medics. A staffed Infirmary also closes wounds sooner, and treats rad sickness and fever with meds, one patient per medic a day.
-5. **Rest.** Everyone sheds 5 stress a day, plus the Firepit's share, plus 2 with a Bonded friend at home. Optimists and Drinkers shed half as much again.
+4. **Care.** Everyone heals 8% of max HP a day, +8% per Infirmary level, and +2% per point of Wits among the Infirmary's medics (15% and +10% before 1.6.2). A staffed Infirmary also closes wounds sooner, and treats rad sickness and fever with meds, one patient per medic a day.
+5. **Rest.** Everyone sheds 2 stress a day, plus the Firepit's share, plus 2 with a Bonded friend at home. Optimists and Drinkers shed half as much again.
 6. **People.** Co-workers drift toward or away from each other by their trait affinity (a 50% chance each day). A Bar warms everyone a little.
 7. **Evolution.** Days at the Depot count toward evolution rules, such as Haunted → Hardened with a Bonded friend home.
 8. Something may happen (§9.3), and a new set of recruits answers the radio (§10).
@@ -488,14 +499,31 @@ The Depot plays one **Depot day** for every game day that passes (§11). Each da
 
 | Building | At the start | Level 1 | Level 2 | Level 3 | Workers use |
 |---|---|---|---|---|---|
-| Bunks | Level 1 | 4 beds | 8 beds (30 scrap) | 12 beds (60 scrap, 4 tech) | — |
-| Garden | Level 1 | Grows rations | ×2 (25 scrap) | ×3 (50 scrap, 4 tech) | Wits |
-| Firepit → Bar | Level 1 | −5 stress a day | Bar: −8, people warm to each other (30 scrap, 2 tech) | Bar and Stage: −12, warm faster (60 scrap, 6 tech) | Nerve |
-| Infirmary | — | 25 scrap, 2 tech | 45 scrap, 5 tech | 70 scrap, 10 tech | Wits |
-| Workshop | — | Basic gear, ammo (30 scrap) | Guns, armor, instruments, Prime upgrades (50 scrap, 5 tech) | Makes Solid gear (80 scrap, 12 tech) | Wits |
-| Radio Tower | — | +1 recruit, stats known, one outpost (30 scrap, 5 tech) | +2, better recruits, two outposts (50, 10) | +3, the best, three outposts (80, 15) | Wits |
-| Watchtower | — | Raid defense, halves losses (25 scrap) | Stronger (45 scrap, 3 tech) | Strongest (70 scrap, 8 tech) | Aim |
-| Training Yard | — | 2 practice a day (20 scrap) | 3 (40 scrap, 3 tech) | 4 (60 scrap, 8 tech) | Any stat |
+| Bunks | Level 1 | 4 beds | 8 beds (30 scrap, 15 rations) | 12 beds (60 scrap, 6 tech, 30 rations) | — |
+| Garden | Level 1 | Grows rations | ×2 (25 scrap, 10 rations) | ×3 (50 scrap, 6 tech, 20 rations) | Wits |
+| Firepit → Bar | Level 1 | −3 stress a day | Bar: −5, people warm to each other (30 scrap, 3 tech, 20 rations) | Bar and Stage: −8, warm faster (60 scrap, 8 tech, 40 rations) | Nerve |
+| Infirmary | — | 25 scrap, 2 tech, 5 meds | 45 scrap, 8 tech, 10 meds | 70 scrap, 15 tech, 20 meds | Wits |
+| Workshop | — | Basic gear, ammo (30 scrap) | Guns, armor, instruments, Prime upgrades (50 scrap, 8 tech) | Makes Solid gear (80 scrap, 18 tech) | Wits |
+| Radio Tower | — | +1 recruit, stats known, one outpost (30 scrap, 5 tech) | +2, better recruits, two outposts (50, 14) | +3, the best, three outposts (80, 22) | Wits |
+| Watchtower | — | Raid defense, halves losses (25 scrap) | Stronger (45 scrap, 5 tech, 15 ammo) | Strongest (70 scrap, 12 tech, 30 ammo) | Aim |
+| Training Yard | — | 2 practice a day (20 scrap) | 3 (40 scrap, 5 tech) | 4 (60 scrap, 12 tech) | Any stat |
+
+**Costs across supplies** (1.6.2). Before, every building cost scrap and a little tech, and rations, meds, tech, ammo and gas piled up with nothing to spend them on. All the levels together now cost 975 scrap, 149 tech, 135 rations, 35 meds and 45 ammo.
+
+**Upkeep** (1.6.2). The upper levels of some buildings use something up each Depot day. A fraction is the chance of one more.
+
+| Building | Uses | Level 2 | Level 3 |
+|---|---|---|---|
+| Firepit (Bar) | rations | 1 a day | 2 a day |
+| Infirmary | meds | 0.25 a day | 0.5 a day |
+| Workshop | tech | 0.25 a day | 0.5 a day |
+| Radio Tower | tech | 0.25 a day | 0.5 a day |
+| Watchtower | ammo | 0.5 a day | 1 a day |
+
+- It's paid after the guild eats.
+- A building whose upkeep can't be paid **works one level lower that day**. It keeps its level and comes back once the stores do.
+- The building's screen says what it uses and when it ran short.
+- The Depot's "since you last looked" note says what the upkeep used and which buildings ran short.
 
 Building is instant. Numbers live in `constants.ts`, and the building text in `content/buildings.ts`; a test checks that they agree.
 
@@ -519,8 +547,8 @@ At most one event a day (a 20% chance), weighted:
 | Event | What happens |
 |---|---|
 | A wanderer | Someone turns up at the gate and waits there 3 days (§10). |
-| A trader caravan | Offers a swap of supplies (gas among them), or a Solid or Prime piece of gear for scrap (and tech for guns), or now and then a vehicle (§7.8). Stays 2 days. |
-| A raid | d10 + the best Aim at home + 2 per Watchtower level + 1 per lookout, −2 for each hand short of three at home, vs 12. Held: the defenders get Aim practice and a little stress. Broken: raiders take 25% of the scrap, rations, ammo and gas (half that with a Watchtower, a quarter more with one person home and half more with nobody, never more than 30 of each), may drive off a parked vehicle (§7.8), one defender is Wounded, and everyone gains +10 stress. Raids come twice as often when no more than one person is home. |
+| A trader caravan | Offers a swap of supplies (gas among them), or a Solid or Prime piece of gear for scrap (and tech for guns), or now and then a vehicle (§7.8). Since 1.6.2, half the time it offers to **buy** what the guild has spare for scrap. Rations bring 0.5 scrap each, meds 1.2, tech 2, gas 1 and ammo 0.4. Spare means beyond 25, or beyond ten days of eating for rations, and the caravan takes 20–40% of it. Stays 2 days. |
+| A raid | d10 + the best Aim at home + 2 per Watchtower level + 1 per lookout, −2 for each hand short of three at home, vs 12. Held: the defenders get Aim practice and a little stress. Broken: raiders take 25% of the scrap, rations, ammo and gas (half that with a Watchtower, a quarter more with one person home and half more with nobody), never more than 30 of each plus a fifth of whatever is stored beyond 100 (1.6.2; before, 30 at most, which meant nothing against stockpiles in the hundreds), may drive off a parked vehicle (§7.8), one defender is Wounded, and everyone gains +10 stress. Raids come twice as often when no more than one person is home. |
 | A celebration | Costs a ration per two people. Everyone at home sheds 15 stress, and every pair warms by 3. Only when food is plentiful. |
 | A fever | Someone at home becomes Feverish (−1 Grit, −1 Wits, 2–4 days) unless the Infirmary treats it. |
 | A stray dog | Someone with a way with animals feeds it and sheds 10 stress; otherwise it moves on. |
@@ -546,7 +574,7 @@ At most one event a day (a 20% chance), weighted:
 - The game runs on real time and keeps going while the app is closed.
 - **1 game day = 3 real hours** (`DAY_MS`), so about 8 Depot days pass in a real day. For testing, Settings → Developer → *Developer shortcuts* adds a button to a crew's run that skips ahead to their return (the whole timeline moves, as if the time had passed).
   - Until save version 6 a day was 1 real hour. Loading an older save moves its start back so the guild stays on the same day.
-  - Everything counted in days follows the day: healing and conditions, Depot work and food, how long visitors stay. A wound that keeps someone home 2–5 days is 6–15 real hours.
+  - Everything counted in days follows the day: healing and conditions, Depot work and food, how long visitors stay. A wound that keeps someone home 4–8 days is 12–24 real hours (since 1.6.2; 2–5 days before).
 - Runs take real time, not game days: 10 minutes for the nearest locations and up to 2.5 hours for far ones. So almost every run is within one day, and packs one ration per person.
 - **Catch-up** (`advanceTime`). When the app opens, and at each new day while it's open, the days that passed are played in order. Crews due back before a day begins come home first, then the Depot has its day. At most **7 days** (21 real hours) are played at once; older missed days are skipped, so a long absence never spirals out of control. The Depot screen sums up what the days brought ("Since you last looked").
 

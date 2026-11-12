@@ -80,7 +80,7 @@ function Today({ state, now, away, onDismissAway }: Omit<Props, 'tab'>) {
 
   return (
     <>
-      {away && away.days > 0 && <AwayNote summary={away} onDismiss={onDismissAway} />}
+      {away && away.days > 0 && <AwayNote state={state} summary={away} onDismiss={onDismissAway} />}
 
       {food && (
         <div className="panel food-warning" role="status">
@@ -203,12 +203,12 @@ function BuildingCard({ row: r }: { row: BuildingRow }) {
   );
 }
 
-function AwayNote({ summary, onDismiss }: { summary: DepotSummary; onDismiss: () => void }) {
+function AwayNote({ state, summary, onDismiss }: { state: GameState; summary: DepotSummary; onDismiss: () => void }) {
   const news = summary.news.filter((n) => !n.tags?.includes('run'));
   return (
     <div className="panel away-note" role="status">
       <h3 className="panel-title">Since you last looked</h3>
-      {summaryLines(summary).map((line) => (
+      {summaryLines(summary, state).map((line) => (
         <p key={line}>{line}</p>
       ))}
       {news.length > 0 && (

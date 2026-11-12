@@ -32,14 +32,23 @@ describe('traits', () => {
     assert.match(s.chronicle.at(-1)!.text, /No longer Cowardly\. Became Brave/);
   });
 
-  test('trait cap blocks new traits unless forced; conditions never count', () => {
+  test('at the cap, something new pushes out the oldest habit; scars and conditions always fit', () => {
     const s = testSurvivor();
     const fill = ['brave', 'loyal', 'calm', 'curious', 'lucky', 'generous'];
-    for (const id of fill) addTrait(s, id, { day: 1, silent: true });
+    fill.forEach((id, i) => addTrait(s, id, { day: 1 + i, silent: true }));
     assert.equal(s.traits.length, MAX_TRAITS);
-    assert.equal(addTrait(s, 'veteran', { day: 2 }).reason, 'full');
-    assert.equal(addTrait(s, 'lost_eye', { day: 2, force: true }).added, true);
-    assert.equal(addTrait(s, 'wounded', { day: 2, rng: new Rng(1) }).added, true);
+    assert.deepEqual(addTrait(s, 'veteran', { day: 9, source: 'twenty-five runs' }), { added: true, replaced: 'brave' });
+    assert.equal(s.chronicle.at(-1)!.text, 'Became Veteran: twenty-five runs, and left being Brave behind.');
+    assert.equal(s.traits.length, MAX_TRAITS);
+    assert.deepEqual(addTrait(s, 'scav', { day: 10 }).replaced, 'loyal', 'Veteran is kept; the next oldest goes');
+    assert.equal(addTrait(s, 'lost_eye', { day: 11, force: true }).added, true);
+    assert.equal(addTrait(s, 'wounded', { day: 11, rng: new Rng(1) }).added, true);
+  });
+
+  test('at the cap with nothing that can be let go, a new trait is refused', () => {
+    const s = testSurvivor();
+    for (const id of ['veteran', 'survivor', 'lost_eye', 'bad_leg', 'burn_scars', 'missing_fingers']) addTrait(s, id, { day: 1, silent: true, force: true });
+    assert.equal(addTrait(s, 'scav', { day: 2 }).reason, 'full');
   });
 
   test('conditions expire, and re-applying extends rather than stacks', () => {

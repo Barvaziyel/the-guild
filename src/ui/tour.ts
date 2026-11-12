@@ -273,7 +273,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     route: depotBuildings,
     target: 'buildings',
     text: () =>
-      'Scrap and tech go into buildings. The Bunks hold beds, the Garden grows food, the Firepit eases stress. Tap a building to see what its next level does.',
+      'Buildings cost scrap and tech, and the bigger ones other supplies too; their upper levels use a little every day. The Bunks hold beds, the Garden grows food, the Firepit eases stress. Tap a building to see what its next level does.',
   },
   {
     id: 'posts',
