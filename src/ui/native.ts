@@ -28,6 +28,7 @@ export function setupNative(): void {
   // Tapping "the crew is due back" opens their report.
   void LocalNotifications.addListener('localNotificationActionPerformed', (action) => {
     const runId: unknown = action.notification.extra?.runId;
-    if (typeof runId === 'string') navigate({ screen: 'run', id: runId });
+    // Notices about decisions open the Depot, where they wait.
+    if (typeof runId === 'string') navigate(runId.startsWith('dilemma') ? { screen: 'depot' } : { screen: 'run', id: runId });
   });
 }

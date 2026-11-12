@@ -8,6 +8,7 @@ import type { GameState, GuildLogEntry, RunReport } from '../types.ts';
 import { emptySummary, playDepotDay, type DepotSummary } from './day.ts';
 import { expireOffers, rollDepotEvents } from './events.ts';
 import { refreshRecruits } from './recruits.ts';
+import { playDilemmaDay } from '../dilemmas.ts';
 
 export interface AdvanceResult {
   /** Crews that came home, oldest first. */
@@ -52,6 +53,7 @@ export function advanceTime(state: GameState, now: number): AdvanceResult {
       playDepotDay(state, day, rng, result.depot);
       rollDepotEvents(state, day, rng);
       refreshRecruits(state, day, rng);
+      playDilemmaDay(state, day, rng);
     });
     state.depot.lastDay = day;
   }

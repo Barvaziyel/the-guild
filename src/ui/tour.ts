@@ -330,12 +330,20 @@ export const TOUR_STEPS: readonly TourStep[] = [
     },
   },
   {
+    id: 'decisions',
+    part: 'time',
+    title: 'Decisions',
+    route: depot,
+    text: () =>
+      `About once a day something needs deciding: two people at odds, a stranger at the gate, a find nobody will share. It shows at the top of the Depot with four answers, and what follows isn't written on the buttons. Leave it about a day and they settle it themselves, usually badly.`,
+  },
+  {
     id: 'notices',
     part: 'time',
     title: 'Notices',
     route: () => ({ screen: 'settings' }),
     target: 'notices',
-    text: () => 'Turn this on to get a notice when a crew is due home.',
+    text: () => 'Turn this on to get a notice when a crew is due home, or when something needs deciding.',
   },
   {
     id: 'done',

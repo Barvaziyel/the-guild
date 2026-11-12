@@ -85,3 +85,4 @@ export function getVehicleDef(id: string): VehicleDef {
   if (!def) throw new Error(`Unknown vehicle: ${id}`);
   return def;
 }
+export { DILEMMAS, getDilemma, type DilemmaDef, type DilemmaChoice, type DilemmaOutcome, type DilemmaEffect, type DilemmaTest, type DilemmaWho } from './dilemmas.ts';
