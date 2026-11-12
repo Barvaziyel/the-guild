@@ -395,8 +395,17 @@ export const OUTPOST_SHORTCUT = 0.5;
 /** A crew stopping at an outpost on the way home sheds this stress and heals this much. */
 export const OUTPOST_REST_STRESS = 8;
 export const OUTPOST_REST_HP = 2;
-/** Each person living there heals this share of their health a day (there's no Infirmary). */
-export const OUTPOST_HEAL = 0.1;
+/** Each person living there heals this share of their health a day: a third of the Depot's, with no Infirmary. */
+export const OUTPOST_HEAL = 0.05;
+/** Stress shed a day out there (the Depot gives 5, plus its Firepit), before a Bonded friend or partner there. */
+export const OUTPOST_RELIEF = 2;
+/** Keeping watch: stress a day for every point of the place's danger above 1. */
+export const OUTPOST_WATCH_STRESS = 1;
+/** Trouble at an outpost (prowlers, a long night, an accident, radiation): chance a day, base plus per point of danger. */
+export const OUTPOST_TROUBLE_BASE = 0.04;
+export const OUTPOST_TROUBLE_PER_DANGER = 0.02;
+/** Prowlers: d10 + the best Aim there + 1 for each other fit person against this + danger. */
+export const OUTPOST_PROWLER_DC = 8;
 /** Raiders hit an outpost with this chance a day: base, plus per point of danger. */
 export const OUTPOST_RAID_BASE = 0.005;
 export const OUTPOST_RAID_PER_DANGER = 0.005;

@@ -230,6 +230,7 @@ function OutpostTab({ state, id }: { state: GameState; id: string }) {
     return (
       <div className="outpost">
         <p className="place-desc">{v.pitch}</p>
+        <p className="panel-help">{v.hardship}</p>
         <p className="panel-help">{v.contactLine}</p>
         <p className="panel-help">Costs {v.buildCost}.</p>
         {v.buildProblem && <p className="field-error">{v.buildProblem}</p>}
@@ -320,10 +321,7 @@ function OutpostTab({ state, id }: { state: GameState; id: string }) {
             Send someone to live here
           </button>
         ))}
-      <p className="panel-help outpost-help">
-        People out here don&rsquo;t eat from the Depot&rsquo;s stores, work a post or go on runs, but they heal, rest and get to know each other. The better
-        shots among them, the likelier they drive raiders off. An outpost raided while it is damaged burns down.
-      </p>
+      <p className="panel-help outpost-help">{v.hardship}</p>
       {error && <p className="field-error">{error}</p>}
     </div>
   );

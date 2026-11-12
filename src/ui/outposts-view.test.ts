@@ -69,7 +69,10 @@ describe('outposts on screen', () => {
     const state = explored('before');
     const v = outpostView(state, 'maple_street');
     assert.equal(v.built, false);
-    assert.match(v.pitch, /^A camp out here\. Up to three people live at it and send home a share of what Maple Street gives up every day\./);
+    assert.match(v.pitch, /^A camp out here, and a hard posting\. Up to three people live at it, keep watch, and send home a share of what Maple Street gives up every day\./);
+    assert.match(v.hardship, /^Out here people heal a third as fast as at home and rest only a little\. Trouble comes calling: prowlers at the fence, long nights, accidents\. Raiders/);
+    assert.match(outpostView(state, 'checkpoint_bravo').hardship, /keeping watch wears on them: about 1 more stress a day than they shed, less with a close friend out here\..*accidents, radiation\./);
+    assert.match(outpostView(state, 'kessler_farm').hardship, /keeping watch wears on them, though they still calm down a little each day\./);
     assert.equal(v.buildCost, '40 scrap, 6 tech');
     assert.match(v.buildProblem!, /Radio Tower first/);
     assert.equal(v.contactLine, 'Outposts need the Radio Tower to keep in contact.');
@@ -91,7 +94,7 @@ describe('outposts on screen', () => {
     assert.equal(v.candidates.length, state.survivors.length);
     assert.equal(v.candidates.find((c) => c.survivor.id === a!.id)!.where, 'Works the Garden');
     assert.match(v.candidates[0]!.aim, /^Aim \d+$/);
-    assert.match(v.yieldLine, /^Each person living here sends home 1 to 2 supplies a day, mostly \w+ and \w+\.$/);
+    assert.match(v.yieldLine, /^Each person living here sends home 2 to 3 supplies a day, mostly \w+ and \w+, and eats a ration from the Depot's stores\.$/);
     assert.match(v.nearLine, /^Runs to Maple Street, .*The Drowned Mall.* set out from here and take half the time, and crews stop here to rest on the way home\.$/);
     assert.ok(!v.nearLine.includes('Kessler Farm'), 'only places next to it');
 
@@ -108,7 +111,7 @@ describe('outposts on screen', () => {
 
     findOutpost(state, 'maple_street')!.damaged = true;
     v = outpostView(state, 'maple_street');
-    assert.match(v.yieldLine, /, half while it is damaged\.$/);
+    assert.match(v.yieldLine, /, half while it is damaged, and eats a ration/);
     assert.equal(v.repairCost, '15 scrap');
     assert.equal(v.repairProblem, undefined);
   });

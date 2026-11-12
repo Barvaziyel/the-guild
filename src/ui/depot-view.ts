@@ -67,7 +67,7 @@ export function buildingStatus(state: GameState, id: BuildingId): string {
     case 'bunks':
       return `${state.survivors.length} of ${bunksCap(state)} beds taken.`;
     case 'garden':
-      return `Grows about ${oneDecimal(gardenYield(state))} rations a day. The guild at home eats ${dailyUpkeep(state)}.`;
+      return `Grows about ${oneDecimal(gardenYield(state))} rations a day. The guild at home${state.outposts.length > 0 ? ' and at the outposts' : ''} eats ${dailyUpkeep(state)}.`;
     case 'firepit':
       return `Everyone at home sheds about ${Math.round(REST_RELIEF + firepitRelief(state))} stress a day.`;
     case 'infirmary':

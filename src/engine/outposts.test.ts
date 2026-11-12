@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { OUTPOST_REST_STRESS, OUTPOST_SHORTCUT, SAVE_VERSION } from './constants.ts';
-import { getLocation } from './content/index.ts';
-import { atDepot, build } from './depot/buildings.ts';
-import { emptySummary, guildUpkeep, playDepotDay } from './depot/day.ts';
+import { OUTPOST_RELIEF, OUTPOST_REST_STRESS, OUTPOST_SHORTCUT, SAVE_VERSION } from './constants.ts';
+import { getLocation, getTrait } from './content/index.ts';
+import { assignPost, atDepot, build } from './depot/buildings.ts';
+import { dailyUpkeep, emptySummary, playDepotDay } from './depot/day.ts';
 import { canChangeGear } from './gear.ts';
 import { completeRun, startRun } from './expedition/runs.ts';
 import { footDuration, runDuration, unavailableReason, validatePlan } from './expedition/plan.ts';
@@ -12,6 +12,7 @@ import { depthOpen, deepestOpen, exploredAt } from './locations.ts';
 import {
   bringHome,
   buildOutpost,
+  outpostTrouble,
   buildOutpostProblem,
   findOutpost,
   outpostNear,
@@ -23,6 +24,7 @@ import {
   stationProblem,
 } from './outposts.ts';
 import { Rng } from './rng.ts';
+import { maxHp } from './stats.ts';
 import { deserialize } from './save.ts';
 import { T0, openGame, testGame, testPlan } from './test-utils.ts';
 import type { GameState, Resources } from './types.ts';
@@ -76,22 +78,23 @@ describe('outposts: setting up', () => {
     assert.deepEqual(outpostStaff(state, 'maple_street').map((s) => s.id), [a!.id, b!.id]);
   });
 
-  test('people at an outpost are not at the Depot: no Depot food, no runs, no gear swaps', () => {
+  test('people at an outpost are not at the Depot: no posts, no runs, no gear swaps, but the Depot still feeds them', () => {
     const state = ready('apart');
     buildOutpost(state, 'maple_street', 2);
-    const before = guildUpkeep(state);
+    const before = dailyUpkeep(state);
     const s = state.survivors[0]!;
     station(state, s.id, 'maple_street', 3);
     assert.equal(atDepot(s), false);
     assert.equal(canChangeGear(s), false);
-    assert.ok(guildUpkeep(state) < before);
+    assert.equal(dailyUpkeep(state), before);
+    assert.throws(() => assignPost(state, s.id, { building: 'garden' }), /lives at the outpost at Maple Street/);
     assert.equal(unavailableReason(s), 'lives at the outpost at Maple Street');
     assert.match(validatePlan(state, testPlan(state)).join(' '), /lives at the outpost/);
   });
 });
 
 describe('outposts: day to day', () => {
-  test('the people there heal, rest and send home supplies', () => {
+  test('the people there heal a little, rest a little and send home supplies', () => {
     const state = ready('days');
     buildOutpost(state, 'maple_street', 2);
     const s = state.survivors[0]!;
@@ -130,7 +133,7 @@ describe('outposts: day to day', () => {
     };
     const one = perDay(1);
     const three = perDay(3);
-    assert.ok(one > 1.2 && one < 3, `${one.toFixed(2)} a day with one`);
+    assert.ok(one > 2.5 && one < 4, `${one.toFixed(2)} a day with one`);
     assert.ok(three > one * 2.4, `${three.toFixed(2)} a day with three`);
     assert.ok(perDay(3, true) < three * 0.7);
   });
@@ -174,6 +177,69 @@ describe('outposts: day to day', () => {
       }
     }
     assert.ok(burned < 10, `${burned} of 100 burned in 120 days`);
+  });
+});
+
+describe('outposts: a hard posting', () => {
+  test('it heals a third as fast as the Depot, and the more dangerous the place, the more the watch wears on people', () => {
+    const calm = ready('calm');
+    buildOutpost(calm, 'maple_street', 2);
+    const a = calm.survivors[0]!;
+    station(calm, a.id, 'maple_street', 3);
+    a.stress = 30;
+    a.hp = 1;
+    playOutpostsDay(calm, 4, new Rng('quiet'), {});
+    assert.ok(a.hp <= 1 + Math.ceil(maxHp(a) * 0.05), `healed ${a.hp - 1}`);
+    assert.ok(a.stress < 30 && a.stress >= 30 - OUTPOST_RELIEF - 4, `stress ${a.stress}`);
+
+    // Two months at a danger 4 place, with nobody to share the watch: stress climbs.
+    let climbed = 0;
+    for (let g = 0; g < 40; g++) {
+      const state = ready(`watch-${g}`, 'checkpoint_bravo');
+      buildOutpost(state, 'checkpoint_bravo', 2);
+      const s = state.survivors[0]!;
+      station(state, s.id, 'checkpoint_bravo', 3);
+      s.stress = 20;
+      s.traits = s.traits.filter((t) => getTrait(t.id).kind !== 'personality');
+      const rng = new Rng(`w-${g}`);
+      for (let d = 4; d < 64 && findOutpost(state, 'checkpoint_bravo'); d++) {
+        playOutpostsDay(state, d, rng, {});
+        findOutpost(state, 'checkpoint_bravo')!.damaged = false;
+      }
+      if (s.stress > 20 || s.chronicle.some((c) => /breaking point/.test(c.text))) climbed += 1;
+    }
+    assert.ok(climbed >= 28, `${climbed} of 40 more stressed`);
+  });
+
+  test('on a hungry day at the Depot, the outposts go hungry too', () => {
+    const state = ready('hungry');
+    buildOutpost(state, 'maple_street', 2);
+    const s = state.survivors[0]!;
+    station(state, s.id, 'maple_street', 3);
+    s.stress = 30;
+    playOutpostsDay(state, 4, new Rng('h'), {}, true);
+    assert.ok(s.stress >= 30 + 5, `stress ${s.stress}`);
+  });
+
+  test('trouble comes calling: prowlers, long nights, accidents and, where there is any, radiation', () => {
+    const seen = new Set<string>();
+    let hurt = 0;
+    for (let i = 0; i < 300; i++) {
+      const state = ready(`trouble-${i}`, 'blackwater');
+      buildOutpost(state, 'blackwater', 2);
+      for (const s of state.survivors.slice(0, 2)) station(state, s.id, 'blackwater', 3);
+      const before = state.survivors.slice(0, 2).map((s) => s.hp);
+      const kind = outpostTrouble(state, findOutpost(state, 'blackwater')!, 4, new Rng(`t-${i}`))!;
+      seen.add(kind);
+      const staff = state.survivors.slice(0, 2);
+      if (staff.some((s, j) => s.hp < before[j]!)) hurt += 1;
+      for (const s of staff) assert.ok(s.hp >= 1, 'nobody dies of it');
+    }
+    assert.deepEqual([...seen].sort(), ['accident', 'long night', 'prowlers', 'prowlers held', 'radiation']);
+    assert.ok(hurt > 30 && hurt < 150, `${hurt} of 300 hurt someone`);
+    const empty = ready('empty', 'blackwater');
+    buildOutpost(empty, 'blackwater', 2);
+    assert.equal(outpostTrouble(empty, findOutpost(empty, 'blackwater')!, 4, new Rng('e')), undefined, 'nobody there, nothing happens');
   });
 });
 

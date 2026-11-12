@@ -385,11 +385,21 @@ This is how crews grow past four, and how the guild moves faster and hauls more.
 Expansion: camps out in the Reach that extend what the guild can reach and bring home.
 
 - **Setting one up.** A place's outskirts must be fully explored. The **Radio Tower** keeps outposts in contact, one per level (so up to three), and an outpost costs 40 scrap and 6 tech. It's set up at once, from the place's *Outpost* tab on the Reach.
-- **Who lives there.** Up to 3 people. Moving out takes away their Depot post; they can come home any time, from the outpost or their sheet, and the Chronicle notes both. While they live out there they:
-  - don't eat from the Depot's rations, work a post, go on runs, change gear, or hold the Depot's fence;
-  - heal 10% of their health a day, rest as at the Depot (more beside a Bonded friend or their partner), and get to know each other and can fall for each other like coworkers;
-  - each send home 1–2 supplies a day at danger 1, 2–3 at danger 2–3, 3–4 at danger 4–5, drawn from the place's loot table, and practice Wits doing it. Someone resting until healed sends nothing.
-  - Moving people out is also a way to separate two who are fighting at the Depot.
+- **Who lives there.** Up to 3 people. Moving out takes away their Depot post; they can come home any time, from the outpost or their sheet, and the Chronicle notes both. Moving people out is also a way to separate two who are fighting at the Depot.
+- **A hard posting** (Aviel, 2026-11-12: it shouldn't feel like a vacation). Out there people:
+  - **eat from the Depot's rations**, carried out to them, and go hungry with the Depot;
+  - don't work a post, go on runs, change gear, or hold the Depot's fence;
+  - each send home 2–3 supplies a day at danger 1, 3–4 at danger 2–3, 4–5 at danger 4–5, drawn from the place's loot table, and practice Wits doing it (after their ration: 1.5, 2.5 and 3.5 a day). Someone resting until healed sends nothing;
+  - **heal 5% of their health a day**, a third of the Depot's base, with no Infirmary;
+  - **rest little:** −2 stress a day (the Depot gives −5 plus its Firepit), more beside a Bonded friend or their partner;
+  - **keep watch:** +1 stress a day for every point of danger above 1. Measured over 60 days with one person and no friend there, starting at stress 20: the Rail Yard and Maple Street 0, the Drowned Mall 1, St. Jude's 30, Checkpoint Bravo 47, the Glow 60 (about 0.8 breaking points each; 0.3 at Checkpoint Bravo). People at dangerous outposts need swapping out;
+  - get to know each other and can fall for each other, like coworkers.
+- **Trouble.** Each day an outpost with someone in it has a 4% + 2% × danger chance of trouble (6% at danger 1, 14% at danger 5):
+  - **Prowlers** from the place's enemy table come at the fence: d10 + the best Aim + 1 for each other fit person, against 8 + danger. Held: Aim practice, +3 stress. Not held: one person takes 1–2 + danger damage and everyone +6 stress.
+  - **A long night:** +6 stress each, or +2 on a Nerve check.
+  - **An accident:** someone fails a Wits check and falls through a rotten floor, for 1–4 damage.
+  - **Radiation**, where the place has it: someone fails a Grit check (DC 7 + 2 × radiation) and gets Rad Sickness.
+  - Nobody dies of it: health never drops below 1, and anyone left under a third of their health is Wounded. Hurts and sickness go in the news and the Chronicle. Measured: 2–6 such lines per 60 days, from Maple Street to the Glow.
 - **Shorter runs.** A run to the place, or to any place next to it on the roads, sets out from the outpost and takes half the time (and half the gas).
 - **A rest stop.** A crew heading home from a run there or next door stops at the outpost: +2 HP and −8 stress each (not a crew walking home from a wreck, or a lost run).
 - **Raids.** Each day an outpost is raided with a chance of 0.5% + 0.5% × danger. Its people hold it on d10 + the best Aim among them + 1 for each other fit person, against 7 + danger.
@@ -397,7 +407,7 @@ Expansion: camps out in the Reach that extend what the guild can reach and bring
   - **Broken:** +10 stress each and one is Wounded. The outpost is **damaged** and sends home half until it's mended (15 scrap). Broken again while damaged, it **burns**: it's gone, and its people come home.
   - An empty outpost can't be held, so it's damaged by the first raid and burns at the second.
   - Measured over 120 days with no mending: three people at Maple Street lost it 0% of the time; three at Checkpoint Bravo 22%; nobody at all, 37–84%.
-- **Where they show:** a flag on the map (torn while damaged), a tag in the list of places, the Depot's *Out in the Reach* panel, the header count ("2 at the outpost"), the yard's list of who's away, the roster and sheet ("At the outpost at Maple Street"), and the sheet's post picker, which lists the outposts.
+- **Where they show:** the Outpost tab says what life is like there with the place's numbers; a flag on the map (torn while damaged), a tag in the list of places, the Depot's *Out in the Reach* panel, the header count ("2 at the outpost"), the yard's list of who's away, the roster and sheet ("At the outpost at Maple Street"), and the sheet's post picker, which lists the outposts.
 
 ### 7.10 Deeper in (1.6.0)
 

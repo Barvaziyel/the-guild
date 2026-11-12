@@ -75,15 +75,14 @@ export function gardenYield(state: GameState): number {
   return level * (GARDEN_BASE + sum(gardeners.map((s) => GARDEN_PER_WORKER + effectiveStat(s, 'wits') * GARDEN_PER_WITS)));
 }
 
-/** Rations everyone at the Depot eats in a day. */
+/** Rations the Depot hands out in a day: to everyone at home, and to the people at the outposts. */
 export function dailyUpkeep(state: GameState): number {
-  return sum(state.survivors.filter(atDepot).map(rationsADay));
+  return sum(state.survivors.filter((s) => atDepot(s) || (s.status === 'ready' && s.outpost !== undefined)).map(rationsADay));
 }
 
-/** Rations the whole guild eats in a day once everyone is home: what the Garden has to keep up with. */
-/** Rations the guild eats in a day. People at the outposts live off the land there. */
+/** Rations the whole guild eats in a day once everyone is back from runs: what the Garden has to keep up with. */
 export function guildUpkeep(state: GameState): number {
-  return sum(state.survivors.filter((s) => s.outpost === undefined).map(rationsADay));
+  return sum(state.survivors.map(rationsADay));
 }
 
 function rationsADay(s: Survivor): number {
@@ -160,7 +159,7 @@ export function playDepotDay(state: GameState, day: number, rng: Rng, summary: D
   }
 
   // Out at the outposts.
-  playOutpostsDay(state, day, rng, summary.outposts);
+  playOutpostsDay(state, day, rng, summary.outposts, hungry);
   summary.days += 1;
 }
 

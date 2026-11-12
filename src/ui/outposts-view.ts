@@ -5,6 +5,7 @@
 import {
   DEPTH_NAMES,
   OUTPOST_COST,
+  OUTPOST_RELIEF,
   OUTPOST_REPAIR,
   OUTPOST_SHORTCUT,
   OUTPOST_STAFF,
@@ -26,6 +27,7 @@ import {
   outpostYieldEach,
   repairOutpostProblem,
   stationProblem,
+  watchStress,
   type GameState,
   type LocationDef,
   type RunPlan,
@@ -129,6 +131,8 @@ export interface OutpostView {
   full: boolean;
   /** What it sends home a day. */
   yieldLine: string;
+  /** What life out there is like: healing, rest, the watch, trouble and raids. */
+  hardship: string;
   /** Which runs start from it. */
   nearLine: string;
   repairCost: string;
@@ -156,7 +160,7 @@ export function outpostView(state: GameState, id: string): OutpostView {
     place: def.name,
     built: outpost !== undefined,
     damaged: outpost?.damaged ?? false,
-    pitch: `A camp out here. Up to ${numberWord(OUTPOST_STAFF)} people live at it and send home a share of what ${def.name} gives up every day. Runs here and next door set out from it and take ${shortcutWords()}, and crews stop there to rest on the way home. Raiders come for it now and then.`,
+    pitch: `A camp out here, and a hard posting. Up to ${numberWord(OUTPOST_STAFF)} people live at it, keep watch, and send home a share of what ${def.name} gives up every day. Runs here and next door set out from it and take ${shortcutWords()}, and crews stop there to rest on the way home.`,
     ...(buildProblem ? { buildProblem } : {}),
     buildCost: costText(OUTPOST_COST),
     contactLine:
@@ -166,7 +170,8 @@ export function outpostView(state: GameState, id: string): OutpostView {
     staff: staff.map((s) => person(state, s)),
     room: `${staff.length} of ${OUTPOST_STAFF}`,
     full: staff.length >= OUTPOST_STAFF,
-    yieldLine: `Each person living here sends home ${lo} to ${hi} supplies a day${mostly(def)}${outpost?.damaged ? ', half while it is damaged' : ''}.`,
+    yieldLine: `Each person living here sends home ${lo} to ${hi} supplies a day${mostly(def)}${outpost?.damaged ? ', half while it is damaged' : ''}, and eats a ration from the Depot's stores.`,
+    hardship: hardship(def),
     nearLine: `Runs to ${joinNames(served)} set out from here and take ${shortcutWords()}, and crews stop here to rest on the way home.`,
     repairCost: costText(OUTPOST_REPAIR),
     ...(repairProblem ? { repairProblem } : {}),
@@ -177,6 +182,23 @@ export function outpostView(state: GameState, id: string): OutpostView {
 function person(state: GameState, s: Survivor): OutpostPerson {
   const where = s.outpost ? `At the outpost at ${getLocation(s.outpost).name}` : s.post ? `Works the ${buildingName(state, s.post.building)}` : 'No post';
   return { survivor: s, where, aim: `Aim ${effectiveStat(s, 'aim')}` };
+}
+
+/** Life out there, in a few sentences, with this place's numbers. */
+function hardship(def: LocationDef): string {
+  const watch = watchStress(def.id);
+  const rest =
+    watch === 0
+      ? `Out here people heal a third as fast as at home and rest only a little.`
+      : `Out here people heal a third as fast as at home, and keeping watch wears on them${
+          watch < OUTPOST_RELIEF
+            ? ', though they still calm down a little each day.'
+            : watch === OUTPOST_RELIEF
+              ? ' about as fast as they rest, unless they have a close friend out here.'
+              : `: about ${watch - OUTPOST_RELIEF} more stress a day than they shed, less with a close friend out here.`
+        }`;
+  const trouble = `Trouble comes calling: prowlers at the fence, long nights, accidents${def.radiation > 0 ? ', radiation' : ''}.`;
+  return `${rest} ${trouble} Raiders come now and then, and the better the shots out here, the likelier they hold it; an outpost raided while it is damaged burns down.`;
 }
 
 function numberWord(n: number): string {
