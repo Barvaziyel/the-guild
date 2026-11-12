@@ -45,8 +45,8 @@ export const BUILDINGS: readonly BuildingDef[] = [
     startLevel: 1,
     levels: [
       { effect: 'Grows a few rations a day, more with gardeners. Two can work here.', cost: {} },
-      { effect: 'Grows twice as much. Three can work here.', cost: { scrap: 25, rations: 10 } },
-      { effect: 'Grows three times as much. Three can work here.', cost: { scrap: 50, tech: 6, rations: 20 } },
+      { effect: 'Grows twice as much. Three can work here.', cost: { scrap: 25 } },
+      { effect: 'Grows three times as much. Three can work here.', cost: { scrap: 50, tech: 6 } },
     ],
   },
   {

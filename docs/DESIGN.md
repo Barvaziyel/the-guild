@@ -500,7 +500,7 @@ The Depot plays one **Depot day** for every game day that passes (§11). Each da
 | Building | At the start | Level 1 | Level 2 | Level 3 | Workers use |
 |---|---|---|---|---|---|
 | Bunks | Level 1 | 4 beds | 8 beds (30 scrap, 15 rations) | 12 beds (60 scrap, 6 tech, 30 rations) | — |
-| Garden | Level 1 | Grows rations | ×2 (25 scrap, 10 rations) | ×3 (50 scrap, 6 tech, 20 rations) | Wits |
+| Garden | Level 1 | Grows rations | ×2 (25 scrap) | ×3 (50 scrap, 6 tech) | Wits |
 | Firepit → Bar | Level 1 | −3 stress a day | Bar: −5, people warm to each other (30 scrap, 3 tech, 20 rations) | Bar and Stage: −8, warm faster (60 scrap, 8 tech, 40 rations) | Nerve |
 | Infirmary | — | 25 scrap, 2 tech, 5 meds | 45 scrap, 8 tech, 10 meds | 70 scrap, 15 tech, 20 meds | Wits |
 | Workshop | — | Basic gear, ammo (30 scrap) | Guns, armor, instruments, Prime upgrades (50 scrap, 8 tech) | Makes Solid gear (80 scrap, 18 tech) | Wits |
@@ -508,7 +508,7 @@ The Depot plays one **Depot day** for every game day that passes (§11). Each da
 | Watchtower | — | Raid defense, halves losses (25 scrap) | Stronger (45 scrap, 5 tech, 15 ammo) | Strongest (70 scrap, 12 tech, 30 ammo) | Aim |
 | Training Yard | — | 2 practice a day (20 scrap) | 3 (40 scrap, 5 tech) | 4 (60 scrap, 12 tech) | Any stat |
 
-**Costs across supplies** (1.6.2). Before, every building cost scrap and a little tech, and rations, meds, tech, ammo and gas piled up with nothing to spend them on. All the levels together now cost 975 scrap, 149 tech, 135 rations, 35 meds and 45 ammo.
+**Costs across supplies** (1.6.2). Before, every building cost scrap and a little tech, and rations, meds, tech, ammo and gas piled up with nothing to spend them on. All the levels together now cost 975 scrap, 149 tech, 105 rations, 35 meds and 45 ammo. The Garden never costs rations, so a guild that has run out of food can still build the thing that grows it.
 
 **Upkeep** (1.6.2). The upper levels of some buildings use something up each Depot day. A fraction is the chance of one more.
 
