@@ -67,7 +67,7 @@ export const BUILDINGS: readonly BuildingDef[] = [
     description: 'Clean sheets, a locked cabinet and someone who knows what to do.',
     workStat: 'wits',
     levels: [
-      { effect: 'Faster healing. Medics cure rad sickness and fever with meds, one patient a day each.', cost: { scrap: 25, tech: 2, meds: 2 } },
+      { effect: 'Faster healing. Medics cure rad sickness and fever with meds, one patient a day each.', cost: { scrap: 25, meds: 2 } },
       { effect: 'Faster still. Wounds close sooner. Uses some meds every day.', cost: { scrap: 90, tech: 16, meds: 20 } },
       { effect: 'The best care in the Reach. Uses more meds.', cost: { scrap: 210, tech: 45, meds: 60 } },
     ],

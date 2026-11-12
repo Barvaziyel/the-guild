@@ -507,7 +507,7 @@ The Depot plays one **Depot day** for every game day that passes (§11). Each da
 | Bunks | Level 1 | 4 beds | 8 beds (30 scrap) | 12 beds (180 scrap, 18 tech, 90 rations) | — |
 | Garden | Level 1 | Grows rations | ×2 (25 scrap) | ×3 (150 scrap, 18 tech) | Wits |
 | Firepit → Bar | Level 1 | −3 stress a day | Bar: −4, people warm to each other (60 scrap, 6 tech, 40 rations) | Bar and Stage: −5, warm faster (180 scrap, 24 tech, 120 rations) | Nerve |
-| Infirmary | — | 25 scrap, 2 tech, 2 meds | 90 scrap, 16 tech, 20 meds | 210 scrap, 45 tech, 60 meds | Wits |
+| Infirmary | — | 25 scrap, 2 meds | 90 scrap, 16 tech, 20 meds | 210 scrap, 45 tech, 60 meds | Wits |
 | Workshop | — | Basic gear, ammo (30 scrap) | Guns, armor, instruments, Prime upgrades (100 scrap, 16 tech) | Makes Solid gear (240 scrap, 54 tech) | Wits |
 | Radio Tower | — | +1 recruit, stats known, one outpost (30 scrap, 5 tech) | +2, better recruits, two outposts (100, 28) | +3, the best, three outposts (240, 66) | Wits |
 | Watchtower | — | Raid defense, halves losses (25 scrap) | Stronger (90 scrap, 10 tech, 30 ammo) | Strongest (210 scrap, 36 tech, 90 ammo) | Aim |
@@ -515,7 +515,9 @@ The Depot plays one **Depot day** for every game day that passes (§11). Each da
 
 **Costs across supplies** (1.6.2). Before, every building cost scrap and a little tech, and rations, meds, tech, ammo and gas piled up with nothing to spend them on. All the levels together cost 975 scrap, 149 tech, 105 rations, 35 meds and 45 ammo in 1.6.2. The Garden never costs rations, so a guild that has run out of food can still build the thing that grows it.
 
-**A five-week Depot** (1.7.1, Aviel's choice). Income grows about 18× in a guild's first real month (21 supplies on day 1, about 390 a day by week four, measured), so with flat prices everything was built by about real day 18 and there was nothing left to buy. Now the first levels stay cheap (Bunks 2 takes no rations and Infirmary 1 takes 2 meds, so neither traps a new guild), the other level 2s cost about twice as much and the level 3s three times. All the levels together: 2,295 scrap, 390 tech, 250 rations, 82 meds and 120 ammo. Measured with the simulated player: the level 2s come in real weeks 2–3 and the level 3s between real days 23 and 32. Projects (big multi-stage works) are planned for after that.
+**A five-week Depot** (1.7.1, Aviel's choice). Income grows about 18× in a guild's first real month (21 supplies on day 1, about 390 a day by week four, measured), so with flat prices everything was built by about real day 18 and there was nothing left to buy. Now the first levels stay cheap (Bunks 2 takes no rations and Infirmary 1 takes 2 meds, so neither traps a new guild), the other level 2s cost about twice as much and the level 3s three times. All the levels together: 2,295 scrap, 388 tech, 250 rations, 82 meds and 120 ammo. Projects (big multi-stage works) are planned for after that.
+
+**Checked to the end of the content** (1.7.2, `claude/balance-5-weeks.md` in the project). A simulated player that plays like a person (kits out its runners, goes where what it needs is, goes deeper, drives, sets up outposts, takes useful trades) played 24 guilds for five real weeks at each of three paces. Level 1s come in the first real week (Garden 2 by day 4), level 2s in weeks 2–3, level 3s in weeks 3–5, and the Depot is finished around real day 31; a casual player (four check-ins a day) is about 15% behind. Two early changes came out of it: a new guild starts with 50 scrap instead of 20, and Infirmary 1 no longer takes tech, which the danger-1 places barely have (it came around real day 11; now day one).
 
 **Upkeep** (1.6.2). The upper levels of some buildings use something up each Depot day. A fraction is the chance of one more.
 
@@ -554,7 +556,7 @@ At most one event a day (a 20% chance), weighted:
 | Event | What happens |
 |---|---|
 | A wanderer | Someone turns up at the gate and waits there 3 days (§10). |
-| A trader caravan | Offers a swap of supplies (gas among them), or a Solid or Prime piece of gear for scrap (and tech for guns), or now and then a vehicle (§7.8). Since 1.6.2, half the time it offers to **buy** what the guild has spare for scrap. Rations bring 0.5 scrap each, meds 1.2, tech 2, gas 1 and ammo 0.4. Spare means beyond 25, or beyond ten days of eating for rations, and the caravan takes 20–40% of it. Stays 2 days. |
+| A trader caravan | Offers a swap of supplies (gas among them; 8–20 of what the guild gives, or up to an eighth of a big stockpile, at most 200, since 1.7.2, so a guild rich in scrap and short of tech can turn one into the other), or a Solid or Prime piece of gear for scrap (and tech for guns), or now and then a vehicle (§7.8). Since 1.6.2, half the time it offers to **buy** what the guild has spare for scrap. Rations bring 0.5 scrap each, meds 1.2, tech 2, gas 1 and ammo 0.4. Spare means beyond 25, or beyond ten days of eating for rations, and the caravan takes 20–40% of it. Stays 2 days. |
 | A raid | d10 + the best Aim at home + 2 per Watchtower level + 1 per lookout, −2 for each hand short of three at home, vs 12. Held: the defenders get Aim practice and a little stress. Broken: raiders take 25% of the scrap, rations, ammo and gas (half that with a Watchtower, a quarter more with one person home and half more with nobody), never more than 30 of each plus a fifth of whatever is stored beyond 100 (1.6.2; before, 30 at most, which meant nothing against stockpiles in the hundreds), may drive off a parked vehicle (§7.8), one defender is Wounded, and everyone gains +10 stress. Raids come twice as often when no more than one person is home. |
 | A celebration | Costs a ration per two people. Everyone at home sheds 15 stress, and every pair warms by 3. Only when food is plentiful. |
 | A fever | Someone at home becomes Feverish (−1 Grit, −1 Wits, 2–4 days) unless the Infirmary treats it. |
@@ -604,7 +606,7 @@ Now and then something comes up that the player has to decide (Aviel's idea, 202
 - **Candidate info.** Each candidate shows their origin, age, backstory, visible traits, and a hint when they have a hidden one. Without a Radio Tower, their stats show as rough ranges (one either side). A Radio Tower at level 2 or 3 brings recruits with 1 or 2 extra stat points, still no higher than 7.
 - **Taking someone in** is free but needs a free bed in the Bunks. They join with relationships to everyone and a first Chronicle entry.
 - **Rescue jobs** can bring in free recruits. They start with *Owes a Life* toward their rescuer (not built yet).
-- **New game.** The guild starts with 4 generated survivors, 3 known locations, and level 1 Bunks, Garden and Firepit. With 4 beds, the first recruit needs better Bunks.
+- **New game.** The guild starts with 4 generated survivors, 3 known locations, level 1 Bunks, Garden and Firepit, and 50 scrap, 24 rations, 3 meds and 15 ammo (20 scrap before 1.7.2). With 4 beds, the first recruit needs better Bunks.
 
 ## 11. Time model
 
@@ -748,6 +750,7 @@ Planned 2026-11-11, in this order, all on Opus:
 | — | Balance: combat and loot (1.6.1), economy and pace (1.6.2), from the review in `claude/balance-review.md` | **done** |
 | 16 | Decisions at the Depot (§9.5), asked for 2026-11-12 | **done** (1.7.0) |
 | — | Balance C: people's time and a five-week Depot (§6, §9.1), from the economy design in `claude/economy-design.md` | **done** (1.7.1) |
+| — | Balance D: checked to the end of the content with a person-like simulated player; a faster first week, bigger trades (§9.1) | **done** (1.7.2) |
 | 17 | What's missing: rescue jobs, feuds that make someone quit, pets, **ageing and babies**, the last gear drawings | |
 | 18 | The Vultures, a rival guild | |
 
@@ -765,6 +768,10 @@ Planned 2026-11-11, in this order, all on Opus:
 - **The yard** (step 14, asked for 2026-11-11). A drawing of the Depot on a tab of its own: the buildings as they are, everyone at home where they are (at their posts, around the fire, resting on cots), recruits outside the gate, a trader's cart, the vehicles parked in the yard, and the light of the time of day. Tap anything to see what it is and open it. A view only: nothing in the game changes.
 - **Expansion.** Outposts on fully explored places extend the guild's reach (the Civ-style expansion). Places get deeper, more dangerous areas with better loot. Decided 2026-11-12: outposts send supplies home every day, shorten runs nearby, are a rest stop on the way home, and can be raided; people live there and can be swapped out any time; deeper levels open by exploring; the Radio Tower's level sets how many outposts. *Built in 1.6.0 as §7.9 and §7.10.*
 - **Decisions** (step 16, Aviel, 2026-11-12). Now and then something comes up that the player decides: two people fighting over something, a dilemma. Four answers, with costs and rewards that aren't obvious. If he doesn't answer within about a day, the people involved settle it themselves, usually not the best way. *Built in 1.7.0 as §9.5.*
+- **The order from here** (Aviel, 2026-11-12): first, balance everything up to where the content runs out (1.7.2); then what was already planned (step 17, step 18 and projects); then the next steps below.
+- **Interactive combat** (Aviel, 2026-11-12): runs can get repetitive, so fights should be playable, turn-based RPG style, at least as an option. Since runs are decided at departure, this needs a way to stop a run at a fight and wait for the player.
+- **Weapon mods** (Aviel liked them, 2026-11-12): a scope, a suppressor, a bayonet, made from tech and spare gear.
+- **Second and third depots** (Aviel, 2026-11-12): new regions beyond the Reach that can be settled for real, not just held as outposts.
 - **The economy** (Aviel, 2026-11-12, after `claude/economy-design.md`): finishing the Depot should take about five real weeks; the road should cost stress so people's time is the limit (both in 1.7.1); **projects** (big multi-stage works, like Civ's wonders) are the long goal; later, **expanding to new places** beyond the Reach. What comes after Balance C is decided once it has been played. Other ideas on the table: long expeditions, improving outposts, contracts from other settlements, training courses that teach a trait, feasts on demand, weapon mods.
 - **Ageing** (part of step 17, asked for 2026-11-11, alongside babies). Everyone gets older in game time: a year every 365 game days, which is about 45 real days.
   - Ages are fixed today. The portrait already greys hair by age, so faces would age on their own.

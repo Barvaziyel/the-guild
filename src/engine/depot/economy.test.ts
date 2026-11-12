@@ -74,9 +74,9 @@ describe('traders', () => {
     const sold = new Set<string>();
     for (let i = 0; i < 200; i++) {
       const offer = makeOffer(state, 5, new Rng(`t${i}`));
-      // The old swap of a few rations for scrap is still around; buying offers take a share of the spare.
+      // The old swap of rations for scrap (about 0.8 each) is still around; buying offers pay about half.
       const [[res, amount]] = Object.entries(offer.give) as [[string, number]];
-      if (offer.get.scrap && (res === 'tech' || amount > 20)) {
+      if (offer.get.scrap && (res === 'tech' || offer.get.scrap / amount < 0.6)) {
         buying += 1;
         sold.add(res);
         assert.ok(amount <= spare(state, res as 'rations'), `${amount} ${res}`);
@@ -84,6 +84,24 @@ describe('traders', () => {
     }
     assert.ok(buying > 70 && buying < 130, `${buying} of 200 offers buy`);
     assert.deepEqual([...sold].sort(), ['rations', 'tech']);
+  });
+
+  test('swaps grow with what the guild can spare, up to 200', () => {
+    const sizes = (scrap: number): number[] => {
+      const state = openGame('swap');
+      state.resources = { scrap, rations: 10, meds: 2, ammo: 5, tech: 1, gas: 0 };
+      const out: number[] = [];
+      for (let i = 0; i < 300; i++) {
+        const offer = makeOffer(state, 5, new Rng(`s${i}`));
+        if (offer.give.scrap && !offer.item && !offer.vehicle) out.push(offer.give.scrap);
+      }
+      return out;
+    };
+    const poor = sizes(30);
+    assert.ok(Math.max(...poor) <= 20 && Math.min(...poor) >= 8, 'a new guild sees the old 8-20');
+    const rich = sizes(1200);
+    assert.ok(Math.min(...rich) >= 96 && Math.max(...rich) <= 180, `a rich one sees an eighth or so: ${Math.min(...rich)}-${Math.max(...rich)}`);
+    assert.ok(Math.max(...sizes(5000)) === 200, 'never more than 200');
   });
 
   test('with nothing spare, they only sell and swap', () => {

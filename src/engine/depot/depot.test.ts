@@ -85,7 +85,7 @@ describe('building', () => {
   test('refuses what the guild cannot afford and what is already at the top', () => {
     const state = testGame();
     state.resources.scrap = 0;
-    assert.match(buildProblem(state, 'infirmary') ?? '', /Needs 25 scrap, 2 tech, 2 meds/);
+    assert.match(buildProblem(state, 'infirmary') ?? '', /Needs 25 scrap, 2 meds/);
     assert.throws(() => build(state, 'infirmary', 1));
     rich(state);
     build(state, 'bunks', 1);
@@ -336,9 +336,10 @@ describe('Depot events', () => {
     state.depot.offers.push({ id: 'o2', give: { tech: 99 }, get: { meds: 1 }, expiresDay: 5 });
     assert.match(offerProblem(state, 'o2') ?? '', /Needs 99 tech/);
     const rations = state.resources.rations;
+    const scrap = state.resources.scrap;
     acceptOffer(state, 'o1', 2);
     assert.equal(state.resources.rations, rations + 15);
-    assert.equal(state.resources.scrap, 10);
+    assert.equal(state.resources.scrap, scrap - 10);
     declineOffer(state, 'o2');
     assert.equal(state.depot.offers.length, 0);
   });

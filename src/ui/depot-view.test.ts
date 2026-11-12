@@ -33,8 +33,10 @@ describe('buildings on screen', () => {
     assert.equal(garden.slots, 2);
     const infirmary = buildingRow(state, 'infirmary');
     assert.equal(infirmary.built, false);
-    assert.equal(infirmary.next?.cost, '25 scrap, 2 tech, 2 meds');
-    assert.match(infirmary.next?.problem ?? '', /Needs/);
+    assert.equal(infirmary.next?.cost, '25 scrap, 2 meds');
+    assert.equal(infirmary.next?.problem ?? '', '', 'a new guild can afford its Infirmary (1.7.2)');
+    state.resources.scrap = 0;
+    assert.match(buildingRow(state, 'infirmary').next?.problem ?? '', /Needs/);
     assert.equal(buildingRows(state).length, 8);
     assert.match(buildingRow(state, 'bunks').status, /^4 of 4 beds taken\.$/);
   });

@@ -21,6 +21,9 @@ import {
   RAID_THIN_PENALTY,
   REL_ARGUMENT,
   TRADER_VEHICLE_CHANCE,
+  TRADE_MAX_GIVE,
+  TRADE_SHARE_MAX,
+  TRADE_SHARE_MIN,
   TRADE_DAYS,
   VEHICLE_THEFT_CHANCE,
   WATCHTOWER_DEFENSE,
@@ -263,7 +266,9 @@ export function makeOffer(state: GameState, day: number, rng: Rng): TradeOffer {
     { give: 'ammo', get: 'gas', rate: 0.6 },
   ];
   const swap = rng.pick(swaps);
-  const give = rng.int(8, 20);
+  // A caravan deals in what the guild can spare: 8-20 to a new guild, up to an eighth of a big stockpile (1.7.2).
+  const share = Math.round(state.resources[swap.give] * (TRADE_SHARE_MIN + rng.next() * (TRADE_SHARE_MAX - TRADE_SHARE_MIN)));
+  const give = Math.max(rng.int(8, 20), Math.min(TRADE_MAX_GIVE, share));
   const get = Math.max(1, Math.round(give * swap.rate * (0.8 + rng.next() * 0.4)));
   return { id, give: { [swap.give]: give }, get: { [swap.get]: get }, expiresDay };
 }
