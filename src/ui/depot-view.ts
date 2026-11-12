@@ -5,6 +5,7 @@
 import {
   BUILDING_IDS,
   MAX_BUILDING_LEVEL,
+  RESOURCE_IDS,
   RECIPES,
   STAT_IDS,
   STAT_MAX,
@@ -25,6 +26,7 @@ import {
   gardenYield,
   guildUpkeep,
   getGear,
+  getLocation,
   healRate,
   itemName,
   nextLevel,
@@ -45,6 +47,7 @@ import {
   type BuildingId,
   type Candidate,
   type DepotSummary,
+  type Resources,
   type GameState,
   type ItemInstance,
   type StatId,
@@ -64,7 +67,7 @@ export function buildingStatus(state: GameState, id: BuildingId): string {
     case 'bunks':
       return `${state.survivors.length} of ${bunksCap(state)} beds taken.`;
     case 'garden':
-      return `Grows about ${oneDecimal(gardenYield(state))} rations a day. The guild at home eats ${dailyUpkeep(state)}.`;
+      return `Grows about ${oneDecimal(gardenYield(state))} rations a day. The guild at home${state.outposts.length > 0 ? ' and at the outposts' : ''} eats ${dailyUpkeep(state)}.`;
     case 'firepit':
       return `Everyone at home sheds about ${Math.round(REST_RELIEF + firepitRelief(state))} stress a day.`;
     case 'infirmary':
@@ -139,10 +142,10 @@ export function postCandidates(state: GameState, id: BuildingId): { survivor: Su
     .filter((s) => s.post?.building !== id && !resting(s))
     .map((s) => {
       const stat: StatId = workStat && workStat !== 'any' ? workStat : s.post ? postStat(s, s.post) : 'wits';
-      const problem = postProblem(state, s.id, { building: id });
+      const problem = s.outpost ? `${s.firstName} lives at the outpost at ${getLocation(s.outpost).name}.` : postProblem(state, s.id, { building: id });
       return {
         survivor: s,
-        current: s.post ? `Now at the ${buildingName(state, s.post.building)}` : 'No post',
+        current: s.outpost ? `At the outpost at ${getLocation(s.outpost).name}` : s.post ? `Now at the ${buildingName(state, s.post.building)}` : 'No post',
         stat: workStat === 'any' ? '' : `${statName(stat)} ${effectiveStat(s, stat)}`,
         ...(problem ? { problem } : {}),
       };
@@ -266,7 +269,14 @@ export function mergeSummaries(a: DepotSummary, b: DepotSummary): DepotSummary {
     healed: a.healed + b.healed,
     cured: a.cured + b.cured,
     news: [...a.news, ...b.news],
+    outposts: addResources(a.outposts, b.outposts),
   };
+}
+
+function addResources(a: Partial<Resources>, b: Partial<Resources>): Partial<Resources> {
+  const out: Partial<Resources> = { ...a };
+  for (const r of RESOURCE_IDS) if (b[r]) out[r] = (out[r] ?? 0) + b[r]!;
+  return out;
 }
 
 /** The note on the Depot screen: a few plain sentences about the days that passed. */
@@ -277,6 +287,8 @@ export function summaryLines(s: DepotSummary): string[] {
   if (s.hungryDays > 0) out.push(`The guild went hungry for ${s.hungryDays === 1 ? 'a day' : `${s.hungryDays} days`}.`);
   if (s.ammoMade > 0) out.push(`The Workshop made ${s.ammoMade} ammo.`);
   if (s.healed > 0) out.push(`Rest healed ${s.healed} health${s.cured > 0 ? `, and the Infirmary treated ${s.cured === 1 ? 'one patient' : `${s.cured} patients`}` : ''}.`);
+  const sent = costText(s.outposts ?? {});
+  if (sent !== 'nothing') out.push(`The outposts sent home ${sent}.`);
   return out;
 }
 
@@ -289,9 +301,10 @@ export function depotNews(state: GameState, limit = 12): { day: number; text: st
     .map((e) => ({ day: e.day, text: e.text }));
 }
 
-export function homeCounts(state: GameState): { home: number; out: number; beds: number; cap: number } {
+export function homeCounts(state: GameState): { home: number; out: number; outposts: number; beds: number; cap: number } {
   const home = state.survivors.filter(atDepot).length;
-  return { home, out: state.survivors.length - home, beds: state.survivors.length, cap: bunksCap(state) };
+  const outposts = state.survivors.filter((s) => s.outpost !== undefined).length;
+  return { home, out: state.survivors.length - home - outposts, outposts, beds: state.survivors.length, cap: bunksCap(state) };
 }
 
 // ---------------------------------------------------------------- food

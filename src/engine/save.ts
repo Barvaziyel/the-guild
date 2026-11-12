@@ -101,6 +101,11 @@ const MIGRATIONS: Record<number, (save: Record<string, unknown>) => void> = {
     for (const r of state.runs) r.result.loot.gas ??= 0;
     for (const r of state.reports) r.summary.loot.gas ??= 0;
   },
+  // v12: outposts and deeper levels (roadmap step 15).
+  11: (save) => {
+    const state = save as unknown as GameState;
+    state.outposts ??= [];
+  },
 };
 
 export function serialize(state: GameState): string {

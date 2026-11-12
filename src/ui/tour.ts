@@ -252,6 +252,19 @@ export const TOUR_STEPS: readonly TourStep[] = [
       `On foot a crew is at most ${MAX_CREW}. Vehicles seat more, get there faster and carry more, but they burn gas, draw trouble and wear down. They're rare: scouting turns up the odd wreck, traders sometimes sell one, and the Workshop can build some.`,
   },
 
+  {
+    id: 'further',
+    part: 'runs',
+    title: 'Further out',
+    route: (state) => {
+      const place = easiestPlace(state);
+      return place ? { screen: 'reach', id: place.id, tab: 'outpost' } : { screen: 'reach' };
+    },
+    target: 'place-tabs',
+    text: () =>
+      "Explore a place's outskirts fully and two things open: the way deeper in, deadlier but richer, and an outpost, a camp that sends supplies home and shortens runs nearby. Outposts need the Radio Tower.",
+  },
+
   // ---------------------------------------------------------------- building
   {
     id: 'buildings',

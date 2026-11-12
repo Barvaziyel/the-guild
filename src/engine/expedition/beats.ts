@@ -15,7 +15,9 @@ import {
   FOUND_VEHICLE_CONDITION,
   VEHICLE_AMBUSH_PENALTY,
   WRECK_FIND_WEIGHT,
+  DEPTH_LOOT,
 } from '../constants.ts';
+import { planDepth } from '../locations.ts';
 import { GEAR, getLocation, getVehicleDef, type HazardKind } from '../content/index.ts';
 import { createVehicle } from '../vehicles.ts';
 import {
@@ -97,7 +99,8 @@ export function findGear(sim: Sim, finder: Member): void {
 }
 
 export function addLoot(sim: Sim, res: ResourceId, amount: number): void {
-  sim.loot[res] += amount;
+  // Deeper levels give up more (§7.10).
+  sim.loot[res] += Math.round(amount * (1 + DEPTH_LOOT * (planDepth(sim.plan) - 1)));
 }
 
 export function lootText(loot: Partial<Record<ResourceId, number>>): string {

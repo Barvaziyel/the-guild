@@ -1,9 +1,10 @@
 /**
  * Planning a run: how long it takes, what it costs, and whether it's allowed.
  */
-import { DAY_MS, HUNGER_STRESS, RAID_FULL_FENCE, SNEAKY_DURATION_MULT, STRESS_HIGH } from '../constants.ts';
+import { DAY_MS, DEPTH_DURATION, HUNGER_STRESS, OUTPOST_SHORTCUT, RAID_FULL_FENCE, SNEAKY_DURATION_MULT, STRESS_HIGH } from '../constants.ts';
+import { depthOpen, DEPTH_NAMES, locationState, planDepth } from '../locations.ts';
+import { outpostNear } from '../outposts.ts';
 import { findLocation, getEnemy, getGear, getLocation, getTrait } from '../content/index.ts';
-import { locationState } from '../locations.ts';
 import { crewConflicts } from '../relationships.ts';
 import { maxHp } from '../stats.ts';
 import { fullName } from '../text.ts';
@@ -26,19 +27,27 @@ function crewOf(state: GameState, plan: RunPlan): Survivor[] {
  * number of beats, and the walk home after a wreck, come from it.
  */
 export function footDuration(state: GameState, plan: RunPlan): number {
-  const loc = getLocation(plan.locationId);
   let slowest = 1;
   for (const s of crewOf(state, plan)) slowest = Math.max(slowest, mulTraitHook(s, 'durationMult'));
   const mult = slowest * (plan.approach === 'sneaky' ? SNEAKY_DURATION_MULT : 1);
-  return Math.round(loc.durationMin * mult) * 60_000;
+  return Math.round(placeMinutes(plan) * mult) * 60_000;
 }
 
-/** Run length in ms: on foot, or at the pace of the slowest vehicle. */
+/** Walking minutes there and back, deeper levels taking longer (§7.10). */
+export function placeMinutes(plan: RunPlan): number {
+  return getLocation(plan.locationId).durationMin * (1 + DEPTH_DURATION * (planDepth(plan) - 1));
+}
+
+/** The share of the trip left when it starts from an outpost nearby (§7.9). */
+export function shortcut(state: GameState, plan: RunPlan): number {
+  return outpostNear(state, plan.locationId) ? OUTPOST_SHORTCUT : 1;
+}
+
+/** Run length in ms: on foot or at the pace of the slowest vehicle, and shorter from an outpost nearby. */
 export function runDuration(state: GameState, plan: RunPlan): number {
   const vehicles = planVehicles(state, plan);
-  if (vehicles.length === 0) return footDuration(state, plan);
-  const speed = Math.max(...vehicles.map((v) => vehicleDef(v).speed));
-  return Math.round(getLocation(plan.locationId).durationMin * speed) * 60_000;
+  const base = vehicles.length === 0 ? footDuration(state, plan) : Math.round(placeMinutes(plan) * Math.max(...vehicles.map((v) => vehicleDef(v).speed))) * 60_000;
+  return Math.round((base * shortcut(state, plan)) / 60_000) * 60_000;
 }
 
 /** Rations each crew member needs: one per game day away (some eat more). */
@@ -77,6 +86,7 @@ export function hungryCrew(state: GameState, plan: RunPlan): Survivor[] {
 export function unavailableReason(s: Survivor): string | undefined {
   if (s.status === 'away') return 'is already out on a run';
   if (s.status !== 'ready') return 'is not available';
+  if (s.outpost !== undefined) return `lives at the outpost at ${getLocation(s.outpost).name}`;
   const blocking = s.traits.find((t) => getTrait(t.id).blocksRuns);
   if (blocking) return `is ${getTrait(blocking.id).name.toLowerCase()} and needs rest`;
   return undefined;
@@ -88,6 +98,9 @@ export function validatePlan(state: GameState, plan: RunPlan): string[] {
   const loc = findLocation(plan.locationId);
   if (!loc) return [`Unknown location: ${plan.locationId}`];
   if (!locationState(state, loc.id).discovered) problems.push(`${loc.name} has not been discovered yet.`);
+  const depth = planDepth(plan);
+  if (plan.depth !== undefined && (plan.depth < 1 || plan.depth > 3 || !Number.isInteger(plan.depth))) problems.push('That level does not exist.');
+  else if (!depthOpen(state, loc.id, depth)) problems.push(`${DEPTH_NAMES[depth - 1]} opens once ${DEPTH_NAMES[depth - 2]!.toLowerCase()} ${depth === 2 ? 'are' : 'is'} fully explored.`);
 
   if (plan.crew.length < 1) problems.push('Pick at least one survivor.');
   const vehicleIds = plan.vehicles ?? [];
@@ -160,7 +173,7 @@ export function planWarnings(state: GameState, plan: RunPlan): string[] {
   for (const v of planVehicles(state, plan)) {
     if (v.condition > 0 && v.condition < 30) warnings.push(`The ${vehicleName(v)} is in poor shape (${v.condition}%), so it's more likely to be wrecked.`);
   }
-  const left = state.survivors.filter((s) => s.status === 'ready' && !plan.crew.includes(s.id) && !s.traits.some((t) => getTrait(t.id).blocksRuns)).length;
+  const left = state.survivors.filter((s) => s.status === 'ready' && s.outpost === undefined && !plan.crew.includes(s.id) && !s.traits.some((t) => getTrait(t.id).blocksRuns)).length;
   if (left < RAID_FULL_FENCE) {
     warnings.push(
       left === 0

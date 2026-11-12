@@ -1,10 +1,30 @@
-import { findLocation, getLocation, knownLocations, locationState, type GameState } from '../../engine/index.ts';
+import { useState } from 'react';
+import {
+  bringHome,
+  buildOutpost,
+  dayAt,
+  deepestOpen,
+  findLocation,
+  findOutpost,
+  getLocation,
+  knownLocations,
+  locationState,
+  repairOutpost,
+  station,
+  type GameState,
+} from '../../engine/index.ts';
+import { Portrait } from '../components/Portrait.tsx';
 import { ReachMapSvg } from '../components/ReachMapSvg.tsx';
-import { navigate } from '../hooks.ts';
-import { dangerText, formatDuration, joinNames, locationView, radiationText, runCrewNames } from '../runs-view.ts';
+import { navigate, useAction } from '../hooks.ts';
+import { depthRows, exploredShort, outpostView } from '../outposts-view.ts';
+import { PLACE_TABS, type PlaceTab } from '../route.ts';
+import { dangerText, formatDuration, joinNames, locationView, placeNote, radiationText, runCrewNames } from '../runs-view.ts';
 import { nemesesAt, nemesisRows } from '../stories-view.ts';
 
-export function Reach({ state, selected }: { state: GameState; selected?: string }) {
+const today = (s: GameState): number => dayAt(s, Date.now());
+const PLACE_TAB_LABELS: Record<PlaceTab, string> = { about: 'About', outpost: 'Outpost' };
+
+export function Reach({ state, selected, tab = 'about' }: { state: GameState; selected?: string; tab?: PlaceTab }) {
   const places = knownLocations(state);
   const pick = (id: string): void => navigate({ screen: 'reach', id }, { replace: true });
   const sel = selected && findLocation(selected) ? selected : undefined;
@@ -22,7 +42,7 @@ export function Reach({ state, selected }: { state: GameState; selected?: string
       <div className="map-page" data-tour="map">
         <ReachMapSvg state={state} selected={sel} onPick={pick} />
       </div>
-      {sel && <PlacePanel state={state} id={sel} />}
+      {sel && <PlacePanel state={state} id={sel} tab={tab} />}
       <div className="panel">
         <h3 className="panel-title">Known places</h3>
         <ul className="places">
@@ -30,6 +50,7 @@ export function Reach({ state, selected }: { state: GameState; selected?: string
             .sort((a, b) => a.danger - b.danger || a.durationMin - b.durationMin)
             .map((loc) => {
               const here = locationState(state, loc.id);
+              const outpost = findOutpost(state, loc.id);
               return (
                 <li key={loc.id}>
                   <button type="button" className={`place-row${loc.id === sel ? ' is-selected' : ''}`} onClick={() => pick(loc.id)}>
@@ -37,12 +58,15 @@ export function Reach({ state, selected }: { state: GameState; selected?: string
                       {loc.danger}
                     </span>
                     <span className="place-body">
-                      <span className="place-name">{loc.name}</span>
+                      <span className="place-name">
+                        {loc.name}
+                        {outpost && <span className={`place-tag${outpost.damaged ? ' is-damaged' : ''}`}>{outpost.damaged ? 'Outpost, damaged' : 'Outpost'}</span>}
+                      </span>
                       <span className="place-facts">
                         {dangerText(loc.danger)}, {radiationText(loc.radiation).toLowerCase()}, {formatDuration(loc.durationMin * 60_000)}
                       </span>
                     </span>
-                    <span className="place-explored">{here.explored}%</span>
+                    <span className="place-explored">{here.explored >= 100 && deepestOpen(state, loc.id) > 1 ? exploredShort(state, loc.id) : `${here.explored}%`}</span>
                   </button>
                 </li>
               );
@@ -89,7 +113,7 @@ function NemesesPanel({ state }: { state: GameState }) {
   );
 }
 
-function PlacePanel({ state, id }: { state: GameState; id: string }) {
+function PlacePanel({ state, id, tab }: { state: GameState; id: string; tab: PlaceTab }) {
   const known = locationState(state, id).discovered;
   if (!known) {
     const from = knownLocations(state).filter((l) => l.leadsTo.includes(id));
@@ -108,13 +132,44 @@ function PlacePanel({ state, id }: { state: GameState; id: string }) {
     );
   }
 
-  const v = locationView(state, id);
-  const loc = v.def;
-  const haunting = nemesesAt(state, id);
+  const loc = getLocation(id);
+  const outpost = findOutpost(state, id);
   return (
     <div className="panel place-panel" aria-live="polite">
       <p className="place-biome">{loc.biome}</p>
       <h3 className="place-title">{loc.name}</h3>
+      <div className="sheet-tabs place-tabs" role="tablist" aria-label={loc.name} data-tour="place-tabs">
+        {PLACE_TABS.map((t) => (
+          <button
+            key={t}
+            type="button"
+            role="tab"
+            id={`place-tab-${t}`}
+            aria-selected={t === tab}
+            aria-controls="place-tabpanel"
+            className="sheet-tab"
+            onClick={() => navigate(t === 'about' ? { screen: 'reach', id } : { screen: 'reach', id, tab: t }, { replace: true })}
+          >
+            {PLACE_TAB_LABELS[t]}
+            {t === 'outpost' && outpost && <span className={`tab-mark${outpost.damaged ? ' is-damaged' : ''}`} aria-label={outpost.damaged ? ', needs mending' : ', set up'} />}
+          </button>
+        ))}
+      </div>
+      <div id="place-tabpanel" role="tabpanel" aria-labelledby={`place-tab-${tab}`}>
+        {tab === 'about' ? <About state={state} id={id} /> : <OutpostTab state={state} id={id} />}
+      </div>
+    </div>
+  );
+}
+
+function About({ state, id }: { state: GameState; id: string }) {
+  const v = locationView(state, id);
+  const loc = v.def;
+  const haunting = nemesesAt(state, id);
+  const levels = depthRows(state, id);
+  const deeper = levels[0]!.explored >= 100;
+  return (
+    <>
       <p className="place-desc">{loc.description}</p>
       <dl className="facts">
         <div>
@@ -134,11 +189,20 @@ function PlacePanel({ state, id }: { state: GameState; id: string }) {
           <dd>{v.explored}%</dd>
         </div>
       </dl>
-      <p className="place-note">
-        {v.runs === 0 ? 'Nobody from the guild has been here yet.' : `The guild has been here ${v.runs === 1 ? 'once' : `${v.runs} times`}.`}{' '}
-        {v.leadsTo.length > 0 && `Roads lead on to ${joinNames(v.leadsTo.map((l) => l.name))}.`}{' '}
-        {v.unknownLeads > 0 && `${v.unknownLeads === 1 ? 'One road leads' : `${v.unknownLeads} roads lead`} somewhere nobody has found yet.`}
-      </p>
+      {deeper && (
+        <div className="levels" data-tour="levels">
+          <h4 className="levels-title">How far in</h4>
+          <ul>
+            {levels.map((l) => (
+              <li key={l.depth} className={`level${l.open ? '' : ' is-locked'}`}>
+                <span className="level-name">{l.name}</span>
+                <span className="level-line">{l.line}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      <p className="place-note">{placeNote(v, deeper)}</p>
       {haunting.map((n) => (
         <p key={n.id} className="nemesis-here">
           <strong>{n.name}</strong>, {n.kind}, haunts this place. {n.record}
@@ -150,8 +214,115 @@ function PlacePanel({ state, id }: { state: GameState; id: string }) {
         </button>
       ))}
       <button type="button" className="btn btn-primary btn-wide" onClick={() => navigate({ screen: 'plan', locationId: id })}>
-        Plan a run to {getLocation(id).name}
+        Plan a run to {loc.name}
       </button>
+    </>
+  );
+}
+
+/** Setting up an outpost, or who lives at it and what it sends home. */
+function OutpostTab({ state, id }: { state: GameState; id: string }) {
+  const { act, error } = useAction();
+  const [adding, setAdding] = useState(false);
+  const v = outpostView(state, id);
+
+  if (!v.built) {
+    return (
+      <div className="outpost">
+        <p className="place-desc">{v.pitch}</p>
+        <p className="panel-help">{v.hardship}</p>
+        <p className="panel-help">{v.contactLine}</p>
+        <p className="panel-help">Costs {v.buildCost}.</p>
+        {v.buildProblem && <p className="field-error">{v.buildProblem}</p>}
+        <button type="button" className="btn btn-primary" disabled={v.buildProblem !== undefined} onClick={() => act((s) => void buildOutpost(s, id, today(s)))}>
+          Set up an outpost
+        </button>
+        {error && <p className="field-error">{error}</p>}
+      </div>
+    );
+  }
+
+  return (
+    <div className="outpost">
+      <p className={`outpost-state${v.damaged ? ' is-damaged' : ''}`}>
+        {v.damaged ? 'Raiders broke in. It sends home half until it is mended.' : 'Standing, and in good shape.'}
+      </p>
+      {v.damaged && (
+        <div className="recipe">
+          <span className="recipe-body">
+            <span className="recipe-cost">{v.repairProblem ?? `Mend it: ${v.repairCost}.`}</span>
+          </span>
+          <button type="button" className="btn btn-small" disabled={v.repairProblem !== undefined} onClick={() => act((s) => repairOutpost(s, id, today(s)))}>
+            Mend
+          </button>
+        </div>
+      )}
+      <p className="place-note">{v.yieldLine}</p>
+      <p className="place-note">{v.nearLine}</p>
+
+      <h4 className="levels-title">
+        Living here <span className="count">{v.room}</span>
+      </h4>
+      {v.staff.length === 0 && <p className="panel-help">Nobody. An empty outpost sends nothing home, and raiders walk right in.</p>}
+      <ul className="workers">
+        {v.staff.map(({ survivor: s, aim }) => (
+          <li key={s.id} className="worker">
+            <button type="button" className="worker-face" onClick={() => navigate({ screen: 'survivor', id: s.id, tab: 'stats' })}>
+              <Portrait survivor={s} size={48} decorative />
+            </button>
+            <span className="worker-body">
+              <span className="crew-name">
+                {s.firstName} {s.lastName}
+              </span>
+              <span className="crew-stats">{aim}</span>
+            </span>
+            <button type="button" className="btn btn-small btn-quiet" onClick={() => act((st) => bringHome(st, s.id, today(st)))}>
+              Bring home
+            </button>
+          </li>
+        ))}
+      </ul>
+      {!v.full &&
+        (adding ? (
+          <div className="picker">
+            {v.candidates.length === 0 ? (
+              <p className="panel-help">Nobody can go right now: everyone is out on a run, resting until healed, or already out here.</p>
+            ) : (
+              <ul>
+                {v.candidates.map((c) => (
+                  <li key={c.survivor.id}>
+                    <button
+                      type="button"
+                      className="pick pick-person"
+                      onClick={() => {
+                        if (act((st) => station(st, c.survivor.id, id, today(st)))) setAdding(false);
+                      }}
+                    >
+                      <Portrait survivor={c.survivor} size={40} decorative />
+                      <span className="pick-text">
+                        <span className="item-name">
+                          {c.survivor.firstName} {c.survivor.lastName}
+                        </span>
+                        <span className="item-stats">
+                          {c.aim}. {c.where}.
+                        </span>
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <button type="button" className="btn btn-small btn-quiet" onClick={() => setAdding(false)}>
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <button type="button" className="btn" onClick={() => setAdding(true)}>
+            Send someone to live here
+          </button>
+        ))}
+      <p className="panel-help outpost-help">{v.hardship}</p>
+      {error && <p className="field-error">{error}</p>}
     </div>
   );
 }

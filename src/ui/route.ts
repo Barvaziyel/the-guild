@@ -6,6 +6,10 @@
 export const SHEET_TABS = ['stats', 'bonds', 'story'] as const;
 export type SheetTab = (typeof SHEET_TABS)[number];
 
+/** A place's tabs on the Reach. 'about' is the default and has no part in the hash. */
+export const PLACE_TABS = ['about', 'outpost'] as const;
+export type PlaceTab = (typeof PLACE_TABS)[number];
+
 /** The Depot's tabs. 'today' is the default and has no part in the hash. */
 export const DEPOT_TABS = ['today', 'yard', 'buildings', 'news'] as const;
 export type DepotTab = (typeof DEPOT_TABS)[number];
@@ -25,8 +29,8 @@ export type Route =
   | { screen: 'survivor'; id: string; tab: SheetTab }
   | { screen: 'memorial' }
   | { screen: 'settings' }
-  /** The Reach map, optionally with a location picked. */
-  | { screen: 'reach'; id?: string }
+  /** The Reach map, optionally with a location picked, and its outpost tab. */
+  | { screen: 'reach'; id?: string; tab?: Exclude<PlaceTab, 'about'> }
   | { screen: 'plan'; locationId: string }
   | { screen: 'runs' }
   /** A crew that is out, or the report once they're back (same id). */
@@ -61,8 +65,11 @@ export function parseRoute(hash: string): Route {
       return { screen: 'settings' };
     case 'runs':
       return { screen: 'runs' };
-    case 'reach':
-      return a ? { screen: 'reach', id: a } : { screen: 'reach' };
+    case 'reach': {
+      if (!a) return { screen: 'reach' };
+      const tab = PLACE_TABS.find((t) => t === b);
+      return tab && tab !== 'about' ? { screen: 'reach', id: a, tab } : { screen: 'reach', id: a };
+    }
     case 'plan':
       return a ? { screen: 'plan', locationId: a } : { screen: 'reach' };
     case 'run':
@@ -93,7 +100,7 @@ export function routeHash(route: Route): string {
     case 'building':
       return `#/b/${enc(route.id)}`;
     case 'reach':
-      return route.id ? `#/reach/${enc(route.id)}` : '#/reach';
+      return route.id ? `#/reach/${enc(route.id)}${route.tab ? `/${route.tab}` : ''}` : '#/reach';
     case 'plan':
       return `#/plan/${enc(route.locationId)}`;
     case 'run':

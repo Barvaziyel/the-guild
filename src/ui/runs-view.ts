@@ -204,6 +204,18 @@ export function locationView(state: GameState, id: string): LocationView {
   };
 }
 
+/** The line under a place's facts: visits, roads on, and what exploring it fully opens. */
+export function placeNote(v: LocationView, fullyExplored: boolean): string {
+  return [
+    v.runs === 0 ? 'Nobody from the guild has been here yet.' : `The guild has been here ${v.runs === 1 ? 'once' : `${v.runs} times`}.`,
+    v.leadsTo.length > 0 ? `Roads lead on to ${joinNames(v.leadsTo.map((l) => l.name))}.` : '',
+    v.unknownLeads > 0 ? `${v.unknownLeads === 1 ? 'One road leads' : `${v.unknownLeads} roads lead`} somewhere nobody has found yet.` : '',
+    fullyExplored ? '' : 'Explore the outskirts fully to open the way deeper in, and to set up an outpost.',
+  ]
+    .filter(Boolean)
+    .join(' ');
+}
+
 // ---------------------------------------------------------------- crews out
 
 /** First names of a run's crew as they left. */

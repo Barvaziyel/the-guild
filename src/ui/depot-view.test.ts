@@ -125,7 +125,7 @@ describe('while you were away', () => {
     state.log.push({ day: 2, text: 'The crew returned from X.', tags: ['run'] }, { day: 2, text: 'A stray dog nosed around.', tags: ['animal'] });
     assert.equal(depotNews(state)[0]!.text, 'A stray dog nosed around.');
     assert.ok(!depotNews(state).some((n) => n.text.includes('returned')));
-    assert.deepEqual(homeCounts(state), { home: 4, out: 0, beds: 4, cap: 4 });
+    assert.deepEqual(homeCounts(state), { home: 4, out: 0, outposts: 0, beds: 4, cap: 4 });
   });
 });
 

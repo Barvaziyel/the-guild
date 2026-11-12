@@ -18,6 +18,7 @@ describe('routes', () => {
       { screen: 'runs' },
       { screen: 'reach' },
       { screen: 'reach', id: 'maple_street' },
+      { screen: 'reach', id: 'maple_street', tab: 'outpost' },
       { screen: 'plan', locationId: 'the_glow' },
       { screen: 'run', id: 'r14' },
       { screen: 'survivor', id: 's3', tab: 'stats' },

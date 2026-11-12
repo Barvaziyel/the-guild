@@ -23,6 +23,8 @@ import {
   REL_RUN_PER_AFFINITY,
   STRESS_PER_DANGER_BEAT,
   STRESS_RIVAL_PER_BEAT,
+  OUTPOST_REST_HP,
+  OUTPOST_REST_STRESS,
   VEHICLE_KNOCKS,
   VEHICLE_NOISE_CAP,
   WALK_HOME_SHARE,
@@ -79,6 +81,8 @@ import {
 } from './context.ts';
 import { tryEvent } from './events.ts';
 import { footDuration, hungryCrew, rationsPacked, runDuration } from './plan.ts';
+import { atDepth, planDepth } from '../locations.ts';
+import { outpostNear } from '../outposts.ts';
 import { seating } from '../vehicles.ts';
 import { earnNickname, nameWeapon, nemesisNewsList, takenNames } from './stories.ts';
 import { resolveWounds } from './wounds.ts';
@@ -389,7 +393,9 @@ export interface SimulatedRun {
  * cloned, and the outcome is returned for startRun/completeRun to apply.
  */
 export function simulateRun(state: GameState, plan: RunPlan, seed: string, departAt: number): SimulatedRun {
-  const loc = getLocation(plan.locationId);
+  // Deeper levels are the same place, only more dangerous (§7.10).
+  const loc = atDepth(getLocation(plan.locationId), planDepth(plan));
+  const restStop = outpostNear(state, plan.locationId);
   const rng = new Rng(`run:${seed}`);
   const duration = runDuration(state, plan);
 
@@ -501,6 +507,14 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
   if (sim.walkingFrom !== undefined && outcome !== 'lost') {
     say(sim, sim.members.length === 1 ? 'It is a long way on foot.' : 'It is a long way on foot, and nobody talks much.', { tone: 'bad' });
     for (const m of alive(sim)) stress(sim, m, WALK_HOME_STRESS, 'the long walk home');
+  } else if (restStop && outcome !== 'lost') {
+    // A rest stop at the guild's outpost on the way home (§7.9).
+    const where = getLocation(restStop.locationId).name;
+    say(sim, sim.members.length === 1 ? `${sim.members[0]!.s.firstName} stops at the outpost at ${where} to rest and get patched up.` : `The crew stops at the outpost at ${where} to rest and get patched up.`, { tone: 'good' });
+    for (const m of alive(sim)) {
+      m.s.hp = Math.min(maxHp(m.s), m.s.hp + OUTPOST_REST_HP);
+      stress(sim, m, -OUTPOST_REST_STRESS);
+    }
   }
   // Every run wears a vehicle down.
   const vehicleNews: VehicleNews[] = sim.rides.map((r) => {
