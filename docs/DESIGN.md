@@ -220,14 +220,14 @@ The Reach is a map of locations connected around the Depot. Each location has:
 - **Biome:** Ruined Suburb, Drowned Mall, Hospital, Rail Yard, Military Checkpoint, Irradiated Swamp, Water Plant, Radio Station and others
 - **Danger** from 1 to 5, **radiation** from 0 to 3, and **distance**, which sets the run duration
 - an enemy table, a loot table and an event deck
-- **Explored, 0–100%.** Each finished run explores more of the location: Scout 10–15%, Scavenge 4–6%, Hunt 2–4% (half if the crew turns back). At 100%, the player can build an **outpost** there (phase 2). Deeper areas with more danger and better loot are a phase 2 idea.
+- **Explored, 0–100%.** Each finished run explores more of the location: Scout 10–15%, Scavenge 4–6%, Hunt 2–4% (half if the crew turns back). Fully exploring the outskirts opens the way **deeper in** (§7.10) and lets the guild set up an **outpost** there (§7.9).
 - **Discovered or hidden.** Each location lists the places it leads to. Discovery beats reveal them, and Scout runs find them three times as often. The Radio Tower and events can reveal them too.
 
 The guild starts with 3 known locations (The Rail Yard, Maple Street, Kessler Farm). There are 12 in all, from danger 1 up to The Glow at danger 5.
 
 ### 7.2 Planning a run
 
-1. **Location**
+1. **Location**, and **how far in** once a deeper level is open (§7.10)
 2. **Vehicles**, if the guild has any (§7.8), and a **crew**: 1–4 ready survivors on foot, or as many as the vehicles seat
 3. **Job:**
    - Scavenge: loot
@@ -380,6 +380,39 @@ This is how crews grow past four, and how the guild moves faster and hauls more.
 - **Stolen in raids.** A broken raid drives off a vehicle parked at home 40% of the time (half with a Watchtower, half again more with nobody home).
 - **Leaving people home** (§9.3): the planner warns when fewer than three would be left to hold the fence. A thin fence is easier to break, an empty Depot draws raiders, and raiders who get in take more.
 
+### 7.9 Outposts (1.6.0)
+
+Expansion: camps out in the Reach that extend what the guild can reach and bring home.
+
+- **Setting one up.** A place's outskirts must be fully explored. The **Radio Tower** keeps outposts in contact, one per level (so up to three), and an outpost costs 40 scrap and 6 tech. It's set up at once, from the place's *Outpost* tab on the Reach.
+- **Who lives there.** Up to 3 people. Moving out takes away their Depot post; they can come home any time, from the outpost or their sheet, and the Chronicle notes both. While they live out there they:
+  - don't eat from the Depot's rations, work a post, go on runs, change gear, or hold the Depot's fence;
+  - heal 10% of their health a day, rest as at the Depot (more beside a Bonded friend or their partner), and get to know each other and can fall for each other like coworkers;
+  - each send home 1–2 supplies a day at danger 1, 2–3 at danger 2–3, 3–4 at danger 4–5, drawn from the place's loot table, and practice Wits doing it. Someone resting until healed sends nothing.
+  - Moving people out is also a way to separate two who are fighting at the Depot.
+- **Shorter runs.** A run to the place, or to any place next to it on the roads, sets out from the outpost and takes half the time (and half the gas).
+- **A rest stop.** A crew heading home from a run there or next door stops at the outpost: +2 HP and −8 stress each (not a crew walking home from a wreck, or a lost run).
+- **Raids.** Each day an outpost is raided with a chance of 0.5% + 0.5% × danger. Its people hold it on d10 + the best Aim among them + 1 for each other fit person, against 7 + danger.
+  - **Held:** Aim practice, +5 stress each.
+  - **Broken:** +10 stress each and one is Wounded. The outpost is **damaged** and sends home half until it's mended (15 scrap). Broken again while damaged, it **burns**: it's gone, and its people come home.
+  - An empty outpost can't be held, so it's damaged by the first raid and burns at the second.
+  - Measured over 120 days with no mending: three people at Maple Street lost it 0% of the time; three at Checkpoint Bravo 22%; nobody at all, 37–84%.
+- **Where they show:** a flag on the map (torn while damaged), a tag in the list of places, the Depot's *Out in the Reach* panel, the header count ("2 at the outpost"), the yard's list of who's away, the roster and sheet ("At the outpost at Maple Street"), and the sheet's post picker, which lists the outposts.
+
+### 7.10 Deeper in (1.6.0)
+
+Each place has three levels: **the outskirts**, **deeper in** and **the heart of it**. A level opens when the one before it is fully explored, and runs explore the level they went to.
+
+| Level | Danger | Takes | Loot | Chance of gear |
+|---|---|---|---|---|
+| The outskirts | as listed | as listed | ×1 | ×1 |
+| Deeper in | +1 | +25% | ×1.5 | ×1.5 |
+| The heart of it | +2 | +50% | ×2 | ×2 |
+
+- Danger past 5 is possible deep in the worst places.
+- Measured with crews of 4 at the Drowned Mall: deaths 1 in 200 runs at the outskirts, 1 in 38 deeper in, 1 in 29 at the heart. Loot per run 11.8, 15.6 and 13.9, because crews turn back more deep in; gear 0.27, 0.35, 0.39 a run. Deeper is for strong, well-equipped crews.
+- The news says when each level is fully explored, and the place's *About* tab lists the levels with their danger and progress. The planner offers only open levels.
+
 ## 8. Gear
 
 Every survivor has four slots: **Weapon · Armor · Tool · Trinket**
@@ -425,7 +458,7 @@ The Depot plays one **Depot day** for every game day that passes (§11). Each da
 | Firepit → Bar | Level 1 | −5 stress a day | Bar: −8, people warm to each other (30 scrap, 2 tech) | Bar and Stage: −12, warm faster (60 scrap, 6 tech) | Nerve |
 | Infirmary | — | 25 scrap, 2 tech | 45 scrap, 5 tech | 70 scrap, 10 tech | Wits |
 | Workshop | — | Basic gear, ammo (30 scrap) | Guns, armor, instruments, Prime upgrades (50 scrap, 5 tech) | Makes Solid gear (80 scrap, 12 tech) | Wits |
-| Radio Tower | — | +1 recruit, stats known (30 scrap, 5 tech) | +2, better recruits (50, 10) | +3, the best (80, 15) | Wits |
+| Radio Tower | — | +1 recruit, stats known, one outpost (30 scrap, 5 tech) | +2, better recruits, two outposts (50, 10) | +3, the best, three outposts (80, 15) | Wits |
 | Watchtower | — | Raid defense, halves losses (25 scrap) | Stronger (45 scrap, 3 tech) | Strongest (70 scrap, 8 tech) | Aim |
 | Training Yard | — | 2 practice a day (20 scrap) | 3 (40 scrap, 3 tech) | 4 (60 scrap, 8 tech) | Any stat |
 
@@ -498,14 +531,15 @@ At most one event a day (a 20% chance), weighted:
    - The map is a page of the journal: ink roads on paper, markers numbered and colored by danger, a ring that fills as a place is explored, and a badge where a crew is out.
    - A question mark sits at the end of each road to somewhere not yet found. Tapping it says where to scout.
    - Below the map: the picked place's details, and a list of every known place.
+   - Since 1.6.0 the picked place has two tabs: **About** (its facts, the levels once deeper in is open, and *Plan a run*) and **Outpost** (what an outpost does and what stands in the way, or who lives there, *Bring home*, *Send someone to live here*, what it sends home, and *Mend*). The map flags outposts, and the list of places tags them and shows the deepest level's progress.
    - Map positions live in the UI (`src/ui/reach-map.ts`), not in the location data. A test checks that every location has a spot.
-5. **Run planner** (§7.2). *Built (PR 6):* crew (with why anyone can't go), job, meds and ammo, approach, when to pull out, and what to keep first. Below that: time away and when they're back, problems that stop the run, warnings, and the simulated risk, worked out once the plan stops changing. A bar at the bottom keeps the risk and the *Send the crew* button in reach.
+5. **Run planner** (§7.2). *Built (PR 6):* crew (with why anyone can't go), how far in (1.6.0, once a deeper level is open), job, meds and ammo, approach, when to pull out, and what to keep first. Below that: time away and when they're back, problems that stop the run, warnings, and the simulated risk, worked out once the plan stops changing. A bar at the bottom keeps the risk and the *Send the crew* button in reach.
 6. **Runs:** crews out now (last thing heard, progress, back in how long) and the last 20 reports, new ones marked. *Built (PR 6).*
    - **A crew that is out:** a countdown, and the log so far, revealed beat by beat as time passes.
    - **Run report:** what came home, deaths, places found, the beat-by-beat log with the dice under each line, then what changed for each person. For example: *"Mara gained Rad-Hardened"*, *"Dex & Ava are now Friends"*, and the loot. It opens in place of the countdown when the crew gets back.
 7. **Memorial Wall:** faded portraits with the day and cause of death; tap one for their sheet and Chronicle. Opened from the bottom of the roster. *Built (PR 5).*
 8. **Settings:** mercy mode, notices when crews come back, portrait wobble, the tour, export and import save, load the backup copy, start a new guild, developer shortcuts and fast-forward (§11, §13). *Built (PR 5, 6, 10).*
-9. **The tour** (PR 10). A new guild starts with it, and Settings can show it again. A card pinned above the tab bar walks through 24 short steps in 7 parts: supplies, food, your people, runs, building, recruits, and time. Each step opens its screen and outlines what it's talking about, with live numbers where they help (what the Garden grows, what the first buildings cost). *Next*, *Skip this part* and *Skip tour* are always there. Opening the game mid-tour (from a notice, say) stays where it opened; the next step moves on from there.
+9. **The tour** (PR 10). A new guild starts with it, and Settings can show it again. A card pinned above the tab bar walks through 25 short steps in 7 parts: supplies, food, your people, runs, building, recruits, and time. Each step opens its screen and outlines what it's talking about, with live numbers where they help (what the Garden grows, what the first buildings cost). *Next*, *Skip this part* and *Skip tour* are always there. Opening the game mid-tour (from a notice, say) stays where it opened; the next step moves on from there.
 10. **Gear** (1.1.1). The stash by slot (weapons, armor, tools, trinkets), each piece with a *Give* button that lists everyone: those at the Depot can take it, those out on a run can't yet. Below, what each person carries; tap someone for their sheet. Opened from the Depot's Gear panel, from the stash line on a survivor's sheet, and from a run report that found gear.
 11. **Vehicles** (1.4.0). Each vehicle with what it does, a condition bar, where it is, and *Repair* with its cost; below, what the Workshop can build. Opened from the Depot's Vehicles panel (which says what the guild has, or how to get one), the Workshop and a report that found one. The planner lists the vehicles above the crew, with seats, condition, and the gas the trip needs; the crew limit follows the seats. Reports say what became of each vehicle taken. The resource bar shows gas, in two rows of three on a phone.
 12. **The yard** (1.5.0). A tab on the Depot screen (Today, Yard, Buildings, News) with the Depot drawn as it is right now, in the portraits' style.
@@ -610,7 +644,7 @@ Planned 2026-11-11, in this order, all on Opus:
 | 12 | Partners: romance (§5.1) | **done** (1.3.0) |
 | 13 | Vehicles and gas (§7.8) | **done** (1.4.0) |
 | 14 | The yard: a drawing of the Depot with everyone in it (§12) | **done** (1.5.0) |
-| 15 | Expansion: outposts and deeper areas | |
+| 15 | Expansion: outposts and deeper areas (§7.9, §7.10) | **done** (1.6.0) |
 | 16 | What's missing: rescue jobs, feuds that make someone quit, pets, **ageing and babies**, the last gear drawings | |
 | 17 | The Vultures, a rival guild | |
 
@@ -626,7 +660,7 @@ Planned 2026-11-11, in this order, all on Opus:
   - Big crews leave **fewer people at home**. Before 1.4.0 an empty Depot only lost a little more in a raid; now a thin fence is easier to break, draws raiders, loses more, and can lose a vehicle.
   - *Built in 1.4.0 as §7.8.*
 - **The yard** (step 14, asked for 2026-11-11). A drawing of the Depot on a tab of its own: the buildings as they are, everyone at home where they are (at their posts, around the fire, resting on cots), recruits outside the gate, a trader's cart, the vehicles parked in the yard, and the light of the time of day. Tap anything to see what it is and open it. A view only: nothing in the game changes.
-- **Expansion.** Outposts on fully explored places extend the guild's reach (the Civ-style expansion). Places get deeper, more dangerous areas with better loot.
+- **Expansion.** Outposts on fully explored places extend the guild's reach (the Civ-style expansion). Places get deeper, more dangerous areas with better loot. Decided 2026-11-12: outposts send supplies home every day, shorten runs nearby, are a rest stop on the way home, and can be raided; people live there and can be swapped out any time; deeper levels open by exploring; the Radio Tower's level sets how many outposts. *Built in 1.6.0 as §7.9 and §7.10.*
 - **Ageing** (part of step 16, asked for 2026-11-11, alongside babies). Everyone gets older in game time: a year every 365 game days, which is about 45 real days.
   - Ages are fixed today. The portrait already greys hair by age, so faces would age on their own.
   - To settle when building it:

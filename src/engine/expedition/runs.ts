@@ -8,7 +8,7 @@ import { buildingName, trimPosts } from '../depot/buildings.ts';
 import { ENEMIES, getLocation } from '../content/index.ts';
 import { dayAt, withRng } from '../game.ts';
 import { newId } from '../ids.ts';
-import { ensureLocationState } from '../locations.ts';
+import { addExplored, ensureLocationState, exploredAt, planDepth } from '../locations.ts';
 import { arePartners, pairKey, relationshipLabel } from '../relationships.ts';
 import { Rng } from '../rng.ts';
 import { changeStress } from '../stats.ts';
@@ -180,7 +180,17 @@ export function completeRun(state: GameState, runId: string, now: number): RunRe
 
   const here = ensureLocationState(state, loc.id);
   here.runs += 1;
-  here.explored = Math.min(100, here.explored + result.exploredGain);
+  const depth = planDepth(run.plan);
+  const before = exploredAt(state, loc.id, depth);
+  addExplored(state, loc.id, depth, result.exploredGain);
+  if (before < 100 && exploredAt(state, loc.id, depth) >= 100) {
+    const text = [
+      `The outskirts of ${loc.name} are fully explored. The way deeper in is open, and the guild could set up an outpost here.`,
+      `${loc.name} is explored deep in. The way to the heart of it is open.`,
+      `The heart of ${loc.name} is fully explored. There is nowhere further in.`,
+    ][depth - 1]!;
+    addGuildLog(state, day, text, ['explored', loc.id]);
+  }
   for (const id of result.discovered) {
     const found = ensureLocationState(state, id);
     if (found.discovered) continue;

@@ -76,7 +76,7 @@ export function App() {
       screen = <SurvivorSheet state={s} id={route.id} tab={route.tab} day={day} now={now} />;
       break;
     case 'reach':
-      screen = <Reach state={s} {...(route.id ? { selected: route.id } : {})} />;
+      screen = <Reach state={s} {...(route.id ? { selected: route.id } : {})} {...(route.tab ? { tab: route.tab } : {})} />;
       break;
     case 'plan':
       screen = <Planner key={route.locationId} state={s} locationId={route.locationId} />;

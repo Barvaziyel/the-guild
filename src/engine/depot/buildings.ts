@@ -3,7 +3,7 @@
  */
 import { addGuildLog } from '../chronicle.ts';
 import { BUNKS_CAP, MAX_BUILDING_LEVEL, WORKER_SLOTS } from '../constants.ts';
-import { BUILDINGS, getTrait, type BuildingDef, type BuildingLevel } from '../content/index.ts';
+import { BUILDINGS, getLocation, getTrait, type BuildingDef, type BuildingLevel } from '../content/index.ts';
 import { statName } from '../stats.ts';
 import type { BuildingId, GameState, Post, ResourceId, Resources, StatId, Survivor } from '../types.ts';
 import { BUILDING_IDS, RESOURCE_IDS, STAT_IDS } from '../types.ts';
@@ -86,7 +86,7 @@ export function hasFreeBunk(state: GameState): boolean {
 
 /** At the Depot today (not out on a run). */
 export function atDepot(s: Survivor): boolean {
-  return s.status === 'ready';
+  return s.status === 'ready' && s.outpost === undefined;
 }
 
 /** At the Depot and fit to work (serious wounds keep people in bed). */
@@ -159,11 +159,13 @@ export function postProblem(state: GameState, survivorId: string, post: Post): s
 
 /**
  * Give a survivor a post, or take it away with `undefined`. A survivor out on a
- * run can be given one; they start when they're back. Throws if it can't be done.
+ * run can be given one; they start when they're back. Someone living at an
+ * outpost has to come home first. Throws if it can't be done.
  */
 export function assignPost(state: GameState, survivorId: string, post: Post | undefined): void {
   const s = state.survivors.find((x) => x.id === survivorId);
   if (!s) throw new Error(`Unknown survivor: ${survivorId}`);
+  if (post && s.outpost) throw new Error(`${s.firstName} lives at the outpost at ${getLocation(s.outpost).name}.`);
   if (!post) {
     delete s.post;
     return;

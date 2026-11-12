@@ -269,6 +269,8 @@ export interface Survivor {
   causeOfDeath?: string;
   /** Their job at the Depot, done on days they're home and fit. */
   post?: Post;
+  /** Living at the guild's outpost at this place (§7.9), not at the Depot. */
+  outpost?: string;
 }
 
 // ---------------------------------------------------------------- relationships
@@ -309,6 +311,8 @@ export interface RunPlan {
   lootPriority?: ResourceId;
   /** Vehicle ids. Missing or empty: the crew walks. */
   vehicles?: string[];
+  /** How far in: 1 the outskirts (missing means 1), 2 deeper in, 3 the heart of it (§7.10). */
+  depth?: number;
 }
 
 export type BeatKind = 'depart' | 'travel' | 'scavenge' | 'hazard' | 'combat' | 'social' | 'discovery' | 'return';
@@ -472,9 +476,19 @@ export interface RunReport {
 
 export interface LocationState {
   discovered: boolean;
-  /** 0..100 */
+  /** 0..100: the outskirts, the first level. */
   explored: number;
   runs: number;
+  /** Explored 0..100 of the deeper levels (§7.10): [deeper in, the heart of it]. Missing until the first is opened. */
+  depths?: number[];
+}
+
+/** A camp the guild keeps at a fully explored place (§7.9). Its people are survivors with `outpost` set to the place. */
+export interface Outpost {
+  locationId: string;
+  builtDay: number;
+  /** Raided and broken into: it sends home half until repaired, and burns if it happens again. */
+  damaged: boolean;
 }
 
 // ---------------------------------------------------------------- the Depot
@@ -591,6 +605,8 @@ export interface GameState {
   nemeses: Nemesis[];
   /** Vehicles the guild owns, at home or out (§7.8). */
   vehicles: Vehicle[];
+  /** Outposts at fully explored places (§7.9). */
+  outposts: Outpost[];
   log: GuildLogEntry[];
   settings: {
     mercyMode: boolean;

@@ -110,6 +110,7 @@ export function newGame(opts: NewGameOptions): GameState {
     eventsSeen: {},
     nemeses: [],
     vehicles: [],
+    outposts: [],
     log: [],
     settings: { mercyMode: false },
   };

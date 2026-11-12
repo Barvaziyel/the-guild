@@ -100,7 +100,7 @@ export function findGearWithHook(s: Survivor, key: FlagGearHook): ItemInstance |
  * swapping items in the meantime would duplicate or lose them.
  */
 export function canChangeGear(s: Survivor): boolean {
-  return s.status === 'ready';
+  return s.status === 'ready' && s.outpost === undefined;
 }
 
 /**

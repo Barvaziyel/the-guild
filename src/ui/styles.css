@@ -1424,6 +1424,116 @@ li:nth-child(even) .pinned {
   text-align: left;
 }
 
+/* A place's tabs, and its levels and outpost. */
+
+.place-tabs {
+  margin: 0.875rem -1rem 0;
+}
+
+.tab-mark {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-left: 0.375rem;
+  border-radius: 50%;
+  background: var(--rust-hi);
+  vertical-align: 0.1em;
+}
+
+.tab-mark.is-damaged {
+  background: var(--blood-hi);
+}
+
+.levels {
+  margin-top: 1rem;
+}
+
+.levels-title {
+  margin-top: 1rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--bone-2);
+}
+
+.levels-title .count {
+  font-weight: 400;
+  margin-left: 0.375rem;
+}
+
+.levels ul {
+  display: grid;
+  margin-top: 0.25rem;
+}
+
+.level {
+  display: grid;
+  grid-template-columns: 8.5rem 1fr;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  font-size: 0.9375rem;
+}
+
+.level + .level {
+  border-top: 1px solid var(--line);
+}
+
+.level-name {
+  font-weight: 700;
+}
+
+.level.is-locked {
+  color: var(--bone-3);
+}
+
+.place-tag {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0 0.375rem;
+  border: 1.5px solid var(--rust-hi);
+  border-radius: 3px;
+  color: var(--rust-hi);
+  font-size: 0.75rem;
+  font-weight: 700;
+  vertical-align: 0.15em;
+}
+
+.place-tag.is-damaged {
+  border-color: var(--blood-hi);
+  color: var(--blood-hi);
+}
+
+.outpost {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.875rem;
+}
+
+.outpost > .place-desc,
+.outpost > .place-note {
+  margin-top: 0;
+}
+
+.outpost > .btn {
+  justify-self: start;
+}
+
+.outpost-state {
+  font-weight: 700;
+  color: var(--sage);
+}
+
+.outpost-state.is-damaged {
+  color: var(--blood-hi);
+}
+
+.outpost-help {
+  margin-top: 0.5rem;
+}
+
+.link-row.is-warning {
+  color: var(--blood-hi);
+}
+
 /* ---------------------------------------------------------------- planner */
 
 .planner {
@@ -2194,6 +2304,12 @@ li:nth-child(even) .pinned {
 
 .post-field .select-field {
   margin-top: 0;
+}
+
+.outpost-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 1.25rem;
 }
 
 /* the gate */

@@ -6,7 +6,7 @@
 import type { Quality, RelationshipLabel, Resources } from './types.ts';
 
 /** Save format version. Bump together with a migration in save.ts. */
-export const SAVE_VERSION = 11;
+export const SAVE_VERSION = 12;
 
 // ---------------------------------------------------------------- time
 
@@ -381,3 +381,30 @@ export const RAID_EMPTY_WEIGHT = 2;
 export const TRADER_VEHICLE_CHANCE = 0.1;
 /** Weight of finding a wreck to get running, among a discovery beat's outcomes, where a place has wrecks. */
 export const WRECK_FIND_WEIGHT = 0.5;
+
+// ---------------------------------------------------------------- outposts and depths (roadmap step 15, §7.9, §7.10)
+
+/** What an outpost costs to set up. */
+export const OUTPOST_COST = { scrap: 40, tech: 6 } as const;
+/** And to mend after a raid. */
+export const OUTPOST_REPAIR = { scrap: 15 } as const;
+/** How many people can live at one. */
+export const OUTPOST_STAFF = 3;
+/** Runs to the place or a place next to it start from the outpost: this share of the time. */
+export const OUTPOST_SHORTCUT = 0.5;
+/** A crew stopping at an outpost on the way home sheds this stress and heals this much. */
+export const OUTPOST_REST_STRESS = 8;
+export const OUTPOST_REST_HP = 2;
+/** Each person living there heals this share of their health a day (there's no Infirmary). */
+export const OUTPOST_HEAL = 0.1;
+/** Raiders hit an outpost with this chance a day: base, plus per point of danger. */
+export const OUTPOST_RAID_BASE = 0.005;
+export const OUTPOST_RAID_PER_DANGER = 0.005;
+/** d10 + the best Aim there + 1 for each other person against this + danger. */
+export const OUTPOST_RAID_DC = 7;
+/** Deeper levels: +1 danger, this much longer, and this much likelier to turn up gear, per level down. */
+export const DEPTH_DURATION = 0.25;
+export const DEPTH_GEAR = 0.5;
+/** And this much more of every find, per level down. */
+export const DEPTH_LOOT = 0.5;
+export const DEPTHS = 3;

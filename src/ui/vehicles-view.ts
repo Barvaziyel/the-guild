@@ -130,6 +130,6 @@ export function vehicleNote(state: GameState, plan: RunPlan): string {
   const picked = plan.vehicles ?? [];
   if (picked.length === 0) return `On foot, a crew is up to ${crewLimit(state, plan)}. Vehicles seat more and get there faster, but burn gas and draw trouble.`;
   const gas = gasNeeded(state, plan);
-  const legs = gasLegs(plan.locationId);
+  const legs = gasLegs(state, plan);
   return `Seats ${crewLimit(state, plan)}. ${gas} gas there and back (${legs} ${legs === 1 ? 'leg' : 'legs'}), of ${state.resources.gas} at the Depot.`;
 }

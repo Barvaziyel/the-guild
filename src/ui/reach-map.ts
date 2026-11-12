@@ -67,6 +67,8 @@ export interface MapNode {
   explored: number;
   /** Crews out here now. */
   crewsOut: number;
+  /** The guild's outpost here, if it has one. */
+  outpost?: 'ok' | 'damaged';
 }
 
 export interface MapRoad {
@@ -115,7 +117,13 @@ export function reachMap(state: GameState): ReachMap {
       radiation: loc.radiation,
       explored: here.explored,
       crewsOut: state.runs.filter((r) => r.plan.locationId === loc.id).length,
+      ...outpostMark(state, loc.id),
     });
   }
   return { nodes, roads };
+}
+
+function outpostMark(state: GameState, id: string): { outpost?: 'ok' | 'damaged' } {
+  const o = state.outposts.find((x) => x.locationId === id);
+  return o ? { outpost: o.damaged ? 'damaged' : 'ok' } : {};
 }

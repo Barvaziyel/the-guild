@@ -36,7 +36,8 @@ import { adjustRelationship, arePartners, becomePartners, relationshipLabel, rom
 import type { Rng } from '../rng.ts';
 import { addPractice, changeStress, effectiveStat, maxHp } from '../stats.ts';
 import { expireConditions, maxTraitHook, mulTraitHook, removeTrait } from '../traits.ts';
-import type { GameState, GuildLogEntry, Survivor } from '../types.ts';
+import type { GameState, GuildLogEntry, Resources, Survivor } from '../types.ts';
+import { playOutpostsDay } from '../outposts.ts';
 import { atDepot, buildingLevel, postStat, workingAt } from './buildings.ts';
 
 /** What happened over one or more Depot days, for the "while you were away" note. */
@@ -50,10 +51,12 @@ export interface DepotSummary {
   cured: number;
   /** Guild log entries written while these days were played. */
   news: GuildLogEntry[];
+  /** What the outposts sent home. */
+  outposts: Partial<Resources>;
 }
 
 export function emptySummary(): DepotSummary {
-  return { days: 0, grown: 0, eaten: 0, hungryDays: 0, ammoMade: 0, healed: 0, cured: 0, news: [] };
+  return { days: 0, grown: 0, eaten: 0, hungryDays: 0, ammoMade: 0, healed: 0, cured: 0, news: [], outposts: {} };
 }
 
 /** Round a fractional amount up or down at random, so 2.3 is 3 about a third of the time. */
@@ -78,8 +81,9 @@ export function dailyUpkeep(state: GameState): number {
 }
 
 /** Rations the whole guild eats in a day once everyone is home: what the Garden has to keep up with. */
+/** Rations the guild eats in a day. People at the outposts live off the land there. */
 export function guildUpkeep(state: GameState): number {
-  return sum(state.survivors.map(rationsADay));
+  return sum(state.survivors.filter((s) => s.outpost === undefined).map(rationsADay));
 }
 
 function rationsADay(s: Survivor): number {
@@ -154,6 +158,9 @@ export function playDepotDay(state: GameState, day: number, rng: Rng, summary: D
     const bondedAtDepot = home.some((o) => o.id !== s.id && relationshipLabel(state, s.id, o.id) === 'bonded');
     applyEvolutions(s, { when: 'depotDay', rng, day, bondedAtDepot });
   }
+
+  // Out at the outposts.
+  playOutpostsDay(state, day, rng, summary.outposts);
   summary.days += 1;
 }
 

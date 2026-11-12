@@ -33,6 +33,7 @@ import {
   toggleCrew,
 } from '../runs-view.ts';
 import { errorMessage } from '../persist.ts';
+import { depthChoices, outpostPlanNote, withDepth } from '../outposts-view.ts';
 import { toggleVehicle, vehicleChoices, vehicleNote } from '../vehicles-view.ts';
 import { clockTime } from '../time.ts';
 
@@ -74,6 +75,8 @@ function PlannerForm({ state, locationId }: { state: GameState; locationId: stri
   };
   const limit = crewLimit(state, plan);
   const vehicles = vehicleChoices(state);
+  const depths = depthChoices(state, locationId);
+  const fromOutpost = outpostPlanNote(state, plan);
   const toggle = (id: string): void => {
     const crew = toggleCrew(plan.crew, id, limit);
     change(ammoTouched ? { crew } : { crew, ammo: suggestedAmmo(state, crew) });
@@ -111,7 +114,7 @@ function PlannerForm({ state, locationId }: { state: GameState; locationId: stri
           {loc.name}
         </h2>
         <p className="place-facts">
-          {dangerText(loc.danger)}, {radiationText(loc.radiation).toLowerCase()}, about {formatDuration(loc.durationMin * 60_000)}.
+          {dangerText(loc.danger)}, {radiationText(loc.radiation).toLowerCase()}, about {formatDuration(loc.durationMin * 60_000)} on foot.
         </p>
       </header>
 
@@ -166,6 +169,12 @@ function PlannerForm({ state, locationId }: { state: GameState; locationId: stri
           })}
         </ul>
       </section>
+
+      {depths.length > 0 && (
+        <section className="panel" data-tour="depth">
+          <ChoiceList legend="How far in" name="depth" choices={depths} value={String(plan.depth ?? 1)} onChange={(d) => setPlan((p) => withDepth(p, Number(d)))} />
+        </section>
+      )}
 
       <section className="panel">
         <ChoiceList legend="Job" name="job" choices={JOBS} value={plan.job} onChange={(job) => change({ job })} />
@@ -228,6 +237,7 @@ function PlannerForm({ state, locationId }: { state: GameState; locationId: stri
             <p>
               Away for {formatDuration(duration)}, back at {clockTime(now + duration)}.
             </p>
+            {fromOutpost && <p className="panel-help">{fromOutpost}</p>}
             {problems.length > 0 && (
               <ul className="problems">
                 {problems.map((p) => (

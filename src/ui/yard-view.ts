@@ -71,7 +71,7 @@ function idleOrder(state: GameState, idle: Survivor[]): Survivor[] {
 /** The Depot as the drawing shows it, at the hour on the player's clock. */
 export function yardModel(state: GameState, hour: number, day?: number): YardModel {
   const people: YardPerson[] = [];
-  const home = state.survivors.filter((s) => s.status === 'ready');
+  const home = state.survivors.filter((s) => s.status === 'ready' && s.outpost === undefined);
 
   // On their cots.
   const infirmary = buildingLevel(state, 'infirmary') > 0;
@@ -129,10 +129,18 @@ export function buildingCaption(state: GameState, id: BuildingId): string {
   return `${name}, level ${level}.${crew}`;
 }
 
-/** Who's out, so an empty yard makes sense: "Rhea and Cal are at Maple Street, back at 9:40 PM." */
+/**
+ * Who's out, so an empty yard makes sense: "Rhea and Cal are out at Maple
+ * Street, back at 9:40 PM." and "Ava lives at the outpost at the Rail Yard."
+ */
 export function awayLines(state: GameState): string[] {
-  return state.runs.map((run: Run) => {
+  const runs = state.runs.map((run: Run) => {
     const names = run.plan.crew.map((id) => state.survivors.find((s) => s.id === id)?.firstName).filter((n): n is string => n !== undefined);
     return `${joinNames(names)} ${names.length === 1 ? 'is' : 'are'} out at ${getLocation(run.plan.locationId).name}, back at ${clockTime(run.returnAt)}.`;
   });
+  const outposts = state.outposts.flatMap((o) => {
+    const names = state.survivors.filter((s) => s.outpost === o.locationId).map((s) => s.firstName);
+    return names.length === 0 ? [] : [`${joinNames(names)} ${names.length === 1 ? 'lives' : 'live'} at the outpost at ${getLocation(o.locationId).name}.`];
+  });
+  return [...runs, ...outposts];
 }

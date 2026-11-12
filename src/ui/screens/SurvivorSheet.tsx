@@ -3,7 +3,11 @@ import {
   NAME_MAX_LENGTH,
   SLOTS,
   assignPost,
+  bringHome,
+  dayAt,
   getLocation,
+  pronounForms,
+  station,
   canChangeGear,
   equipFromStash,
   getSurvivor,
@@ -16,6 +20,7 @@ import {
   type Survivor,
 } from '../../engine/index.ts';
 import { postChoices } from '../depot-view.ts';
+import { outpostChoices } from '../outposts-view.ts';
 import { BondBar, Meter, Vitals } from '../components/Bars.tsx';
 import { ItemDetails } from '../components/ItemDetails.tsx';
 import { scoresToSettle } from '../stories-view.ts';
@@ -170,18 +175,28 @@ function SheetHeader({ state, survivor: s, day, now }: { state: GameState; survi
   );
 }
 
-/** Their job at the Depot. */
+/** Their job at the Depot, or the outpost they live at. */
 function PostPicker({ state, survivor: s }: { state: GameState; survivor: Survivor }) {
   const { act, error } = useAction();
   const choices = postChoices(state, s);
+  const outposts = outpostChoices(state, s);
+  const value = s.outpost ? `outpost:${s.outpost}` : (s.post?.building ?? '');
+  const pick = (v: string): void => {
+    act((st) => {
+      const day = dayAt(st, Date.now());
+      if (v.startsWith('outpost:')) {
+        station(st, s.id, v.slice('outpost:'.length), day);
+        return;
+      }
+      if (s.outpost) bringHome(st, s.id, day);
+      assignPost(st, s.id, v ? { building: v as BuildingId } : undefined);
+    });
+  };
   return (
     <div className="post-field">
       <label className="field select-field">
-        Post at the Depot
-        <select
-          value={s.post?.building ?? ''}
-          onChange={(e) => act((st) => assignPost(st, s.id, e.target.value ? { building: e.target.value as BuildingId } : undefined))}
-        >
+        {outposts.length > 0 ? 'Post' : 'Post at the Depot'}
+        <select value={value} onChange={(e) => pick(e.target.value)}>
           <option value="">No post</option>
           {choices.map((c) => (
             <option key={c.id} value={c.id} disabled={c.problem !== undefined}>
@@ -189,12 +204,32 @@ function PostPicker({ state, survivor: s }: { state: GameState; survivor: Surviv
               {c.problem ? ' (full)' : ''}
             </option>
           ))}
+          {outposts.length > 0 && (
+            <optgroup label="Live at an outpost">
+              {outposts.map((o) => (
+                <option key={o.id} value={`outpost:${o.id}`} disabled={o.problem !== undefined}>
+                  {o.name}
+                  {o.problem ? ' (full)' : ''}
+                </option>
+              ))}
+            </optgroup>
+          )}
         </select>
       </label>
       {s.post && (
         <button type="button" className="link" onClick={() => navigate({ screen: 'building', id: s.post!.building })}>
           Go to the {choices.find((c) => c.id === s.post!.building)?.name ?? 'building'}
         </button>
+      )}
+      {s.outpost && (
+        <span className="outpost-links">
+          <button type="button" className="link" onClick={() => navigate({ screen: 'reach', id: s.outpost!, tab: 'outpost' })}>
+            Go to the outpost
+          </button>
+          <button type="button" className="link" onClick={() => pick('')}>
+            Bring {pronounForms(s.pronouns).them} home
+          </button>
+        </span>
       )}
       {error && <p className="field-error">{error}</p>}
     </div>

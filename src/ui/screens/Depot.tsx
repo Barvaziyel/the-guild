@@ -12,6 +12,7 @@ import { navigate, useAction } from '../hooks.ts';
 import { DEPOT_TABS, type DepotTab } from '../route.ts';
 import { Yard } from '../components/Yard.tsx';
 import { activeRuns, backIn, joinNames, runCrewNames } from '../runs-view.ts';
+import { outpostRows } from '../outposts-view.ts';
 import { buildingRows, depotNews, foodWarning, homeCounts, summaryLines, type BuildingRow } from '../depot-view.ts';
 import { stashLine } from '../gear-view.ts';
 import { vehiclesLine } from '../vehicles-view.ts';
@@ -36,7 +37,8 @@ export function Depot({ state, now, tab, away, onDismissAway }: Props) {
           The Depot
         </h2>
         <p className="screen-sub">
-          {counts.home} at home{counts.out > 0 ? `, ${counts.out} out` : ''}. {counts.beds} of {counts.cap} beds taken.
+          {counts.home} at home{counts.out > 0 ? `, ${counts.out} out` : ''}
+          {counts.outposts > 0 ? `, ${counts.outposts} at ${state.outposts.length === 1 ? 'the outpost' : 'outposts'}` : ''}. {counts.beds} of {counts.cap} beds taken.
           {state.depot.hungry ? ' The rations have run out.' : ''}
         </p>
       </div>
@@ -72,6 +74,7 @@ export function Depot({ state, now, tab, away, onDismissAway }: Props) {
 function Today({ state, now, away, onDismissAway }: Omit<Props, 'tab'>) {
   const counts = homeCounts(state);
   const out = activeRuns(state);
+  const outposts = outpostRows(state);
   const atGate = state.depot.recruits.length;
   const food = foodWarning(state);
 
@@ -88,7 +91,7 @@ function Today({ state, now, away, onDismissAway }: Omit<Props, 'tab'>) {
 
       {state.depot.offers.length > 0 && <Offers state={state} />}
 
-      {out.length > 0 && (
+      {(out.length > 0 || outposts.length > 0) && (
         <div className="panel">
           <h3 className="panel-title">Out in the Reach</h3>
           <ul className="out-list">
@@ -96,6 +99,13 @@ function Today({ state, now, away, onDismissAway }: Omit<Props, 'tab'>) {
               <li key={run.id}>
                 <button type="button" className="link-row" onClick={() => navigate({ screen: 'run', id: run.id })}>
                   {joinNames(runCrewNames(run))}: {backIn(run, now)}.
+                </button>
+              </li>
+            ))}
+            {outposts.map((o) => (
+              <li key={o.id}>
+                <button type="button" className={`link-row${o.damaged ? ' is-warning' : ''}`} onClick={() => navigate({ screen: 'reach', id: o.id, tab: 'outpost' })}>
+                  {o.text}
                 </button>
               </li>
             ))}

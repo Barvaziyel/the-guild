@@ -93,7 +93,7 @@ function Node({ node: n, selected, onPick }: { node: MapNode; selected: boolean;
       className="map-node"
       role="button"
       tabIndex={0}
-      aria-label={`${n.label.join(' ')}, danger ${n.danger}, explored ${n.explored}%${n.crewsOut ? `, a crew is there now` : ''}`}
+      aria-label={`${n.label.join(' ')}, danger ${n.danger}, explored ${n.explored}%${n.outpost ? `, the guild has an outpost here${n.outpost === 'damaged' ? ' that needs mending' : ''}` : ''}${n.crewsOut ? `, a crew is there now` : ''}`}
       aria-pressed={selected}
       onClick={pick}
       onKeyDown={onKey}
@@ -117,6 +117,7 @@ function Node({ node: n, selected, onPick }: { node: MapNode; selected: boolean;
       <text x={x} y={y + 1.2} textAnchor="middle" fontSize={3.2} fontWeight={700} fill="#efe6d2">
         {n.danger}
       </text>
+      {n.outpost && <Flag x={x - 4.4} y={y - 2.4} damaged={n.outpost === 'damaged'} />}
       {n.crewsOut > 0 && (
         <g>
           <circle cx={x + 4.2} cy={y - 4.2} r={2.1} fill="#a64d27" stroke={INK} strokeWidth={0.4} />
@@ -126,6 +127,18 @@ function Node({ node: n, selected, onPick }: { node: MapNode; selected: boolean;
         </g>
       )}
       <Label spot={n.spot} lines={n.label} offset={6.6} bold={selected} />
+    </g>
+  );
+}
+
+/** The guild's flag on a pole, planted where it has an outpost. A damaged outpost's flag hangs torn. */
+function Flag({ x, y, damaged }: { x: number; y: number; damaged: boolean }) {
+  const top = y - 5.4;
+  const cloth = damaged ? `M${x} ${top}L${x + 3} ${top + 0.6}L${x + 1.9} ${top + 1.3}L${x + 2.6} ${top + 2.1}L${x} ${top + 2.2}Z` : `M${x} ${top}L${x + 3.4} ${top + 1.1}L${x} ${top + 2.2}Z`;
+  return (
+    <g aria-hidden="true">
+      <path d={cloth} fill={damaged ? '#9aa79f' : '#a64d27'} stroke={INK} strokeWidth={0.35} strokeLinejoin="round" />
+      <line x1={x} y1={y} x2={x} y2={top - 0.4} stroke={INK} strokeWidth={0.5} strokeLinecap="round" />
     </g>
   );
 }

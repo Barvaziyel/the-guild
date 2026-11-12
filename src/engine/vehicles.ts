@@ -3,7 +3,8 @@
  * Workshop's repairs and builds.
  */
 import { addGuildLog } from './chronicle.ts';
-import { GAS_LEG_MINUTES, MAX_CREW, REPAIR_SCRAP_PER_10, REPAIR_TECH_PER_25 } from './constants.ts';
+import { DEPTH_DURATION, GAS_LEG_MINUTES, MAX_CREW, OUTPOST_SHORTCUT, REPAIR_SCRAP_PER_10, REPAIR_TECH_PER_25 } from './constants.ts';
+import { outpostNear } from './outposts.ts';
 import { getLocation, getVehicleDef, VEHICLES, type VehicleDef } from './content/index.ts';
 import { buildingLevel, canAfford, costText, payCost } from './depot/buildings.ts';
 import { newId } from './ids.ts';
@@ -45,14 +46,19 @@ export function crewLimit(state: GameState, plan: RunPlan): number {
   return vehicles.length === 0 ? MAX_CREW : vehicles.reduce((n, v) => n + vehicleDef(v).seats, 0);
 }
 
-/** Legs of the trip for gas: one per GAS_LEG_MINUTES of walking, at least one. */
-export function gasLegs(locationId: string): number {
-  return Math.max(1, Math.ceil(getLocation(locationId).durationMin / GAS_LEG_MINUTES));
+/**
+ * Legs of the trip for gas: one per GAS_LEG_MINUTES of walking, at least one.
+ * Deeper levels are further; an outpost nearby makes it shorter.
+ */
+export function gasLegs(state: GameState, plan: RunPlan): number {
+  const depth = Math.max(1, Math.min(3, plan.depth ?? 1));
+  const minutes = getLocation(plan.locationId).durationMin * (1 + DEPTH_DURATION * (depth - 1)) * (outpostNear(state, plan.locationId) ? OUTPOST_SHORTCUT : 1);
+  return Math.max(1, Math.ceil(minutes / GAS_LEG_MINUTES));
 }
 
 /** Gas the plan's vehicles burn there and back. */
 export function gasNeeded(state: GameState, plan: RunPlan): number {
-  const legs = gasLegs(plan.locationId);
+  const legs = gasLegs(state, plan);
   return planVehicles(state, plan).reduce((n, v) => n + vehicleDef(v).gas * legs, 0);
 }
 

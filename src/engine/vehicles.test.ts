@@ -68,8 +68,8 @@ describe('vehicles: planning', () => {
     const { state, vehicles } = garage('rules', ['car']);
     const car = vehicles[0]!;
     const plan: RunPlan = { ...testPlan(state, 'red_hand_camp'), vehicles: [car.id] };
-    assert.equal(gasLegs('red_hand_camp'), Math.ceil(getLocation('red_hand_camp').durationMin / 30));
-    assert.equal(gasNeeded(state, plan), getVehicleDef('car').gas * gasLegs('red_hand_camp'));
+    assert.equal(gasLegs(state, plan), Math.ceil(getLocation('red_hand_camp').durationMin / 30));
+    assert.equal(gasNeeded(state, plan), getVehicleDef('car').gas * gasLegs(state, plan));
     assert.match(validatePlan(state, { ...plan, approach: 'sneaky' }).join(' '), /Nobody sneaks/);
     state.resources.gas = 1;
     assert.match(validatePlan(state, plan).join(' '), /need \d+ gas/);

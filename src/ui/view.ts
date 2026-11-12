@@ -12,6 +12,7 @@ import {
   carryCapacity,
   effectiveStat,
   getEnemyTypeName,
+  getLocation,
   getOrigin,
   getTrait,
   itemDef,
@@ -55,6 +56,7 @@ export function survivorStatus(s: Survivor, day?: number): StatusView {
   if (s.status === 'dead') return { label: s.diedDay ? `Died on day ${s.diedDay}` : 'Dead', tone: 'dead' };
   if (s.status === 'left') return { label: 'Left the guild', tone: 'dead' };
   if (s.status === 'away') return { label: 'Out on a run', tone: 'away' };
+  if (s.outpost) return { label: `At the outpost at ${getLocation(s.outpost).name}`, tone: 'away' };
   const blocking = s.traits.find((t) => getTrait(t.id).blocksRuns);
   if (blocking) {
     const name = capitalize(getTrait(blocking.id).name.toLowerCase());
@@ -341,12 +343,11 @@ export function resourceList(state: GameState): { id: ResourceId; name: string; 
 
 // ---------------------------------------------------------------- roster
 
-/** Living survivors: ready first, then hurt, then away; by name within each. */
+/** Living survivors: ready first, then hurt, then out on runs, then at outposts; by name within each. */
 export function rosterOrder(state: GameState): Survivor[] {
   const rank: Record<StatusTone, number> = { ready: 0, strained: 1, hurt: 2, away: 3, dead: 4 };
-  return [...state.survivors].sort(
-    (a, b) => rank[survivorStatus(a).tone] - rank[survivorStatus(b).tone] || a.firstName.localeCompare(b.firstName),
-  );
+  const of = (s: Survivor): number => rank[survivorStatus(s).tone] + (s.outpost ? 0.5 : 0);
+  return [...state.survivors].sort((a, b) => of(a) - of(b) || a.firstName.localeCompare(b.firstName));
 }
 
 /** The Memorial Wall, most recent loss first. */
