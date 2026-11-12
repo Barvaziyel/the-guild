@@ -16,6 +16,9 @@ import {
   VEHICLE_AMBUSH_PENALTY,
   WRECK_FIND_WEIGHT,
   DEPTH_LOOT,
+  DEPTHS,
+  LOOT_PER_DANGER,
+  RELIC_HEART_WEIGHT,
 } from '../constants.ts';
 import { planDepth } from '../locations.ts';
 import { GEAR, getLocation, getVehicleDef, type HazardKind } from '../content/index.ts';
@@ -87,7 +90,9 @@ export function pickResource(sim: Sim): ResourceId {
 
 function rollQuality(sim: Sim): Quality {
   const d = sim.loc.danger;
-  const weights: Record<Quality, number> = { rusty: 45 - 6 * d, common: 45, solid: 8 + 4 * d, prime: 2 * d, relic: 0 };
+  // Relics only turn up at the heart of a place (§7.6, §7.10), and from a nemesis's lair.
+  const relic = planDepth(sim.plan) >= DEPTHS ? RELIC_HEART_WEIGHT : 0;
+  const weights: Record<Quality, number> = { rusty: Math.max(0, 45 - 6 * d), common: 45, solid: 8 + 4 * d, prime: 2 * d, relic };
   return sim.rng.weightedBy(QUALITIES, (q) => weights[q]);
 }
 
@@ -99,8 +104,16 @@ export function findGear(sim: Sim, finder: Member): void {
 }
 
 export function addLoot(sim: Sim, res: ResourceId, amount: number): void {
-  // Deeper levels give up more (§7.10).
-  sim.loot[res] += Math.round(amount * (1 + DEPTH_LOOT * (planDepth(sim.plan) - 1)));
+  sim.loot[res] += amount;
+}
+
+/**
+ * How much more every load is worth out of this place: +25% per point of the
+ * place's danger above 1 (§7.6), and +50% per level down (§7.10). It applies
+ * to what the crew carries home, after the carry limit.
+ */
+export function richness(plan: { locationId: string; depth?: number }): number {
+  return (1 + LOOT_PER_DANGER * (getLocation(plan.locationId).danger - 1)) * (1 + DEPTH_LOOT * (planDepth(plan) - 1));
 }
 
 export function lootText(loot: Partial<Record<ResourceId, number>>): string {

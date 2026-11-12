@@ -23,6 +23,8 @@ import {
   practiceNeeded,
   pronounForms,
   qualityMod,
+  relicStat,
+  RELIC_STAT_BONUS,
   relationshipsOf,
   statName,
   stressGainMultiplier,
@@ -301,6 +303,8 @@ export function itemStats(item: ItemInstance): string {
   } else if (def.slot === 'armor') {
     parts.push(`armor ${armorValue(item)}`);
   }
+  const perk = relicStat(item);
+  if (perk) parts.push(`+${RELIC_STAT_BONUS} ${statName(perk)}`);
   return parts.join(', ');
 }
 

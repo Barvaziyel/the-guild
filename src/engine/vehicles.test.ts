@@ -121,7 +121,7 @@ describe('vehicles: runs', () => {
   test('a wrecked vehicle is left behind, its riders get hurt, and the crew walks home', () => {
     for (let i = 0; i < 400; i++) {
       const { state, vehicles } = garage(`wreck-${i}`, ['car'], 6, 5);
-      const plan: RunPlan = { ...testPlan(state, 'red_hand_camp'), vehicles: [vehicles[0]!.id] };
+      const plan: RunPlan = { ...testPlan(state, 'water_plant'), vehicles: [vehicles[0]!.id] };
       const sim = simulateRun(state, plan, 'w', T0);
       if (!sim.result.vehicles?.[0]?.wrecked || sim.result.outcome === 'lost') continue;
       const lines = sim.beats.flatMap((b) => b.lines.map((l) => l.text));
@@ -131,7 +131,7 @@ describe('vehicles: runs', () => {
       if (!run.result.vehicles?.[0]?.wrecked) continue;
       completeRun(state, run.id, run.returnAt);
       assert.equal(state.vehicles.length, 0);
-      assert.ok(state.log.some((l) => /The Hatchback was wrecked at Red Hand Camp/.test(l.text)));
+      assert.ok(state.log.some((l) => /The Hatchback was wrecked at The Water Plant/.test(l.text)));
       return;
     }
     assert.fail('no wreck found');
@@ -161,7 +161,7 @@ describe('vehicles: runs', () => {
     let carFights = 0;
     for (let i = 0; i < 300; i++) {
       const { state, vehicles } = garage(`haul-${i}`, ['pickup'], 3);
-      const plan: RunPlan = { ...testPlan(state, 'red_hand_camp'), vehicles: [vehicles[0]!.id] };
+      const plan: RunPlan = { ...testPlan(state, 'water_plant'), vehicles: [vehicles[0]!.id] };
       const walk = simulateRun(state, { ...plan, vehicles: [] }, `h${i}`, T0);
       const drive = simulateRun(state, plan, `h${i}`, T0);
       footLeft += walk.result.leftBehind;

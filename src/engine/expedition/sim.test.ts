@@ -9,6 +9,7 @@ import { addTrait, hasTrait } from '../traits.ts';
 import type { Approach, RetreatOrder, RunJob } from '../types.ts';
 import { RESOURCE_IDS } from '../types.ts';
 import { runDuration } from './plan.ts';
+import { richness } from './beats.ts';
 import { simulateRun } from './sim.ts';
 
 const JOBS: RunJob[] = ['scavenge', 'scout', 'hunt'];
@@ -76,7 +77,9 @@ describe('simulateRun', () => {
           total += result.loot[res];
         }
         const capacity = result.crew.filter((s) => s.status !== 'dead').reduce((sum, s) => sum + carryCapacity(s), 0);
-        assert.ok(total <= capacity + CARRY_COST_DOWNED * size, `loot ${total} within carry ${capacity}`);
+        // What they carry is capped; out of a dangerous place each load is worth more (§7.6).
+        const rich = richness(plan);
+        assert.ok(total <= Math.ceil((capacity + CARRY_COST_DOWNED * size) * rich) + RESOURCE_IDS.length, `loot ${total} within carry ${capacity} x ${rich}`);
         if (result.outcome === 'routed' || result.outcome === 'lost') assert.equal(total, 0);
         // Events can add a little to what the crew carries (a trade), never much.
         assert.ok(result.medsLeft >= 0 && result.medsLeft <= plan.meds + 2);

@@ -11,6 +11,9 @@ import {
   PARTNER_DOWN_STRESS,
   STRESS_ALLY_DOWNED,
   STRESS_PER_DAMAGE,
+  ENEMY_DANGER_STEP,
+  ENEMY_TOUGH_FROM,
+  ENEMY_TOUGH_HP,
 } from '../constants.ts';
 import { getTrait, type LocationDef, type RunTally, type VehicleDef } from '../content/index.ts';
 import { dayAt } from '../game.ts';
@@ -375,4 +378,20 @@ export function startingRerolls(s: Survivor): { fails: number; successes: number
     fails: sumTraitHook(s, 'rerollFails') + sumGearHook(s, 'rerollFails'),
     successes: sumTraitHook(s, 'rerollSuccesses'),
   };
+}
+
+/** How much harder enemies hit at this danger: +1 attack and damage at 3, +2 at 5, +3 at 7 (the heart of the Glow). */
+export function dangerEdge(danger: number): number {
+  return Math.max(0, Math.floor((danger - 1) / ENEMY_DANGER_STEP));
+}
+
+/** How much tougher enemies are at this danger: 1 at danger 4, 2 at 5, up to 4 at the heart of the Glow. */
+export function dangerToughness(danger: number): number {
+  return Math.max(0, danger - ENEMY_TOUGH_FROM + 1);
+}
+
+/** An enemy's HP and defense at this danger. */
+export function toughened(hp: number, defense: number, danger: number): { hp: number; defense: number } {
+  const t = dangerToughness(danger);
+  return { hp: Math.round(hp * (1 + ENEMY_TOUGH_HP * t)), defense: defense + t };
 }

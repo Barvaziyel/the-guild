@@ -57,7 +57,7 @@ import type {
   VehicleNews,
 } from '../types.ts';
 import { RESOURCE_IDS } from '../types.ts';
-import { combatBeat, discoveryBeat, hazardBeat, scavengeBeat, socialBeat, travelBeat } from './beats.ts';
+import { combatBeat, discoveryBeat, hazardBeat, richness, scavengeBeat, socialBeat, travelBeat } from './beats.ts';
 import {
   absorbRads,
   alive,
@@ -367,6 +367,9 @@ function packLoot(sim: Sim, outcome: RunOutcome): { loot: Resources; leftBehind:
     loot[drop] -= 1;
     leftBehind += 1;
   }
+  // Out of a dangerous place, or deep in one, every load is worth more (§7.6, §7.10).
+  const rich = richness(sim.plan);
+  if (rich > 1) for (const res of RESOURCE_IDS) loot[res] = Math.round(loot[res] * rich);
   return { loot, leftBehind };
 }
 
@@ -529,6 +532,8 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
   if (outcome === 'completed' || outcome === 'turnedBack') {
     const summary = lootSummary(loot, sim.items.map(itemName));
     const solo = sim.members.length === 1 ? sim.members[0]!.s.firstName : undefined;
+    const rich = richness(plan);
+    if (rich > 1 && RESOURCE_IDS.some((r) => loot[r] > 0)) say(sim, `Loads from a place this dangerous are worth more: ${Math.round((rich - 1) * 100)}% on top.`);
     const loads = `${leftBehind} ${leftBehind === 1 ? 'load' : 'loads'}`;
     if (solo) {
       say(sim, summary ? `${solo} brings back: ${summary}.` : `${solo} brings back nothing but a sore back.`, summary ? { tone: 'good' } : {});

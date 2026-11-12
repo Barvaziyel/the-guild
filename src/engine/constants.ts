@@ -120,6 +120,14 @@ export const MAX_ENEMIES = 6;
 export const MAX_COMBAT_ROUNDS = 6;
 /** Attacks against a survivor must reach this + their armor. */
 export const SURVIVOR_DEFENSE = 7;
+/** Armor counts once: it makes a survivor harder to hit. Only heavy armor (this much or more) also takes this off each hit. */
+export const HEAVY_ARMOR = 3;
+export const HEAVY_ARMOR_SOAK = 1;
+/** Enemies hit harder in dangerous places: +1 attack and +1 damage for every this many points of danger above 1 (deeper levels count). */
+export const ENEMY_DANGER_STEP = 2;
+/** From this danger up, enemies are also tougher: for each point, +1 defense and this share more HP. */
+export const ENEMY_TOUGH_FROM = 4;
+export const ENEMY_TOUGH_HP = 0.2;
 export const UNARMED_DAMAGE = 1;
 export const AGGRESSIVE_ATTACK_BONUS = 1;
 export const SNEAKY_AMBUSH_BONUS = 2;
@@ -187,6 +195,13 @@ export const EVENT_CHANCE: Record<'travel' | 'hazard' | 'discovery' | 'social', 
 };
 /** An event's weight is divided by 1 + times seen * this, so new ones come up first. */
 export const EVENT_SEEN_PENALTY = 1;
+
+/** Every find is worth this much more per point of the place's danger above 1 (the Glow gives double). */
+export const LOOT_PER_DANGER = 0.25;
+/** Relics turn up only at the heart of a place: their weight among found gear there (the others weigh about 100 together). */
+export const RELIC_HEART_WEIGHT = 6;
+/** A Relic's perk: this much to one stat, fixed for each Relic. */
+export const RELIC_STAT_BONUS = 1;
 
 /** Explored % gained per finished run, by job. */
 export const EXPLORE_GAIN: Record<'scavenge' | 'scout' | 'hunt', readonly [number, number]> = {

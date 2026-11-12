@@ -22,8 +22,8 @@ import {
   NEMESIS_MAX_GROWTH,
   STORY_MAX_LINES,
 } from '../constants.ts';
-import { NEMESIS_NAMES, NICKNAMES, WEAPON_NAMES, getEnemy, getLocation, type NicknameRule } from '../content/index.ts';
-import { baseItemName, itemDef } from '../gear.ts';
+import { GEAR, NEMESIS_NAMES, NICKNAMES, WEAPON_NAMES, getEnemy, getLocation, type NicknameRule } from '../content/index.ts';
+import { baseItemName, createItem, itemDef, itemName } from '../gear.ts';
 import { newId } from '../ids.ts';
 import type { Rng } from '../rng.ts';
 import { changeStress } from '../stats.ts';
@@ -31,7 +31,7 @@ import { fullName } from '../text.ts';
 import { hasTrait } from '../traits.ts';
 import type { GameState, ItemInstance, Nemesis, NemesisNews, StoryLine, Survivor } from '../types.ts';
 import type { Enemy } from './combat.ts';
-import { capitalize, listNames, say, simDay, stress, withArticle, type Member, type Sim } from './context.ts';
+import { capitalize, dangerEdge, listNames, toughened, say, simDay, stress, withArticle, type Member, type Sim } from './context.ts';
 
 // ---------------------------------------------------------------- names and story lines
 
@@ -93,15 +93,18 @@ export function nemesisJoins(sim: Sim): Nemesis | undefined {
 }
 
 /** The nemesis as a fighter: tougher than its kind, and worse for every life it has taken. */
-export function nemesisEnemy(n: Nemesis): Enemy {
+export function nemesisEnemy(n: Nemesis, danger = 1): Enemy {
   const def = getEnemy(n.enemyId);
-  const hp = Math.round(def.hp * NEMESIS_HP_MULT) + NEMESIS_HP_BONUS;
+  const tough = toughened(def.hp, def.defense, danger);
+  const hp = Math.round(tough.hp * NEMESIS_HP_MULT) + NEMESIS_HP_BONUS;
+  const edge = dangerEdge(danger);
   return {
     def,
     hp,
     maxHp: hp,
-    attack: def.attack + NEMESIS_ATTACK_BONUS + Math.min(n.killed.length, NEMESIS_MAX_GROWTH),
-    defense: def.defense + NEMESIS_DEFENSE_BONUS,
+    attack: def.attack + edge + NEMESIS_ATTACK_BONUS + Math.min(n.killed.length, NEMESIS_MAX_GROWTH),
+    damage: def.damage + edge,
+    defense: tough.defense + NEMESIS_DEFENSE_BONUS,
     dead: false,
     fled: false,
     downed: [],
@@ -159,6 +162,15 @@ export function nemesisKilled(sim: Sim, m: Member, e: Enemy, how: string): void 
   }
   const weapon = m.s.equipment.weapon;
   if (weapon?.name) addStory((weapon.history ??= []), { day, text: `Killed ${n.name} at ${sim.loc.name}, in ${fullName(m.s)}'s hands.` });
+
+  // What it hoarded: a Relic (§7.6).
+  const def = sim.rng.weightedBy(
+    GEAR.filter((g) => g.slot === 'weapon' || g.slot === 'armor'),
+    (g) => g.lootWeight,
+  );
+  const relic = createItem(sim.state, def.id, 'relic');
+  sim.items.push(relic);
+  say(sim, `Among what ${n.name} hoarded, ${m.s.firstName} finds something old and fine: ${itemName(relic)}.`, { tone: 'good' });
 }
 
 /** Someone a nemesis put down did not get up. */

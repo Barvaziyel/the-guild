@@ -131,6 +131,24 @@ export const ENEMIES: readonly EnemyDef[] = [
     hitVerb: 'smashed by',
     loot: { scrap: [1, 3], rations: [0, 2] },
   },
+  {
+    id: 'raider_enforcer',
+    type: 'raider',
+    name: 'Raider Enforcer',
+    plural: 'Raider Enforcers',
+    description: 'Plated in welded road signs, swinging a rebar maul. The others step aside for it. Found where the raiders are strongest.',
+    hp: 20,
+    attack: 6,
+    damage: 7,
+    defense: 10,
+    armor: 2,
+    stealth: 6,
+    threat: 8,
+    morale: 'breaks',
+    backsOff: 'intimidate',
+    hitVerb: 'mauled by',
+    loot: { scrap: [2, 4], ammo: [0, 2] },
+  },
 
   // ------------------------------------------------------------ hollows
   {
@@ -168,6 +186,25 @@ export const ENEMIES: readonly EnemyDef[] = [
     rads: 10,
     hitVerb: 'burned by',
     loot: { tech: [0, 1], scrap: [0, 1] },
+  },
+
+  {
+    id: 'hollow_hulk',
+    type: 'hollow',
+    name: 'Hollow Hulk',
+    plural: 'Hollow Hulks',
+    description: 'Something that was a big man once, swollen and glowing under the skin. It does not stop, and it does not miss for long. Found only in the Glow.',
+    hp: 24,
+    attack: 5,
+    damage: 8,
+    defense: 7,
+    armor: 1,
+    stealth: 5,
+    threat: 8,
+    morale: 'fearless',
+    rads: 15,
+    hitVerb: 'crushed by',
+    loot: { tech: [0, 2], scrap: [1, 2] },
   },
 
   // ------------------------------------------------------------ scrapbots

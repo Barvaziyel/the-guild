@@ -1,7 +1,8 @@
-import { QUALITY_MOD, QUALITY_NAME } from './constants.ts';
+import { QUALITY_MOD, QUALITY_NAME, RELIC_STAT_BONUS } from './constants.ts';
 import { getGear } from './content/index.ts';
 import { newId } from './ids.ts';
-import type { GameState, GearDef, GearHooks, ItemInstance, Quality, Slot, Survivor } from './types.ts';
+import type { GameState, GearDef, GearHooks, ItemInstance, Quality, Slot, StatId, Survivor } from './types.ts';
+import { STAT_IDS } from './types.ts';
 
 export function createItem(state: GameState, defId: string, quality: Quality = 'common'): ItemInstance {
   getGear(defId); // validate
@@ -10,6 +11,19 @@ export function createItem(state: GameState, defId: string, quality: Quality = '
 
 export function itemDef(item: ItemInstance): GearDef {
   return getGear(item.defId);
+}
+
+/** A Relic's perk: the stat it adds RELIC_STAT_BONUS to, fixed by the item's id. Nothing for other qualities. */
+export function relicStat(item: ItemInstance): StatId | undefined {
+  if (item.quality !== 'relic') return undefined;
+  let h = 0;
+  for (const c of item.uid) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return STAT_IDS[h % STAT_IDS.length];
+}
+
+/** What a Relic's perk adds to a stat. */
+export function relicBonus(item: ItemInstance, stat: StatId): number {
+  return relicStat(item) === stat ? RELIC_STAT_BONUS : 0;
 }
 
 /** "Solid Machete", "Rusty Pipe", or a custom name if the item earned one. */

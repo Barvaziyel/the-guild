@@ -170,6 +170,13 @@ export function completeRun(state: GameState, runId: string, now: number): RunRe
   for (const rel of result.relationships) state.relationships[pairKey(rel.a, rel.b)] = rel;
 
   const rng = new Rng(`return:${run.seed}`);
+  // Everyone back is tired until the next day: going straight out again costs something.
+  if (!lost) {
+    for (const ran of result.crew) {
+      const s = state.survivors.find((x) => x.id === ran.id);
+      if (s) addTrait(s, 'exhausted', { day, rng, silent: true });
+    }
+  }
   for (const death of result.deaths) mourn(state, death, rng, day);
   for (const news of result.nemeses ?? []) applyNemesisNews(state, news, result.crew, day, rng);
 
