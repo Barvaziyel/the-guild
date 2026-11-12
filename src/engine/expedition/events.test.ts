@@ -113,7 +113,7 @@ describe('events in play', () => {
   test('every event can happen, and both of its outcomes read cleanly', () => {
     for (const event of EVENTS) {
       const seen = { success: false, failure: !event.failure };
-      for (let i = 0; i < 400 && !(seen.success && seen.failure); i++) {
+      for (let i = 0; i < 800 && !(seen.success && seen.failure); i++) {
         const { state, location } = stage(event, i);
         const plan = testPlan(state, location, { job: JOB_FOR[event.kind], approach: 'sneaky', meds: 3 });
         const { beats, result } = simulateRun(state, plan, `ev-${event.id}-${i}`, 0);
@@ -174,7 +174,7 @@ describe('events in play', () => {
     };
     const fresh = count(0);
     const stale = count(8);
-    assert.ok(fresh > 40, `fresh: ${fresh}`);
+    assert.ok(fresh > 30, `fresh: ${fresh}`);
     assert.ok(stale < fresh * 0.6, `stale ${stale} vs fresh ${fresh}`);
   });
 

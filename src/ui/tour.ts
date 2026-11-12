@@ -187,7 +187,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     route: (state) => firstSurvivorRoute(state, 'bonds'),
     target: 'bonds',
     text: () =>
-      'People grow closer or further apart with everything they go through. Bonded friends look after each other on runs and help each other rest at home; rivals make it all harder. Now and then two Bonded people become partners.',
+      'People grow closer or further apart with everything they go through. Bonded friends look after each other on runs and help each other rest at home; rivals make it all harder, and a feud can end with someone walking out. Now and then two Bonded people become partners.',
   },
   {
     id: 'story',
@@ -323,7 +323,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     text: (state) => {
       const { beds, cap } = homeCounts(state);
       const room = beds >= cap ? `all ${cap} beds are taken, so build the Bunks up first` : `${cap - beds} ${cap - beds === 1 ? 'bed is' : 'beds are'} free`;
-      return `Each day a few people answer the radio and wait at the gate. Taking someone in is free, but they need a bed: ${room}.`;
+      return `Now and then someone answers the radio or turns up at the gate, but most new people come from out in the Reach: someone found on a run, or, with a Radio Tower, a call for help. Bring them home alive and they join, owing their rescuer a life. Taking someone in is free, but they need a bed: ${room}. Stray animals turn up at the gate too.`;
     },
   },
 

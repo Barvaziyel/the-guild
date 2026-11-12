@@ -271,6 +271,9 @@ export interface Survivor {
   joinedDay: number;
   diedDay?: number;
   causeOfDeath?: string;
+  /** Walked out of the guild (status 'left'): when, and why, written without a subject. */
+  leftDay?: number;
+  leftReason?: string;
   /** Their job at the Depot, done on days they're home and fit. */
   post?: Post;
   /** Living at the guild's outpost at this place (§7.9), not at the Depot. */
@@ -296,7 +299,8 @@ export interface Relationship {
 
 // ---------------------------------------------------------------- expeditions
 
-export type RunJob = 'scavenge' | 'scout' | 'hunt';
+/** Rescue: answer a call for help (§10.1); only while someone is calling from that place. */
+export type RunJob = 'scavenge' | 'scout' | 'hunt' | 'rescue';
 export type Approach = 'sneaky' | 'balanced' | 'aggressive';
 /** When the crew pulls out of a fight: someone below half HP, someone downed, or never. */
 export type RetreatOrder = 'wounded' | 'downed' | 'never';
@@ -319,7 +323,7 @@ export interface RunPlan {
   depth?: number;
 }
 
-export type BeatKind = 'depart' | 'travel' | 'scavenge' | 'hazard' | 'combat' | 'social' | 'discovery' | 'return';
+export type BeatKind = 'depart' | 'travel' | 'scavenge' | 'hazard' | 'combat' | 'social' | 'discovery' | 'rescue' | 'return';
 
 /** A dice check shown next to a log line: "Wits 6+5 vs 10". */
 export interface CheckInfo {
@@ -431,6 +435,28 @@ export interface RunSummary {
   vehicles?: VehicleNews[];
   /** Vehicles found out there and brought home. */
   foundVehicles?: Vehicle[];
+  /** A rescue run: what became of the person calling for help. */
+  rescue?: RescueNews;
+  /** Animals that followed the crew home (§9.7). */
+  animals?: Animal[];
+  /** People the crew found out there and brought home (§10). */
+  found?: FoundNews[];
+}
+
+/** Someone a crew found out there, and who found them. */
+export interface FoundNews {
+  person: Survivor;
+  by: string;
+}
+
+/** What a rescue run came to (§10.1). */
+export interface RescueNews {
+  /** The person, as they come home (or as they were last seen). */
+  person: Survivor;
+  /** saved: brought home alive. lost: found too late, or lost on the way home. missed: never found. */
+  outcome: 'saved' | 'lost' | 'missed';
+  /** Who got them out. */
+  by?: string;
 }
 
 /** Everything decided at departure and applied when the crew returns. */
@@ -536,6 +562,55 @@ export interface Candidate {
   expiresDay: number;
   /** Came on their own (a Depot event) rather than answering the radio. */
   wanderer?: boolean;
+  /** Brought home by a rescue run, with no bed free: who got them out, and where (§10.1). */
+  rescued?: { by: string; locationId: string };
+  /** Found out there by a crew (a run event), with no bed free: who found them, and where (§10). */
+  found?: { by: string; locationId: string };
+}
+
+/** The kinds of animal the guild can keep (§9.7). */
+export const ANIMAL_KINDS = ['dog', 'cat', 'goat', 'crow'] as const;
+export type AnimalKind = (typeof ANIMAL_KINDS)[number];
+
+/** An animal the guild keeps, or one waiting at the gate. */
+export interface Animal {
+  id: string;
+  kind: AnimalKind;
+  name: string;
+  /** Survivor id of whoever looks after it. */
+  keeper?: string;
+  /** The day it came to the Depot. */
+  sinceDay: number;
+}
+
+/** A stray at the gate: kept if the player says so before it wanders off. */
+export interface Stray {
+  animal: Animal;
+  /** It moves on at the start of this day. */
+  expiresDay: number;
+}
+
+/** Someone calling for help over the radio (§10.1). */
+export interface RescueCall {
+  id: string;
+  locationId: string;
+  /** Who is calling: they join the guild if brought home. */
+  person: Survivor;
+  /** What trouble they're in: decides what getting them out takes. */
+  trouble: RescueTrouble;
+  day: number;
+  /** Unanswered, the voice goes quiet at the start of this day. */
+  expiresDay: number;
+  /** The run sent to answer it. */
+  runId?: string;
+}
+
+export type RescueTrouble = 'trapped' | 'hurt' | 'cornered' | 'lost';
+
+export interface RescueState {
+  call?: RescueCall;
+  /** The game day the next call may come, with a Radio Tower. */
+  nextDay: number;
 }
 
 /** A trader caravan's offer: the guild gives `give` and gets `get` (and the item, if any). */
@@ -606,6 +681,8 @@ export interface DepotState {
   hungry?: boolean;
   /** Buildings whose upkeep couldn't be paid on the last day played: they work one level lower (1.6.2). */
   unpaid?: BuildingId[];
+  /** Animals at the gate (§9.7). */
+  strays: Stray[];
 }
 
 // ---------------------------------------------------------------- guild
@@ -636,6 +713,8 @@ export interface GameState {
   survivors: Survivor[];
   /** Survivors who died, kept for the Memorial Wall. */
   memorial: Survivor[];
+  /** Survivors who walked out of the guild (status 'left'), kept for their story. */
+  departed: Survivor[];
   /** Keyed by pairKey(a, b). */
   relationships: Record<string, Relationship>;
   stash: ItemInstance[];
@@ -661,6 +740,10 @@ export interface GameState {
   dilemmas: DilemmaState;
   /** Big works at the Depot, by id; absent ones haven't been started (§9.6). */
   projects: Partial<Record<ProjectId, ProjectState>>;
+  /** Animals the guild keeps (§9.7). */
+  animals: Animal[];
+  /** Calls for help over the radio (§10.1). */
+  rescue: RescueState;
   log: GuildLogEntry[];
   settings: {
     mercyMode: boolean;

@@ -3,7 +3,7 @@
  * front by where it stands, then the light of the time of day goes over it,
  * then the lights that shine through the dark.
  */
-import type { BuildingId, ProjectId } from '../engine/types.ts';
+import type { AnimalKind, BuildingId, ProjectId } from '../engine/types.ts';
 import { BUILDING_BASE, BUILDING_DRAWINGS, bulbs, flame, stationHouse } from './buildings.ts';
 import { C, circle, hash, hit, ink, line, mix, pathEl, rect, tappable } from './draw.ts';
 import { figure, trader } from './figures.ts';
@@ -11,6 +11,7 @@ import { BUILDING_AREAS, GATE, GATE_SPOTS, H, IDLE_SPOTS, PARKING_X, POST_SPOTS,
 import { PROJECT_BASE, PROJECT_DRAWINGS, wallRun, wallShare, type ProjectLook } from './projects.ts';
 import type { DayPhase, YardModel, YardPerson } from './model.ts';
 import { vehicle } from './vehicles.ts';
+import { ANIMAL_SPOTS, cat, crow, dog, goat } from './animals.ts';
 
 const SKY: Record<DayPhase, string> = { dawn: '#e6c6a2', day: '#cdd8cd', dusk: '#dca37c', night: '#2e3b4b' };
 const SHADE: Record<DayPhase, { color: string; opacity: number }> = {
@@ -172,6 +173,26 @@ function lights(model: YardModel): string {
   return out + flame();
 }
 
+const ANIMAL_DRAWINGS: Record<AnimalKind, (x: number, y: number, facing: 1 | -1) => string> = {
+  dog: (x, y, facing) => dog(x, y, facing),
+  cat: (x, y) => cat(x, y),
+  goat: (x, y, facing) => goat(x, y, facing),
+  crow: (x, y) => crow(x, y),
+};
+
+/** Where an animal is: the dog at its keeper's side (or waiting by the gate), the rest in their places. */
+function animalSpot(model: YardModel, kind: AnimalKind, keeperId?: string): { x: number; y: number; facing: 1 | -1 } {
+  if (kind === 'dog') {
+    const keeper = model.people.find((p) => p.id === keeperId && p.place.kind !== 'gate');
+    const spot = keeper && spotFor(keeper);
+    // At their feet, looking up at them.
+    if (spot) return { x: spot.x + 15 * spot.facing, y: spot.y + (spot.pose === 'lie' ? 10 : 8), facing: spot.facing === 1 ? -1 : 1 };
+    return { ...ANIMAL_SPOTS.dogWaiting, facing: -1 };
+  }
+  if (kind === 'goat') return { ...ANIMAL_SPOTS.goat, facing: 1 };
+  return { ...ANIMAL_SPOTS[kind], facing: 1 };
+}
+
 /** The whole yard as an SVG document. */
 export function yardSvg(model: YardModel): string {
   const items: { y: number; svg: string }[] = [];
@@ -208,6 +229,12 @@ export function yardSvg(model: YardModel): string {
     if (!look || (look.done === 0 && !look.working)) continue;
     const label = `${projectLabels[id]}: ${look.done === 3 ? 'finished' : `${look.done} of 3 stages done${look.working ? ', work under way' : ''}`}.`;
     items.push({ y: PROJECT_BASE[id]!, svg: tappable(`p:${id}`, '#/depot/projects', label, PROJECT_DRAWINGS[id]!(look)) });
+  }
+
+  for (const a of model.animals ?? []) {
+    const at = animalSpot(model, a.kind, a.keeperId);
+    const body = hit(at.x - 12, at.y - 22, 24, 24) + ANIMAL_DRAWINGS[a.kind](at.x, at.y, at.facing);
+    items.push({ y: at.y + 0.2, svg: tappable(`a:${a.id}`, '#/depot/yard', a.label, body) });
   }
 
   items.push({ y: Y.fence, svg: fence(model.projects.the_wall ?? { done: 0, working: false }) + gate() });

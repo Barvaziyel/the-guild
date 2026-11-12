@@ -86,7 +86,7 @@ function ensureRelationship(state: GameState, a: string, b: string): Relationshi
 }
 
 function findSurvivor(state: GameState, id: string): Survivor | undefined {
-  return state.survivors.find((s) => s.id === id) ?? state.memorial.find((s) => s.id === id);
+  return state.survivors.find((s) => s.id === id) ?? state.memorial.find((s) => s.id === id) ?? state.departed?.find((s) => s.id === id);
 }
 
 /** Create starting relationships between a newcomer and everyone already in the guild. */

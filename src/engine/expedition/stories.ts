@@ -39,7 +39,7 @@ import { capitalize, dangerEdge, listNames, toughened, say, simDay, stress, with
 export function takenNames(state: GameState): Set<string> {
   const names = new Set<string>();
   const items: ItemInstance[] = [...state.stash];
-  for (const s of [...state.survivors, ...state.memorial]) {
+  for (const s of [...state.survivors, ...state.memorial, ...(state.departed ?? [])]) {
     if (s.nickname) names.add(s.nickname);
     items.push(...Object.values(s.equipment).filter((i): i is ItemInstance => i !== undefined));
   }
@@ -334,6 +334,6 @@ export function applyNemesisNews(state: GameState, news: NemesisNews, crew: read
 }
 
 function nameOf(state: GameState, crew: readonly Survivor[], id: string): string {
-  const s = crew.find((c) => c.id === id) ?? state.survivors.find((c) => c.id === id) ?? state.memorial.find((c) => c.id === id);
+  const s = crew.find((c) => c.id === id) ?? state.survivors.find((c) => c.id === id) ?? state.memorial.find((c) => c.id === id) ?? state.departed?.find((c) => c.id === id);
   return s ? fullName(s) : 'someone';
 }

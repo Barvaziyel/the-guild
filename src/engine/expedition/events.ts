@@ -5,8 +5,10 @@
  */
 import { addChronicle } from '../chronicle.ts';
 import { DC, EVENT_CHANCE, EVENT_SEEN_PENALTY } from '../constants.ts';
-import { EVENTS, getLocation, getTrait, type EventDef, type EventEffect, type EventOutcome, type EventRole, type EventTarget } from '../content/index.ts';
+import { EVENTS, getAnimal, getLocation, getTrait, type EventDef, type EventEffect, type EventOutcome, type EventRole, type EventTarget } from '../content/index.ts';
 import { locationState } from '../locations.ts';
+import { newAnimal } from '../animals.ts';
+import { generateSurvivor } from '../generator.ts';
 import { arePartners, relationshipLabel } from '../relationships.ts';
 import { addPractice, effectiveStat, maxHp, statName } from '../stats.ts';
 import { addTrait, getTraitInstance, hasTrait, revealTrait } from '../traits.ts';
@@ -184,6 +186,21 @@ function applyEffect(sim: Sim, event: EventDef, effect: EventEffect, roles: Cast
     case 'turnBack':
       sim.turnBack = true;
       break;
+    case 'animal': {
+      if (effect.chance !== undefined && !rng.chance(effect.chance)) break;
+      const a = newAnimal(sim.state, effect.kind, rng, day);
+      a.keeper = roles.a.s.id;
+      sim.animals.push(a);
+      say(sim, `The ${getAnimal(effect.kind).name} is still at ${roles.a.s.firstName}'s heels when the Depot comes in sight.`, { tone: 'good' });
+      break;
+    }
+    case 'survivor': {
+      const person = generateSurvivor(sim.state, rng, { day });
+      person.hp = Math.max(1, Math.round(maxHp(person) * 0.7));
+      sim.found.push({ person, by: roles.a.s.id });
+      say(sim, `${person.firstName} ${person.lastName} comes home with ${sim.members.length === 1 ? roles.a.s.firstName : 'them'}.`, { tone: 'good' });
+      break;
+    }
     case 'fight': {
       const enemies = buildEncounter(sim);
       const group = describeGroup(enemies);

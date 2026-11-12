@@ -3,6 +3,7 @@
  * trades and the "while you were away" note. No React, so it can be tested in Node.
  */
 import {
+  DAY_MS,
   BUILDING_IDS,
   MAX_BUILDING_LEVEL,
   RESOURCE_IDS,
@@ -12,7 +13,7 @@ import {
   TRAINING_PRACTICE,
   WATCHTOWER_DEFENSE,
   atDepot,
-  boardSize,
+  radioAnswerChance,
   buildProblem,
   buildingDef,
   buildingLevel,
@@ -85,7 +86,7 @@ export function buildingStatus(state: GameState, id: BuildingId): string {
     case 'radio_tower': {
       const wits = sum(workingAt(state, id).map((s) => effectiveStat(s, 'wits')));
       const pct = Math.round((RADIO_REVEAL_PER_LEVEL * workingLevel(state, id) + RADIO_REVEAL_PER_WITS * wits) * 100);
-      return `${boardSize(state)} recruits at the gate each day. A ${pct}% chance each day of hearing about a new place.`;
+      return `${radioPace(state)} A ${pct}% chance each day of hearing about a new place.`;
     }
     case 'watchtower':
       return `Adds ${workingLevel(state, id) * WATCHTOWER_DEFENSE + workingAt(state, id).length} to holding off raiders, and halves what they take.`;
@@ -280,10 +281,22 @@ export function candidateWait(c: Candidate, day: number): string {
   return c.expiresDay <= day + 1 ? 'Here today only.' : `Waits at the gate until day ${c.expiresDay - 1}.`;
 }
 
-/** How long a candidate waits, and "Came on her own." first for a wanderer. */
-export function candidateNote(c: Candidate, day: number): string {
+/** How long a candidate waits, and "Came on her own." first for a wanderer, or who brought them home from a rescue. */
+export function candidateNote(c: Candidate, day: number, state?: GameState): string {
   const wait = candidateWait(c, day);
+  const brought = c.rescued ?? c.found;
+  if (brought) {
+    const by = state?.survivors.find((s) => s.id === brought.by);
+    return `${c.rescued ? 'Rescued' : 'Found'} at ${getLocation(brought.locationId).name}${by ? ` by ${by.firstName}` : ''}, waiting for a bed. ${wait}`;
+  }
   return c.wanderer ? `Came on ${pronounForms(c.survivor.pronouns).their} own. ${wait}` : wait;
+}
+
+/** "Someone answers the radio about every 2 real days." */
+export function radioPace(state: GameState): string {
+  const perRealDay = radioAnswerChance(state) * (24 * 3_600_000) / DAY_MS;
+  if (perRealDay >= 0.9) return 'Someone answers the radio about once a real day.';
+  return `Someone answers the radio about every ${Math.round((1 / perRealDay) * 2) / 2} real days.`;
 }
 
 // ---------------------------------------------------------------- while you were away

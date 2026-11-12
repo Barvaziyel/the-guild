@@ -2,6 +2,9 @@ import {
   acceptOffer,
   dayAt,
   declineOffer,
+  keepProblem,
+  keepStray,
+  sendOffStray,
   offerProblem,
   offerText,
   type DepotSummary,
@@ -19,6 +22,8 @@ import { projectNote } from '../projects-view.ts';
 import { buildingRows, depotNews, foodWarning, homeCounts, summaryLines, type BuildingRow } from '../depot-view.ts';
 import { stashLine } from '../gear-view.ts';
 import { vehiclesLine } from '../vehicles-view.ts';
+import { callCard } from '../rescue-view.ts';
+import { strayRows } from '../animals-view.ts';
 
 interface Props {
   state: GameState;
@@ -86,6 +91,7 @@ function Today({ state, now, away, onDismissAway }: Omit<Props, 'tab'>) {
   return (
     <>
       <DilemmaCard state={state} now={now} />
+      <CallForHelp state={state} now={now} />
       {away && away.days > 0 && <AwayNote state={state} summary={away} onDismiss={onDismissAway} />}
 
       {food && (
@@ -132,7 +138,7 @@ function Today({ state, now, away, onDismissAway }: Omit<Props, 'tab'>) {
         <h3 className="panel-title">At the gate</h3>
         <p className="panel-help">
           {atGate === 0
-            ? 'Nobody is waiting. New people answer the radio each day.'
+            ? 'Nobody is waiting. Now and then someone answers the radio or turns up, and crews bring people home from the Reach.'
             : `${atGate} ${atGate === 1 ? 'person is' : 'people are'} asking to join.`}
           {counts.beds >= counts.cap && atGate > 0 ? ' Every bed is taken, so improve the Bunks to make room.' : ''}
         </p>
@@ -141,6 +147,7 @@ function Today({ state, now, away, onDismissAway }: Omit<Props, 'tab'>) {
             See who&rsquo;s at the gate
           </button>
         )}
+        <Strays state={state} now={now} />
       </div>
 
       <div className="panel" data-tour="gear">
@@ -163,6 +170,64 @@ function Today({ state, now, away, onDismissAway }: Omit<Props, 'tab'>) {
 
       <News state={state} limit={3} more />
     </>
+  );
+}
+
+/** Someone calling for help over the radio (§10.1): who, where, and until when. */
+function CallForHelp({ state, now }: { state: GameState; now: number }) {
+  const card = callCard(state, now);
+  if (!card) return null;
+  return (
+    <div className="panel call-card" role="status">
+      <h3 className="panel-title">A call for help</h3>
+      <div className="call-body">
+        <Portrait survivor={card.person} size={64} decorative />
+        <p>{card.text}</p>
+      </div>
+      <p className="panel-help">{card.when}</p>
+      {card.runId ? (
+        <button type="button" className="btn btn-small" onClick={() => navigate({ screen: 'run', id: card.runId! })}>
+          Follow the run
+        </button>
+      ) : (
+        <button type="button" className="btn" onClick={() => navigate({ screen: 'plan', locationId: card.locationId })}>
+          Plan a rescue
+        </button>
+      )}
+    </div>
+  );
+}
+
+/** Animals at the gate (§9.7): keep them or send them off. */
+function Strays({ state, now }: { state: GameState; now: number }) {
+  const { act, error } = useAction();
+  const rows = strayRows(state, now);
+  if (rows.length === 0) return null;
+  return (
+    <ul className="stray-list">
+      {rows.map((r) => {
+        const problem = keepProblem(state, r.id);
+        return (
+          <li key={r.id} className="stray">
+            <p className="stray-title">{r.title}</p>
+            <p>{r.text}</p>
+            <p className="panel-help">
+              {r.effect} {r.leaves}
+            </p>
+            <div className="btn-row">
+              <button type="button" className="btn btn-small" disabled={problem !== undefined} onClick={() => act((s) => void keepStray(s, r.id, dayAt(s, Date.now())))}>
+                Keep it
+              </button>
+              <button type="button" className="btn btn-small btn-quiet" onClick={() => act((s) => sendOffStray(s, r.id, dayAt(s, Date.now())))}>
+                Send it off
+              </button>
+            </div>
+            {problem && <p className="panel-help">{problem}</p>}
+          </li>
+        );
+      })}
+      {error && <p className="error">{error}</p>}
+    </ul>
   );
 }
 

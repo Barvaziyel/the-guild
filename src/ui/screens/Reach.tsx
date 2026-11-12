@@ -18,6 +18,7 @@ import { ReachMapSvg } from '../components/ReachMapSvg.tsx';
 import { navigate, useAction } from '../hooks.ts';
 import { depthRows, exploredShort, outpostView } from '../outposts-view.ts';
 import { PLACE_TABS, type PlaceTab } from '../route.ts';
+import { callCard } from '../rescue-view.ts';
 import { dangerText, formatDuration, joinNames, locationView, placeNote, radiationText, runCrewNames } from '../runs-view.ts';
 import { nemesesAt, nemesisRows } from '../stories-view.ts';
 
@@ -61,6 +62,7 @@ export function Reach({ state, selected, tab = 'about' }: { state: GameState; se
                       <span className="place-name">
                         {loc.name}
                         {outpost && <span className={`place-tag${outpost.damaged ? ' is-damaged' : ''}`}>{outpost.damaged ? 'Outpost, damaged' : 'Outpost'}</span>}
+                        {state.rescue.call?.locationId === loc.id && <span className="place-tag is-calling">Calling for help</span>}
                       </span>
                       <span className="place-facts">
                         {dangerText(loc.danger)}, {radiationText(loc.radiation).toLowerCase()}, {formatDuration(loc.durationMin * 60_000)}
@@ -168,6 +170,8 @@ function About({ state, id }: { state: GameState; id: string }) {
   const haunting = nemesesAt(state, id);
   const levels = depthRows(state, id);
   const deeper = levels[0]!.explored >= 100;
+  const call = callCard(state, Date.now());
+  const calling = call?.locationId === id ? call : undefined;
   return (
     <>
       <p className="place-desc">{loc.description}</p>
@@ -208,13 +212,18 @@ function About({ state, id }: { state: GameState; id: string }) {
           <strong>{n.name}</strong>, {n.kind}, haunts this place. {n.record}
         </p>
       ))}
+      {calling && (
+        <p className="call-here">
+          {calling.text} {calling.when}
+        </p>
+      )}
       {v.crewsOut.map((run) => (
         <button key={run.id} type="button" className="crew-here" onClick={() => navigate({ screen: 'run', id: run.id })}>
           {joinNames(runCrewNames(run))} {run.plan.crew.length === 1 ? 'is' : 'are'} here now. Follow the run.
         </button>
       ))}
       <button type="button" className="btn btn-primary btn-wide" onClick={() => navigate({ screen: 'plan', locationId: id })}>
-        Plan a run to {loc.name}
+        {calling && !calling.runId ? `Plan a rescue at ${loc.name}` : `Plan a run to ${loc.name}`}
       </button>
     </>
   );

@@ -2,6 +2,7 @@
  * One day at the Depot: people eat, work, heal, rest and get on (or don't).
  * Played for every game day that passes, in order, by advanceTime.
  */
+import { animalsDay, goatMilk } from '../animals.ts';
 import { addGuildLog } from '../chronicle.ts';
 import {
   AMMO_PER_WITS,
@@ -153,6 +154,7 @@ export function playDepotDay(state: GameState, day: number, rng: Rng, summary: D
     const relief = (REST_RELIEF + fire + (bonded ? BONDED_RELIEF : 0) + (partner ? PARTNER_RELIEF : 0)) * mulTraitHook(s, 'stressReliefMult');
     changeStress(s, -Math.round(relief), { rng, day });
   }
+  animalsDay(state, day, rng, hungry);
 
   // Practice and the people you work beside.
   for (const s of home) {
@@ -209,7 +211,8 @@ function payUpkeep(state: GameState, rng: Rng, summary: DepotSummary): void {
 }
 
 function growFood(state: GameState, rng: Rng, summary: DepotSummary): void {
-  const grown = roundChance(rng, gardenYield(state));
+  // The goat's milk counts with what the Garden grows (§9.7).
+  const grown = roundChance(rng, gardenYield(state)) + goatMilk(state);
   state.resources.rations += grown;
   summary.grown += grown;
 }

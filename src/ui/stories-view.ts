@@ -17,7 +17,7 @@ export function nemesisKind(n: Nemesis): string {
 
 /** First names (or "someone") for survivor ids, from the living and the dead. */
 function firstNames(state: GameState, ids: readonly string[]): string[] {
-  return ids.map((id) => [...state.survivors, ...state.memorial].find((s) => s.id === id)?.firstName ?? 'someone');
+  return ids.map((id) => [...state.survivors, ...state.memorial, ...state.departed].find((s) => s.id === id)?.firstName ?? 'someone');
 }
 
 export interface NemesisRow {
@@ -35,7 +35,7 @@ export interface NemesisRow {
 
 function rowFor(state: GameState, n: Nemesis): NemesisRow {
   const place = getLocation(n.locationId).name;
-  const killer = n.killedBy ? [...state.survivors, ...state.memorial].find((s) => s.id === n.killedBy) : undefined;
+  const killer = n.killedBy ? [...state.survivors, ...state.memorial, ...state.departed].find((s) => s.id === n.killedBy) : undefined;
   const status =
     n.status === 'atLarge'
       ? `Haunts ${place}.`
