@@ -6,6 +6,8 @@ import {
   FIREPIT_RELIEF,
   HUNGER_STRESS,
   MAX_CATCHUP_DAYS,
+  RADIO_ANSWER_CHANCE,
+  RECRUIT_WAIT_DAYS,
   SAVE_VERSION,
   TRAINING_PRACTICE,
 } from '../constants.ts';
@@ -34,7 +36,7 @@ import {
 } from './buildings.ts';
 import { dailyUpkeep, emptySummary, gardenYield, playDepotDay } from './day.ts';
 import { acceptOffer, declineOffer, offerProblem, rollDepotEvents } from './events.ts';
-import { boardSize, recruitProblem, refreshRecruits, takeIn } from './recruits.ts';
+import { addRadioRecruit, radioAnswerChance, recruitProblem, refreshRecruits, takeIn } from './recruits.ts';
 import { advanceTime, dayStart, nextDayAt } from './time.ts';
 import { craft, craftProblem, salvage, salvageProblem, salvageSpares, salvageValue, spareGear, upgradeItem, upgradeProblem } from './workshop.ts';
 
@@ -230,23 +232,39 @@ describe('time', () => {
 });
 
 describe('recruits', () => {
-  test('a fresh board each day, more with a Radio Tower; wanderers wait a few days', () => {
+  test('now and then someone answers the radio, more often with a Radio Tower, and waits a few days', () => {
+    const count = (level: number): number => {
+      const state = testGame(`radio-${level}`);
+      for (let l = 0; l < level; l++) {
+        rich(state);
+        build(state, 'radio_tower', 1);
+      }
+      let heard = 0;
+      for (let day = 2; day < 2002; day++) {
+        state.depot.recruits = [];
+        refreshRecruits(state, day, new Rng(`r${level}-${day}`));
+        heard += state.depot.recruits.length;
+      }
+      return heard / 2000;
+    };
+    const none = count(0);
+    const best = count(3);
+    assert.ok(Math.abs(none - RADIO_ANSWER_CHANCE[0]) < 0.02, `${none}`);
+    assert.ok(Math.abs(best - RADIO_ANSWER_CHANCE[3]) < 0.03, `${best}`);
     const state = testGame();
-    const rng = new Rng('board');
-    refreshRecruits(state, 2, rng);
-    assert.equal(state.depot.recruits.length, boardSize(state));
-    const firstIds = state.depot.recruits.map((c) => c.survivor.id);
-    refreshRecruits(state, 3, rng);
-    assert.ok(state.depot.recruits.every((c) => !firstIds.includes(c.survivor.id)), 'yesterday’s recruits moved on');
-    rich(state);
-    build(state, 'radio_tower', 3);
-    refreshRecruits(state, 4, rng);
-    assert.equal(state.depot.recruits.length, 3);
+    const c = addRadioRecruit(state, 5, new Rng('one'));
+    assert.equal(c.expiresDay, 5 + RECRUIT_WAIT_DAYS);
+    assert.match(state.log.at(-1)!.text, /answered the radio and is waiting at the gate/);
+    refreshRecruits(state, 5 + RECRUIT_WAIT_DAYS - 1, new Rng('a'));
+    assert.ok(state.depot.recruits.includes(c));
+    refreshRecruits(state, 5 + RECRUIT_WAIT_DAYS, new Rng('b'));
+    assert.ok(!state.depot.recruits.includes(c), 'moved on');
+    assert.equal(radioAnswerChance(state), RADIO_ANSWER_CHANCE[0]);
   });
 
   test('taking someone in needs a free bed and makes them part of the guild', () => {
     const state = testGame();
-    refreshRecruits(state, 2, new Rng('gate'));
+    addRadioRecruit(state, 2, new Rng('gate'));
     const c = state.depot.recruits[0]!;
     assert.match(recruitProblem(state, c.survivor.id) ?? '', /beds are taken/);
     rich(state);
@@ -424,7 +442,7 @@ describe('the economy over time (Monte Carlo)', () => {
       build(state, 'bunks', 1);
       build(state, 'garden', 1);
       for (let n = 0; n < 4; n++) {
-        refreshRecruits(state, 1, new Rng(`r-${i}-${n}`));
+        addRadioRecruit(state, 1, new Rng(`r-${i}-${n}`));
         takeIn(state, state.depot.recruits[0]!.survivor.id, new Rng(`t-${i}-${n}`), 1);
       }
       const third = state.survivors.find((s) => !s.post)!;

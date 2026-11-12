@@ -20,7 +20,7 @@ import { rationsPacked, validatePlan } from './plan.ts';
 import { simulateRun } from './sim.ts';
 import { gasNeeded, planVehicles, vehicleName } from '../vehicles.ts';
 import { addStory, applyNemesisNews } from './stories.ts';
-import { answerCall, applyRescue } from '../rescue.ts';
+import { answerCall, applyRescue, bringHomeFound } from '../rescue.ts';
 import { animalsFollowHome, rehomeAnimals } from '../animals.ts';
 
 /**
@@ -208,6 +208,7 @@ export function completeRun(state: GameState, runId: string, now: number): RunRe
   for (const news of result.nemeses ?? []) applyNemesisNews(state, news, result.crew, day, rng);
   if (result.rescue) applyRescue(state, run, result.rescue, day, rng);
   if (result.animals) animalsFollowHome(state, result.animals, day, loc.name);
+  for (const f of result.found ?? []) bringHomeFound(state, run, f, day, rng);
 
   for (const res of RESOURCE_IDS) state.resources[res] += result.loot[res];
   state.resources.meds += result.medsLeft;

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { Rng, becomePartners, build, createVehicle, getRelationship, refreshRecruits, startRun, postBuilding } from '../engine/index.ts';
+import { Rng, becomePartners, build, createVehicle, getRelationship, addRadioRecruit, startRun, postBuilding } from '../engine/index.ts';
 import { T0, openGame, testGame, testPlan } from '../engine/test-utils.ts';
 import { awayLines, buildingCaption, figureLook, yardModel } from './yard-view.ts';
 
@@ -73,7 +73,7 @@ describe('the yard', () => {
 
   test('recruits wait at the gate, a trader parks a cart, and vehicles at home are in the yard', () => {
     const state = testGame('gate');
-    refreshRecruits(state, 2, new Rng('gate'));
+    for (const n of [1, 2, 3]) addRadioRecruit(state, 2, new Rng(`gate${n}`));
     state.depot.offers.push({ id: 'o1', give: { scrap: 5 }, get: { rations: 8 }, expiresDay: 9 });
     const car = createVehicle(state, 'car', 64);
     const bike = createVehicle(state, 'motorcycle', 0);

@@ -138,7 +138,7 @@ function Today({ state, now, away, onDismissAway }: Omit<Props, 'tab'>) {
         <h3 className="panel-title">At the gate</h3>
         <p className="panel-help">
           {atGate === 0
-            ? 'Nobody is waiting. New people answer the radio each day.'
+            ? 'Nobody is waiting. Now and then someone answers the radio or turns up, and crews bring people home from the Reach.'
             : `${atGate} ${atGate === 1 ? 'person is' : 'people are'} asking to join.`}
           {counts.beds >= counts.cap && atGate > 0 ? ' Every bed is taken, so improve the Bunks to make room.' : ''}
         </p>

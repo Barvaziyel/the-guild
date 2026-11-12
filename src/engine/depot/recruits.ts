@@ -1,9 +1,11 @@
 /**
  * The recruit board: who is at the gate, and taking them in.
  */
-import { RECRUITS_BASE, RECRUIT_BONUS_POINTS, STAT_GEN_MAX, WANDERER_DAYS } from '../constants.ts';
+import { RADIO_ANSWER_CHANCE, RECRUIT_BONUS_POINTS, RECRUIT_WAIT_DAYS, STAT_GEN_MAX, WANDERER_DAYS } from '../constants.ts';
+import { addGuildLog } from '../chronicle.ts';
 import { recruit } from '../game.ts';
-import { joinRescued } from '../rescue.ts';
+import { joinFound, joinRescued } from '../rescue.ts';
+import { fullName } from '../text.ts';
 import { generateSurvivor } from '../generator.ts';
 import type { Rng } from '../rng.ts';
 import { maxHp } from '../stats.ts';
@@ -11,9 +13,9 @@ import type { Candidate, GameState, Survivor } from '../types.ts';
 import { STAT_IDS } from '../types.ts';
 import { bunksCap, hasFreeBunk, workingLevel } from './buildings.ts';
 
-/** How many answer the radio each day. */
-export function boardSize(state: GameState): number {
-  return RECRUITS_BASE + workingLevel(state, 'radio_tower');
+/** The day's chance that someone answers the radio. */
+export function radioAnswerChance(state: GameState): number {
+  return RADIO_ANSWER_CHANCE[workingLevel(state, 'radio_tower')] ?? RADIO_ANSWER_CHANCE[RADIO_ANSWER_CHANCE.length - 1]!;
 }
 
 /** A new face. A better Radio Tower draws people who've been around a bit. */
@@ -31,15 +33,20 @@ export function generateCandidate(state: GameState, rng: Rng, day: number): Surv
 }
 
 /**
- * The start of a day at the gate: yesterday's recruits and any wanderers whose
- * time is up move on, and a fresh set answers the radio.
+ * The start of a day at the gate: whoever's time is up moves on, and now and
+ * then someone answers the radio (more often with a Radio Tower).
  */
 export function refreshRecruits(state: GameState, day: number, rng: Rng): void {
   state.depot.recruits = state.depot.recruits.filter((c) => c.expiresDay > day);
-  const regular = state.depot.recruits.filter((c) => !c.wanderer).length;
-  for (let i = regular; i < boardSize(state); i++) {
-    state.depot.recruits.push({ survivor: generateCandidate(state, rng, day), expiresDay: day + 1 });
-  }
+  if (rng.chance(radioAnswerChance(state))) addRadioRecruit(state, day, rng);
+}
+
+/** Someone answers the radio and waits at the gate a few days. */
+export function addRadioRecruit(state: GameState, day: number, rng: Rng): Candidate {
+  const c: Candidate = { survivor: generateCandidate(state, rng, day), expiresDay: day + RECRUIT_WAIT_DAYS };
+  state.depot.recruits.push(c);
+  addGuildLog(state, day, `${fullName(c.survivor)} answered the radio and is waiting at the gate.`, ['recruit', c.survivor.id]);
+  return c;
 }
 
 /** A wanderer turns up on their own and waits a few days. */
@@ -67,6 +74,11 @@ export function takeIn(state: GameState, candidateId: string, rng: Rng, day: num
   if (c!.rescued) {
     // Brought home by a rescue run and waiting for a bed (§10.1).
     joinRescued(state, s, state.survivors.find((x) => x.id === c!.rescued!.by), c!.rescued.locationId, rng, day);
+    return s;
+  }
+  if (c!.found) {
+    // Found out there by a crew and waiting for a bed (§10).
+    joinFound(state, s, state.survivors.find((x) => x.id === c!.found!.by), c!.found.locationId, rng, day);
     return s;
   }
   recruit(state, s, rng, day, c!.wanderer ? 'Came in off the road and stayed.' : 'Answered the radio and joined the guild.');

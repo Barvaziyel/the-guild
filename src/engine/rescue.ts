@@ -6,6 +6,7 @@
  */
 import { addChronicle, addGuildLog } from './chronicle.ts';
 import {
+  REL_FOUND,
   REL_SAVED,
   RESCUE_BONUS_POINTS,
   RESCUE_DAYS,
@@ -24,7 +25,7 @@ import { addFlag, adjustRelationship } from './relationships.ts';
 import type { Rng } from './rng.ts';
 import { maxHp } from './stats.ts';
 import { fill, fullName, pronounForms } from './text.ts';
-import type { GameState, RescueCall, RescueNews, RescueTrouble, Run, Survivor } from './types.ts';
+import type { FoundNews, GameState, RescueCall, RescueNews, RescueTrouble, Run, Survivor } from './types.ts';
 import { STAT_IDS } from './types.ts';
 
 export const RESCUE_TROUBLES: readonly RescueTrouble[] = ['trapped', 'hurt', 'cornered', 'lost'];
@@ -143,6 +144,35 @@ export function applyRescue(state: GameState, run: Run, news: RescueNews, day: n
     ...(by ? { rescued: { by: by.id, locationId: run.plan.locationId } } : {}),
   });
   addGuildLog(state, day, `${name} came home from ${place} with the crew, but there's no bed free. ${fill('{They} will wait at the gate a few days.', person)}`, ['rescue', person.id]);
+}
+
+/**
+ * Someone a crew found out there (a run event) comes home with them (§10):
+ * they join if a bed is free, or wait at the gate for one.
+ */
+export function bringHomeFound(state: GameState, run: Run, news: FoundNews, day: number, rng: Rng): void {
+  const place = getLocation(run.plan.locationId).name;
+  const by = state.survivors.find((s) => s.id === news.by);
+  if (hasFreeBunk(state)) {
+    joinFound(state, news.person, by, run.plan.locationId, rng, day);
+    return;
+  }
+  state.depot.recruits.push({
+    survivor: news.person,
+    expiresDay: day + RESCUE_WAIT_DAYS,
+    wanderer: true,
+    ...(by ? { found: { by: by.id, locationId: run.plan.locationId } } : {}),
+  });
+  addGuildLog(state, day, `${fullName(news.person)} came home from ${place} with the crew, but there's no bed free. ${fill('{They} will wait at the gate a few days.', news.person)}`, ['recruit', news.person.id]);
+}
+
+/** Someone found out there joins, on good terms with whoever brought them home. */
+export function joinFound(state: GameState, person: Survivor, by: Survivor | undefined, locationId: string, rng: Rng, day: number): void {
+  const place = getLocation(locationId).name;
+  recruit(state, person, rng, day, by ? `Came home from ${place} with ${fullName(by)} and stayed.` : `Came home from ${place} with a crew and stayed.`);
+  if (!by || !state.survivors.includes(by)) return;
+  adjustRelationship(state, by.id, person.id, REL_FOUND, { day, useTraitMult: false });
+  addChronicle(by, day, `Brought ${fullName(person)} home from ${place}.`, ['recruit', person.id]);
 }
 
 /** A rescued person joins: they owe whoever got them out a life. */

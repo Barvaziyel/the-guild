@@ -290,8 +290,14 @@ export const AMMO_STOCK_CAP = 60;
 /** Radio Tower: daily chance per level to hear of an undiscovered place, plus per operator Wits point. */
 export const RADIO_REVEAL_PER_LEVEL = 0.03;
 export const RADIO_REVEAL_PER_WITS = 0.005;
-/** Recruits at the gate each day: base plus Radio Tower level. */
-export const RECRUITS_BASE = 2;
+/**
+ * The day's chance that someone answers the radio and comes to the gate, by
+ * Radio Tower level (1.9.0). Before, 2 + the level answered every day; now
+ * most people come from rescues and from crews finding them out there.
+ */
+export const RADIO_ANSWER_CHANCE = [0.03, 0.05, 0.07, 0.09] as const;
+/** Days someone who answered the radio waits at the gate. */
+export const RECRUIT_WAIT_DAYS = 4;
 /** Extra stat points for recruits, by Radio Tower level ("better recruits"). */
 export const RECRUIT_BONUS_POINTS = [0, 0, 1, 2] as const;
 /** Days a wanderer waits at the gate. */
@@ -536,7 +542,7 @@ export const DILEMMA_FIRST_DAY = 4;
 // ---------------------------------------------------------------- calls for help (§10.1, 1.9.0)
 
 /** Game days between one call for help and the next, with a Radio Tower. */
-export const RESCUE_GAP: readonly [number, number] = [10, 20];
+export const RESCUE_GAP: readonly [number, number] = [5, 10];
 /** The first call comes this many days after the Radio Tower can hear it. */
 export const RESCUE_FIRST_GAP = 3;
 /** Game days a call lasts unanswered (about three quarters of a real day). */
@@ -551,6 +557,9 @@ export const RESCUE_LOST_STRESS = 8;
 export const RESCUE_STASH: readonly [number, number] = [6, 12];
 
 // ---------------------------------------------------------------- leaving the guild (1.9.0)
+
+/** Relationship between someone a crew found out there and whoever brought them home. */
+export const REL_FOUND = 15;
 
 /** Stress for a partner left behind when someone walks out. */
 export const PARTNER_LEFT_STRESS = 15;

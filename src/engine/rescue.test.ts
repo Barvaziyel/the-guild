@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import { RESCUE_DAYS, RESCUE_FIRST_GAP, RESCUE_GAP, RESCUE_WAIT_DAYS, SAVE_VERSION } from './constants.ts';
+import { EVENTS } from './content/index.ts';
 import { build, bunksCap } from './depot/buildings.ts';
 import { takeIn } from './depot/recruits.ts';
 import { advanceTime, dayStart } from './depot/time.ts';
@@ -129,6 +130,39 @@ describe('calls for help', () => {
       done = true;
     }
     assert.ok(done);
+  });
+
+  test('people found on runs come home: they join if a bed is free, or wait at the gate', () => {
+    const finds = ['cart_on_the_road', 'the_holdout', 'cage_in_the_camp', 'the_deserter'];
+    for (const id of finds) assert.ok(EVENTS.find((e) => e.id === id)!.success.effects!.some((x) => x.type === 'survivor'), id);
+    let joined = false;
+    let waited = false;
+    for (let i = 0; i < 600 && !(joined && waited); i++) {
+      const state = openGame(`found-${i}`);
+      const full = i % 2 === 1;
+      state.buildings.bunks = full ? 1 : 2;
+      const run = startRun(state, testPlan(state, 'drowned_mall', { job: 'scout' }), dayStart(state, 2));
+      const f = run.result.found?.[0];
+      if (!f) continue;
+      completeRun(state, run.id, run.returnAt);
+      const day = dayAt(state, run.returnAt);
+      const by = state.survivors.find((s) => s.id === f.by)!;
+      if (full) {
+        const c = state.depot.recruits.find((x) => x.survivor.id === f.person.id)!;
+        assert.ok(c?.found, 'waiting at the gate');
+        assert.equal(c.expiresDay, day + RESCUE_WAIT_DAYS);
+        state.buildings.bunks = 2;
+        takeIn(state, f.person.id, new Rng('in'), day + 1);
+        waited = true;
+      } else {
+        joined = true;
+      }
+      const s = state.survivors.find((x) => x.id === f.person.id)!;
+      assert.equal(s.chronicle[0]!.text, `Came home from The Drowned Mall with ${by.firstName} ${by.lastName} and stayed.`);
+      assert.ok(!hasFlag(state, s.id, by.id, 'owesLife'), 'found, not rescued');
+      assert.ok(by.chronicle.some((x) => x.text === `Brought ${s.firstName} ${s.lastName} home from The Drowned Mall.`));
+    }
+    assert.ok(joined && waited);
   });
 
   test('advanceTime plays calls, and saves from before version 16 get the new fields', () => {

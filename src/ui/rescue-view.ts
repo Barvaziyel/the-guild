@@ -91,6 +91,16 @@ export function rescuedWhere(state: GameState, summary: RunSummary): 'sheet' | '
   return undefined;
 }
 
+/** People a crew found out there and brought home, for the report: who, and where to see them now. */
+export function foundLines(state: GameState, summary: RunSummary, locationId: string): { id: string; text: string; where?: 'sheet' | 'gate' }[] {
+  const place = getLocation(locationId).name;
+  return (summary.found ?? []).map((f) => {
+    const id = f.person.id;
+    const where = state.survivors.some((s) => s.id === id) ? 'sheet' : state.depot.recruits.some((c) => c.survivor.id === id) ? 'gate' : undefined;
+    return { id, text: `Brought ${f.person.firstName} ${f.person.lastName} home from ${place}.`, ...(where ? { where } : {}) };
+  });
+}
+
 /** How long before a call goes quiet the reminder comes. */
 const REMIND_BEFORE = 2 * 3_600_000;
 

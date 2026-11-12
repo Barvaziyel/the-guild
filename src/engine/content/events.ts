@@ -58,7 +58,9 @@ export type EventEffect =
   /** A fight breaks out with whatever lives here. */
   | { type: 'fight'; ambushed?: boolean }
   /** An animal follows a home, to be kept by the guild (§9.7). */
-  | { type: 'animal'; kind: AnimalKind; chance?: number };
+  | { type: 'animal'; kind: AnimalKind; chance?: number }
+  /** Someone comes home with the crew to join the guild, found by a (§10). */
+  | { type: 'survivor' };
 
 export interface EventOutcome {
   text: string;
@@ -1365,6 +1367,94 @@ export const EVENTS: readonly EventDef[] = [
     },
     failure: {
       text: 'It looks {a.first} in the eye, thinks better of it, and flies off with whatever it was.',
+    },
+  },
+
+  // ============================================================ people found out there (§10, 1.9.0)
+
+  {
+    id: 'cart_on_the_road',
+    title: 'A Shopping Cart',
+    kind: 'travel',
+    weight: 16,
+    maxDanger: 3,
+    a: { best: 'nerve' },
+    intro: 'Someone is pushing a shopping cart along the same road, loaded with a whole life: pots, blankets, a birdcage with no bird.',
+    check: { stat: 'nerve', dc: 'normal' },
+    success: {
+      text: '{a.first} falls into step and gets talking. By the next crossroads the cart has a new direction.',
+      effects: [
+        { type: 'survivor' },
+        { type: 'chronicle', who: 'a', text: 'Talked a stranger with a shopping cart into coming home from {loc}.' },
+      ],
+    },
+    failure: {
+      text: 'The stranger keeps a hand on a knife and the cart between them, and turns off at the next corner.',
+      effects: [{ type: 'stress', who: 'a', amount: 2 }],
+    },
+  },
+  {
+    id: 'the_holdout',
+    title: 'The Holdout',
+    kind: 'discovery',
+    weight: 14,
+    locations: BUILDINGS,
+    a: { best: 'wits' },
+    intro: 'A voice from behind a barricade of filing cabinets: "Keep walking." It sounds like it hasn\'t talked to anyone in a long time.',
+    check: { stat: 'wits', dc: 'normal', danger: true },
+    success: {
+      text: '{a.first} keeps talking: about the Depot, the fire, the food. After an hour the cabinets scrape aside. Two years alone in there, and enough is enough.',
+      effects: [
+        { type: 'survivor' },
+        { type: 'chronicle', who: 'a', text: 'Talked a holdout out from behind a barricade at {loc}.' },
+      ],
+    },
+    failure: {
+      text: 'A warning shot cracks off the wall beside {a.first}. The voice says nothing more.',
+      effects: [{ type: 'stress', who: 'all', amount: 4 }],
+    },
+  },
+  {
+    id: 'cage_in_the_camp',
+    title: 'The Cage',
+    kind: 'discovery',
+    weight: 14,
+    locations: RAIDER_PLACES,
+    minDanger: 2,
+    a: { best: 'wits' },
+    intro: 'Behind a burned-out bus, a dog cage with a person in it, thin and filthy and very much awake. "Please."',
+    check: { stat: 'wits', dc: 'normal', danger: true, contexts: ['tech'] },
+    success: {
+      text: '{a.first} has the padlock off in under a minute. Nobody comes to see why the cage is empty until much later.',
+      effects: [
+        { type: 'survivor' },
+        { type: 'chronicle', who: 'a', text: 'Let a prisoner out of a raiders\' cage at {loc}.' },
+      ],
+    },
+    failure: {
+      text: 'The lock won\'t give, and someone heard the rattling.',
+      effects: [{ type: 'fight' }],
+    },
+  },
+  {
+    id: 'the_deserter',
+    title: 'Hands Up',
+    kind: 'travel',
+    weight: 11,
+    locations: ['red_hand_camp', 'checkpoint_bravo', 'drowned_mall', 'blackwater'],
+    a: { best: 'wits' },
+    intro: 'Someone steps out of a doorway with both hands up and a red armband torn half off. "I\'m done with them. Take me with you."',
+    check: { stat: 'wits', dc: 'normal', danger: true },
+    success: {
+      text: '{a.first} looks for the trap and doesn\'t find one. The deserter talks the whole way, and some of it is even useful.',
+      effects: [
+        { type: 'survivor' },
+        { type: 'explore', amount: 4 },
+      ],
+    },
+    failure: {
+      text: 'It was a trap after all.',
+      effects: [{ type: 'fight', ambushed: true }],
     },
   },
 ];

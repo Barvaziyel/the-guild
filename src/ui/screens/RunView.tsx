@@ -31,7 +31,7 @@ import {
   runProgress,
 } from '../runs-view.ts';
 import { clockTime } from '../time.ts';
-import { rescueLine, rescuedWhere } from '../rescue-view.ts';
+import { foundLines, rescueLine, rescuedWhere } from '../rescue-view.ts';
 import { followedHome } from '../animals-view.ts';
 import { findAnySurvivor } from '../view.ts';
 
@@ -189,6 +189,21 @@ function Report({ state, report }: { state: GameState; report: RunReport }) {
           </p>
         )}
         <p>{loot.length > 0 ? `Brought home ${loot.join(', ')}.` : 'Brought nothing home.'}</p>
+        {foundLines(state, s, report.plan.locationId).map((f) => (
+          <p key={f.id} className="summary-found">
+            {f.text}{' '}
+            {f.where === 'sheet' && (
+              <button type="button" className="link" onClick={() => navigate({ screen: 'survivor', id: f.id, tab: 'stats' })}>
+                Open their sheet
+              </button>
+            )}
+            {f.where === 'gate' && (
+              <button type="button" className="link" onClick={() => navigate({ screen: 'recruits' })}>
+                Waiting at the gate for a bed
+              </button>
+            )}
+          </p>
+        ))}
         {followedHome(s, names).map((line) => (
           <p key={line} className="summary-found">
             {line}{' '}

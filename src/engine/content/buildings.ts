@@ -89,9 +89,9 @@ export const BUILDINGS: readonly BuildingDef[] = [
     description: 'A mast on the water tower and a radio that mostly works.',
     workStat: 'wits',
     levels: [
-      { effect: 'One more recruit at the gate each day, with their stats known. Sometimes picks up a place nobody has found. Keeps in touch with one outpost.', cost: { scrap: 30, tech: 5 } },
-      { effect: 'Two more recruits, and better ones. Hears more. Keeps in touch with two outposts. Uses some tech every day.', cost: { scrap: 100, tech: 28 } },
-      { effect: 'Three more recruits, the best around. Hears the most. Keeps in touch with three outposts. Uses more tech.', cost: { scrap: 240, tech: 66 } },
+      { effect: 'More people answer the radio, with their stats known, and calls for help come in. Sometimes picks up a place nobody has found. Keeps in touch with one outpost.', cost: { scrap: 30, tech: 5 } },
+      { effect: 'More answer the radio, and better ones. Hears more. Keeps in touch with two outposts. Uses some tech every day.', cost: { scrap: 100, tech: 28 } },
+      { effect: 'The most answer the radio, the best around. Hears the most. Keeps in touch with three outposts. Uses more tech.', cost: { scrap: 240, tech: 66 } },
     ],
   },
   {

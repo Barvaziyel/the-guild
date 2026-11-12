@@ -48,7 +48,8 @@ import { dogDefense, strayArrives } from '../animals.ts';
 type EventKind = 'wanderer' | 'trader' | 'raid' | 'celebration' | 'sickness' | 'stray';
 
 const EVENT_WEIGHTS: Record<EventKind, number> = {
-  wanderer: 3,
+  // Most new people come from the Reach (rescues, people found on runs) rather than turning up (1.9.0).
+  wanderer: 1.5,
   trader: 3,
   raid: 2,
   celebration: 2,

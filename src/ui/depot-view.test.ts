@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { Rng, assignPost, build, emptySummary, gardenYield, guildUpkeep, postProblem, refreshRecruits, startRun, postBuilding } from '../engine/index.ts';
+import { Rng, assignPost, build, emptySummary, gardenYield, guildUpkeep, postProblem, addRadioRecruit, startRun, postBuilding } from '../engine/index.ts';
 import { T0, openGame, testGame, testPlan } from '../engine/test-utils.ts';
 import {
   foodWarning,
@@ -93,8 +93,8 @@ describe('the Workshop on screen', () => {
 describe('recruits on screen', () => {
   test('stats are ranges until there is a Radio Tower', () => {
     const state = testGame();
-    refreshRecruits(state, 2, new Rng('gate'));
-    const c = state.depot.recruits[0]!;
+    addRadioRecruit(state, 2, new Rng('gate'));
+    const c = { ...state.depot.recruits[0]!, expiresDay: 3 };
     assert.match(candidateStats(state, c.survivor)[0]!.value, /^\d+ to \d+$/);
     state.resources.scrap = 100;
     state.resources.tech = 10;

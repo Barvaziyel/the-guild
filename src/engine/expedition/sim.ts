@@ -489,6 +489,7 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
     }),
     foundVehicles: [],
     animals: [],
+    found: [],
   };
   // A rescue run carries the person who called for help, and what trouble they're in (§10.1).
   const call = state.rescue?.call;
@@ -611,6 +612,7 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
       ...(sim.foundVehicles.length > 0 && outcome !== 'lost' ? { foundVehicles: sim.foundVehicles } : {}),
       ...(rescue ? { rescue } : {}),
       ...(sim.animals.length > 0 && (outcome === 'completed' || outcome === 'turnedBack') ? { animals: sim.animals } : {}),
+      ...(sim.found.length > 0 && (outcome === 'completed' || outcome === 'turnedBack') ? { found: sim.found } : {}),
     },
   };
 }

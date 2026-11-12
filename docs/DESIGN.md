@@ -509,7 +509,7 @@ The Depot plays one **Depot day** for every game day that passes (§11). Each da
 | Firepit → Bar | Level 1 | −3 stress a day | Bar: −4, people warm to each other (60 scrap, 6 tech, 40 rations) | Bar and Stage: −5, warm faster (180 scrap, 24 tech, 120 rations) | Nerve |
 | Infirmary | — | 25 scrap, 2 meds | 90 scrap, 16 tech, 20 meds | 210 scrap, 45 tech, 60 meds | Wits |
 | Workshop | — | Basic gear, ammo (30 scrap) | Guns, armor, instruments, Prime upgrades (100 scrap, 16 tech) | Makes Solid gear (240 scrap, 54 tech) | Wits |
-| Radio Tower | — | +1 recruit, stats known, one outpost (30 scrap, 5 tech) | +2, better recruits, two outposts (100, 28) | +3, the best, three outposts (240, 66) | Wits |
+| Radio Tower | — | more answer the radio, stats known, calls for help, one outpost (30 scrap, 5 tech) | more, and better recruits, two outposts (100, 28) | the most, the best, three outposts (240, 66) | Wits |
 | Watchtower | — | Raid defense, halves losses (25 scrap) | Stronger (90 scrap, 10 tech, 30 ammo) | Strongest (210 scrap, 36 tech, 90 ammo) | Aim |
 | Training Yard | — | 2 practice a day (20 scrap) | 3 (80 scrap, 10 tech) | 4 (180 scrap, 36 tech) | Any stat |
 
@@ -555,7 +555,7 @@ At most one event a day (a 20% chance), weighted:
 
 | Event | What happens |
 |---|---|
-| A wanderer | Someone turns up at the gate and waits there 3 days (§10). |
+| A wanderer | Someone turns up at the gate and waits there 3 days (§10). Half as likely as the other events since 1.9.0 (weight 1.5 against 2–3), since most new people now come from the Reach. |
 | A trader caravan | Offers a swap of supplies (gas among them; 8–20 of what the guild gives, or up to an eighth of a big stockpile, at most 200, since 1.7.2, so a guild rich in scrap and short of tech can turn one into the other), or a Solid or Prime piece of gear for scrap (and tech for guns), or now and then a vehicle (§7.8). Since 1.6.2, half the time it offers to **buy** what the guild has spare for scrap. Rations bring 0.5 scrap each, meds 1.2, tech 2, gas 1 and ammo 0.4. Spare means beyond 25, or beyond ten days of eating for rations, and the caravan takes 20–40% of it. Stays 2 days. |
 | A raid | d10 + the best Aim at home + 2 per Watchtower level + 1 per lookout (+4 with the Wall, §9.6), −2 for each hand short of three at home, vs 12. Held: the defenders get Aim practice and a little stress. Broken: raiders take 25% of the scrap, rations, ammo and gas (half that with a Watchtower, a quarter more with one person home and half more with nobody), never more than 30 of each plus a fifth of whatever is stored beyond 100 (1.6.2; before, 30 at most, which meant nothing against stockpiles in the hundreds), may drive off a parked vehicle (§7.8), one defender is Wounded, and everyone gains +10 stress. Raids come twice as often when no more than one person is home. |
 | A celebration | Costs a ration per two people. Everyone at home sheds 15 stress, and every pair warms by 3. Only when food is plentiful. |
@@ -667,7 +667,18 @@ Several kinds, each with its own effect (Aviel's choice). The guild keeps at mos
 
 ## 10. Recruitment
 
-- **Recruit board.** Each day, 2 + the Radio Tower's level answer the radio. They're there for that day only. Wanderers (§9.3) wait 3 days.
+- **Where new people come from** (Aviel, 2026-11-12: fewer turning up at random, more from rescues and events). Most come from out in the Reach.
+  - **Rescues** (§10.1): calls for help over the radio.
+  - **People found on runs:** four events bring someone home with the crew.
+    - *A Shopping Cart*: someone on the road, at danger 3 or below. A Nerve check.
+    - *The Holdout*: someone barricaded in a building. A Wits check; a failure means a warning shot.
+    - *The Cage*: a raiders' prisoner, at danger 2 or above. A Wits check; a failure starts a fight.
+    - *Hands Up*: a Red Hand deserter. A Wits check; a failure is an ambush.
+
+    About 7% of runs at danger 1–3 bring someone home this way (2% at the Rail Yard, up to 10% at the Radio Station). Whoever is found joins if a bed is free, or waits at the gate 6 days. They join on good terms with whoever found them (+15) and write *Came home from Maple Street with Dex Holt and stayed.*
+  - **The radio:** now and then someone answers it: 3% a day without a Radio Tower, then 5%, 7% and 9% by its level (one every 1½–4 real days). They wait at the gate 4 days, with a line in the news. Before 1.9.0, 2 + the tower's level answered every day and waited one day.
+  - **Wanderers** (§9.3) turn up on their own and wait 3 days.
+  - **Measured** with the person-like player over 5 weeks: of the people in a guild at day 35 who weren't founders, about 5 came from rescues and finds and about 3 from the radio and wanderers. Guilds fill their beds as fast as before, because beds are the limit.
 - **Candidate info.** Each candidate shows their origin, age, backstory, visible traits, and a hint when they have a hidden one. Without a Radio Tower, their stats show as rough ranges (one either side). A Radio Tower at level 2 or 3 brings recruits with 1 or 2 extra stat points, still no higher than 7.
 - **Taking someone in** is free but needs a free bed in the Bunks. They join with relationships to everyone and a first Chronicle entry.
 - **Rescue jobs** (§10.1) bring in people who owe their rescuer a life.
@@ -677,7 +688,7 @@ Several kinds, each with its own effect (Aviel's choice). The guild keeps at mos
 
 With a Radio Tower, now and then someone calls for help from a known place; `rescue.ts` plays the calls, and `expedition/rescue.ts` the run.
 
-- **How often:** one call at a time. The first comes 3 days after the Radio Tower can hear it. After that, the next comes 10–20 game days after one is settled, which is about every 2–3 real days.
+- **How often:** one call at a time. The first comes 3 days after the Radio Tower can hear it. After that, the next comes 5–10 game days after one is settled (10–20 before Aviel asked for more people from rescues), which is about one a real day.
 - **How long:** a call lasts 6 game days (about three quarters of a real day). Unanswered, the voice goes quiet, with a line in the news.
 - **Who's calling:** a recruit with 2 more stat points, in one of four kinds of trouble:
   - **trapped** under a fallen wall: a crew Brawn check. Failing by a little still gets them out, but the lifter is hurt; failing by more loses them.
@@ -698,7 +709,7 @@ With a Radio Tower, now and then someone calls for help from a known place; `res
   - **Planner:** it offers Rescue first there and starts with it.
   - **Report:** it says how it went, with a link to the person.
   - **Notices:** with notices on, one when a call comes in, and a reminder two hours before it goes quiet.
-- **Measured** with the person-like player, who answers every call at a place it can manage: about 9 rescue runs per guild in 5 weeks. Building pace, food, deaths and stress are unchanged. Most of the people saved after week 3 wait at the gate, because the beds are full by then.
+- **Measured** with the person-like player, who answers every call at a place it can manage: about 19 rescue runs per guild in 5 weeks. Building pace, food, deaths and stress are unchanged. Most of the people saved after week 3 wait at the gate, because the beds are full by then.
 
 ## 11. Time model
 

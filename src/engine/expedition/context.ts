@@ -26,6 +26,7 @@ import { fillRoles } from '../text.ts';
 import { mulTraitHook, revealTrait, sumTraitHook } from '../traits.ts';
 import type {
   Animal,
+  FoundNews,
   Beat,
   BeatKind,
   CheckInfo,
@@ -114,6 +115,8 @@ export interface Sim {
   rescue?: { person: Survivor; trouble: RescueTrouble; outcome?: 'saved' | 'lost' | 'missed'; by?: string };
   /** Animals following the crew home (§9.7). */
   animals: Animal[];
+  /** People coming home with the crew to join (§10). */
+  found: FoundNews[];
 }
 
 /** A vehicle on a run. */

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import { build, dayStart, Rng, startCall, startRun, type GameState } from '../engine/index.ts';
 import { openGame, testPlan } from '../engine/test-utils.ts';
-import { callCard, jobChoices, rescueLine, rescueNotices, withRescue } from './rescue-view.ts';
+import { callCard, foundLines, jobChoices, rescueLine, rescueNotices, withRescue } from './rescue-view.ts';
 import { defaultPlan, JOBS } from './runs-view.ts';
 
 function calling(seed: string): GameState {
@@ -45,6 +45,15 @@ describe('calls for help on screen', () => {
     assert.equal(rescueLine(summary('saved')), `Brought ${name} home alive.`);
     assert.equal(rescueLine(summary('lost')), `Couldn't save ${name}.`);
     assert.equal(rescueLine(summary('missed')), `Never found ${name}.`);
+  });
+
+  test('the report names whoever a crew found and brought home, and where they are now', () => {
+    const state = calling('found');
+    const person = state.rescue.call!.person;
+    const summary = { found: [{ person, by: state.survivors[0]!.id }] } as unknown as Parameters<typeof foundLines>[1];
+    assert.deepEqual(foundLines(state, summary, 'maple_street'), [{ id: person.id, text: `Brought ${person.firstName} ${person.lastName} home from Maple Street.` }]);
+    state.depot.recruits.push({ survivor: person, expiresDay: 9, wanderer: true, found: { by: state.survivors[0]!.id, locationId: 'maple_street' } });
+    assert.equal(foundLines(state, summary, 'maple_street')[0]!.where, 'gate');
   });
 
   test('a notice when the next call is due, and a reminder before one goes quiet', () => {

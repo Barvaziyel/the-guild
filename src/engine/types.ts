@@ -439,6 +439,14 @@ export interface RunSummary {
   rescue?: RescueNews;
   /** Animals that followed the crew home (§9.7). */
   animals?: Animal[];
+  /** People the crew found out there and brought home (§10). */
+  found?: FoundNews[];
+}
+
+/** Someone a crew found out there, and who found them. */
+export interface FoundNews {
+  person: Survivor;
+  by: string;
 }
 
 /** What a rescue run came to (§10.1). */
@@ -556,6 +564,8 @@ export interface Candidate {
   wanderer?: boolean;
   /** Brought home by a rescue run, with no bed free: who got them out, and where (§10.1). */
   rescued?: { by: string; locationId: string };
+  /** Found out there by a crew (a run event), with no bed free: who found them, and where (§10). */
+  found?: { by: string; locationId: string };
 }
 
 /** The kinds of animal the guild can keep (§9.7). */
