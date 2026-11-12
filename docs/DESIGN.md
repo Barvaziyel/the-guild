@@ -505,9 +505,15 @@ At most one event a day (a 20% chance), weighted:
    - **Run report:** what came home, deaths, places found, the beat-by-beat log with the dice under each line, then what changed for each person. For example: *"Mara gained Rad-Hardened"*, *"Dex & Ava are now Friends"*, and the loot. It opens in place of the countdown when the crew gets back.
 7. **Memorial Wall:** faded portraits with the day and cause of death; tap one for their sheet and Chronicle. Opened from the bottom of the roster. *Built (PR 5).*
 8. **Settings:** mercy mode, notices when crews come back, portrait wobble, the tour, export and import save, load the backup copy, start a new guild, developer shortcuts and fast-forward (§11, §13). *Built (PR 5, 6, 10).*
-9. **The tour** (PR 10). A new guild starts with it, and Settings can show it again. A card pinned above the tab bar walks through 23 short steps in 7 parts: supplies, food, your people, runs, building, recruits, and time. Each step opens its screen and outlines what it's talking about, with live numbers where they help (what the Garden grows, what the first buildings cost). *Next*, *Skip this part* and *Skip tour* are always there. Opening the game mid-tour (from a notice, say) stays where it opened; the next step moves on from there.
+9. **The tour** (PR 10). A new guild starts with it, and Settings can show it again. A card pinned above the tab bar walks through 24 short steps in 7 parts: supplies, food, your people, runs, building, recruits, and time. Each step opens its screen and outlines what it's talking about, with live numbers where they help (what the Garden grows, what the first buildings cost). *Next*, *Skip this part* and *Skip tour* are always there. Opening the game mid-tour (from a notice, say) stays where it opened; the next step moves on from there.
 10. **Gear** (1.1.1). The stash by slot (weapons, armor, tools, trinkets), each piece with a *Give* button that lists everyone: those at the Depot can take it, those out on a run can't yet. Below, what each person carries; tap someone for their sheet. Opened from the Depot's Gear panel, from the stash line on a survivor's sheet, and from a run report that found gear.
 11. **Vehicles** (1.4.0). Each vehicle with what it does, a condition bar, where it is, and *Repair* with its cost; below, what the Workshop can build. Opened from the Depot's Vehicles panel (which says what the guild has, or how to get one), the Workshop and a report that found one. The planner lists the vehicles above the crew, with seats, condition, and the gas the trip needs; the crew limit follows the seats. Reports say what became of each vehicle taken. The resource bar shows gas, in two rows of three on a phone.
+12. **The yard** (1.5.0). A tab on the Depot screen (Today, Yard, Buildings, News) with the Depot drawn as it is right now, in the portraits' style.
+    - **What's in it:** the station house, the water tower and the signal gantry behind; the rails with a freight car per Bunks level; the Workshop, Infirmary, Garden, Firepit and Training Yard, each drawn by level (an empty lot with pegs and string before it's built); the Radio Tower's mast and the Watchtower's platform when built; vehicles at home parked in the yard (a broken one on bricks); the fence and the gate; recruits queuing outside; a trader's cart while a caravan is in.
+    - **People** are small figures in their portrait colors (skin, hair, clothes, armor, hat, a bandage when wounded): workers at their posts (with a hoe in the Garden, on the platform at the Watchtower), the wounded on cots by the Infirmary (or by the Bunks without one), everyone else on the logs around the fire and then about the yard, partners side by side. Those out on a run aren't there; a panel below says where they are and when they're back.
+    - **Time of day** follows the phone's clock: dawn, day, dusk and night, with lit windows, the fire's glow, the string lights and the radio light after dark. The fire flickers, smoke drifts and people shift a little; nothing moves with *reduce motion* on.
+    - **Taps:** tapping someone or something picks it (it's drawn again on top, glowing) and the line under the drawing says who or what it is, with a button to open their sheet, the building, the recruits, the vehicles, or the trader's offer.
+    - Code: `src/scene/` draws it (plain TypeScript, no dependencies, like `src/portrait/`); `src/ui/yard-view.ts` works out who is where.
 
 **Navigation.** Tabs along the bottom: Depot, Roster, Reach, Runs, Settings. Survivors who are out show where they are and when they're back, on the roster and on their sheet.
 
@@ -603,9 +609,10 @@ Planned 2026-11-11, in this order, all on Opus:
 | 11 | Stories: nemeses, nicknames, named gear (§7.7) | **done** (1.2.0) |
 | 12 | Partners: romance (§5.1) | **done** (1.3.0) |
 | 13 | Vehicles and gas (§7.8) | **done** (1.4.0) |
-| 14 | Expansion: outposts and deeper areas | |
-| 15 | What's missing: rescue jobs, feuds that make someone quit, pets, **ageing and babies**, the last gear drawings | |
-| 16 | The Vultures, a rival guild | |
+| 14 | The yard: a drawing of the Depot with everyone in it (§12) | **done** (1.5.0) |
+| 15 | Expansion: outposts and deeper areas | |
+| 16 | What's missing: rescue jobs, feuds that make someone quit, pets, **ageing and babies**, the last gear drawings | |
+| 17 | The Vultures, a rival guild | |
 
 - **Tutorial.** Starts with a new guild, and can be replayed from Settings. It walks through the resources and how to get more of each, food and the Garden, why crews go out on runs, why to build, and taking in recruits. It's optional: the player can skip the whole thing, or skip ahead to the next part. Built as the tour (§12); later steps that add something to explain (gas, vehicles) add a step to it.
 - **Stories.** An enemy that downs a survivor and gets away becomes a named, recurring foe (a nemesis). Survivors earn nicknames from feats. A weapon with 10 kills earns a name and a history. Built as §7.7.
@@ -618,21 +625,22 @@ Planned 2026-11-11, in this order, all on Opus:
   - A run can take **several vehicles** and more people. A vehicle can be **lost**: wrecked on a run (its riders walk home, which takes longer) or stolen in a raid.
   - Big crews leave **fewer people at home**. Before 1.4.0 an empty Depot only lost a little more in a raid; now a thin fence is easier to break, draws raiders, loses more, and can lose a vehicle.
   - *Built in 1.4.0 as §7.8.*
+- **The yard** (step 14, asked for 2026-11-11). A drawing of the Depot on a tab of its own: the buildings as they are, everyone at home where they are (at their posts, around the fire, resting on cots), recruits outside the gate, a trader's cart, the vehicles parked in the yard, and the light of the time of day. Tap anything to see what it is and open it. A view only: nothing in the game changes.
 - **Expansion.** Outposts on fully explored places extend the guild's reach (the Civ-style expansion). Places get deeper, more dangerous areas with better loot.
-- **Ageing** (part of step 15, asked for 2026-11-11, alongside babies). Everyone gets older in game time: a year every 365 game days, which is about 45 real days.
+- **Ageing** (part of step 16, asked for 2026-11-11, alongside babies). Everyone gets older in game time: a year every 365 game days, which is about 45 real days.
   - Ages are fixed today. The portrait already greys hair by age, so faces would age on their own.
   - To settle when building it:
     - what old age does (stats slowly slipping past 60, say);
     - whether anyone can die of old age;
     - whether birthdays go in the Chronicle.
-- **Babies** (part of step 15, asked for 2026-11-11). Partners at the Depot sometimes have a baby, who grows up into a survivor.
+- **Babies** (part of step 16, asked for 2026-11-11). Partners at the Depot sometimes have a baby, who grows up into a survivor.
   - **Growing up in real time,** at the same pace as everyone else: 16 game years from birth to joining the roster, which is about two real years of play. Children are a long-term thing.
   - **Meanwhile:** children eat and need a bed. Everyone at home sheds a little more stress with a child around, and older children (about 12, so roughly a year and a half in) can take light posts such as the Garden. They never go on runs.
   - **From their parents:** a face that mixes both parents', stats that lean toward theirs, a chance to inherit a personality trait, and the family surname.
   - To settle when building it:
     - how often a couple has a baby;
     - whether the mother stays home for the last stretch before the birth;
-    - whether couples who can't have children can take in an orphan (rescue jobs, also in step 15 — Claude's suggestion);
+    - whether couples who can't have children can take in an orphan (rescue jobs, also in step 16 — Claude's suggestion);
     - what losing a parent does to a child;
     - a tour step or a news line for the first birth.
 - **The Vultures.** A rival guild competing for places. They raid, trade, and turn up on runs.
@@ -650,6 +658,6 @@ Decided 2026-11-11:
 - Survivors are male or female (until 1.2.2 some were *they*).
 - People resting until healed can't take a new post.
 - Survivors have an orientation (85% straight, 6% gay, 9% bi), so about 96% of couples are a man and a woman.
-- Ageing and babies: yes, in step 15. Everyone ages a year every 365 game days, and children grow up at that pace (about two real years to 16). They help a little at the Depot and inherit looks, a stat lean and maybe a trait.
+- Ageing and babies: yes, in step 16. Everyone ages a year every 365 game days, and children grow up at that pace (about two real years to 16). They help a little at the Depot and inherit looks, a stat lean and maybe a trait.
 
 No open questions right now.

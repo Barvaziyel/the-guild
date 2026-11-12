@@ -2489,3 +2489,144 @@ li:nth-child(even) .pinned {
 .vehicle .recipe {
   margin-top: 0.25rem;
 }
+
+/* ---------------------------------------------------------------- the yard */
+
+.yard-scene {
+  margin: 0.75rem 1rem 0;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  overflow: hidden;
+  line-height: 0;
+}
+
+.yard-scene svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.yard-caption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 3.5rem;
+  margin: 0 1rem;
+  padding: 0.5rem 0;
+}
+
+.yard-caption p {
+  flex: 1;
+}
+
+.yard-tap {
+  cursor: pointer;
+  outline: none;
+}
+
+.yard-picked-copy,
+.yard-tap:focus-visible {
+  filter: drop-shadow(0 0 1.5px #f2c66d) drop-shadow(0 0 2px #f2c66d);
+}
+
+.yard .yard-bob {
+  animation: yard-bob 3.4s ease-in-out infinite;
+}
+
+.yard .yard-breathe {
+  animation: yard-bob 5s ease-in-out infinite;
+}
+
+.yard .yard-flame {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: yard-flicker 0.8s ease-in-out infinite alternate;
+}
+
+.yard .yard-smoke circle {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: yard-smoke 4.5s linear infinite;
+  opacity: 0;
+}
+
+.yard .yard-smoke circle:nth-child(2) {
+  animation-delay: -1.5s;
+}
+
+.yard .yard-smoke circle:nth-child(3) {
+  animation-delay: -3s;
+}
+
+.yard .yard-blink {
+  animation: yard-blink 1.8s steps(2, jump-none) infinite;
+}
+
+.yard .yard-bulb {
+  animation: yard-twinkle 1.6s ease-in-out infinite alternate;
+}
+
+.yard-night .yard-beam {
+  opacity: 0.22;
+}
+
+@keyframes yard-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-0.7px);
+  }
+}
+
+@keyframes yard-flicker {
+  0% {
+    transform: scale(1, 1);
+  }
+  50% {
+    transform: scale(0.93, 1.09);
+  }
+  100% {
+    transform: scale(1.05, 0.94);
+  }
+}
+
+@keyframes yard-smoke {
+  0% {
+    opacity: 0;
+    transform: translate(0, 8px) scale(0.6);
+  }
+  20% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(5px, -16px) scale(1.5);
+  }
+}
+
+@keyframes yard-blink {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.2;
+  }
+}
+
+@keyframes yard-twinkle {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .yard * {
+    animation: none !important;
+  }
+}
