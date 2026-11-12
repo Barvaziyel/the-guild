@@ -398,4 +398,18 @@ export const TRAITS: readonly TraitDef[] = [
     statMods: { grit: -1, brawn: -1 },
     durationDays: [1, 1],
   },
+  {
+    // Babies (§5.3, 1.10.0): from finding out until the birth.
+    id: 'expecting',
+    name: 'Expecting',
+    kind: 'condition',
+    description: 'A baby on the way. Stays at the Depot for the last stretch.',
+  },
+  {
+    id: 'nearly_due',
+    name: 'Nearly Due',
+    kind: 'condition',
+    description: 'The baby is coming soon: staying at the Depot until it does.',
+    blocksRuns: true,
+  },
 ];

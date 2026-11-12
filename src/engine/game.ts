@@ -62,7 +62,8 @@ export function renameSurvivor(state: GameState, id: string, firstName: string, 
   if (problem) throw new Error(problem);
   const first = cleanName(firstName);
   const last = cleanName(lastName);
-  const copies = [getSurvivor(state, id), ...state.runs.flatMap((r) => r.result.crew.filter((c) => c.id === id))];
+  const child = state.children.find((c) => c.id === id);
+  const copies = [child ?? getSurvivor(state, id), ...state.runs.flatMap((r) => r.result.crew.filter((c) => c.id === id))];
   for (const s of copies) {
     // The generated backstory has the first name written into it.
     s.backstory = replaceWord(s.backstory, s.firstName, first);
@@ -100,6 +101,7 @@ export function newGame(opts: NewGameOptions): GameState {
     survivors: [],
     memorial: [],
     departed: [],
+    children: [],
     relationships: {},
     stash: [],
     resources: { ...STARTING_RESOURCES },

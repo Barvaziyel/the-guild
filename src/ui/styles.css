@@ -1253,6 +1253,22 @@ li:nth-child(even) .pinned {
   color: var(--ink-2);
 }
 
+.children .children-list {
+  margin: 0.5rem -1rem -1.25rem;
+}
+
+.children-list > li:last-child {
+  border-bottom: 0;
+}
+
+.child-row {
+  grid-template-columns: 64px 1fr;
+}
+
+.roster-family {
+  font-size: 0.875rem;
+}
+
 .memorial-link {
   display: flex;
   align-items: center;

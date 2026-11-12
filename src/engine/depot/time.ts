@@ -10,6 +10,7 @@ import { expireOffers, rollDepotEvents } from './events.ts';
 import { refreshRecruits } from './recruits.ts';
 import { playDilemmaDay } from '../dilemmas.ts';
 import { playRescueDay } from '../rescue.ts';
+import { playFamilyDay } from '../family.ts';
 import { expireStrays } from '../animals.ts';
 
 export interface AdvanceResult {
@@ -58,6 +59,7 @@ export function advanceTime(state: GameState, now: number): AdvanceResult {
       refreshRecruits(state, day, rng);
       playDilemmaDay(state, day, rng);
       playRescueDay(state, day, rng);
+      playFamilyDay(state, day, rng);
     });
     state.depot.lastDay = day;
   }

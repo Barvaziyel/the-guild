@@ -3,6 +3,7 @@
  * Played for every game day that passes, in order, by advanceTime.
  */
 import { animalsDay, goatMilk } from '../animals.ts';
+import { childGarden, childRations, childRelief } from '../family.ts';
 import { addGuildLog } from '../chronicle.ts';
 import {
   AMMO_PER_WITS,
@@ -79,17 +80,18 @@ export function gardenYield(state: GameState): number {
   const level = buildingLevel(state, 'garden');
   if (level === 0) return 0;
   const gardeners = workingAt(state, 'garden');
-  return level * (GARDEN_BASE + sum(gardeners.map((s) => GARDEN_PER_WORKER + effectiveStat(s, 'wits') * GARDEN_PER_WITS)));
+  // Children of 12 and over help out (§5.3).
+  return level * (GARDEN_BASE + sum(gardeners.map((s) => GARDEN_PER_WORKER + effectiveStat(s, 'wits') * GARDEN_PER_WITS))) + childGarden(state);
 }
 
 /** Rations the Depot hands out in a day: to everyone at home, and to the people at the outposts. */
 export function dailyUpkeep(state: GameState): number {
-  return sum(state.survivors.filter((s) => atDepot(s) || (s.status === 'ready' && s.outpost !== undefined)).map(rationsADay)) + crewRations(state);
+  return sum(state.survivors.filter((s) => atDepot(s) || (s.status === 'ready' && s.outpost !== undefined)).map(rationsADay)) + crewRations(state) + childRations(state);
 }
 
 /** Rations the whole guild eats in a day once everyone is back from runs: what the Garden has to keep up with. */
 export function guildUpkeep(state: GameState): number {
-  return sum(state.survivors.map(rationsADay)) + crewRations(state);
+  return sum(state.survivors.map(rationsADay)) + crewRations(state) + childRations(state);
 }
 
 function rationsADay(s: Survivor): number {
@@ -143,7 +145,7 @@ export function playDepotDay(state: GameState, day: number, rng: Rng, summary: D
   for (const s of home) fasterHealing(state, s, day);
 
   // Nerves.
-  const fire = firepitRelief(state) + memorialRelief(state);
+  const fire = firepitRelief(state) + memorialRelief(state) + childRelief(state);
   for (const s of home) {
     if (hungry) {
       hungerStress(s, rng, day);

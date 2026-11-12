@@ -3,7 +3,7 @@
  * always gets the same face; what they wear, carry and have lived through is
  * drawn on top. Returns an SVG string, so it works in the browser and in Node.
  */
-import { STRESS_HIGH } from '../engine/constants.ts';
+import { ADULT_AGE, STRESS_HIGH } from '../engine/constants.ts';
 import { Rng } from '../engine/rng.ts';
 import type { Survivor } from '../engine/types.ts';
 import {
@@ -89,6 +89,8 @@ export interface PortraitLook {
   /** Which side scars and wounds sit on: -1 or 1. */
   side: number;
   aged: boolean;
+  /** How big they stand in the frame: 1 for adults, smaller for children, who are drawn lower and narrower. */
+  scale: number;
   armor?: ArmorLook;
   weapon?: WeaponLook;
   tool?: ToolLook;
@@ -114,8 +116,9 @@ export function portraitLook(s: Survivor): PortraitLook {
   const clothColor = rng.pick(CLOTH);
   const accentColor = rng.pick(CLOTH.filter((c) => c !== clothColor));
   const clothesIndex = rng.int(0, CLOTHES_COUNT - 1);
-  const shoulders = 0.92 + rng.next() * 0.16 + (s.pronouns === 'he' ? 0.03 : 0);
-  const neckWidth = 31 + rng.int(0, 5) + (s.pronouns === 'he' ? 3 : 0);
+  const child = s.age < ADULT_AGE;
+  const shoulders = (0.92 + rng.next() * 0.16 + (s.pronouns === 'he' && !child ? 0.03 : 0)) * (child ? 0.9 : 1);
+  const neckWidth = 31 + rng.int(0, 5) + (s.pronouns === 'he' && !child ? 3 : 0) - (child ? 3 : 0);
   const accessory = rng.weighted<Accessory>([
     { item: 'none', weight: 62 },
     { item: 'goggles', weight: 13 },
@@ -131,12 +134,13 @@ export function portraitLook(s: Survivor): PortraitLook {
     hairColor = GREY_HAIR[a.hairColor % GREY_HAIR.length]!;
   }
 
-  const facial = s.pronouns === 'he' ? FACIAL_HAIR_HE[a.facialHair % FACIAL_HAIR_HE.length]! : 0;
+  // Children have no beards yet; little ones get the short crop.
+  const facial = s.pronouns === 'he' && !child ? FACIAL_HAIR_HE[a.facialHair % FACIAL_HAIR_HE.length]! : 0;
 
   // Only what the player can see: hidden traits never show.
   const has = (id: string): boolean => s.traits.some((t) => t.id === id && !t.hidden);
   const strained = s.stress >= STRESS_HIGH;
-  const hairIndex = a.hairStyle % HAIR_COUNT;
+  const hairIndex = s.age < 3 ? HAIR_STYLES.indexOf('buzz') : a.hairStyle % HAIR_COUNT;
 
   const look: PortraitLook = {
     face: FACES[a.faceShape % FACES.length]!,
@@ -157,9 +161,10 @@ export function portraitLook(s: Survivor): PortraitLook {
     wash,
     shoulders,
     neckWidth,
-    accessory,
+    accessory: s.age < 10 ? 'none' : accessory,
     side,
     aged: s.age >= 50,
+    scale: child ? 0.62 + (0.38 * s.age) / ADULT_AGE : 1,
     marks: {
       lostEye: has('lost_eye'),
       faceScar: has('scarred_face'),
@@ -286,6 +291,8 @@ export function portraitSvg(s: Survivor, opts: PortraitOptions = {}): string {
     if (name === 'background') continue;
     figure += `<g data-layer="${name}">${layers[name]}</g>`;
   }
+  // Children stand smaller in the frame, feet (well, shoulders) on the same ground.
+  if (look.scale < 1) figure = `<g transform="translate(128 256) scale(${look.scale.toFixed(3)}) translate(-128 -256)">${figure}</g>`;
   const body =
     (showBackground ? `<g data-layer="background">${layers.background}</g>` : '') +
     `<g stroke-linecap="round" stroke-linejoin="round"${wobble ? ` filter="url(#${uid}-ink)"` : ''}>${figure}</g>`;

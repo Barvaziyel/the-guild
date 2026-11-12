@@ -90,6 +90,9 @@ export const IDLE_SPOTS: readonly Spot[] = [
   s(344, 458, 'stand', -1),
 ];
 
+/** The children, playing in the open ground in front of the fire. */
+export const CHILD_SPOTS: readonly Spot[] = [s(196, 450), s(228, 452, 'stand', -1), s(178, 464), s(246, 466, 'stand', -1), s(212, 474), s(270, 448, 'stand', -1)];
+
 /** Cots for the wounded: in front of the Infirmary, or by the Bunks without one. */
 export const REST_SPOTS = {
   infirmary: [s(320, 340, 'lie'), s(352, 340, 'lie'), s(384, 340, 'lie', -1), s(320, 356, 'lie'), s(352, 356, 'lie'), s(384, 356, 'lie', -1)],

@@ -96,8 +96,25 @@ export function bunksCap(state: GameState): number {
   return BUNKS_CAP[Math.min(buildingLevel(state, 'bunks'), MAX_BUILDING_LEVEL)] ?? 0;
 }
 
+/** A bed for someone new to join: not the one kept for a family. */
 export function hasFreeBunk(state: GameState): boolean {
-  return state.survivors.length < bunksCap(state);
+  return bedsTaken(state) + (state.depot.familyBed ? 1 : 0) < bunksCap(state);
+}
+
+/** A bed nobody sleeps in, the one kept for a family included: what a couple needs for a baby. */
+export function hasEmptyBed(state: GameState): boolean {
+  return bedsTaken(state) < bunksCap(state);
+}
+
+/** Keep one bed free for a family, or let anyone new take it. */
+export function keepFamilyBed(state: GameState, on: boolean): void {
+  if (on) state.depot.familyBed = true;
+  else delete state.depot.familyBed;
+}
+
+/** Beds taken: everyone in the guild, the children, and a bed kept for each baby on the way (§5.3). */
+export function bedsTaken(state: GameState): number {
+  return state.survivors.length + (state.children?.length ?? 0) + state.survivors.filter((s) => s.expecting).length;
 }
 
 /** At the Depot today (not out on a run). */

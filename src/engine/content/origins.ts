@@ -163,4 +163,16 @@ export const ORIGINS: readonly OriginDef[] = [
     ],
     weight: 3,
   },
+  {
+    // Never rolled: children born at the Depot (§5.3, 1.10.0).
+    id: 'depot_born',
+    name: 'Depot-Born',
+    description: 'Born at the Depot and raised by the whole guild.',
+    statWeights: { grit: 1, brawn: 1, aim: 1, wits: 1, nerve: 1 },
+    traitChances: [],
+    ageRange: [16, 16],
+    startingWeapons: ['pipe'],
+    backstories: ['{first} has never known anywhere but the Depot.'],
+    weight: 0,
+  },
 ];

@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { Rng, assignPost, build, emptySummary, gardenYield, guildUpkeep, postProblem, addRadioRecruit, startRun, postBuilding } from '../engine/index.ts';
+import { Rng, assignPost, becomePartners, birth, expecting, build, emptySummary, gardenYield, guildUpkeep, postProblem, addRadioRecruit, startRun, postBuilding } from '../engine/index.ts';
 import { T0, openGame, testGame, testPlan } from '../engine/test-utils.ts';
+import type { Survivor } from '../engine/index.ts';
 import {
+  bedsLine,
   foodWarning,
   newMouthNote,
   buildingRow,
@@ -129,6 +131,20 @@ describe('while you were away', () => {
     assert.equal(depotNews(state)[0]!.text, 'A stray dog nosed around.');
     assert.ok(!depotNews(state).some((n) => n.text.includes('returned')));
     assert.deepEqual(homeCounts(state), { home: 4, out: 0, outposts: 0, beds: 4, cap: 4 });
+  });
+
+  test('beds count the children and a baby on the way', () => {
+    const state = testGame('beds');
+    state.buildings.bunks = 3;
+    const [m, f] = state.survivors as [Survivor, Survivor];
+    m.pronouns = 'she';
+    f.pronouns = 'he';
+    becomePartners(state, m, f, 1);
+    expecting(state, m, f, 1);
+    assert.match(bedsLine(state), /^5 of \d+ beds taken, including 1 kept for a baby on the way\.$/);
+    birth(state, m, 2, new Rng('b'));
+    assert.match(bedsLine(state), /^5 of \d+ beds taken, including 1 for a child\.$/);
+    assert.equal(homeCounts(state).beds, 5);
   });
 });
 

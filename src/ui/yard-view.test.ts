@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { Rng, becomePartners, build, createVehicle, getRelationship, addRadioRecruit, startRun, postBuilding } from '../engine/index.ts';
+import { Rng, becomePartners, birth, build, createVehicle, expecting, getRelationship, addRadioRecruit, startRun, postBuilding } from '../engine/index.ts';
 import { T0, openGame, testGame, testPlan } from '../engine/test-utils.ts';
-import { awayLines, buildingCaption, figureLook, yardModel } from './yard-view.ts';
+import type { Survivor } from '../engine/index.ts';
+import { awayLines, buildingCaption, childSize, figureLook, yardModel } from './yard-view.ts';
 
 describe('the yard', () => {
   test('workers stand at their posts, the rest hang out by the fire', () => {
@@ -102,5 +103,26 @@ describe('the yard', () => {
     assert.match(look.skin, /^#[0-9a-f]{6}$/);
     assert.match(look.cloth, /^#[0-9a-f]{6}$/);
     assert.equal(look.hurt, false);
+  });
+
+  test('children play in front of the fire, smaller; babies sit', () => {
+    const state = testGame('kids');
+    state.buildings.bunks = 3;
+    const [m, f] = state.survivors as [Survivor, Survivor];
+    m.pronouns = 'she';
+    f.pronouns = 'he';
+    becomePartners(state, m, f, 1);
+    expecting(state, m, f, 1);
+    const baby = birth(state, m, 2, new Rng('b'));
+    const people = yardModel(state, 12, 3).people.filter((p) => p.place.kind === 'child');
+    assert.equal(people.length, 1);
+    assert.deepEqual(people[0]!.place, { kind: 'child', slot: 0, baby: true });
+    assert.equal(people[0]!.look.size, 0.5);
+    assert.equal(people[0]!.label, `${baby.firstName} ${baby.lastName}, a newborn.`);
+    baby.age = 8;
+    const older = yardModel(state, 12, 3).people.find((p) => p.id === baby.id)!;
+    assert.deepEqual(older.place, { kind: 'child', slot: 0, baby: false });
+    assert.match(older.label, /, 8 years old, playing in the yard\.$/);
+    assert.ok(childSize(8) > 0.5 && childSize(8) < childSize(15) && childSize(15) < 1);
   });
 });

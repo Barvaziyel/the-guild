@@ -18,7 +18,9 @@ import {
   buildingDef,
   buildingLevel,
   buildingName,
+  bedsTaken,
   bunksCap,
+  hasEmptyBed,
   costText,
   craftProblem,
   dailyUpkeep,
@@ -72,7 +74,7 @@ export function buildingStatus(state: GameState, id: BuildingId): string {
   if (level === 0) return 'Not built yet.';
   switch (id) {
     case 'bunks':
-      return `${state.survivors.length} of ${bunksCap(state)} beds taken.`;
+      return bedsLine(state);
     case 'garden':
       return `Grows about ${oneDecimal(gardenYield(state))} rations a day. The guild at home${state.outposts.length > 0 ? ' and at the outposts' : ''} eats ${dailyUpkeep(state)}.`;
     case 'firepit':
@@ -349,10 +351,20 @@ export function depotNews(state: GameState, limit = 12): { day: number; text: st
     .map((e) => ({ day: e.day, text: e.text }));
 }
 
+/** "6 of 8 beds taken." and who takes the beds that aren't survivors': "including 1 for a child and 1 kept for a baby on the way." */
+export function bedsLine(state: GameState): string {
+  const kids = state.children.length;
+  const babies = state.survivors.filter((s) => s.expecting).length;
+  const extra = [kids > 0 ? `${kids} for ${kids === 1 ? 'a child' : 'children'}` : '', babies > 0 ? `${babies} kept for ${babies === 1 ? 'a baby' : 'babies'} on the way` : ''].filter(Boolean);
+  const line = `${bedsTaken(state)} of ${bunksCap(state)} beds taken${extra.length > 0 ? `, including ${extra.join(' and ')}` : ''}.`;
+  if (!state.depot.familyBed) return line;
+  return `${line} ${hasEmptyBed(state) ? 'One of the empty beds is kept for a family.' : 'The next bed to come free will be kept for a family.'}`;
+}
+
 export function homeCounts(state: GameState): { home: number; out: number; outposts: number; beds: number; cap: number } {
   const home = state.survivors.filter(atDepot).length;
   const outposts = state.survivors.filter((s) => s.outpost !== undefined).length;
-  return { home, out: state.survivors.length - home - outposts, outposts, beds: state.survivors.length, cap: bunksCap(state) };
+  return { home, out: state.survivors.length - home - outposts, outposts, beds: bedsTaken(state), cap: bunksCap(state) };
 }
 
 // ---------------------------------------------------------------- food

@@ -3,6 +3,8 @@
  * the line shown when something in it is tapped. Plain TypeScript, tested in Node.
  */
 import {
+  ADULT_AGE,
+  CHILD_HELP_AGE,
   getAnimal,
   keeperOf,
   BUILDING_IDS,
@@ -29,9 +31,10 @@ import {
   type Survivor,
 } from '../engine/index.ts';
 import { HAIR_STYLES, portraitLook } from '../portrait/index.ts';
-import { GATE_SPOTS, IDLE_SPOTS, PARKING_X, REST_SPOTS } from '../scene/layout.ts';
+import { CHILD_SPOTS, GATE_SPOTS, IDLE_SPOTS, PARKING_X, REST_SPOTS } from '../scene/layout.ts';
 import { dayPhase, type FigureLook, type YardModel, type YardPerson } from '../scene/model.ts';
 import { routeHash } from './route.ts';
+import { ageText } from './family-view.ts';
 import { joinNames } from './runs-view.ts';
 import { clockTime } from './time.ts';
 import { survivorStatus } from './view.ts';
@@ -57,6 +60,11 @@ export function figureLook(s: Survivor): FigureLook {
     ...(HATS.has(look.accessory) ? { hat: look.accessory as FigureLook['hat'] } : {}),
     hurt,
   };
+}
+
+/** How tall a child stands next to the grown-ups: about half at birth, nearly all at 15. */
+export function childSize(age: number): number {
+  return +(0.5 + (0.5 * Math.min(age, ADULT_AGE)) / ADULT_AGE).toFixed(3);
 }
 
 const sheet = (s: Survivor): string => routeHash({ screen: 'survivor', id: s.id, tab: 'stats' });
@@ -112,6 +120,22 @@ export function yardModel(state: GameState, hour: number, day?: number): YardMod
     const where = IDLE_SPOTS[slot]!.pose === 'sit' ? `by the fire${withPartner}` : `about the yard${withPartner}`;
     people.push({ id: s.id, look: figureLook(s), place: { kind: 'idle', slot }, go: sheet(s), label: `${fullName(s)}, taking it easy ${where}.` });
   });
+
+  // The children, in front of the fire.
+  [...state.children]
+    .sort((a, b) => (a.bornDay ?? 0) - (b.bornDay ?? 0))
+    .slice(0, CHILD_SPOTS.length)
+    .forEach((c, slot) => {
+      const baby = c.age < 2;
+      const doing = baby ? '' : c.age >= CHILD_HELP_AGE ? ', helping out about the yard' : ', playing in the yard';
+      people.push({
+        id: c.id,
+        look: { ...figureLook(c), size: childSize(c.age) },
+        place: { kind: 'child', slot, baby },
+        go: sheet(c),
+        label: `${fullName(c)}, ${ageText(c, day ?? state.depot.lastDay)}${doing}.`,
+      });
+    });
 
   // At the gate.
   state.depot.recruits.slice(0, GATE_SPOTS.length).forEach((c, slot) => {

@@ -1,4 +1,4 @@
-import { ORIENTATION_PER_MILLE, STAT_BASE, STAT_GEN_MAX, STAT_GEN_POINTS } from './constants.ts';
+import { ORIENTATION_PER_MILLE, STAT_BASE, STAT_GEN_MAX, STAT_GEN_POINTS, YEAR_DAYS } from './constants.ts';
 import { FIRST_NAMES, LAST_NAMES, ORIGINS, TRAITS, getGear, getOrigin, type OriginDef } from './content/index.ts';
 import { createItem } from './gear.ts';
 import { newId } from './ids.ts';
@@ -145,7 +145,7 @@ export function generateSurvivor(state: GameState, rng: Rng, opts: GenerateOptio
   const origin = opts.origin ? getOrigin(opts.origin) : pickOrigin(rng);
   const pronouns = opts.pronouns ?? rng.weighted(PRONOUN_WEIGHTS);
   // Avoid repeating first or last names within the guild (shared surnames would imply family).
-  const taken = new Set(state.survivors.flatMap((x) => [x.firstName, x.lastName]));
+  const taken = new Set([...state.survivors, ...(state.children ?? [])].flatMap((x) => [x.firstName, x.lastName]));
   const { first, last } = rollName(rng, pronouns, taken);
 
   const s: Survivor = {
@@ -171,6 +171,8 @@ export function generateSurvivor(state: GameState, rng: Rng, opts: GenerateOptio
   };
 
   s.orientation = orientationFor(s.appearance.seed);
+  // A birthday some time in the coming year, from the seed so no dice are spent on it (§5.2).
+  s.nextBirthday = opts.day + 1 + (s.appearance.seed % YEAR_DAYS);
   s.backstory = fill(rng.pick(origin.backstories), s);
   rollTraits(rng, s, origin, opts.day, opts.hiddenTraitChance ?? 0.5);
   rollStartingGear(state, rng, s, origin);

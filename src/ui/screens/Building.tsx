@@ -4,6 +4,8 @@ import {
   assignPost,
   build,
   buildingDef,
+  hasEmptyBed,
+  keepFamilyBed,
   craft,
   dayAt,
   statName,
@@ -71,9 +73,30 @@ function BuildingBody({ state, id }: { state: GameState; id: BuildingId }) {
         {error && <p className="field-error">{error}</p>}
       </section>
 
+      {r.built && id === 'bunks' && <FamilyBed state={state} />}
       {r.built && r.slots > 0 && <Workers state={state} id={id} />}
       {r.built && id === 'workshop' && <Workshop state={state} />}
     </>
+  );
+}
+
+/** Keep a bed free so a couple can have a baby (§5.3). */
+function FamilyBed({ state }: { state: GameState }) {
+  const { act } = useAction();
+  const on = state.depot.familyBed === true;
+  return (
+    <section className="panel" aria-labelledby="family-bed-title">
+      <h3 id="family-bed-title" className="panel-title">
+        A bed for a family
+      </h3>
+      <p className="panel-help">
+        A couple at home can only have a baby with a bed free for it. Keep one free, and nobody new takes it: not recruits, not people your crews bring home.
+      </p>
+      {on && <p className="building-now">{hasEmptyBed(state) ? 'One bed is kept free for a family.' : 'The next bed to come free will be kept for a family.'}</p>}
+      <button type="button" className={on ? 'btn' : 'btn btn-primary'} onClick={() => act((s) => keepFamilyBed(s, !on))}>
+        {on ? 'Let anyone take it' : 'Keep a bed free'}
+      </button>
+    </section>
   );
 }
 

@@ -22,6 +22,8 @@ export interface FigureLook {
   hat?: 'beanie' | 'bandana' | 'goggles';
   /** Bandaged: wounded or badly wounded. */
   hurt: boolean;
+  /** How tall they're drawn: 1 for grown-ups, less for children. */
+  size?: number;
 }
 
 export type Place =
@@ -34,7 +36,9 @@ export type Place =
   /** Resting until healed, on a cot by the Infirmary (or by the Bunks without one). */
   | { kind: 'resting'; slot: number; infirmary: boolean }
   /** Waiting outside the gate to join. */
-  | { kind: 'gate'; slot: number };
+  | { kind: 'gate'; slot: number }
+  /** One of the Depot's children, playing in front of the fire; babies sit. */
+  | { kind: 'child'; slot: number; baby: boolean };
 
 export interface YardPerson {
   id: string;
