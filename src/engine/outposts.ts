@@ -32,6 +32,7 @@ import { adjustRelationship, arePartners, becomePartners, relationshipLabel, rom
 import type { Rng } from './rng.ts';
 import { addTrait, expireConditions, mulTraitHook } from './traits.ts';
 import { RESOURCE_IDS, type GameState, type Outpost, type Resources, type Survivor } from './types.ts';
+import { relayOutposts } from './projects.ts';
 
 export function findOutpost(state: GameState, locationId: string): Outpost | undefined {
   return state.outposts.find((o) => o.locationId === locationId);
@@ -44,7 +45,7 @@ export function outpostStaff(state: GameState, locationId: string): Survivor[] {
 
 /** How many outposts the Radio Tower can keep in contact with: one per level. */
 export function outpostLimit(state: GameState): number {
-  return buildingLevel(state, 'radio_tower');
+  return buildingLevel(state, 'radio_tower') + relayOutposts(state);
 }
 
 /**

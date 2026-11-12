@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { Rng, becomePartners, build, createVehicle, getRelationship, refreshRecruits, startRun } from '../engine/index.ts';
+import { Rng, becomePartners, build, createVehicle, getRelationship, refreshRecruits, startRun, postBuilding } from '../engine/index.ts';
 import { T0, openGame, testGame, testPlan } from '../engine/test-utils.ts';
 import { awayLines, buildingCaption, figureLook, yardModel } from './yard-view.ts';
 
@@ -13,7 +13,7 @@ describe('the yard', () => {
     for (const p of model.people) {
       const s = state.survivors.find((x) => x.id === p.id)!;
       if (s.post) {
-        assert.deepEqual(p.place.kind === 'post' && p.place.building, s.post.building);
+        assert.deepEqual(p.place.kind === 'post' && p.place.building, postBuilding(s.post));
         assert.match(p.label, /works the|trains/i);
       } else {
         assert.equal(p.place.kind, 'idle');

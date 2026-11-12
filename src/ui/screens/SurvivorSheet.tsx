@@ -3,6 +3,7 @@ import {
   NAME_MAX_LENGTH,
   SLOTS,
   assignPost,
+  joinProject,
   bringHome,
   dayAt,
   getLocation,
@@ -16,11 +17,13 @@ import {
   unequip,
   type GameState,
   type BuildingId,
+  type ProjectId,
   type Slot,
   type Survivor,
 } from '../../engine/index.ts';
 import { postChoices } from '../depot-view.ts';
 import { outpostChoices } from '../outposts-view.ts';
+import { postLink, postValue, projectChoices } from '../projects-view.ts';
 import { BondBar, Meter, Vitals } from '../components/Bars.tsx';
 import { ItemDetails } from '../components/ItemDetails.tsx';
 import { scoresToSettle } from '../stories-view.ts';
@@ -180,7 +183,9 @@ function PostPicker({ state, survivor: s }: { state: GameState; survivor: Surviv
   const { act, error } = useAction();
   const choices = postChoices(state, s);
   const outposts = outpostChoices(state, s);
-  const value = s.outpost ? `outpost:${s.outpost}` : (s.post?.building ?? '');
+  const projects = projectChoices(state, s);
+  const value = postValue(s);
+  const link = postLink(state, s);
   const pick = (v: string): void => {
     act((st) => {
       const day = dayAt(st, Date.now());
@@ -189,6 +194,10 @@ function PostPicker({ state, survivor: s }: { state: GameState; survivor: Surviv
         return;
       }
       if (s.outpost) bringHome(st, s.id, day);
+      if (v.startsWith('project:')) {
+        joinProject(st, s.id, v.slice('project:'.length) as ProjectId);
+        return;
+      }
       assignPost(st, s.id, v ? { building: v as BuildingId } : undefined);
     });
   };
@@ -204,6 +213,16 @@ function PostPicker({ state, survivor: s }: { state: GameState; survivor: Surviv
               {c.problem ? ' (full)' : ''}
             </option>
           ))}
+          {projects.length > 0 && (
+            <optgroup label="Projects">
+              {projects.map((p) => (
+                <option key={p.id} value={`project:${p.id}`} disabled={p.problem !== undefined}>
+                  {p.name}
+                  {p.problem ? ' (full)' : ''}
+                </option>
+              ))}
+            </optgroup>
+          )}
           {outposts.length > 0 && (
             <optgroup label="Live at an outpost">
               {outposts.map((o) => (
@@ -216,9 +235,9 @@ function PostPicker({ state, survivor: s }: { state: GameState; survivor: Surviv
           )}
         </select>
       </label>
-      {s.post && (
-        <button type="button" className="link" onClick={() => navigate({ screen: 'building', id: s.post!.building })}>
-          Go to the {choices.find((c) => c.id === s.post!.building)?.name ?? 'building'}
+      {link && (
+        <button type="button" className="link" onClick={() => navigate(link.to.screen === 'building' ? { screen: 'building', id: link.to.id as BuildingId } : { screen: 'depot', tab: 'projects' })}>
+          {link.label}
         </button>
       )}
       {s.outpost && (

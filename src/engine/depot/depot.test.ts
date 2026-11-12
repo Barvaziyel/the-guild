@@ -12,12 +12,13 @@ import {
 import { BUILDINGS, RECIPES, getGear } from '../content/index.ts';
 import { startRun } from '../expedition/runs.ts';
 import { dayAt } from '../game.ts';
+import { createItem } from '../gear.ts';
 import { relationshipScore } from '../relationships.ts';
 import { Rng } from '../rng.ts';
 import { deserialize, serialize } from '../save.ts';
 import { T0, openGame, testGame, testPlan } from '../test-utils.ts';
 import { addTrait, hasTrait } from '../traits.ts';
-import type { GameState } from '../types.ts';
+import type { BuildingPost, GameState } from '../types.ts';
 import { BUILDING_IDS } from '../types.ts';
 import {
   assignPost,
@@ -29,12 +30,13 @@ import {
   postText,
   postedTo,
   workerSlots,
+  postBuilding,
 } from './buildings.ts';
 import { dailyUpkeep, emptySummary, gardenYield, playDepotDay } from './day.ts';
 import { acceptOffer, declineOffer, offerProblem, rollDepotEvents } from './events.ts';
 import { boardSize, recruitProblem, refreshRecruits, takeIn } from './recruits.ts';
 import { advanceTime, dayStart, nextDayAt } from './time.ts';
-import { craft, craftProblem, upgradeItem, upgradeProblem } from './workshop.ts';
+import { craft, craftProblem, salvage, salvageProblem, salvageSpares, salvageValue, spareGear, upgradeItem, upgradeProblem } from './workshop.ts';
 
 /** How long a game day lasted before save version 6. */
 const HOUR = 60 * 60 * 1000;
@@ -102,7 +104,7 @@ describe('posts', () => {
     assert.throws(() => assignPost(state, a!.id, { building: 'infirmary' }), /isn't built/);
     assert.throws(() => assignPost(state, a!.id, { building: 'bunks' }), /Nobody works/);
     // The Garden is full with two; moving someone else in needs a free slot.
-    const free = [a, b, c, d].find((s) => s!.post?.building !== 'garden')!;
+    const free = [a, b, c, d].find((s) => postBuilding(s!.post) !== 'garden')!;
     assert.throws(() => assignPost(state, free.id, { building: 'garden' }), /no room/);
     const gardener = postedTo(state, 'garden')[0]!;
     assignPost(state, gardener.id, undefined);
@@ -117,7 +119,7 @@ describe('posts', () => {
     build(state, 'training_yard', 1);
     const s = state.survivors.find((x) => !x.post)!;
     assignPost(state, s.id, { building: 'training_yard' });
-    assert.ok(s.post?.stat);
+    assert.ok((s.post as BuildingPost | undefined)?.stat);
     assignPost(state, s.id, { building: 'training_yard', stat: 'aim' });
     assert.equal(postText(state, s), 'Trains Aim in the Training Yard');
     const before = s.practice.aim + s.stats.aim * 100;
@@ -256,6 +258,63 @@ describe('recruits', () => {
     assert.match(s.chronicle[s.chronicle.length - 1]!.text, /joined the guild/);
     for (const other of state.survivors) if (other !== s) assert.equal(typeof relationshipScore(state, s.id, other.id), 'number');
     assert.match(recruitProblem(state, s.id) ?? '', /moved on/);
+  });
+});
+
+describe('salvage', () => {
+  function withWorkshop(): GameState {
+    const state = testGame('salvage');
+    state.resources = { scrap: 500, rations: 50, meds: 5, ammo: 5, tech: 50, gas: 0 };
+    build(state, 'workshop', 1);
+    state.resources = { scrap: 0, rations: 50, meds: 5, ammo: 5, tech: 0, gas: 0 };
+    state.stash = [];
+    return state;
+  }
+
+  test('gives back a share of the recipe by quality, tech from guns, and a little scrap for a trinket', () => {
+    const state = withWorkshop();
+    assert.deepEqual(salvageValue(createItem(state, 'pipe', 'rusty')), { scrap: 1 });
+    assert.deepEqual(salvageValue(createItem(state, 'machete', 'common')), { scrap: 3 });
+    assert.deepEqual(salvageValue(createItem(state, 'hunting_rifle', 'solid')), { scrap: 10, tech: 2 });
+    assert.deepEqual(salvageValue(createItem(state, 'riot_gear', 'prime')), { scrap: 18, tech: 4 });
+    assert.deepEqual(salvageValue(createItem(state, 'old_photo', 'common')), { scrap: 2 });
+  });
+
+  test('only gear in the stash, only at a Workshop, and never relics, named weapons, Medkits or a cherished trinket', () => {
+    const none = testGame('no-workshop');
+    const pipe = createItem(none, 'pipe', 'rusty');
+    none.stash.push(pipe);
+    assert.equal(salvageProblem(none, pipe.uid), 'Build the Workshop first.');
+    const state = withWorkshop();
+    const carried = state.survivors[0]!.equipment.weapon;
+    if (carried) assert.equal(salvageProblem(state, carried.uid), 'Only gear in the stash can be taken apart.');
+    const relic = createItem(state, 'machete', 'relic');
+    const named = { ...createItem(state, 'sledge', 'solid'), name: 'Old Faithful' };
+    const kit = createItem(state, 'medkit', 'common');
+    const photo = { ...createItem(state, 'old_photo', 'common'), cherishedBy: state.survivors[1]!.id };
+    state.stash.push(relic, named, kit, photo);
+    assert.equal(salvageProblem(state, relic.uid), 'A relic is worth more whole.');
+    assert.equal(salvageProblem(state, named.uid), 'Nobody will take apart Old Faithful.');
+    assert.equal(salvageProblem(state, kit.uid), 'A Medkit is worth more used.');
+    assert.equal(salvageProblem(state, photo.uid), `${state.survivors[1]!.firstName} would never forgive it.`);
+  });
+
+  test('taking apart adds the parts to the stores and says so; the spares go all at once', () => {
+    const state = withWorkshop();
+    const rifle = createItem(state, 'hunting_rifle', 'solid');
+    state.stash.push(rifle);
+    salvage(state, rifle.uid, 4);
+    assert.equal(state.resources.scrap, 10);
+    assert.equal(state.resources.tech, 2);
+    assert.equal(state.stash.some((i) => i.uid === rifle.uid), false);
+    assert.match(state.log.at(-1)!.text, /^Took apart a Solid Hunting Rifle in the Workshop: 10 scrap, 2 tech\.$/);
+    const spares = [createItem(state, 'pipe', 'rusty'), createItem(state, 'leather_jacket', 'common'), createItem(state, 'machete', 'solid'), createItem(state, 'crowbar', 'rusty')];
+    state.stash.push(...spares);
+    assert.deepEqual(spareGear(state).map((i) => i.defId), ['pipe', 'leather_jacket'], 'Rusty and Common weapons and armor only');
+    const { count } = salvageSpares(state, 5);
+    assert.equal(count, 2);
+    assert.deepEqual(state.stash.map((i) => i.defId).sort(), ['crowbar', 'machete']);
+    assert.match(state.log.at(-1)!.text, /^Took apart 2 pieces of spare gear in the Workshop: \d+ scrap\.$/);
   });
 });
 

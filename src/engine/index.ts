@@ -19,6 +19,7 @@ export * from './evolution.ts';
 export * from './vehicles.ts';
 export * from './outposts.ts';
 export * from './dilemmas.ts';
+export * from './projects.ts';
 export * from './expedition/index.ts';
 export * from './depot/index.ts';
 export { newId } from './ids.ts';

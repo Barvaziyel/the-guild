@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { BUILDING_IDS, type BuildingId } from '../engine/types.ts';
-import { GATE_SPOTS, IDLE_SPOTS, POST_SPOTS, REST_SPOTS } from './layout.ts';
+import { BUILDING_IDS, PROJECT_IDS, type BuildingId, type ProjectId } from '../engine/types.ts';
+import { GATE_SPOTS, IDLE_SPOTS, POST_SPOTS, PROJECT_SPOTS, REST_SPOTS } from './layout.ts';
 import { dayPhase, type FigureLook, type YardModel, type YardPerson } from './model.ts';
 import { spotFor, yardSvg } from './yard.ts';
 
@@ -19,8 +19,11 @@ function model(change?: (m: YardModel) => void): YardModel {
   IDLE_SPOTS.forEach((_, slot) => add({ kind: 'idle', slot }));
   REST_SPOTS.infirmary.forEach((_, slot) => add({ kind: 'resting', slot, infirmary: true }));
   GATE_SPOTS.forEach((_, slot) => add({ kind: 'gate', slot }));
+  for (const id of PROJECT_IDS) PROJECT_SPOTS[id].forEach((_, slot) => add({ kind: 'project', project: id, slot }));
+  const projects = Object.fromEntries(PROJECT_IDS.map((id) => [id, { done: 1, working: true }])) as Record<ProjectId, { done: number; working: boolean }>;
   const m: YardModel = {
     buildings,
+    projects,
     people,
     trader: true,
     vehicles: ['motorcycle', 'car', 'pickup', 'van'].map((defId, i) => ({ id: `v${i}`, defId, broken: i === 2, label: defId })),
@@ -57,6 +60,27 @@ describe('the yard drawing', () => {
         assert.ok(svg.startsWith('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 600"'));
       }
     }
+  });
+
+  test('every project draws at every stage, and the Wall takes the fence\u2019s place', () => {
+    for (const done of [0, 1, 2, 3]) {
+      for (const working of [false, true]) {
+        for (const phase of ['day', 'night'] as const) {
+          const svg = yardSvg(model((m) => {
+            for (const id of PROJECT_IDS) m.projects[id] = { done, working: working && done < 3 };
+            m.phase = phase;
+          }));
+          assertWellFormed(svg);
+          for (const id of PROJECT_IDS) {
+            if (id === 'the_wall') continue;
+            assert.equal(svg.includes(`data-key="p:${id}"`), done > 0 || (working && done < 3), `${id} at ${done}${working ? ', working' : ''}`);
+          }
+        }
+      }
+    }
+    const chain = (done: number): number =>
+      [...yardSvg(model((m) => (m.projects.the_wall = { done, working: false }))).matchAll(/width="([\d.]+)" height="24" fill="url\(#yard-chain\)"/g)].reduce((a, m) => a + Number(m[1]), 0);
+    assert.ok(chain(0) > chain(1) && chain(1) > chain(2) && chain(3) === 0, `the chain-link goes as the wall goes up: ${[0, 1, 2, 3].map(chain)}`);
   });
 
   test('every building, person, vehicle, the gate and the trader can be tapped', () => {

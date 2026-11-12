@@ -13,6 +13,7 @@ import {
   atDepth,
   buildOutpostProblem,
   buildingName,
+  postText,
   costText,
   deepestOpen,
   depthOpen,
@@ -180,7 +181,7 @@ export function outpostView(state: GameState, id: string): OutpostView {
 }
 
 function person(state: GameState, s: Survivor): OutpostPerson {
-  const where = s.outpost ? `At the outpost at ${getLocation(s.outpost).name}` : s.post ? `Works the ${buildingName(state, s.post.building)}` : 'No post';
+  const where = s.outpost ? `At the outpost at ${getLocation(s.outpost).name}` : s.post ? postText(state, s) : 'No post';
   return { survivor: s, where, aim: `Aim ${effectiveStat(s, 'aim')}` };
 }
 

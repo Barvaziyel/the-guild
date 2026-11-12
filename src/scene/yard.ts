@@ -3,11 +3,12 @@
  * front by where it stands, then the light of the time of day goes over it,
  * then the lights that shine through the dark.
  */
-import type { BuildingId } from '../engine/types.ts';
+import type { BuildingId, ProjectId } from '../engine/types.ts';
 import { BUILDING_BASE, BUILDING_DRAWINGS, bulbs, flame, stationHouse } from './buildings.ts';
 import { C, circle, hash, hit, ink, line, mix, pathEl, rect, tappable } from './draw.ts';
 import { figure, trader } from './figures.ts';
-import { BUILDING_AREAS, GATE, GATE_SPOTS, H, IDLE_SPOTS, PARKING_X, POST_SPOTS, REST_SPOTS, W, Y, type Spot } from './layout.ts';
+import { BUILDING_AREAS, GATE, GATE_SPOTS, H, IDLE_SPOTS, PARKING_X, POST_SPOTS, PROJECT_SPOTS, REST_SPOTS, W, Y, type Spot } from './layout.ts';
+import { PROJECT_BASE, PROJECT_DRAWINGS, wallRun, wallShare, type ProjectLook } from './projects.ts';
 import type { DayPhase, YardModel, YardPerson } from './model.ts';
 import { vehicle } from './vehicles.ts';
 
@@ -36,6 +37,8 @@ export function spotFor(person: YardPerson): Spot | undefined {
   switch (p.kind) {
     case 'post':
       return POST_SPOTS[p.building][p.slot];
+    case 'project':
+      return PROJECT_SPOTS[p.project][p.slot];
     case 'idle':
       return IDLE_SPOTS[p.slot];
     case 'resting':
@@ -103,14 +106,27 @@ function rails(): string {
   return out;
 }
 
-function fence(): string {
+/**
+ * The chain-link fence, and the Wall where it has replaced it (§9.6): a third
+ * of the fence's length a stage, from the left, skipping the gate.
+ */
+function fence(wall: ProjectLook): string {
   const top = Y.fence - 24;
-  let out = `<rect x="0" y="${top}" width="${GATE.x}" height="24" fill="url(#yard-chain)"/>`;
-  out += `<rect x="${GATE.x + GATE.w}" y="${top}" width="${W - GATE.x - GATE.w}" height="24" fill="url(#yard-chain)"/>`;
-  out += line(0, top, GATE.x, top, 1.2, C.fence) + line(GATE.x + GATE.w, top, W, top, 1.2, C.fence);
-  for (let x = 4; x < W; x += 24) {
-    if (x > GATE.x - 4 && x < GATE.x + GATE.w + 4) continue;
-    out += rect(x - 1.5, top - 3, 3, 27, C.fence, ink(0.7));
+  const length = W - GATE.w;
+  const walled = wallShare(wall) * length;
+  // Where the wall ends on the drawing, counting the fence on both sides of the gate.
+  const end = walled <= GATE.x ? walled : walled + GATE.w;
+  let out = '';
+  for (const [x1, x2] of [
+    [0, GATE.x],
+    [GATE.x + GATE.w, W],
+  ] as const) {
+    const from = Math.max(x1, Math.min(x2, end));
+    if (from < x2) {
+      out += `<rect x="${from}" y="${top}" width="${x2 - from}" height="24" fill="url(#yard-chain)"/>` + line(from, top, x2, top, 1.2, C.fence);
+      for (let x = 4; x < W; x += 24) if (x >= from && x < x2 && !(x > GATE.x - 4 && x < GATE.x + GATE.w + 4)) out += rect(x - 1.5, top - 3, 3, 27, C.fence, ink(0.7));
+    }
+    out += wallRun(x1, Math.min(x2, end));
   }
   return out;
 }
@@ -173,7 +189,7 @@ export function yardSvg(model: YardModel): string {
     const spot = spotFor(p);
     if (!spot) continue;
     // People at a building stand in front of it, even up on a platform.
-    const y = p.place.kind === 'post' ? Math.max(spot.y, BUILDING_BASE[p.place.building] + 0.5) : spot.y;
+    const y = p.place.kind === 'post' ? Math.max(spot.y, BUILDING_BASE[p.place.building] + 0.5) : p.place.kind === 'project' ? Math.max(spot.y, (PROJECT_BASE[p.place.project] ?? 0) + 0.5) : spot.y;
     const tall = spot.pose === 'lie' ? 14 : 30;
     const wide = spot.pose === 'lie' ? 30 : 16;
     const body = hit(spot.x - wide / 2, spot.y - tall, wide, tall + 2) + figure(p.look, spot, p.id);
@@ -186,7 +202,15 @@ export function yardSvg(model: YardModel): string {
     items.push({ y: Y.parking, svg: tappable(`v:${v.id}`, '#/vehicles', v.label, body) });
   });
 
-  items.push({ y: Y.fence, svg: fence() + gate() });
+  const projectLabels: Record<ProjectId, string> = { the_line: 'The Line', the_wall: 'The Wall', the_clinic: 'The Clinic', the_relay: 'The Relay', memorial_garden: 'The Memorial Garden' };
+  for (const id of Object.keys(PROJECT_DRAWINGS) as ProjectId[]) {
+    const look = model.projects[id];
+    if (!look || (look.done === 0 && !look.working)) continue;
+    const label = `${projectLabels[id]}: ${look.done === 3 ? 'finished' : `${look.done} of 3 stages done${look.working ? ', work under way' : ''}`}.`;
+    items.push({ y: PROJECT_BASE[id]!, svg: tappable(`p:${id}`, '#/depot/projects', label, PROJECT_DRAWINGS[id]!(look)) });
+  }
+
+  items.push({ y: Y.fence, svg: fence(model.projects.the_wall ?? { done: 0, working: false }) + gate() });
   if (model.trader) items.push({ y: 574, svg: cart() });
 
   items.sort((a, b) => a.y - b.y);

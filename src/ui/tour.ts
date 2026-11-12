@@ -130,7 +130,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     route: depot,
     target: 'gear',
     text: () =>
-      "Weapons, armor, tools and trinkets that crews find, or the Workshop makes, go into the stash. Open it to hand them out. People change gear only while they're at the Depot.",
+      "Weapons, armor, tools and trinkets that crews find, or the Workshop makes, go into the stash. Open it to hand them out, or take apart what nobody needs for scrap once there's a Workshop. People change gear only while they're at the Depot.",
   },
 
   // ---------------------------------------------------------------- food
@@ -295,6 +295,15 @@ export const TOUR_STEPS: readonly TourStep[] = [
       if (ideas.length === 0) return 'Every building can go higher. Tap one to see its next level and what it costs.';
       return `Good first goals: ${joinNames(ideas)}. You'll need runs to pay for them.`;
     },
+  },
+  {
+    id: 'projects',
+    part: 'building',
+    title: 'Projects',
+    route: () => ({ screen: 'depot', tab: 'projects' }),
+    target: 'projects',
+    text: () =>
+      'Once the Depot is built up, big works change it for good: rails to the far places, a wall, a clinic. Each comes in three stages. Pay for a stage, put a crew on it, and they work it off day by day.',
   },
   {
     id: 'raids',

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { Rng, assignPost, build, emptySummary, gardenYield, guildUpkeep, postProblem, refreshRecruits, startRun } from '../engine/index.ts';
+import { Rng, assignPost, build, emptySummary, gardenYield, guildUpkeep, postProblem, refreshRecruits, startRun, postBuilding } from '../engine/index.ts';
 import { T0, openGame, testGame, testPlan } from '../engine/test-utils.ts';
 import {
   foodWarning,
@@ -43,7 +43,7 @@ describe('buildings on screen', () => {
 
   test('workers say why they are not working today', () => {
     const state = openGame();
-    const gardener = state.survivors.find((s) => s.post?.building === 'garden')!;
+    const gardener = state.survivors.find((s) => postBuilding(s.post) === 'garden')!;
     assert.deepEqual(Object.keys(workerLine(state, gardener)), ['stat']);
     startRun(state, { ...testPlan(state), crew: [gardener.id] }, T0);
     assert.equal(workerLine(state, gardener).away, 'Out on a run.');
@@ -53,19 +53,19 @@ describe('buildings on screen', () => {
     const state = testGame();
     const options = postCandidates(state, 'firepit');
     assert.equal(options.length, 3);
-    assert.ok(options.every((o) => o.survivor.post?.building !== 'firepit'));
+    assert.ok(options.every((o) => postBuilding(o.survivor.post) !== 'firepit'));
     const s = state.survivors[0]!;
     assert.deepEqual(postChoices(state, s).map((c) => c.id), ['garden', 'firepit']);
   });
 
   test('people resting until healed are not offered a post, and keep the one they have', () => {
     const state = testGame();
-    const hurt = state.survivors.find((s) => s.post?.building !== 'firepit')!;
+    const hurt = state.survivors.find((s) => postBuilding(s.post) !== 'firepit')!;
     hurt.traits.push({ id: 'badly_wounded', gainedDay: 1, expiresDay: 6 });
     assert.ok(postCandidates(state, 'firepit').every((o) => o.survivor.id !== hurt.id));
     assert.equal(postProblem(state, hurt.id, { building: 'firepit' }), `${hurt.firstName} is resting until healed.`);
     assert.throws(() => assignPost(state, hurt.id, { building: 'firepit' }), /resting until healed/);
-    if (hurt.post) {
+    if (hurt.post && 'building' in hurt.post) {
       assert.equal(postProblem(state, hurt.id, hurt.post), undefined);
       assert.equal(workerLine(state, hurt).away, 'Resting until healed.');
     }

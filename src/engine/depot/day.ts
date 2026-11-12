@@ -39,7 +39,8 @@ import { expireConditions, maxTraitHook, mulTraitHook, removeTrait } from '../tr
 import type { BuildingId, GameState, GuildLogEntry, Resources, Survivor } from '../types.ts';
 import { BUILDING_IDS } from '../types.ts';
 import { playOutpostsDay } from '../outposts.ts';
-import { atDepot, buildingLevel, postStat, upkeepOf, workingAt, workingLevel } from './buildings.ts';
+import { atDepot, buildingLevel, postBuilding, postStat, upkeepOf, workingAt, workingLevel } from './buildings.ts';
+import { clinicHealMult, crewRations, fasterHealing, memorialRelief, postProject, workOnProjects, workingOnProject } from '../projects.ts';
 
 /** What happened over one or more Depot days, for the "while you were away" note. */
 export interface DepotSummary {
@@ -82,12 +83,12 @@ export function gardenYield(state: GameState): number {
 
 /** Rations the Depot hands out in a day: to everyone at home, and to the people at the outposts. */
 export function dailyUpkeep(state: GameState): number {
-  return sum(state.survivors.filter((s) => atDepot(s) || (s.status === 'ready' && s.outpost !== undefined)).map(rationsADay));
+  return sum(state.survivors.filter((s) => atDepot(s) || (s.status === 'ready' && s.outpost !== undefined)).map(rationsADay)) + crewRations(state);
 }
 
 /** Rations the whole guild eats in a day once everyone is back from runs: what the Garden has to keep up with. */
 export function guildUpkeep(state: GameState): number {
-  return sum(state.survivors.map(rationsADay));
+  return sum(state.survivors.map(rationsADay)) + crewRations(state);
 }
 
 function rationsADay(s: Survivor): number {
@@ -133,13 +134,15 @@ export function playDepotDay(state: GameState, day: number, rng: Rng, summary: D
     const max = maxHp(s);
     if (s.hp >= max) continue;
     const before = s.hp;
-    const rate = healRate(state) * (hungry ? HUNGRY_HEAL_SHARE : 1);
+    const rate = healRate(state) * clinicHealMult(state) * (hungry ? HUNGRY_HEAL_SHARE : 1);
     s.hp = Math.min(max, s.hp + Math.max(1, Math.ceil(max * rate)));
     summary.healed += s.hp - before;
   }
 
+  for (const s of home) fasterHealing(state, s, day);
+
   // Nerves.
-  const fire = firepitRelief(state);
+  const fire = firepitRelief(state) + memorialRelief(state);
   for (const s of home) {
     if (hungry) {
       hungerStress(s, rng, day);
@@ -153,10 +156,13 @@ export function playDepotDay(state: GameState, day: number, rng: Rng, summary: D
 
   // Practice and the people you work beside.
   for (const s of home) {
-    if (!s.post || !workingAt(state, s.post.building).includes(s)) continue;
-    const amount = s.post.building === 'training_yard' ? (TRAINING_PRACTICE[buildingLevel(state, 'training_yard')] ?? 0) : WORK_PRACTICE;
+    const b = postBuilding(s.post);
+    if (!b || !s.post || 'project' in s.post || !workingAt(state, b).includes(s)) continue;
+    const amount = b === 'training_yard' ? (TRAINING_PRACTICE[buildingLevel(state, 'training_yard')] ?? 0) : WORK_PRACTICE;
     addPractice(s, postStat(s, s.post), amount, day);
   }
+  // The project under way: its crew works and practices (§9.6).
+  workOnProjects(state, day);
   driftTogether(state, home, day, rng);
   fallForEachOther(state, home, day, rng);
 
@@ -289,6 +295,14 @@ function treat(state: GameState, day: number, rng: Rng, summary: DepotSummary): 
   }
 }
 
+/** Working side by side today: the same building, or the same project's crew. */
+function sameWork(state: GameState, a: Survivor, b: Survivor): boolean {
+  const pa = postProject(a.post);
+  if (pa) return pa === postProject(b.post) && workingOnProject(state, pa).includes(a) && workingOnProject(state, pa).includes(b);
+  const ba = postBuilding(a.post);
+  return ba !== undefined && ba === postBuilding(b.post) && workingAt(state, ba).includes(a) && workingAt(state, ba).includes(b);
+}
+
 /** Co-workers drift by their affinity; a Bar warms everyone a little. */
 function driftTogether(state: GameState, home: Survivor[], day: number, rng: Rng): void {
   const barChance = BAR_DRIFT_CHANCE[workingLevel(state, 'firepit')] ?? 0;
@@ -297,7 +311,7 @@ function driftTogether(state: GameState, home: Survivor[], day: number, rng: Rng
       const a = home[i]!;
       const b = home[j]!;
       let delta = 0;
-      const together = a.post && b.post && a.post.building === b.post.building && workingAt(state, a.post.building).includes(a) && workingAt(state, b.post.building).includes(b);
+      const together = sameWork(state, a, b);
       if (together && rng.chance(COWORKER_DRIFT_CHANCE)) delta += traitAffinity(a, b);
       if (barChance > 0 && rng.chance(barChance)) delta += 1;
       if (delta !== 0) adjustRelationship(state, a.id, b.id, delta, { day, everyday: true });

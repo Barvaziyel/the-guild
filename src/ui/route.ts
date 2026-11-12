@@ -11,7 +11,7 @@ export const PLACE_TABS = ['about', 'outpost'] as const;
 export type PlaceTab = (typeof PLACE_TABS)[number];
 
 /** The Depot's tabs. 'today' is the default and has no part in the hash. */
-export const DEPOT_TABS = ['today', 'yard', 'buildings', 'news'] as const;
+export const DEPOT_TABS = ['today', 'yard', 'buildings', 'projects', 'news'] as const;
 export type DepotTab = (typeof DEPOT_TABS)[number];
 
 export type Route =

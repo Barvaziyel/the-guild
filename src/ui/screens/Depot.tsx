@@ -8,12 +8,14 @@ import {
   type GameState,
 } from '../../engine/index.ts';
 import { DilemmaCard } from '../components/DilemmaCard.tsx';
+import { Projects } from '../components/Projects.tsx';
 import { Portrait } from '../components/Portrait.tsx';
 import { navigate, useAction } from '../hooks.ts';
 import { DEPOT_TABS, type DepotTab } from '../route.ts';
 import { Yard } from '../components/Yard.tsx';
 import { activeRuns, backIn, joinNames, runCrewNames } from '../runs-view.ts';
 import { outpostRows } from '../outposts-view.ts';
+import { projectNote } from '../projects-view.ts';
 import { buildingRows, depotNews, foodWarning, homeCounts, summaryLines, type BuildingRow } from '../depot-view.ts';
 import { stashLine } from '../gear-view.ts';
 import { vehiclesLine } from '../vehicles-view.ts';
@@ -26,7 +28,7 @@ interface Props {
   onDismissAway: () => void;
 }
 
-const TAB_LABELS: Record<DepotTab, string> = { today: 'Today', yard: 'Yard', buildings: 'Buildings', news: 'News' };
+const TAB_LABELS: Record<DepotTab, string> = { today: 'Today', yard: 'Yard', buildings: 'Buildings', projects: 'Projects', news: 'News' };
 
 export function Depot({ state, now, tab, away, onDismissAway }: Props) {
   const counts = homeCounts(state);
@@ -65,6 +67,7 @@ export function Depot({ state, now, tab, away, onDismissAway }: Props) {
         {tab === 'today' && <Today state={state} now={now} away={away} onDismissAway={onDismissAway} />}
         {tab === 'yard' && <Yard state={state} now={now} />}
         {tab === 'buildings' && <Buildings state={state} />}
+        {tab === 'projects' && <Projects state={state} />}
         {tab === 'news' && <News state={state} limit={60} />}
       </div>
     </section>
@@ -78,6 +81,7 @@ function Today({ state, now, away, onDismissAway }: Omit<Props, 'tab'>) {
   const outposts = outpostRows(state);
   const atGate = state.depot.recruits.length;
   const food = foodWarning(state);
+  const project = projectNote(state);
 
   return (
     <>
@@ -92,6 +96,15 @@ function Today({ state, now, away, onDismissAway }: Omit<Props, 'tab'>) {
       )}
 
       {state.depot.offers.length > 0 && <Offers state={state} />}
+
+      {project && (
+        <div className="panel">
+          <h3 className="panel-title">Project</h3>
+          <button type="button" className="link-row" onClick={() => navigate({ screen: 'depot', tab: 'projects' }, { replace: true })}>
+            {project}
+          </button>
+        </div>
+      )}
 
       {(out.length > 0 || outposts.length > 0) && (
         <div className="panel">

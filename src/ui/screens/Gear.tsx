@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { equipFromStash, getSurvivor, type GameState } from '../../engine/index.ts';
+import { dayAt, equipFromStash, getSurvivor, salvage, salvageSpares, type GameState } from '../../engine/index.ts';
 import { ItemDetails } from '../components/ItemDetails.tsx';
 import { Portrait } from '../components/Portrait.tsx';
-import { carriedRows, gearTakers, stashGroups, stashLine } from '../gear-view.ts';
+import { carriedRows, gearTakers, salvageButton, sparesPanel, stashGroups, stashLine } from '../gear-view.ts';
 import { goBack, navigate, useAction } from '../hooks.ts';
 import type { ItemView } from '../view.ts';
 
@@ -13,6 +13,13 @@ export function Gear({ state }: { state: GameState }) {
   const [given, setGiven] = useState<string | null>(null);
   const groups = stashGroups(state);
   const carried = carriedRows(state);
+  const spares = sparesPanel(state);
+
+  const takeApart = (item: ItemView): void => {
+    if (!act((st) => salvage(st, item.uid, dayAt(st, Date.now())))) return;
+    setOpen(null);
+    setGiven(`The ${item.name} is in pieces in the Workshop.`);
+  };
 
   const give = (item: ItemView, survivorId: string): void => {
     const ok = act((st) => {
@@ -34,8 +41,28 @@ export function Gear({ state }: { state: GameState }) {
         <h2 id="gear-title" className="plan-title">
           Gear
         </h2>
-        <p className="place-facts">{stashLine(state)} People change gear only while they&rsquo;re at the Depot.</p>
+        <p className="place-facts">{stashLine(state)} People change gear only while they&rsquo;re at the Depot. What nobody needs can be taken apart in the Workshop for scrap.</p>
       </header>
+
+      {spares && (
+        <section className="panel" aria-labelledby="spares-title" data-tour="salvage">
+          <h3 id="spares-title" className="panel-title">
+            Spare gear
+          </h3>
+          <p className="panel-help">{spares.text}</p>
+          {spares.button && (
+            <button
+              type="button"
+              className="btn"
+              onClick={() => {
+                if (act((st) => salvageSpares(st, dayAt(st, Date.now())))) setGiven('The spare gear is in pieces in the Workshop.');
+              }}
+            >
+              {spares.button}
+            </button>
+          )}
+        </section>
+      )}
 
       <section className="panel" aria-labelledby="stash-title">
         <h3 id="stash-title" className="panel-title">
@@ -88,6 +115,7 @@ export function Gear({ state }: { state: GameState }) {
                             </li>
                           ))}
                         </ul>
+                        <SalvageButton state={state} uid={item.uid} onTake={() => takeApart(item)} />
                         <button type="button" className="btn btn-small btn-quiet" onClick={() => setOpen(null)}>
                           Cancel
                         </button>
@@ -130,5 +158,18 @@ export function Gear({ state }: { state: GameState }) {
         )}
       </section>
     </article>
+  );
+}
+
+/** Below the people to give it to: taking it apart instead, or why it can't be. */
+function SalvageButton({ state, uid, onTake }: { state: GameState; uid: string; onTake: () => void }) {
+  const b = salvageButton(state, uid);
+  return (
+    <div className="salvage-row">
+      <button type="button" className="btn btn-small" disabled={b.problem !== undefined} onClick={onTake}>
+        {b.label}
+      </button>
+      {b.problem && <span className="crew-reason">{b.problem}</span>}
+    </div>
   );
 }
