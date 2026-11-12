@@ -2746,3 +2746,76 @@ li:nth-child(even) .pinned {
     animation: none !important;
   }
 }
+
+/* ---------------------------------------------------------------- decisions at the Depot */
+
+.dilemma {
+  border-left: 4px solid var(--rust);
+}
+
+.dilemma-kicker {
+  color: var(--rust-hi);
+  font-size: var(--step--1);
+  font-weight: 700;
+}
+
+.dilemma-title {
+  margin-top: 0.125rem;
+  font-family: var(--stencil);
+  font-size: var(--step-2);
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.dilemma-faces {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.dilemma-face {
+  display: grid;
+  justify-items: center;
+  gap: 0.25rem;
+  min-width: 56px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--bone-2);
+  font-size: var(--step--1);
+}
+
+.dilemma-face.is-stranger {
+  opacity: 0.85;
+}
+
+.dilemma-text {
+  margin-top: 0.75rem;
+  line-height: 1.5;
+}
+
+.dilemma-chosen {
+  margin-top: 0.5rem;
+  color: var(--rust-hi);
+  font-weight: 700;
+}
+
+.dilemma-choices {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.875rem;
+}
+
+.dilemma-choice {
+  text-align: left;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.dilemma .panel-help {
+  margin-top: 0.75rem;
+}
+
+.dilemma.is-done .btn {
+  margin-top: 0.875rem;
+}

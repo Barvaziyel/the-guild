@@ -106,6 +106,11 @@ const MIGRATIONS: Record<number, (save: Record<string, unknown>) => void> = {
     const state = save as unknown as GameState;
     state.outposts ??= [];
   },
+  12: (save) => {
+    // Decisions at the Depot (1.7.0): the first one comes a couple of days after loading.
+    const state = save as unknown as GameState;
+    state.dilemmas ??= { nextDay: state.depot.lastDay + 2, seen: {} };
+  },
 };
 
 export function serialize(state: GameState): string {
