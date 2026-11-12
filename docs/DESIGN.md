@@ -561,6 +561,36 @@ At most one event a day (a 20% chance), weighted:
 - **Vehicles** (§7.8): repairs back to full condition at any level; a Motorcycle at level 2 and a Hatchback at level 3. Trucks and vans can't be built.
 - **Improve:** weapons and armor only, since quality doesn't change anything else. Rusty → Common: 4 scrap. Common → Solid: 10 scrap, 2 tech. Solid → Prime: 20 scrap, 6 tech, and a level 2 Workshop. Relics can't be made. The Workshop can improve what's in the stash and what anyone at home is carrying.
 
+### 9.5 Decisions at the Depot (1.7.0)
+
+Now and then something comes up that the player has to decide (Aviel's idea, 2026-11-12). The decisions are data in `content/dilemmas.ts`, and `dilemmas.ts` plays them.
+
+- **How often:** one at a time. The next comes 5–11 game days after the last is settled (about once a real day). The first comes on day 4 of a new guild.
+- **What they're about:** twelve to start with. Each is built around real people at the Depot:
+  - two fighting over a good coat;
+  - missing rations and a suspect;
+  - a stranger at the gate;
+  - a light on the hill someone wants to go and see;
+  - bad blood at dinner (needs a rival or feud);
+  - grief at the fire (someone Grieving);
+  - a Greedy survivor's stash under the floorboards;
+  - a woman with a sick child (needs 3 meds);
+  - whose kill was it;
+  - an old map (needs a place left to find);
+  - a couple who want a party;
+  - someone asleep on watch.
+
+  New ones come up first.
+- **Four answers.** What follows isn't on the button: each answer has outcomes tried in order. Whether one happens depends on the people involved: a stat check (a Wits check to spot what's really going on, Brawn in a fight), a trait (a Greedy suspect really did it), whether the two get along, or luck. The last outcome always fits.
+- **Effects:** stress, the pair's relationship, how everyone else feels about someone, supplies gained or lost, a hurt (never fatal), a trait or condition, practice, a stranger joining (if there's a bed), word of a new place, someone new at the gate.
+- **Unanswered:** after 8 game days (about a real day), the people involved settle it themselves, with outcomes of their own that are usually worse. If someone it's about dies or leaves first, it's dropped.
+- **What's written:** the news gets a line with the title and what happened. Those involved get a subject-less Chronicle line: *Argued with Wren over a good coat.*
+- **On screen:**
+  - The Depot's Today tab opens with the card: who it's about (their faces), what's going on, the four answers, and when it has to be decided by. After answering, the card says what happened until dismissed.
+  - The Depot tab shows a mark while one waits.
+  - With notices on, a notice comes when the next one is due, and a reminder two hours before one is settled without the player. Tapping either opens the Depot.
+- `dilemmas.test.ts` checks every decision's references and placeholders, and that each can come up and every outcome of every answer (and of leaving it) can happen.
+
 ## 10. Recruitment
 
 - **Recruit board.** Each day, 2 + the Radio Tower's level answer the radio. They're there for that day only. Wanderers (§9.3) wait 3 days.
@@ -582,7 +612,7 @@ At most one event a day (a 20% chance), weighted:
 
 1. **Depot (home):** resource bar, buildings and their workers, active runs (countdown plus the latest beat), event inbox. *Built (PR 7):*
    - The first tab and the screen the game opens on. It grew long, so since 1.3.1 it has three tabs of its own:
-     - **Today** (the default): "Since you last looked" (the days that passed, what the Garden grew and the guild ate, ammo made, health healed, and the news), a food warning, a trader's offers (Trade, Send them on), crews out, who is at the gate, the gear, and the three latest news lines.
+     - **Today** (the default): a decision waiting, when there is one (§9.5; the Depot tab carries a mark meanwhile), "Since you last looked" (the days that passed, what the Garden grew and the guild ate, ammo made, health healed, and the news), a food warning, a trader's offers (Trade, Send them on), crews out, who is at the gate, the gear, and the three latest news lines.
      - **Buildings:** each building with its live numbers and workers, then those still to build. Coming back from a building returns here.
      - **News:** the Depot news, up to 60 lines.
    - **A building's screen:** what it does now, the next level and its cost, and its workers (post someone, take them off; Training Yard workers pick a stat). The Workshop adds Make and Improve.
@@ -601,8 +631,8 @@ At most one event a day (a 20% chance), weighted:
    - **A crew that is out:** a countdown, and the log so far, revealed beat by beat as time passes.
    - **Run report:** what came home, deaths, places found, the beat-by-beat log with the dice under each line, then what changed for each person. For example: *"Mara gained Rad-Hardened"*, *"Dex & Ava are now Friends"*, and the loot. It opens in place of the countdown when the crew gets back.
 7. **Memorial Wall:** faded portraits with the day and cause of death; tap one for their sheet and Chronicle. Opened from the bottom of the roster. *Built (PR 5).*
-8. **Settings:** mercy mode, notices when crews come back, portrait wobble, the tour, export and import save, load the backup copy, start a new guild, developer shortcuts and fast-forward (§11, §13). *Built (PR 5, 6, 10).*
-9. **The tour** (PR 10). A new guild starts with it, and Settings can show it again. A card pinned above the tab bar walks through 25 short steps in 7 parts: supplies, food, your people, runs, building, recruits, and time. Each step opens its screen and outlines what it's talking about, with live numbers where they help (what the Garden grows, what the first buildings cost). *Next*, *Skip this part* and *Skip tour* are always there. Opening the game mid-tour (from a notice, say) stays where it opened; the next step moves on from there.
+8. **Settings:** mercy mode, notices when crews come back (and when something needs deciding, since 1.7.0), portrait wobble, the tour, export and import save, load the backup copy, start a new guild, developer shortcuts and fast-forward (§11, §13). *Built (PR 5, 6, 10).*
+9. **The tour** (PR 10). A new guild starts with it, and Settings can show it again. A card pinned above the tab bar walks through 26 short steps in 7 parts: supplies, food, your people, runs, building, recruits, and time. Each step opens its screen and outlines what it's talking about, with live numbers where they help (what the Garden grows, what the first buildings cost). *Next*, *Skip this part* and *Skip tour* are always there. Opening the game mid-tour (from a notice, say) stays where it opened; the next step moves on from there.
 10. **Gear** (1.1.1). The stash by slot (weapons, armor, tools, trinkets), each piece with a *Give* button that lists everyone: those at the Depot can take it, those out on a run can't yet. Below, what each person carries; tap someone for their sheet. Opened from the Depot's Gear panel, from the stash line on a survivor's sheet, and from a run report that found gear.
 11. **Vehicles** (1.4.0). Each vehicle with what it does, a condition bar, where it is, and *Repair* with its cost; below, what the Workshop can build. Opened from the Depot's Vehicles panel (which says what the guild has, or how to get one), the Workshop and a report that found one. The planner lists the vehicles above the crew, with seats, condition, and the gas the trip needs; the crew limit follows the seats. Reports say what became of each vehicle taken. The resource bar shows gas, in two rows of three on a phone.
 12. **The yard** (1.5.0). A tab on the Depot screen (Today, Yard, Buildings, News) with the Depot drawn as it is right now, in the portraits' style.
@@ -708,8 +738,10 @@ Planned 2026-11-11, in this order, all on Opus:
 | 13 | Vehicles and gas (§7.8) | **done** (1.4.0) |
 | 14 | The yard: a drawing of the Depot with everyone in it (§12) | **done** (1.5.0) |
 | 15 | Expansion: outposts and deeper areas (§7.9, §7.10) | **done** (1.6.0) |
-| 16 | What's missing: rescue jobs, feuds that make someone quit, pets, **ageing and babies**, the last gear drawings | |
-| 17 | The Vultures, a rival guild | |
+| — | Balance: combat and loot (1.6.1), economy and pace (1.6.2), from the review in `claude/balance-review.md` | **done** |
+| 16 | Decisions at the Depot (§9.5), asked for 2026-11-12 | **done** (1.7.0) |
+| 17 | What's missing: rescue jobs, feuds that make someone quit, pets, **ageing and babies**, the last gear drawings | |
+| 18 | The Vultures, a rival guild | |
 
 - **Tutorial.** Starts with a new guild, and can be replayed from Settings. It walks through the resources and how to get more of each, food and the Garden, why crews go out on runs, why to build, and taking in recruits. It's optional: the player can skip the whole thing, or skip ahead to the next part. Built as the tour (§12); later steps that add something to explain (gas, vehicles) add a step to it.
 - **Stories.** An enemy that downs a survivor and gets away becomes a named, recurring foe (a nemesis). Survivors earn nicknames from feats. A weapon with 10 kills earns a name and a history. Built as §7.7.
@@ -724,20 +756,21 @@ Planned 2026-11-11, in this order, all on Opus:
   - *Built in 1.4.0 as §7.8.*
 - **The yard** (step 14, asked for 2026-11-11). A drawing of the Depot on a tab of its own: the buildings as they are, everyone at home where they are (at their posts, around the fire, resting on cots), recruits outside the gate, a trader's cart, the vehicles parked in the yard, and the light of the time of day. Tap anything to see what it is and open it. A view only: nothing in the game changes.
 - **Expansion.** Outposts on fully explored places extend the guild's reach (the Civ-style expansion). Places get deeper, more dangerous areas with better loot. Decided 2026-11-12: outposts send supplies home every day, shorten runs nearby, are a rest stop on the way home, and can be raided; people live there and can be swapped out any time; deeper levels open by exploring; the Radio Tower's level sets how many outposts. *Built in 1.6.0 as §7.9 and §7.10.*
-- **Ageing** (part of step 16, asked for 2026-11-11, alongside babies). Everyone gets older in game time: a year every 365 game days, which is about 45 real days.
+- **Decisions** (step 16, Aviel, 2026-11-12). Now and then something comes up that the player decides: two people fighting over something, a dilemma. Four answers, with costs and rewards that aren't obvious. If he doesn't answer within about a day, the people involved settle it themselves, usually not the best way. *Built in 1.7.0 as §9.5.*
+- **Ageing** (part of step 17, asked for 2026-11-11, alongside babies). Everyone gets older in game time: a year every 365 game days, which is about 45 real days.
   - Ages are fixed today. The portrait already greys hair by age, so faces would age on their own.
   - To settle when building it:
     - what old age does (stats slowly slipping past 60, say);
     - whether anyone can die of old age;
     - whether birthdays go in the Chronicle.
-- **Babies** (part of step 16, asked for 2026-11-11). Partners at the Depot sometimes have a baby, who grows up into a survivor.
+- **Babies** (part of step 17, asked for 2026-11-11). Partners at the Depot sometimes have a baby, who grows up into a survivor.
   - **Growing up in real time,** at the same pace as everyone else: 16 game years from birth to joining the roster, which is about two real years of play. Children are a long-term thing.
   - **Meanwhile:** children eat and need a bed. Everyone at home sheds a little more stress with a child around, and older children (about 12, so roughly a year and a half in) can take light posts such as the Garden. They never go on runs.
   - **From their parents:** a face that mixes both parents', stats that lean toward theirs, a chance to inherit a personality trait, and the family surname.
   - To settle when building it:
     - how often a couple has a baby;
     - whether the mother stays home for the last stretch before the birth;
-    - whether couples who can't have children can take in an orphan (rescue jobs, also in step 16 — Claude's suggestion);
+    - whether couples who can't have children can take in an orphan (rescue jobs, also in step 17 — Claude's suggestion);
     - what losing a parent does to a child;
     - a tour step or a news line for the first birth.
 - **The Vultures.** A rival guild competing for places. They raid, trade, and turn up on runs.

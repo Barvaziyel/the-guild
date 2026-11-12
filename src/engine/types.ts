@@ -551,6 +551,28 @@ export interface VehicleNews {
   wrecked?: boolean;
 }
 
+/** A decision waiting at the Depot (§9.5): who it's about, and until when. */
+export interface ActiveDilemma {
+  /** Content id in `content/dilemmas.ts`. */
+  defId: string;
+  /** Role letter to survivor id: who it's about. */
+  cast: Record<string, string>;
+  /** Someone at the gate, for decisions about a stranger. Joins the guild only if taken in. */
+  stranger?: Survivor;
+  /** Game day it came up. */
+  day: number;
+  /** Game day on which, still unanswered, the people involved settle it themselves. */
+  deadlineDay: number;
+}
+
+export interface DilemmaState {
+  active?: ActiveDilemma;
+  /** The game day the next one may come up. */
+  nextDay: number;
+  /** Times each one has come up, so new ones come first. */
+  seen: Record<string, number>;
+}
+
 export interface DepotState {
   /** The last game day whose Depot day has been played. */
   lastDay: number;
@@ -611,6 +633,8 @@ export interface GameState {
   vehicles: Vehicle[];
   /** Outposts at fully explored places (§7.9). */
   outposts: Outpost[];
+  /** Decisions the player is asked to make at the Depot (§9.5). */
+  dilemmas: DilemmaState;
   log: GuildLogEntry[];
   settings: {
     mercyMode: boolean;

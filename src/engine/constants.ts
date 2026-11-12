@@ -6,7 +6,7 @@
 import type { BuildingId, Quality, RelationshipLabel, ResourceId, Resources } from './types.ts';
 
 /** Save format version. Bump together with a migration in save.ts. */
-export const SAVE_VERSION = 12;
+export const SAVE_VERSION = 13;
 
 // ---------------------------------------------------------------- time
 
@@ -470,3 +470,12 @@ export const DEPTH_GEAR = 0.5;
 /** And this much more of every find, per level down. */
 export const DEPTH_LOOT = 0.5;
 export const DEPTHS = 3;
+
+// ---------------------------------------------------------------- decisions at the Depot (1.7.0)
+
+/** Game days between one decision and the next (8 game days are a real day). */
+export const DILEMMA_GAP: readonly [number, number] = [5, 11];
+/** Game days the player has to decide before the people involved settle it themselves (about a real day). */
+export const DILEMMA_DAYS = 8;
+/** The first one in a new guild, on this day. */
+export const DILEMMA_FIRST_DAY = 4;

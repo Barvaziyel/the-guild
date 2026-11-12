@@ -1,5 +1,5 @@
 import { addChronicle, addGuildLog } from './chronicle.ts';
-import { DAY_MS, NAME_MAX_LENGTH, SAVE_VERSION, STARTING_RESOURCES, STARTING_SURVIVORS } from './constants.ts';
+import { DAY_MS, DILEMMA_FIRST_DAY, NAME_MAX_LENGTH, SAVE_VERSION, STARTING_RESOURCES, STARTING_SURVIVORS } from './constants.ts';
 import { defaultPosts, initialBuildings } from './depot/buildings.ts';
 import { createItem } from './gear.ts';
 import { generateSurvivor, pickOrigin } from './generator.ts';
@@ -111,6 +111,7 @@ export function newGame(opts: NewGameOptions): GameState {
     nemeses: [],
     vehicles: [],
     outposts: [],
+    dilemmas: { nextDay: DILEMMA_FIRST_DAY, seen: {} },
     log: [],
     settings: { mercyMode: false },
   };

@@ -7,6 +7,7 @@ import {
   type DepotSummary,
   type GameState,
 } from '../../engine/index.ts';
+import { DilemmaCard } from '../components/DilemmaCard.tsx';
 import { Portrait } from '../components/Portrait.tsx';
 import { navigate, useAction } from '../hooks.ts';
 import { DEPOT_TABS, type DepotTab } from '../route.ts';
@@ -80,6 +81,7 @@ function Today({ state, now, away, onDismissAway }: Omit<Props, 'tab'>) {
 
   return (
     <>
+      <DilemmaCard state={state} now={now} />
       {away && away.days > 0 && <AwayNote state={state} summary={away} onDismiss={onDismissAway} />}
 
       {food && (

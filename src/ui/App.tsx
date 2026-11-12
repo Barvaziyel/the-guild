@@ -5,6 +5,7 @@ import { TourCard } from './components/TourCard.tsx';
 import { navigate, savedScroll, useHash, useNow, usePrefs, useRoute, useServices, useSnapshot } from './hooks.ts';
 import { tabFor, type Route, type TabScreen } from './route.ts';
 import { joinNames, noticesFor, reportFirstNames, unreadCount } from './runs-view.ts';
+import { dilemmaNotices } from './dilemma-view.ts';
 import { Building } from './screens/Building.tsx';
 import { Depot } from './screens/Depot.tsx';
 import { Gear } from './screens/Gear.tsx';
@@ -102,7 +103,7 @@ export function App() {
       <main className="screen">{screen}</main>
       {time.current && <ReturnToast state={s} reportId={time.current} more={time.more} onClose={time.dismiss} />}
       {touring && tour && <TourCard state={s} stepId={tour} />}
-      <TabBar current={tabFor(route)} unread={unreadCount(s)} />
+      <TabBar current={tabFor(route)} unread={unreadCount(s)} deciding={s.dilemmas.active !== undefined} />
     </div>
   );
 }
@@ -151,10 +152,11 @@ function useTime(state: GameState | null, now: number, route: Route) {
 function useNotices(state: GameState | null): void {
   const { notifier } = useServices();
   const { notify } = usePrefs();
-  const key = state ? state.runs.map((r) => `${r.id}@${r.returnAt}`).join(',') : '';
+  const d = state?.dilemmas.active;
+  const key = state ? [...state.runs.map((r) => `${r.id}@${r.returnAt}`), d ? `d${d.day}` : `n${state.dilemmas.nextDay}`].join(',') : '';
   useEffect(() => {
-    notifier.sync(notify && state ? noticesFor(state) : []);
-    // Re-sync only when the set of crews or their return times change.
+    notifier.sync(notify && state ? [...noticesFor(state), ...dilemmaNotices(state)] : []);
+    // Re-sync only when the crews, their return times, or the decisions due change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, notify, notifier]);
 }
@@ -214,7 +216,7 @@ const TABS: { screen: TabScreen; label: string }[] = [
   { screen: 'settings', label: 'Settings' },
 ];
 
-function TabBar({ current, unread }: { current: TabScreen; unread: number }) {
+function TabBar({ current, unread, deciding }: { current: TabScreen; unread: number; deciding: boolean }) {
   return (
     <nav className="tabbar" aria-label="Screens">
       {TABS.map((t) => (
@@ -229,6 +231,11 @@ function TabBar({ current, unread }: { current: TabScreen; unread: number }) {
           {t.screen === 'runs' && unread > 0 && (
             <span className="badge" aria-label={`${unread} new`}>
               {unread}
+            </span>
+          )}
+          {t.screen === 'depot' && deciding && (
+            <span className="badge" aria-label=", something to decide">
+              !
             </span>
           )}
         </button>
