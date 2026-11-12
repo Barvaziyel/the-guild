@@ -60,7 +60,7 @@ export const TRAITS: readonly TraitDef[] = [
     description: 'Has a nose for valuables, and sticky fingers to match.',
     opposite: 'generous',
     affinity: { generous: -1, greedy: -1, loyal: -1 },
-    hooks: { lootBonus: 0.25, pocketChance: 0.15 },
+    hooks: { lootBonus: 0.25, pocketChance: 0.15, lootArgueChance: 0.25 },
     startWeight: 5,
   },
   {
@@ -81,7 +81,7 @@ export const TRAITS: readonly TraitDef[] = [
     description: 'Quick to swing, quick to argue. Clashes with other hotheads.',
     opposite: 'calm',
     affinity: { hothead: -2, calm: 1 },
-    hooks: { argueChance: 0.2, checkMods: [{ stat: 'brawn', context: 'combat', mod: 1 }] },
+    hooks: { argueChance: 0.2, lootArgueChance: 0.15, checkMods: [{ stat: 'brawn', context: 'combat', mod: 1 }] },
     startWeight: 5,
   },
   {
@@ -208,7 +208,7 @@ export const TRAITS: readonly TraitDef[] = [
     id: 'veteran',
     name: 'Veteran',
     kind: 'earned',
-    description: 'Ten runs and still breathing.',
+    description: 'Twenty-five runs and still breathing.',
     statMods: { nerve: 1 },
     hooks: { stressGainMult: 0.9 },
   },
@@ -355,7 +355,7 @@ export const TRAITS: readonly TraitDef[] = [
     kind: 'condition',
     description: 'Hurt. Needs rest before the next run.',
     blocksRuns: true,
-    durationDays: [2, 5],
+    durationDays: [4, 8],
   },
   {
     id: 'badly_wounded',
@@ -363,7 +363,7 @@ export const TRAITS: readonly TraitDef[] = [
     kind: 'condition',
     description: 'Seriously hurt. Out of action for a while.',
     blocksRuns: true,
-    durationDays: [4, 8],
+    durationDays: [8, 14],
   },
   {
     id: 'rad_sickness',

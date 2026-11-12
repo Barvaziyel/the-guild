@@ -251,7 +251,7 @@ export function nameWeapon(sim: Sim, m: Member): void {
     if (kills < NAMED_GEAR_KILLS) return;
     const base = baseItemName(w);
     w.name = freshName(sim, WEAPON_NAMES[itemDef(w).weaponType === 'ranged' ? 'ranged' : 'melee']);
-    const which = kills === NAMED_GEAR_KILLS ? 'its tenth kill' : `${kills} kills`;
+    const which = kills === NAMED_GEAR_KILLS ? `its ${NAMED_GEAR_KILLS}th kill` : `${kills} kills`;
     w.history = [{ day, text: `Named after ${which}, in ${holder}'s hands at ${sim.loc.name}.` }];
     addChronicle(m.s, day, `Carried the ${base} to ${which}. The guild calls it ${w.name} now.`, ['named-gear']);
     say(sim, `${m.s.firstName}'s ${base} has ${kills} kills now, and has earned a name: ${w.name}.`, { tone: 'good' });
@@ -262,13 +262,24 @@ export function nameWeapon(sim: Sim, m: Member): void {
   }
 }
 
+/**
+ * Whether a nickname rule fits this run. Counter and trait rules fit only on
+ * the run that reaches them, so each is one roll of its chance, not one roll
+ * every run from then on (1.6.2: before, nearly everyone had a name within a
+ * month). Rules about something done on this run fit that run.
+ */
 function nicknameFits(m: Member, rule: NicknameRule): boolean {
+  let crossed = rule.counters === undefined && rule.trait === undefined;
   for (const [counter, min] of Object.entries(rule.counters ?? {}) as [keyof Survivor['counters'], number][]) {
     if ((m.s.counters[counter] as number) < min) return false;
+    if (((m.countersAtStart?.[counter] as number | undefined) ?? 0) < min) crossed = true;
   }
-  if (rule.trait && !hasTrait(m.s, rule.trait)) return false;
+  if (rule.trait) {
+    if (!hasTrait(m.s, rule.trait)) return false;
+    if (!(m.traitsAtStart ?? []).includes(rule.trait)) crossed = true;
+  }
   if (rule.needs && !(m.tally[rule.needs] > 0)) return false;
-  return true;
+  return crossed;
 }
 
 /** Someone without a nickname may earn one from what they have done. */

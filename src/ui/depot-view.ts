@@ -40,13 +40,16 @@ import {
   upgradeProblem,
   workerSlots,
   workingAt,
+  workingLevel,
   workshopItems,
+  upkeepOf,
   RADIO_REVEAL_PER_LEVEL,
   RADIO_REVEAL_PER_WITS,
   REST_RELIEF,
   type BuildingId,
   type Candidate,
   type DepotSummary,
+  type ResourceId,
   type Resources,
   type GameState,
   type ItemInstance,
@@ -78,11 +81,11 @@ export function buildingStatus(state: GameState, id: BuildingId): string {
     }
     case 'radio_tower': {
       const wits = sum(workingAt(state, id).map((s) => effectiveStat(s, 'wits')));
-      const pct = Math.round((RADIO_REVEAL_PER_LEVEL * level + RADIO_REVEAL_PER_WITS * wits) * 100);
+      const pct = Math.round((RADIO_REVEAL_PER_LEVEL * workingLevel(state, id) + RADIO_REVEAL_PER_WITS * wits) * 100);
       return `${boardSize(state)} recruits at the gate each day. A ${pct}% chance each day of hearing about a new place.`;
     }
     case 'watchtower':
-      return `Adds ${level * WATCHTOWER_DEFENSE + workingAt(state, id).length} to holding off raiders, and halves what they take.`;
+      return `Adds ${workingLevel(state, id) * WATCHTOWER_DEFENSE + workingAt(state, id).length} to holding off raiders, and halves what they take.`;
     case 'training_yard':
       return `${TRAINING_PRACTICE[level]} practice a day for each person training.`;
   }
@@ -98,6 +101,10 @@ export interface BuildingRow {
   /** What the current level does (or the first level, if unbuilt). */
   effect: string;
   status: string;
+  /** What it uses up a day at this level, if anything: "Uses 1 ration a day." */
+  upkeep?: string;
+  /** Set when the upkeep couldn't be paid on the last day: it works a level lower. */
+  unpaid?: string;
   /** Next level's effect and cost, if there is one. */
   next?: { effect: string; cost: string; problem?: string };
   workers: Survivor[];
@@ -118,10 +125,29 @@ export function buildingRow(state: GameState, id: BuildingId): BuildingRow {
     description: def.description,
     effect: (def.levels[Math.max(0, level - 1)] ?? def.levels[0]!).effect,
     status: buildingStatus(state, id),
+    ...upkeepLines(state, id),
     ...(next ? { next: { effect: next.effect, cost: costText(next.cost), ...(problem ? { problem } : {}) } } : {}),
     workers: postedTo(state, id),
     slots: workerSlots(state, id),
   };
+}
+
+const ONE: Record<ResourceId, string> = { scrap: 'scrap', rations: 'ration', meds: 'med', ammo: 'ammo', tech: 'tech', gas: 'gas' };
+
+/** "Uses 2 rations a day.", "Uses a med about every 4 days.", and whether it ran short on the last day. */
+export function upkeepLines(state: GameState, id: BuildingId): { upkeep?: string; unpaid?: string } {
+  const u = upkeepOf(state, id);
+  if (!u) return {};
+  const upkeep =
+    u.amount === 1
+      ? `Uses 1 ${ONE[u.res]} a day.`
+      : u.amount > 1
+        ? `Uses ${costText({ [u.res]: u.amount })} a day.`
+        : `Uses ${u.res === 'ammo' || u.res === 'tech' ? 'some' : 'a'} ${ONE[u.res]} about every ${Math.round(1 / u.amount)} days.`;
+  const lower = Math.max(0, buildingLevel(state, id) - 1);
+  if (state.depot.unpaid?.includes(id)) return { upkeep, unpaid: `Ran out of ${u.res} on the last day, so it worked as level ${lower}.` };
+  if (state.resources[u.res] < Math.ceil(u.amount)) return { upkeep, unpaid: `Out of ${u.res}: it works as level ${lower} on days it can't be kept going.` };
+  return { upkeep };
 }
 
 export function buildingRows(state: GameState): BuildingRow[] {
@@ -270,6 +296,8 @@ export function mergeSummaries(a: DepotSummary, b: DepotSummary): DepotSummary {
     cured: a.cured + b.cured,
     news: [...a.news, ...b.news],
     outposts: addResources(a.outposts, b.outposts),
+    upkeep: addResources(a.upkeep ?? {}, b.upkeep ?? {}),
+    unpaid: [...new Set([...(a.unpaid ?? []), ...(b.unpaid ?? [])])],
   };
 }
 
@@ -279,8 +307,8 @@ function addResources(a: Partial<Resources>, b: Partial<Resources>): Partial<Res
   return out;
 }
 
-/** The note on the Depot screen: a few plain sentences about the days that passed. */
-export function summaryLines(s: DepotSummary): string[] {
+/** The note on the Depot screen: a few plain sentences about the days that passed. Pass the game to name buildings by their level. */
+export function summaryLines(s: DepotSummary, state?: GameState): string[] {
   if (s.days === 0) return [];
   const out = [`${s.days === 1 ? 'A day' : `${s.days} days`} passed at the Depot.`];
   out.push(`The Garden grew ${s.grown} rations and the guild ate ${s.eaten}.`);
@@ -289,6 +317,10 @@ export function summaryLines(s: DepotSummary): string[] {
   if (s.healed > 0) out.push(`Rest healed ${s.healed} health${s.cured > 0 ? `, and the Infirmary treated ${s.cured === 1 ? 'one patient' : `${s.cured} patients`}` : ''}.`);
   const sent = costText(s.outposts ?? {});
   if (sent !== 'nothing') out.push(`The outposts sent home ${sent}.`);
+  const used = costText(s.upkeep ?? {});
+  if (used !== 'nothing') out.push(`Keeping the buildings going used ${used}.`);
+  const short = (s.unpaid ?? []).map((id) => (state ? buildingName(state, id) : buildingDef(id).name));
+  if (short.length > 0) out.push(`The ${joinList(short)} ran short and worked a level lower.`);
   return out;
 }
 
@@ -342,4 +374,8 @@ export function newMouthNote(state: GameState): string | undefined {
   const grow = gardenYield(state);
   if (grow >= eat + 1) return undefined;
   return `Another person eats at least a ration a day. The guild already eats ${eat}, and the Garden grows about ${oneDecimal(grow)}.`;
+}
+
+function joinList(xs: readonly string[]): string {
+  return xs.length <= 1 ? (xs[0] ?? '') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`;
 }

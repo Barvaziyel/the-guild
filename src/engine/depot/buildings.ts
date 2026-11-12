@@ -2,7 +2,7 @@
  * Building and staffing the Depot: levels, costs, beds and who works where.
  */
 import { addGuildLog } from '../chronicle.ts';
-import { BUNKS_CAP, MAX_BUILDING_LEVEL, WORKER_SLOTS } from '../constants.ts';
+import { BUILDING_UPKEEP, BUNKS_CAP, MAX_BUILDING_LEVEL, WORKER_SLOTS } from '../constants.ts';
 import { BUILDINGS, getLocation, getTrait, type BuildingDef, type BuildingLevel } from '../content/index.ts';
 import { statName } from '../stats.ts';
 import type { BuildingId, GameState, Post, ResourceId, Resources, StatId, Survivor } from '../types.ts';
@@ -74,6 +74,22 @@ export function build(state: GameState, id: BuildingId, day: number): void {
 }
 
 // ---------------------------------------------------------------- people
+
+/**
+ * The level a building works at today: one lower when its upkeep couldn't be
+ * paid (1.6.2). Effects use this; building and the screens use the real level.
+ */
+export function workingLevel(state: GameState, id: BuildingId): number {
+  const level = buildingLevel(state, id);
+  return state.depot.unpaid?.includes(id) ? Math.max(0, level - 1) : level;
+}
+
+/** What a building uses up a day at its level, on average: "1 ration", "0.25 meds". Nothing for most. */
+export function upkeepOf(state: GameState, id: BuildingId): { res: ResourceId; amount: number } | undefined {
+  const u = BUILDING_UPKEEP[id];
+  const amount = u?.perLevel[buildingLevel(state, id)] ?? 0;
+  return u && amount > 0 ? { res: u.res, amount } : undefined;
+}
 
 /** Beds in the Bunks: how many survivors the guild can hold. */
 export function bunksCap(state: GameState): number {

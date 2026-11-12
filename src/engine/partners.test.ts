@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { ORIENTATION_PER_MILLE, PARTNER_DAILY_CHANCE, PARTNER_RELIEF, PARTNER_SECOND_FACTOR } from './constants.ts';
+import { ORIENTATION_PER_MILLE, PARTNER_DAILY_CHANCE, PARTNER_GUILD_FACTOR, PARTNER_RELIEF, PARTNER_SECOND_FACTOR } from './constants.ts';
 import { emptySummary, playDepotDay } from './depot/day.ts';
 import { generateSurvivor, orientationFor } from './generator.ts';
-import { adjustRelationship, arePartners, becomePartners, drawnTo, getRelationship, initRelationships, partnerOf, romanceChance } from './relationships.ts';
+import { adjustRelationship, arePartners, becomePartners, drawnTo, getRelationship, initRelationships, partnerOf, romanceChance, couplesIn } from './relationships.ts';
 import { Rng } from './rng.ts';
 import { testGame } from './test-utils.ts';
 import { addTrait } from './traits.ts';
@@ -70,7 +70,21 @@ describe('partners', () => {
     c.orientation = 'straight';
     becomePartners(state, a, b, 3);
     assert.equal(romanceChance(state, a, b), 0, 'already partners');
-    assert.equal(romanceChance(state, b, c), PARTNER_DAILY_CHANCE * PARTNER_SECOND_FACTOR);
+    assert.equal(romanceChance(state, b, c), PARTNER_DAILY_CHANCE * PARTNER_SECOND_FACTOR * PARTNER_GUILD_FACTOR);
+  });
+
+  test('every couple in the guild makes the next one less likely', () => {
+    const state = closeGuild('couples');
+    const [a, b] = pair(state, 'she', 'he');
+    const before = romanceChance(state, a, b);
+    assert.equal(before, PARTNER_DAILY_CHANCE);
+    const [c, d] = [state.survivors[2]!, state.survivors[3]!];
+    c.pronouns = 'she';
+    d.pronouns = 'he';
+    c.orientation = d.orientation = 'straight';
+    becomePartners(state, c, d, 3);
+    assert.equal(couplesIn(state), 1);
+    assert.equal(romanceChance(state, a, b), PARTNER_DAILY_CHANCE * PARTNER_GUILD_FACTOR);
   });
 
   test('most people are straight, some gay, some bi', () => {

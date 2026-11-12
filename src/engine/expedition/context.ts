@@ -55,6 +55,9 @@ export interface Member {
   killedNemesis?: string;
   /** Weapon kills at departure, to notice milestones. */
   weaponKillsAtStart: number;
+  /** Counters and traits at departure: a nickname is earned on the run that crosses its mark, not on every run after. */
+  countersAtStart: Survivor['counters'];
+  traitsAtStart: string[];
   tally: RunTally;
   rerollFails: number;
   rerollSuccesses: number;

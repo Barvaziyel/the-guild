@@ -35,6 +35,7 @@ describe('the yard', () => {
     assert.equal(p.look.hurt, true);
     state.resources.scrap = 50;
     state.resources.tech = 5;
+    state.resources.meds = 10;
     build(state, 'infirmary', 1);
     p = yardModel(state, 12, 2).people.find((x) => x.id === hurt.id)!;
     assert.deepEqual(p.place, { kind: 'resting', slot: 0, infirmary: true });

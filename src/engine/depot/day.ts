@@ -36,9 +36,10 @@ import { adjustRelationship, arePartners, becomePartners, relationshipLabel, rom
 import type { Rng } from '../rng.ts';
 import { addPractice, changeStress, effectiveStat, maxHp } from '../stats.ts';
 import { expireConditions, maxTraitHook, mulTraitHook, removeTrait } from '../traits.ts';
-import type { GameState, GuildLogEntry, Resources, Survivor } from '../types.ts';
+import type { BuildingId, GameState, GuildLogEntry, Resources, Survivor } from '../types.ts';
+import { BUILDING_IDS } from '../types.ts';
 import { playOutpostsDay } from '../outposts.ts';
-import { atDepot, buildingLevel, postStat, workingAt } from './buildings.ts';
+import { atDepot, buildingLevel, postStat, upkeepOf, workingAt, workingLevel } from './buildings.ts';
 
 /** What happened over one or more Depot days, for the "while you were away" note. */
 export interface DepotSummary {
@@ -53,10 +54,14 @@ export interface DepotSummary {
   news: GuildLogEntry[];
   /** What the outposts sent home. */
   outposts: Partial<Resources>;
+  /** What the buildings used up (1.6.2). */
+  upkeep: Partial<Resources>;
+  /** Buildings that worked a level lower on at least one day because their upkeep couldn't be paid. */
+  unpaid: BuildingId[];
 }
 
 export function emptySummary(): DepotSummary {
-  return { days: 0, grown: 0, eaten: 0, hungryDays: 0, ammoMade: 0, healed: 0, cured: 0, news: [], outposts: {} };
+  return { days: 0, grown: 0, eaten: 0, hungryDays: 0, ammoMade: 0, healed: 0, cured: 0, news: [], outposts: {}, upkeep: {}, unpaid: [] };
 }
 
 /** Round a fractional amount up or down at random, so 2.3 is 3 about a third of the time. */
@@ -91,7 +96,7 @@ function rationsADay(s: Survivor): number {
 
 /** Stress everyone at the Depot sheds from the Firepit today (on top of rest). */
 export function firepitRelief(state: GameState): number {
-  const level = buildingLevel(state, 'firepit');
+  const level = workingLevel(state, 'firepit');
   if (level === 0) return 0;
   const keepers = workingAt(state, 'firepit');
   return (FIREPIT_RELIEF[level] ?? 0) + sum(keepers.map((s) => FIREPIT_PER_KEEPER + effectiveStat(s, 'nerve') * FIREPIT_PER_NERVE));
@@ -99,7 +104,7 @@ export function firepitRelief(state: GameState): number {
 
 /** Share of max HP healed per day at the Depot. */
 export function healRate(state: GameState): number {
-  const level = buildingLevel(state, 'infirmary');
+  const level = workingLevel(state, 'infirmary');
   const medics = level > 0 ? workingAt(state, 'infirmary') : [];
   return HEAL_BASE + HEAL_PER_INFIRMARY * level + HEAL_PER_MEDIC_WITS * sum(medics.map((s) => effectiveStat(s, 'wits')));
 }
@@ -114,6 +119,9 @@ export function playDepotDay(state: GameState, day: number, rng: Rng, summary: D
   // Food.
   growFood(state, rng, summary);
   const hungry = eat(state, day, summary);
+
+  // What the upper levels use up; a building that can't be kept going works a level lower today.
+  payUpkeep(state, rng, summary);
 
   // Work that makes things.
   makeAmmo(state, rng, summary);
@@ -174,6 +182,25 @@ function fallForEachOther(state: GameState, home: readonly Survivor[], day: numb
   }
 }
 
+/** Each building's daily upkeep (§9, 1.6.2). Unpaid ones are listed in `state.depot.unpaid` for the day. */
+function payUpkeep(state: GameState, rng: Rng, summary: DepotSummary): void {
+  state.depot.unpaid = [];
+  for (const id of BUILDING_IDS) {
+    const u = upkeepOf(state, id);
+    if (!u) continue;
+    const amount = roundChance(rng, u.amount);
+    if (amount === 0) continue;
+    if (state.resources[u.res] >= amount) {
+      state.resources[u.res] -= amount;
+      summary.upkeep[u.res] = (summary.upkeep[u.res] ?? 0) + amount;
+    } else {
+      state.depot.unpaid.push(id);
+      if (!summary.unpaid.includes(id)) summary.unpaid.push(id);
+    }
+  }
+  if (state.depot.unpaid.length === 0) delete state.depot.unpaid;
+}
+
 function growFood(state: GameState, rng: Rng, summary: DepotSummary): void {
   const grown = roundChance(rng, gardenYield(state));
   state.resources.rations += grown;
@@ -196,7 +223,7 @@ function eat(state: GameState, day: number, summary: DepotSummary): boolean {
 }
 
 function makeAmmo(state: GameState, rng: Rng, summary: DepotSummary): void {
-  if (buildingLevel(state, 'workshop') === 0) return;
+  if (workingLevel(state, 'workshop') === 0) return;
   for (const s of workingAt(state, 'workshop')) {
     if (state.resources.ammo >= AMMO_STOCK_CAP || state.resources.scrap < 1) return;
     state.resources.scrap -= 1;
@@ -217,7 +244,7 @@ export function frontier(state: GameState): string[] {
 }
 
 function listenToRadio(state: GameState, day: number, rng: Rng): void {
-  const level = buildingLevel(state, 'radio_tower');
+  const level = workingLevel(state, 'radio_tower');
   if (level === 0) return;
   const operators = workingAt(state, 'radio_tower');
   const chance = RADIO_REVEAL_PER_LEVEL * level + RADIO_REVEAL_PER_WITS * sum(operators.map((s) => effectiveStat(s, 'wits')));
@@ -232,7 +259,7 @@ function listenToRadio(state: GameState, day: number, rng: Rng): void {
 const TREATABLE = ['rad_sickness', 'feverish'];
 
 function treat(state: GameState, day: number, rng: Rng, summary: DepotSummary): void {
-  const level = buildingLevel(state, 'infirmary');
+  const level = workingLevel(state, 'infirmary');
   if (level === 0) return;
   const medics = workingAt(state, 'infirmary');
   if (medics.length === 0) return;
@@ -263,7 +290,7 @@ function treat(state: GameState, day: number, rng: Rng, summary: DepotSummary): 
 
 /** Co-workers drift by their affinity; a Bar warms everyone a little. */
 function driftTogether(state: GameState, home: Survivor[], day: number, rng: Rng): void {
-  const barChance = BAR_DRIFT_CHANCE[buildingLevel(state, 'firepit')] ?? 0;
+  const barChance = BAR_DRIFT_CHANCE[workingLevel(state, 'firepit')] ?? 0;
   for (let i = 0; i < home.length; i++) {
     for (let j = i + 1; j < home.length; j++) {
       const a = home[i]!;
