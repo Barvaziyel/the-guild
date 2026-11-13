@@ -3829,3 +3829,59 @@ li:nth-child(even) .pinned {
     animation: none !important;
   }
 }
+
+/* Raids: getting ready, talking first, who holds the gate (§9.8). */
+.raid-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.raid-item {
+  padding: 0.75rem 0;
+  border-top: 1px solid var(--line);
+}
+
+.raid-item:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.raid-item:last-child {
+  padding-bottom: 0;
+}
+
+.raid-item > * + * {
+  margin-top: 0.375rem;
+}
+
+.raid-item > .btn {
+  margin-top: 0.625rem;
+}
+
+.raid-item-title {
+  font-weight: 700;
+}
+
+.raid-call p + p,
+.raid-call .fight-chips {
+  margin-top: 0.5rem;
+}
+
+.raid-sub {
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+p.is-good {
+  color: var(--sage);
+}
+
+p.is-bad {
+  color: var(--blood-hi);
+}
+
+.chip:disabled {
+  opacity: 0.55;
+  cursor: default;
+}

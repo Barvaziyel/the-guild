@@ -59,6 +59,7 @@ export {
   shoreUpFence,
   stareDc,
   stareDown,
+  stareOdds,
   takeRaidCommand,
   type RaidRegroup,
 } from './raids.ts';

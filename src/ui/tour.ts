@@ -343,7 +343,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     title: 'Raids',
     route: depot,
     text: () =>
-      `Raiders sometimes come for the Depot. A Watchtower may see them on the road, with a notice, so you can keep people home. At the gate they wait ${Math.round(RAID_WAIT / 3_600_000)} hours for your orders: take command, or let them fight. Only those home when the raiders arrive can hold it, and lookouts on the tower shoot from up there. Lose, and they take supplies, and a vehicle if one is parked.`,
+      `Raiders sometimes come for the Depot. A Watchtower may see them coming: keep people home, call a crew back by radio, shore up the fence, hide stores. At the gate they wait ${Math.round(RAID_WAIT / 3_600_000)} hours for you: pay them off, stare them down, or fight. Only those home when they arrive can hold it. Lose, and they take supplies, maybe a vehicle.`,
   },
 
   // ---------------------------------------------------------------- recruits

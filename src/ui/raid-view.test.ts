@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { Rng, assignPost, createItem, letRaidFight, raidPreview, startRun, takeRaidCommand, type GameState } from '../engine/index.ts';
+import { DAY_MS, RAID_WAIT, Rng, assignPost, commandRaidRound, createItem, letRaidFight, raidPreview, startRun, stareDown, takeRaidCommand, type GameState } from '../engine/index.ts';
 import { scheduleRaid, stepRaid } from '../engine/depot/raids.ts';
 import { T0, openGame, testGame, testPlan } from '../engine/test-utils.ts';
 import { stageModel } from './battle-view.ts';
 import { noticeRoute } from './radio-view.ts';
-import { raidAlert, raidCard, raidNoticeKey, raidNotices, raidWakeTimes } from './raid-view.ts';
+import { gateView, raidAlert, raidCard, raidNoticeKey, raidNotices, raidWakeTimes, readyView, regroupView } from './raid-view.ts';
 
 /** A guild whose Watchtower sees raiders coming. */
 function seenComing(seed: string): { state: GameState; raid: NonNullable<ReturnType<typeof scheduleRaid>> } {
@@ -25,7 +25,7 @@ describe('raiders on the road', () => {
     const card = raidCard(state, raid.seen!)!;
     assert.equal(card.kind, 'seen');
     assert.equal(card.title, 'Raiders on the road');
-    assert.match(card.lines[0]!, /^Seen from the Watchtower\. At the gate around .+\.$/);
+    assert.match(card.lines[0]!, /^At the gate around .+\.$/);
     assert.match(card.lines[1]!, /^Home to hold it now: /);
     assert.ok(card.lines.some((l) => /, back from Maple Street at .+, (will be in time|won’t be)\.$/.test(l)));
     assert.equal(raidCard(state, raid.seen! - 1), undefined, 'not before it is seen');
@@ -99,5 +99,96 @@ describe('a run while raiders wait', () => {
     const raid = scheduleRaid(state, 1, new Rng('se'), 'raiders')!;
     stepRaid(state, raid.arrive);
     assert.throws(() => startRun(state, testPlan(state, 'maple_street', {}, 1), T0 + 1));
+  });
+});
+
+describe('getting ready', () => {
+  test('crews out: back in time or not, and called home over the radio', () => {
+    for (let i = 0; i < 20; i++) {
+      const state = openGame(`ready-${i}`);
+      state.buildings.radio_tower = 1;
+      state.buildings.watchtower = 3;
+      state.resources.scrap = 50;
+      const run = startRun(state, testPlan(state, 'maple_street', {}, 1), T0);
+      const at = run.departAt + Math.round((run.returnAt - run.departAt) * 0.3);
+      const raid = scheduleRaid(state, Math.floor((at - state.createdAt) / DAY_MS) + 1, new Rng(`rd${i}`), 'raiders')!;
+      raid.seen = at;
+      raid.arrive = at + 90 * 60_000;
+      raid.until = raid.arrive + RAID_WAIT;
+      // Make sure the crew would be back too late without a call.
+      if (run.returnAt <= raid.arrive) raid.arrive = run.returnAt - 60_000;
+      const ready = readyView(state, at)!;
+      assert.match(ready.when, /^At the gate around .+\.$/);
+      const row = ready.crews[0]!;
+      assert.match(row.who, /, at Maple Street$/);
+      assert.match(row.back, /too late to hold the gate\.$/);
+      if (!row.call) continue;
+      assert.match(row.call.label, /^Back by .+, (in time|still too late)\.$/);
+      assert.equal(ready.shore.problem, undefined);
+      assert.match(ready.shore.label, /^Shore it up \(20 scrap\)$/);
+      assert.equal(ready.hide.done, false);
+      return;
+    }
+    assert.fail('no crew to call home');
+  });
+
+  test('without a Radio Tower, crews can’t be called', () => {
+    const state = openGame('noradio');
+    state.buildings.watchtower = 3;
+    const run = startRun(state, testPlan(state, 'maple_street', {}, 1), T0);
+    const at = run.departAt + 60_000;
+    const raid = scheduleRaid(state, 1, new Rng('nr'), 'raiders')!;
+    raid.seen = at;
+    raid.arrive = run.returnAt - 60_000;
+    raid.until = raid.arrive + RAID_WAIT;
+    const row = readyView(state, at)!.crews[0]!;
+    assert.equal(row.call, undefined);
+    assert.match(row.note!, /takes a Radio Tower/);
+  });
+});
+
+describe('at the gate, before the fight', () => {
+  test('who holds it, what they want, and the odds of staring them down', () => {
+    const state = testGame('gv');
+    const raid = scheduleRaid(state, 1, new Rng('gv'), 'raiders')!;
+    stepRaid(state, raid.arrive);
+    const gate = gateView(state, raid.arrive + 1000)!;
+    assert.equal(gate.team.length, 4);
+    assert.ok(gate.team.every((p) => p.in));
+    assert.match(gate.talk!.pay, /^They want .+ to go away\.$/);
+    assert.match(gate.talk!.stare, /^\w+ does the talking: about \d+% they back off\. If not, they strike first\.$/);
+    for (let i = 0; i < 30; i++) {
+      const s = testGame(`gv-${i}`);
+      const r = scheduleRaid(s, 1, new Rng(`gv${i}`), 'raiders')!;
+      stepRaid(s, r.arrive);
+      if (stareDown(s, r.arrive + 1000)) continue;
+      const after = gateView(s, r.arrive + 2000)!;
+      assert.equal(after.talk, undefined, 'no more talking');
+      assert.match(after.said!, /They’ll strike first\.$/);
+      return;
+    }
+    assert.fail('every stare worked');
+  });
+
+  test('between the bands: who is up, who is down, who is fresh', () => {
+    for (let i = 0; i < 120; i++) {
+      const state = testGame(`rg-${i}`);
+      const raid = scheduleRaid(state, 1, new Rng(`rg${i}`), 'raiders')!;
+      stepRaid(state, raid.arrive);
+      if (raid.waves !== 2) continue;
+      let now = raid.arrive + 1000;
+      let view = takeRaidCommand(state, now);
+      while (view) {
+        now += 10_000;
+        const target = view.enemies.find((e) => e.state === 'up')!.index;
+        view = commandRaidRound(state, { moves: Object.fromEntries(view.crew.filter((m) => m.moves.length > 0).map((m) => [m.id, { move: 'attack' as const, target }])) }, now);
+      }
+      const between = regroupView(state, now);
+      if (!between) continue;
+      assert.match(between.against, /^Coming up the road: .+\.$/);
+      assert.ok(between.people.every((p) => (p.can ? /^\d+\/\d+ HP/.test(p.state) : p.state === 'Down')));
+      return;
+    }
+    assert.fail('never between the bands');
   });
 });

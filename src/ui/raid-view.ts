@@ -3,7 +3,32 @@
  * raiders are seen and when they arrive, the times the app wakes for them, and
  * where a tapped notice opens.
  */
-import { RAID_WAIT, canDefend, getLocation, openRaid, raidAgainst, raidAtGate, raidSeen, raidersName, type GameState } from '../engine/index.ts';
+import {
+  RAID_SHORE_COST,
+  RAID_SHORE_COVER,
+  RAID_WAIT,
+  canAfford,
+  canDefend,
+  canTalk,
+  canWork,
+  costText,
+  getLocation,
+  ledFightNow,
+  openRaid,
+  radioWaiting,
+  raidAgainst,
+  raidAtGate,
+  raidFighters,
+  raidRegroup,
+  raidSeen,
+  raidTeam,
+  raidToll,
+  raidersName,
+  recallPreview,
+  stareOdds,
+  type GameState,
+  type Run,
+} from '../engine/index.ts';
 import { formatDuration, type PlannedNotice } from './runs-view.ts';
 import { clockTime } from './time.ts';
 
@@ -34,7 +59,7 @@ export function raidCard(state: GameState, now: number): RaidCardView | undefine
     const { name } = raidersName(state, seen);
     const coming = name.replace(/,$/, '');
     const home = state.survivors.filter(canDefend).map((s) => s.firstName);
-    const lines = [`Seen from the Watchtower. At the gate around ${clockTime(seen.arrive)}.`, home.length > 0 ? `Home to hold it now: ${names(home)}.` : 'Nobody is home to hold it.'];
+    const lines = [`At the gate around ${clockTime(seen.arrive)}.`, home.length > 0 ? `Home to hold it now: ${names(home)}.` : 'Nobody is home to hold it.'];
     // Crews out: back in time to defend, or not.
     for (const r of state.runs) {
       const crew = r.result.crew.filter((s) => r.plan.crew.includes(s.id)).map((s) => s.firstName);
@@ -94,4 +119,141 @@ export function raidWakeTimes(state: GameState, now: number): number[] {
   const raid = openRaid(state);
   if (!raid) return [];
   return [raid.seen, raid.arrive, raid.until].filter((t): t is number => t !== undefined && t > now);
+}
+
+// ---------------------------------------------------------------- getting ready
+
+/** A crew out while raiders are on the road: when they're back, and whether they can be called home in time. */
+export interface RecallRow {
+  runId: string;
+  /** "Gray and Mo, at Maple Street". */
+  who: string;
+  /** "Back at 14:20, in time to hold the gate." */
+  back: string;
+  inTime: boolean;
+  /** Called home now: "Back by 13:10, in time." */
+  call?: { label: string; inTime: boolean };
+  /** Why they can't be called home. */
+  note?: string;
+}
+
+export interface ReadyView {
+  /** "At the gate around 13:45." */
+  when: string;
+  /** "A second band follows the first." */
+  secondBand?: string;
+  home: string;
+  crews: RecallRow[];
+  shore: { done: boolean; label: string; text: string; problem?: string };
+  hide: { done: boolean; text: string; problem?: string };
+}
+
+function crewNames(r: Run): string {
+  return names(r.result.crew.filter((s) => r.plan.crew.includes(s.id)).map((s) => s.firstName));
+}
+
+function recallRow(state: GameState, r: Run, arrive: number, now: number): RecallRow {
+  const inTime = r.returnAt <= arrive;
+  const row: RecallRow = {
+    runId: r.id,
+    who: `${crewNames(r)}, at ${getLocation(r.plan.locationId).name}`,
+    back: r.recalled !== undefined ? `Called home. Back at ${clockTime(r.returnAt)}, ${inTime ? 'in time' : 'too late to hold the gate'}.` : `Back at ${clockTime(r.returnAt)}, ${inTime ? 'in time to hold the gate' : 'too late to hold the gate'}.`,
+    inTime,
+  };
+  if (r.recalled !== undefined || inTime) return row;
+  if (!r.home && !r.lead) {
+    row.note = (state.buildings.radio_tower ?? 0) >= 1 ? 'Out of reach: they set out before there was a way to call them.' : 'No way to call them home: that takes a Radio Tower.';
+    return row;
+  }
+  if (radioWaiting(r, now)) return { ...row, note: 'On the radio already: answer them first.' };
+  if (ledFightNow(r, now)) return { ...row, note: 'In a fight right now.' };
+  const call = recallPreview(state, r.id, now);
+  if (!call) return { ...row, note: 'On the way home already.' };
+  return { ...row, call: { label: `Back by ${clockTime(call.returnAt)}, ${call.inTime ? 'in time' : 'still too late'}.`, inTime: call.inTime } };
+}
+
+/** Raiders on the road: who's home, crews out and calling them home, shoring up the fence and hiding stores. Undefined unless they're on the road. */
+export function readyView(state: GameState, now: number): ReadyView | undefined {
+  const raid = raidSeen(state, now);
+  if (!raid) return undefined;
+  const home = state.survivors.filter(canDefend).map((s) => s.firstName);
+  const hands = state.survivors.some(canWork) ? undefined : 'Nobody is home to do it.';
+  return {
+    when: `At the gate around ${clockTime(raid.arrive)}.`,
+    ...(raid.waves === 2 ? { secondBand: 'A second band follows the first.' } : {}),
+    home: home.length > 0 ? `Home to hold it now: ${names(home)}.` : 'Nobody is home to hold it.',
+    crews: state.runs.map((r) => recallRow(state, r, raid.arrive, now)),
+    shore: {
+      done: raid.shored === true,
+      label: `Shore it up (${costText(RAID_SHORE_COST)})`,
+      text: raid.shored ? 'The fence is shored up: raiders need more to hit the defenders behind it.' : `Raiders need ${RAID_SHORE_COVER} more to hit the defenders behind it.`,
+      ...(raid.shored ? {} : hands ? { problem: hands } : !canAfford(state, RAID_SHORE_COST) ? { problem: `Not enough scrap: it takes ${costText(RAID_SHORE_COST)}.` } : {}),
+    },
+    hide: {
+      done: raid.hidden === true,
+      text: raid.hidden ? 'Half the stores are hidden. If they break in they find only the rest, and the defenders reach only half the meds and ammo.' : 'If they break in they find only half. The defenders reach only half the meds and ammo, too.',
+      ...(raid.hidden || !hands ? {} : { problem: hands }),
+    },
+  };
+}
+
+// ---------------------------------------------------------------- at the gate
+
+export interface GateView {
+  /** Who could hold the gate, and who will. */
+  team: { id: string; name: string; in: boolean }[];
+  teamHint: string;
+  secondBand?: string;
+  /** Talking first, while nothing has been said or done. */
+  talk?: { pay: string; payProblem?: string; stare: string };
+  /** What came of talking. */
+  said?: string;
+}
+
+/** At the gate before anyone fights: who holds it, and talking first. Undefined unless they're at the gate. */
+export function gateView(state: GameState, now: number): GateView | undefined {
+  const raid = raidAtGate(state);
+  if (!raid) return undefined;
+  const team = new Set(raidTeam(state));
+  const view: GateView = {
+    team: raidFighters(state).map((s) => ({ id: s.id, name: s.firstName, in: team.has(s.id) })),
+    teamHint: raid.waves === 2 ? 'Tap to keep someone back: they stay fresh for the second band.' : 'Tap to keep someone out of it.',
+    ...(raid.waves === 2 ? { secondBand: 'A second band waits back on the road. If the gate holds, they come on.' } : {}),
+  };
+  if (canTalk(state, now)) {
+    const toll = raidToll(state, raid);
+    const odds = stareOdds(state);
+    view.talk = {
+      pay: `They want ${costText(toll)} to go away.`,
+      ...(canAfford(state, toll) ? {} : { payProblem: 'The guild doesn’t have it.' }),
+      stare: odds ? `${odds.talker.firstName} does the talking: about ${Math.round(odds.chance * 100)}% they back off. If not, they strike first.` : '',
+    };
+  }
+  const talk = raid.talk;
+  if (talk?.how === 'stare' && !talk.ok) {
+    const who = state.survivors.find((s) => s.id === talk.by)?.firstName ?? 'Someone';
+    view.said = `${who} told them to go. They didn’t. They’ll strike first.`;
+  }
+  return view;
+}
+
+// ---------------------------------------------------------------- between the bands
+
+export interface RegroupView {
+  /** "Coming up the road: two Raider Scavs." */
+  against: string;
+  /** The patching up. */
+  lines: string[];
+  people: { id: string; name: string; state: string; can: boolean }[];
+}
+
+/** The first band beaten under command, the second coming: who's fit to meet it. Undefined otherwise. */
+export function regroupView(state: GameState, now: number): RegroupView | undefined {
+  const at = raidRegroup(state, now);
+  if (!at) return undefined;
+  return {
+    against: `Coming up the road: ${at.against}.`,
+    lines: at.lines.map((l) => l.text),
+    people: at.people.map((p) => ({ id: p.id, name: p.name, state: p.down ? 'Down' : `${p.hp}/${p.maxHp} HP${p.fought ? '' : ', fresh'}`, can: !p.down })),
+  };
 }

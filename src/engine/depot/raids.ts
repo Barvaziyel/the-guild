@@ -444,6 +444,17 @@ export function stareDc(raid: DepotRaid): number {
   return RAID_STARE_DC + (raid.by === 'vultures' ? RAID_STARE_VULTURES : 0);
 }
 
+/** Staring them down from here: who'd do it, their Nerve against what it takes, and the chance it works. */
+export function stareOdds(state: GameState): { talker: Survivor; bonus: number; dc: number; chance: number } | undefined {
+  const raid = raidAtGate(state);
+  const talker = raidTalker(state);
+  if (!raid || !talker) return undefined;
+  const bonus = stareBonus(talker, getEnemy(raid.enemies?.[0] ?? 'raider_scav').type);
+  const dc = stareDc(raid);
+  // A d10 and the bonus against the DC.
+  return { talker, bonus, dc, chance: Math.max(0, Math.min(1, (11 - (dc - bonus)) / 10)) };
+}
+
 /** Stare them down: the best Nerve at the gate tells them to go. If it works they go; if not, they strike first. */
 export function stareDown(state: GameState, now: number): boolean {
   const raid = untouched(state, now);

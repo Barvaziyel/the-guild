@@ -183,11 +183,11 @@ export function playRaid(state: GameState, raid: DepotRaid, live: boolean): Raid
   let fought = enemies;
   const held = (end: CombatEnd): boolean => end === 'won' || end === 'stalemate';
   if (raid.waves === 2 && held(result.end)) {
+    sim.members = all;
+    regroup(sim);
     // In command, the player picks who holds the gate against the second band.
     if (live && first && raid.team2 === undefined) return finishPlay(sim, all, result.end, enemies, 1, true);
     wave = 2;
-    sim.members = all;
-    regroup(sim);
     const team2 = new Set(raid.team2 ?? standing(sim).map((m) => m.s.id));
     sim.members = all.filter((m) => team2.has(m.s.id) && !m.down && !m.dead);
     fought = (raid.enemies2 ?? []).map((id) => newEnemy(getEnemy(id), RAID_DANGER));
@@ -212,7 +212,6 @@ function finishPlay(sim: Sim, all: Member[], end: CombatEnd, enemies: Enemy[], w
 /** Between the bands: the second comes up the road, and anyone down or badly hurt gets patched up while there are meds. */
 function regroup(sim: Sim): void {
   startBeat(sim, 'combat', 'Between the bands');
-  say(sim, 'A second band comes up the road.', { tone: 'bad' });
   for (const m of sim.members) {
     if (sim.meds <= 0) break;
     if (m.dead || (!m.down && !isHurt(m))) continue;

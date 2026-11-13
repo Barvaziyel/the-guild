@@ -17,7 +17,7 @@ export function RaidCard({ state, now }: { state: GameState; now: number }) {
       <p>{card.kind === 'seen' ? card.lines[0] : card.wait}</p>
       <div className="btn-row">
         <button type="button" className="btn btn-primary" onClick={() => navigate({ screen: 'raid' })}>
-          {card.kind === 'seen' ? 'Who will be home' : card.inCommand ? 'Back to the gate' : 'Go to the gate'}
+          {card.kind === 'seen' ? 'Get ready' : card.inCommand ? 'Back to the gate' : 'Go to the gate'}
         </button>
         {card.kind === 'gate' && (
           <button type="button" className="btn" onClick={() => act((s) => letRaidFight(s, Date.now()))}>
