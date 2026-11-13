@@ -5,9 +5,9 @@
  * SVG out. Each step of a round is drawn afresh with the act it shows (who
  * lunges or fires, who is hit, the number that pops up), and CSS animates it.
  */
-import { BACKDROP_PLACES, HORIZON, STAGE_H, STAGE_W, backdropSvg } from './backdrops.ts';
+import { BACKDROP_PLACES, HORIZON, STAGE_H, STAGE_W, TOWER_DECK, backdropSvg } from './backdrops.ts';
 import { BONE, INK, circle, ellipse, escapeAttr, line, pathEl, poly, rect } from './draw.ts';
-import { DRAWN_ENEMIES, crewBody, enemyBody, enemyHeight, enemyMuzzle, muzzle, personSvg } from './fighters.ts';
+import { DRAWN_ENEMIES, crewBody, dogSvg, enemyBody, enemyHeight, enemyMuzzle, muzzle, personSvg } from './fighters.ts';
 import type { FigureLook } from './model.ts';
 
 export { BACKDROP_PLACES, DRAWN_ENEMIES, STAGE_H, STAGE_W };
@@ -34,6 +34,8 @@ export interface StageFighter {
   vulture?: boolean;
   stunned?: boolean;
   aimed?: boolean;
+  /** A lookout on the Watchtower in a raid (§9.8): drawn up on its deck. */
+  perch?: boolean;
 }
 
 /** One act being played: who does it, to whom, and what pops up. */
@@ -92,6 +94,7 @@ const n1 = (v: number): string => String(Math.round(v * 10) / 10);
 
 /** The drawing of one fighter facing right, before it's turned around or laid down. */
 function body(f: StageFighter): { svg: string; scale: number; height: number; muzzle: [number, number] } {
+  if (f.kind === 'dog') return { svg: dogSvg(), scale: 0.9, height: 34, muzzle: [24, -22] };
   if (f.side === 'crew' && f.look) {
     const b = crewBody(f.look, f.weapon);
     return { svg: personSvg(b), scale: 1, height: 64, muzzle: muzzle(b.held) };
@@ -169,7 +172,7 @@ function overhead(f: StageFighter, slot: Slot, height: number, room: number, mod
   const w = 30 * Math.max(0.85, Math.min(1.1, slot.scale));
   const x = slot.x - w / 2;
   let out = '';
-  if (f.state !== 'dead') {
+  if (f.state !== 'dead' && f.maxHp > 0) {
     const share = f.maxHp > 0 ? Math.max(0, Math.min(1, f.hp / f.maxHp)) : 0;
     const color = share > 0.5 ? '#9cc27f' : share > 0.25 ? '#e0b13a' : '#d9614a';
     out += rect(x, top, w, 5, '#1d1915', `stroke="${BONE}" stroke-width="0.8"`);
@@ -242,7 +245,12 @@ function effectLayer(model: StageModel, spots: Map<string, { slot: Slot; height:
 
 /** The whole stage for one moment of the fight. */
 export function stageSvg(model: StageModel): string {
-  const crewSlots = stageSlots(model.crew.length, 'crew');
+  // Lookouts stand on the Watchtower's deck; everyone else in the ranks.
+  const ground = model.crew.filter((f) => !f.perch);
+  const deck = model.crew.filter((f) => f.perch);
+  const groundSlots = stageSlots(ground.length, 'crew');
+  const deckSlots = deck.map((_, k): Slot => ({ x: TOWER_DECK.x0 + 16 + k * 24, y: TOWER_DECK.y, scale: 0.9, rank: 1 }));
+  const crewSlots = model.crew.map((f) => (f.perch ? deckSlots[deck.indexOf(f)]! : groundSlots[ground.indexOf(f)]!));
   const enemySlots = stageSlots(model.enemies.length, 'enemy');
   // Nobody stands, or lies, half off the edge of the stage.
   const inside = (f: StageFighter, slot: Slot): Slot => {

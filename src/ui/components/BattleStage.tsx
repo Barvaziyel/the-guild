@@ -1,12 +1,28 @@
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react';
-import type { FightView, GameState, Run } from '../../engine/index.ts';
-import { stageSvg } from '../../scene/index.ts';
-import { FRAME_MS, roundFrames, stageModel, type StageFrame, type StageOrders } from '../battle-view.ts';
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type MouseEvent,
+} from "react";
+import type { FightView, GameState } from "../../engine/index.ts";
+import { stageSvg } from "../../scene/index.ts";
+import {
+  FRAME_MS,
+  roundFrames,
+  stageModel,
+  type StageFrame,
+  type StageOrders,
+} from "../battle-view.ts";
 
 const NO_ORDERS: StageOrders = { picks: {} };
 
 function reducedMotion(): boolean {
-  return typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
+  return (
+    typeof window !== "undefined" &&
+    window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true
+  );
 }
 
 /**
@@ -16,7 +32,8 @@ function reducedMotion(): boolean {
  */
 export function BattleStage({
   state,
-  run,
+  place,
+  seed,
   view,
   before,
   orders = NO_ORDERS,
@@ -25,7 +42,9 @@ export function BattleStage({
   caption,
 }: {
   state: GameState;
-  run: Run;
+  /** The place's id, for the backdrop ('depot' for a raid), and a seed for the enemies' looks. */
+  place: string;
+  seed: string;
   view: FightView;
   before?: FightView | undefined;
   orders?: StageOrders;
@@ -59,43 +78,63 @@ export function BattleStage({
   useEffect(() => {
     onLine?.(frame ? frame.line + 1 : undefined);
   }, [frame, onLine]);
-  const svg = useMemo(() => stageSvg(stageModel(state, run, view, playing ? NO_ORDERS : orders, frame)), [state, run, view, orders, frame, playing]);
+  const svg = useMemo(
+    () =>
+      stageSvg(
+        stageModel(
+          state,
+          { place, seed },
+          view,
+          playing ? NO_ORDERS : orders,
+          frame,
+        ),
+      ),
+    [state, place, seed, view, orders, frame, playing],
+  );
 
   const tap = (target: EventTarget | null): void => {
     if (playing) {
       setStep(frames.length);
       return;
     }
-    const el = (target as Element | null)?.closest?.('[data-key]');
-    const key = el?.getAttribute('data-key');
+    const el = (target as Element | null)?.closest?.("[data-key]");
+    const key = el?.getAttribute("data-key");
     if (key && onTap) onTap(key);
   };
 
   return (
-    <figure className={`battle-stage${playing ? ' is-playing' : ''}${onTap ? ' is-live' : ''}`}>
+    <figure
+      className={`battle-stage${playing ? " is-playing" : ""}${onTap ? " is-live" : ""}`}
+    >
       <div
         className="battle-svg"
         onClick={(e: MouseEvent) => tap(e.target)}
         onKeyDown={(e: KeyboardEvent) => {
-          if (e.key === 'Enter' || e.key === ' ') {
+          if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
             tap(e.target);
           }
         }}
         dangerouslySetInnerHTML={{ __html: svg }}
       />
-      <figcaption className="battle-caption" aria-live="polite">
-        {playing ? (
-          <>
-            <span>Round {frame?.round}</span>
-            <button type="button" className="btn btn-quiet btn-small" onClick={() => setStep(frames.length)}>
-              Skip
-            </button>
-          </>
-        ) : (
-          caption && <span>{caption}</span>
-        )}
-      </figcaption>
+      {(playing || caption) && (
+        <figcaption className="battle-caption" aria-live="polite">
+          {playing ? (
+            <>
+              <span>Round {frame?.round}</span>
+              <button
+                type="button"
+                className="btn btn-quiet btn-small"
+                onClick={() => setStep(frames.length)}
+              >
+                Skip
+              </button>
+            </>
+          ) : (
+            caption && <span>{caption}</span>
+          )}
+        </figcaption>
+      )}
     </figure>
   );
 }

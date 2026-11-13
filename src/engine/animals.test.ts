@@ -18,7 +18,8 @@ import {
   setKeeper,
   strayArrives,
 } from './animals.ts';
-import { CAT_RELIEF, DOG_DEFENSE, GOAT_MILK, KEEPER_RELIEF, STRAY_DAYS } from './constants.ts';
+import { CAT_RELIEF, DOG_DAMAGE,
+  DOG_DEFENSE, GOAT_MILK, KEEPER_RELIEF, STRAY_DAYS } from './constants.ts';
 import { ANIMALS, EVENTS, getAnimal } from './content/index.ts';
 import { raidDefense } from './depot/events.ts';
 import { emptySummary, playDepotDay } from './depot/day.ts';
@@ -32,7 +33,7 @@ describe('animals', () => {
   test('every kind has text, names, and says what the numbers say', () => {
     assert.deepEqual(ANIMALS.map((a) => a.id), [...ANIMAL_KINDS]);
     for (const a of ANIMALS) assert.ok(a.names.length >= 6 && a.description && a.effect && a.arrives, a.id);
-    assert.match(getAnimal('dog').effect, new RegExp(`\\+${DOG_DEFENSE} to holding off raids`));
+    assert.match(getAnimal('dog').effect, new RegExp(`biting for ${DOG_DAMAGE[0]}–${DOG_DAMAGE[1]}`));
     assert.match(getAnimal('cat').effect, new RegExp(`sheds ${CAT_RELIEF} more stress`));
     assert.equal(GOAT_MILK, 1);
     assert.match(getAnimal('goat').effect, /a ration a day/);

@@ -13,6 +13,7 @@ import {
 import { DilemmaCard } from '../components/DilemmaCard.tsx';
 import { RadioCalls } from '../components/RadioCard.tsx';
 import { FightCalls } from '../components/FightCard.tsx';
+import { RaidCard } from '../components/RaidCard.tsx';
 import { Projects } from '../components/Projects.tsx';
 import { Portrait } from '../components/Portrait.tsx';
 import { navigate, useAction } from '../hooks.ts';
@@ -98,6 +99,7 @@ function Today({ state, now, away, onDismissAway }: Omit<Props, 'tab'>) {
 
   return (
     <>
+      <RaidCard state={state} now={now} />
       <FightCalls state={state} now={now} />
       <RadioCalls state={state} now={now} />
       <DilemmaCard state={state} now={now} />

@@ -25,7 +25,8 @@ import { playRaid, raidEnemies, raidPause } from '../expedition/raid.ts';
 import { runStart } from '../expedition/sim.ts';
 import { homecoming } from '../expedition/runs.ts';
 import { atDepot, costText, workingAt, workingLevel } from './buildings.ts';
-import { getTrait } from '../content/index.ts';
+import { getEnemy, getTrait } from '../content/index.ts';
+import { describeGroup, newEnemy } from '../expedition/combat.ts';
 import { raidCap } from './events.ts';
 import type { Rng as RngType } from '../rng.ts';
 
@@ -57,6 +58,17 @@ export function raidersName(state: GameState, raid: DepotRaid): { name: string; 
   if (raid.by === 'raiders') return { name: RAIDERS.name, lower: RAIDERS.lower };
   const lead = raid.leadId ? vultureMember(state, raid.leadId) : undefined;
   return { name: lead ? `The Vultures, led by ${fullName(lead.person)},` : 'The Vultures', lower: 'the Vultures' };
+}
+
+/** Who's at the gate: "two Raider Scavs and a Raider Gunner", "Rook Harlan, two Vultures and a Vulture Shot". */
+export function raidAgainst(state: GameState, raid: DepotRaid): string {
+  const leader = raid.leadId ? vultureMember(state, raid.leadId) : undefined;
+  const enemies = (raid.enemies ?? []).map((id, i) => {
+    const e = newEnemy(getEnemy(id), 1);
+    if (i === 0 && id === 'vulture_lieutenant' && leader) e.vulture = { id: leader.person.id, name: fullName(leader.person) };
+    return e;
+  });
+  return describeGroup(enemies);
 }
 
 /**

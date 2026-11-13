@@ -218,7 +218,31 @@ const THE_GLOW: Backdrop = () => {
   return out + line(0, HORIZON, W, HORIZON, 1.2, '#5d5e48');
 };
 
+/** Where lookouts stand on the Watchtower in a raid (§9.8): the platform's floor, and its left and right ends. */
+export const TOWER_DECK = { y: 104, x0: 14, x1: 70 } as const;
+
+const DEPOT: Backdrop = () => {
+  let out = sky('#cdd8cd', '#e4e0cc') + skyline('#aeb5a8', 'dp', HORIZON - 26, 16);
+  // The station house and the water tower beyond the yard.
+  out += rect(170, 70, 150, 64, '#b49a7a', THIN) + poly([[160, 72], [245, 46], [330, 72]], '#6b4f3f', THIN);
+  for (const x of [186, 222, 262, 296]) out += rect(x, 88, 16, 22, '#3d3a36', THIN);
+  out += rect(242, 108, 24, 26, '#5b4a3c', THIN);
+  out += line(338, 134, 344, 60, 2.4, '#5d6466') + line(372, 134, 366, 60, 2.4, '#5d6466') + rect(332, 34, 46, 30, '#8a7a5a', THIN);
+  out += ground('#a99a78', '#8f8262', 'dp');
+  // The fence and its gate, which the raiders come through.
+  for (let x = 96; x < W; x += 18) out += rect(x, 126, 4, 36, '#6b5a48', THIN);
+  out += line(96, 134, W, 134, 2, '#6b5a48') + line(96, 150, W, 150, 2, '#6b5a48');
+  out += rect(250, 120, 60, 42, '#7a6a52', THIN) + line(280, 120, 280, 162, 1.4, INK);
+  // The Watchtower on the left: legs, braces, the deck lookouts stand on.
+  const { y, x0, x1 } = TOWER_DECK;
+  out += line(x0 + 6, H - 40, x0 + 10, y, 3, '#6b5a48') + line(x1 - 6, H - 40, x1 - 10, y, 3, '#6b5a48');
+  out += line(x0 + 8, y + 40, x1 - 8, y + 80, 1.6, '#6b5a48') + line(x1 - 8, y + 40, x0 + 8, y + 80, 1.6, '#6b5a48');
+  out += rect(x0, y, x1 - x0, 6, '#7a6a52', THIN) + line(x0, y - 14, x1, y - 14, 1.6, '#6b5a48') + line(x0, y - 14, x0, y, 1.6, '#6b5a48') + line(x1, y - 14, x1, y, 1.6, '#6b5a48');
+  return out;
+};
+
 const BACKDROPS: Record<string, Backdrop> = {
+  depot: DEPOT,
   rail_yard: RAIL_YARD,
   maple_street: MAPLE_STREET,
   kessler_farm: KESSLER_FARM,
@@ -234,7 +258,7 @@ const BACKDROPS: Record<string, Backdrop> = {
 };
 
 /** Every place with a backdrop of its own; anywhere else gets open wasteland. */
-export const BACKDROP_PLACES: readonly string[] = Object.keys(BACKDROPS);
+export const BACKDROP_PLACES: readonly string[] = Object.keys(BACKDROPS).filter((id) => id !== 'depot');
 
 /** The backdrop for a place in the Reach. */
 export function backdropSvg(placeId: string): string {

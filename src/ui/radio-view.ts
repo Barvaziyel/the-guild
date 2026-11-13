@@ -127,6 +127,8 @@ export function radioReportLine(report: RunReport): string | undefined {
  * Depot for everything that waits there (decisions, calls for help, babies, birthdays).
  */
 export function noticeRoute(id: string): Route {
+  // Raiders seen or at the gate open the raid (§9.8).
+  if (id.startsWith('raid-')) return { screen: 'raid' };
   // A crew stopped at a fight opens the fight (§7.13).
   const fight = fightNoticeRun(id);
   if (fight) return { screen: 'fight', id: fight };

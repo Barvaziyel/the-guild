@@ -716,7 +716,7 @@ Building is instant. Numbers live in `constants.ts`, and the building text in `c
 - **Firepit:** each keeper adds 0.5 + Nerve × 0.1 to the relief (1 + Nerve × 0.25 before 1.7.1). A Bar gives each pair at home a 25% chance a day to warm by 1 (50% at level 3).
 - **Workshop:** each worker turns 1 scrap into 1 + Wits × 0.25 ammo a day, until the Depot holds 60 ammo.
 - **Radio Tower:** a 3% chance per level each day, +0.5% per point of the operators' Wits, of hearing about an undiscovered place one road beyond a known one.
-- **Watchtower:** +2 per level to holding off raids, and +1 per lookout.
+- **Watchtower:** sees raiders coming (§9.8): 50/70/90% by level, +10% per lookout, 45/75/120 minutes ahead; seen coming, the defenders strike first. Lookouts with a gun shoot from up top, out of reach, +1 to hit per level. Halves what a broken raid takes. (A raid a decision brings, §9.5, still uses the old roll: +2 per level, +1 per lookout.)
 
 ### 9.2 Posts
 
@@ -733,7 +733,7 @@ At most one event a day (a 20% chance), weighted:
 |---|---|
 | A wanderer | Someone turns up at the gate and waits there 3 days (§10). Half as likely as the other events since 1.9.0 (weight 1.5 against 2–3), since most new people now come from the Reach. |
 | A trader caravan | Offers a swap of supplies (gas among them; 8–20 of what the guild gives, or up to an eighth of a big stockpile, at most 200, since 1.7.2, so a guild rich in scrap and short of tech can turn one into the other), or a Solid or Prime piece of gear for scrap (and tech for guns), or now and then a vehicle (§7.8). Since 1.6.2, half the time it offers to **buy** what the guild has spare for scrap. Rations bring 0.5 scrap each, meds 1.2, tech 2, gas 1 and ammo 0.4. Spare means beyond 25, or beyond ten days of eating for rations, and the caravan takes 20–40% of it. Stays 2 days. |
-| A raid | d10 + the best Aim at home + 2 per Watchtower level + 1 per lookout (+4 with the Wall, §9.6), −2 for each hand short of three at home, vs 12. Held: the defenders get Aim practice and a little stress. Broken: raiders take 25% of the scrap, rations, ammo and gas (half that with a Watchtower, a quarter more with one person home and half more with nobody), never more than 30 of each plus a fifth of whatever is stored beyond 100 (1.6.2; before, 30 at most, which meant nothing against stockpiles in the hundreds), may drive off a parked vehicle (§7.8), one defender is Wounded, and everyone gains +10 stress. Raids come twice as often when no more than one person is home. |
+| A raid | Since 2.0.0 a fight at the gate (§9.8). Before: d10 + the best Aim at home + 2 per Watchtower level + 1 per lookout (+4 with the Wall, §9.6), −2 for each hand short of three at home, vs 12. Held: the defenders get Aim practice and a little stress. Broken: raiders take 25% of the scrap, rations, ammo and gas (half that with a Watchtower, a quarter more with one person home and half more with nobody), never more than 30 of each plus a fifth of whatever is stored beyond 100 (1.6.2; before, 30 at most, which meant nothing against stockpiles in the hundreds), may drive off a parked vehicle (§7.8), one defender is Wounded, and everyone gains +10 stress. Raids come twice as often when no more than one person is home. |
 | A celebration | Costs a ration per two people. Everyone at home sheds 15 stress, and every pair warms by 3. Only when food is plentiful. |
 | A fever | Someone at home becomes Feverish (−1 Grit, −1 Wits, 2–4 days) unless the Infirmary treats it. |
 | A stray | An animal of a kind the guild doesn't keep waits at the gate for 3 days, to be kept or sent off (§9.7). Someone with a way with animals feeds it and sheds 10 stress. With one of each kind, a stray dog just moves on. |
@@ -840,6 +840,19 @@ Several kinds, each with its own effect (Aviel's choice). The guild keeps at mos
   - a line on the keeper's sheet;
   - in the yard: the dog at its keeper's side (or waiting by the gate while they're away), the cat asleep on the Bunks, the goat grazing by the Garden, the crow on a fence post.
 - **Measured** with the person-like player: a guild that keeps every stray has all four by week 5.
+
+### 9.8 Raids at the gate (2.0.0)
+
+Aviel's answers, 2026-11-13: raiders come; with a Watchtower a roll may see them coming, with a notice and time to prepare (keep people home); otherwise they're at the gate with a notice, and when he opens the game he deals with it, picking the fight with whoever is at the Depot. They wait **a few hours**, then fight alone. **Only those at the Depot when the raiders arrived can defend** (his correction: otherwise waiting for a crew to come back would be a trick). This finishes taking command of a fight (§7.13): the game is 2.0.0.
+
+- **When they come.** The Depot day that rolls a raid (§9.3) sets a time for it to arrive, 50–160 minutes into the day. One raid at a time.
+- **Seen coming.** With a Watchtower, a chance it's seen on the road: 50/70/90% by level, +10% per lookout posted, at most 95%. Seen, it's spotted 45/75/120 minutes before it arrives (never before the day began), with a notice and a card on the Depot: when they'll be at the gate, who's home, and which crews will be back in time. The defenders are ready and strike first (the raiders don't attack in the first round).
+- **At the gate.** On arrival, who is home and fit is fixed: those who can defend. Tired from a run is fit; laid up isn't. A crew that gets back later holds back until it's over, and nobody sets out while the raiders are there. They wait **3 hours** for the player (`RAID_WAIT`), with a notice and a card: *Take command* or *Let them fight*. After 3 hours, they fight it out on their own. With nobody home, they walk in.
+- **The fight.** Played like a fight on a run (§7.3), at the Depot (danger 2), on the battle stage with the Depot's own backdrop. Raiders: scavs, gunners and brutes, bought like a fight at danger 2 ×1.05, for a fence of at least three (fewer at home doesn't mean fewer raiders). The Vultures (at war, or now and then wary, §7.11) come with one of their named people at their head, stronger as they grow. The defenders use the Depot's ammo and meds, and what they use comes out of the stores. On their own they fight until someone goes down, then pull back inside. Under command it's replayed from a copy of the defenders taken when the fight began, round by round, like a led run's fight; their gear can't change until it's over.
+- **What helps.** Lookouts with a gun go up the Watchtower and shoot from there, out of reach (+1 to hit per level); with nobody left at the gate, the tower can't hold it alone. The Wall (§9.6): raiders need 3 more to hit the defenders. The dog (§9.7) bites alongside them (to hit +3, 2–3 damage), and nobody can hurt it.
+- **After.** Nobody dies at the gate: the Infirmary is right there (mercy, +10 to wound rolls). Won, or a standoff: held; the defenders practise Aim (+2) and it goes in their Chronicle. Pulled back or all down: broken, as before (§9.3): a share of the scrap, rations, ammo and gas, maybe a parked vehicle, +10 stress for everyone home. The Chronicle and the news say who held the gate, and whether you led it.
+- **Measured** (300 raids each, a new guild of 4): held about half (the old roll: 47%), about half a person hurt a raid (as before); with a Watchtower and a lookout with a rifle about 73% (old 76%); with Watchtower 2 and a lookout 83% (old 91%); with the Wall and a dog 86% (old 98%).
+- **Next, picked by Aviel (2026-11-13).** Getting ready when they're seen: call a crew home over the radio, shore up the fence, hide some stores. In the fight: talking first (pay them off, stare them down), waves. Raids that differ: feral packs, hollows, scrapbots; raiders who want something (stores, a vehicle, a person to rescue); spoils and a trail back to their camp; outposts defended the same way.
 
 ## 10. Recruitment
 
@@ -1050,7 +1063,7 @@ From the ideas in `claude/interactive-ideas.md`, and Aviel's own additions. The 
 
 | Idea | What Aviel said | Status |
 |---|---|---|
-| Take command of a fight: turn-based fights, at least as an option (his ask from 2026-11-12) | Yes. **The game is 2.0.0 when this is done.** Picked first (§7.13) | runs: 1.13.0; the battle stage: 1.14.0; raids next |
+| Take command of a fight: turn-based fights, at least as an option (his ask from 2026-11-12) | Yes. **The game is 2.0.0 when this is done.** Picked first (§7.13) | runs: 1.13.0; the battle stage: 1.14.0; raids at the gate: 2.0.0 (§9.8). Next: getting ready and the extras, then raids that differ and what comes after |
 | Haggle with traders | Yes | planned |
 | Names: things get their names from the guild's people, not from the player, once they've spent enough time with them | Yes, named by the people | planned |
 | What people want: now and then someone asks for something, and doing it (or not) matters | Maybe | to decide |

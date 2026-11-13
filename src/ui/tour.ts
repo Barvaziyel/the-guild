@@ -11,6 +11,7 @@ import {
   MAX_CATCHUP_DAYS,
   MAX_CREW,
   LEAD_WAIT,
+  RAID_WAIT,
   RADIO_WAIT,
   dailyUpkeep,
   gardenYield,
@@ -342,7 +343,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     title: 'Raids',
     route: depot,
     text: () =>
-      'Raiders sometimes hit the Depot. Whoever is home holds the fence: the best shot matters, a Watchtower helps, and fewer than three at home makes it thin. They take supplies, and a vehicle if one is parked. Send everyone out, and the Depot is easy pickings.',
+      `Raiders sometimes come for the Depot. A Watchtower may see them on the road, with a notice, so you can keep people home. At the gate they wait ${Math.round(RAID_WAIT / 3_600_000)} hours for your orders: take command, or let them fight. Only those home when the raiders arrive can hold it, and lookouts on the tower shoot from up there. Lose, and they take supplies, and a vehicle if one is parked.`,
   },
 
   // ---------------------------------------------------------------- recruits

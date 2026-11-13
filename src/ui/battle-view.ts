@@ -3,7 +3,7 @@
  * for `src/scene/battle.ts`, a round played back act by act, and what a tap
  * on someone in the fight does to the orders being given.
  */
-import type { FightAct, FightView, GameState, MoveId, Run } from '../engine/index.ts';
+import type { FightAct, FightView, GameState, MoveId } from '../engine/index.ts';
 import type { StageEffect, StageFighter, StageModel } from '../scene/index.ts';
 import { needsTarget, type Picks } from './fight-view.ts';
 import { figureLook } from './yard-view.ts';
@@ -87,11 +87,17 @@ export function tapOnStage(view: FightView, orders: StageOrders, key: string): S
   return member && member.moves.length > 0 ? { ...orders, open: id } : orders;
 }
 
+/** Where a fight is: the place's id for the backdrop ('depot' for a raid), and a seed that varies the enemies' looks. */
+export interface StageAt {
+  place: string;
+  seed: string;
+}
+
 /** The fight drawn: everyone where they stand, with this moment's act if a round is being played. */
-export function stageModel(state: GameState, run: Run, view: FightView, orders: StageOrders, frame?: StageFrame): StageModel {
+export function stageModel(state: GameState, at: StageAt, view: FightView, orders: StageOrders, frame?: StageFrame): StageModel {
   const crew: StageFighter[] = view.crew.map((m) => {
     const key = crewKey(m.id);
-    const s = state.survivors.find((x) => x.id === m.id) ?? run.result.crew.find((x) => x.id === m.id);
+    const s = state.survivors.find((x) => x.id === m.id);
     const hp = frame?.hp[key] ?? m.hp;
     const shown = frame?.state[key] ?? m.state;
     return {
@@ -105,8 +111,11 @@ export function stageModel(state: GameState, run: Run, view: FightView, orders: 
       ...(s ? { look: figureLook(s) } : {}),
       ...(s?.equipment.weapon ? { weapon: s.equipment.weapon.defId } : {}),
       aimed: frame ? false : m.aimed,
+      ...(m.perch ? { perch: true } : {}),
     };
   });
+  // The guild's dog at the gate: it fights, but nobody can hurt it.
+  if (view.dog) crew.push({ key: crewKey('dog'), side: 'crew', label: view.dog, title: `${view.dog}, the dog`, hp: 0, maxHp: 0, state: 'up', kind: 'dog' });
   const enemies: StageFighter[] = view.enemies.map((e) => {
     const key = enemyKey(e.index);
     const hp = frame?.hp[key] ?? e.hp;
@@ -121,7 +130,7 @@ export function stageModel(state: GameState, run: Run, view: FightView, orders: 
       state: shown,
       kind: e.kind,
       type: e.type,
-      seed: `${run.id}-${e.index}`,
+      seed: `${at.seed}-${e.index}`,
       nemesis: e.nemesis,
       vulture: e.vulture,
       stunned: frame?.stunned[key] ?? e.stunned,
@@ -129,7 +138,7 @@ export function stageModel(state: GameState, run: Run, view: FightView, orders: 
   });
   const { targets, picked } = frame ? { targets: [], picked: undefined } : stageTargets(view, orders);
   return {
-    place: run.plan.locationId,
+    place: at.place,
     crew,
     enemies,
     ...(!frame && orders.open ? { giving: crewKey(orders.open) } : {}),
