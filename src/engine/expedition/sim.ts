@@ -86,6 +86,7 @@ import {
   stress,
   type Member,
   type Sim,
+  type SimFork,
   type SimVultures,
   revealHook,
 } from './context.ts';
@@ -98,6 +99,7 @@ import { earnNickname, nameWeapon, nemesisNewsList, takenNames } from './stories
 import { resolveWounds } from './wounds.ts';
 import { rescueBeat, rescueNews } from './rescue.ts';
 import { vulturesBeat } from './vultures.ts';
+import { tryFork } from './radio.ts';
 import { campAt, campLeader, neighbours, onTurf, vultureBand, vulturesActive } from '../vultures.ts';
 
 type MidKind = Exclude<BeatKind, 'depart' | 'return'>;
@@ -428,13 +430,16 @@ export interface SimulatedRun {
   result: RunResult;
   /** The id counter after the run (found items take ids). */
   nextId: number;
+  /** The fork the run came to, if any (§7.12). */
+  fork?: SimFork;
 }
 
 /**
  * Simulate a run from start to finish. Does not change `state`: the crew is
  * cloned, and the outcome is returned for startRun/completeRun to apply.
+ * `answer`: replay the run with the guild giving this order at the fork (§7.12).
  */
-export function simulateRun(state: GameState, plan: RunPlan, seed: string, departAt: number): SimulatedRun {
+export function simulateRun(state: GameState, plan: RunPlan, seed: string, departAt: number, answer?: string): SimulatedRun {
   // Deeper levels are the same place, only more dangerous (§7.10).
   const loc = atDepth(getLocation(plan.locationId), planDepth(plan));
   const restStop = outpostNear(state, plan.locationId);
@@ -507,6 +512,9 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
     found: [],
     thin: onTurf(state, plan.locationId) ? VULTURES_TURF_FINDS : 1,
     ...simVultures(state, plan),
+    delay: 0,
+    radio: (state.buildings.radio_tower ?? 0) >= 1,
+    ...(answer !== undefined ? { answer } : {}),
   };
   // A rescue run carries the person who called for help, and what trouble they're in (§10.1).
   const call = state.rescue?.call;
@@ -535,9 +543,10 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
   let done = 0;
   for (let i = 0; i < middle; i++) {
     if (sim.turnBack || sim.routed || standing(sim).length === 0) break;
-    sim.offset = Math.round(slot * (i + 1) + slot * (rng.next() - 0.5) * 0.4);
+    // Time spent at a fork (waiting on the radio, or on what was ordered) pushes the rest back.
+    sim.offset = Math.round(slot * (i + 1) + slot * (rng.next() - 0.5) * 0.4) + sim.delay;
     const kind = pickBeatKind(sim, previous, i === middle - 1);
-    if (!tryEvent(sim, kind)) BEAT_FNS[kind](sim);
+    if (!tryFork(sim, kind) && !tryEvent(sim, kind)) BEAT_FNS[kind](sim);
     endBeat(sim, kind);
     previous = kind;
     done += 1;
@@ -550,8 +559,8 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
     sim.walkingFrom !== undefined
       ? Math.round(sim.walkingFrom + foot * WALK_HOME_SHARE)
       : cutShort
-        ? Math.min(duration, Math.max(sim.offset + 60_000, Math.round(sim.offset * 1.5)))
-        : duration;
+        ? Math.min(duration + sim.delay, Math.max(sim.offset + 60_000, Math.round((sim.offset - sim.delay) * 1.5) + sim.delay))
+        : duration + sim.delay;
 
   startBeat(sim, 'return', outcome === 'lost' ? 'Silence' : 'Home');
   say(sim, flavor(sim, RETURN_LINES[outcome]), outcome === 'completed' ? {} : { tone: 'bad' });
@@ -608,6 +617,7 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
     rations: rationsPacked(state, plan),
     beats: sim.beats,
     nextId: shell.nextId,
+    ...(sim.fork ? { fork: sim.fork } : {}),
     result: {
       outcome,
       crew: sim.members.map((m) => m.s),

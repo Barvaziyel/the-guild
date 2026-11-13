@@ -6,7 +6,7 @@
 import type { BuildingId, Quality, RelationshipLabel, ResourceId, Resources } from './types.ts';
 
 /** Save format version. Bump together with a migration in save.ts. */
-export const SAVE_VERSION = 18;
+export const SAVE_VERSION = 19;
 
 // ---------------------------------------------------------------- time
 
@@ -672,6 +672,8 @@ export const VULTURES_LIEUTENANT_CHANCE = 0.4;
 /** A wary standoff: Nerve against this + strength / 25; a toll is this share of what the crew carries. */
 export const VULTURES_STANDOFF_DC = 9;
 export const VULTURES_TOLL = 0.25;
+/** The toll when someone tried to talk them out of it and failed (§7.12). */
+export const VULTURES_TOLL_RAISED = 0.5;
 /** Friendly meetings share news of a place this often. */
 export const VULTURES_NEWS_CHANCE = 0.2;
 /** A downed lieutenant is captured (rather than killed) this often when the crew holds the field. */
@@ -717,3 +719,10 @@ export const VULTURES_TRADE_CUT = 400;
 export const VULTURES_TRADER_RATE = 1.25;
 /** Envoys come to the gate this often (game days). */
 export const VULTURES_ENVOY_GAP: readonly [number, number] = [12, 20];
+
+// ---------------------------------------------------------------- radio calls (§7.12)
+
+/** How long a crew waits on the radio for an answer before deciding themselves (real ms). */
+export const RADIO_WAIT = 30 * 60_000;
+/** How often a travel, hazard or discovery beat becomes a fork, when one fits. */
+export const FORK_CHANCE = 0.2;

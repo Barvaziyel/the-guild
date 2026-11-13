@@ -109,6 +109,11 @@ export function shiftTimeline(state: GameState, delta: number): void {
   for (const run of state.runs) {
     run.departAt += delta;
     run.returnAt += delta;
+    if (run.radio) {
+      run.radio.at += delta;
+      run.radio.until += delta;
+      for (const b of Object.values(run.radio.branches ?? {})) b.returnAt += delta;
+    }
   }
   for (const report of state.reports) {
     report.departAt += delta;

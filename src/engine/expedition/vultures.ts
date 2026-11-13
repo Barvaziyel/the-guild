@@ -2,7 +2,8 @@
  * The Vultures on a run (§7.11): a meeting in their turf, settled by the
  * crew's orders and how things stand with them, or the guild hitting one of
  * their camps. What happens goes into `sim.vultures.news`, applied when the
- * crew is back (`applyVultureNews`). In 18b a meeting becomes a radio call.
+ * crew is back (`applyVultureNews`). Meeting them wary or at war is a fork,
+ * and with a Radio Tower a call home (§7.12).
  */
 import {
   ENCOUNTER_BASE,
@@ -23,6 +24,7 @@ import {
   VULTURES_PARTNER_NOD_STANDING,
   VULTURES_STANDOFF_DC,
   VULTURES_TOLL,
+  VULTURES_TOLL_RAISED,
   VULTURES_TOLL_STANDING,
   VULTURES_WAR,
 } from '../constants.ts';
@@ -34,7 +36,8 @@ import type { ResourceId, VultureMember } from '../types.ts';
 import { RESOURCE_IDS } from '../types.ts';
 import { addLoot, findGear, lootText, pickResource, resolveFight } from './beats.ts';
 import { newEnemy, type CombatEnd, type Enemy } from './combat.ts';
-import { bestBy, check, say, simDay, standing, startBeat, type Sim, type SimVultures } from './context.ts';
+import { bestBy, check, say, simDay, standing, startBeat, type Member, type Sim, type SimVultures } from './context.ts';
+import { reachFork } from './radio.ts';
 
 /**
  * Their side, bought with a fight's usual threat budget for the place and the
@@ -97,10 +100,11 @@ export function vulturesBeat(sim: Sim): void {
   startBeat(sim, 'vultures', 'The Vultures');
   const candidate = v.camp?.leader ?? v.nearby;
   const leader = candidate && sim.rng.chance(VULTURES_LIEUTENANT_CHANCE) ? candidate : undefined;
-  say(sim, `Black feathers on the next rise: a Vulture crew${leader ? `, ${fullName(leader.person)} at their head` : ''}.`);
+  const intro = `Black feathers on the next rise: a Vulture crew${leader ? `, ${fullName(leader.person)} at their head` : ''}.`;
+  say(sim, intro);
   if (v.band === 'truce' || v.band === 'trade') friendly(sim, v, leader);
-  else if (v.band === 'wary') standoff(sim, v, leader);
-  else hostile(sim, v, leader);
+  else if (v.band === 'wary') standoff(sim, v, leader, intro);
+  else hostile(sim, v, leader, intro);
 }
 
 function friendly(sim: Sim, v: SimVultures, leader: VultureMember | undefined): void {
@@ -115,9 +119,8 @@ function friendly(sim: Sim, v: SimVultures, leader: VultureMember | undefined): 
   say(sim, `In passing, they mention a place the guild hasn't found: ${getLocation(id).name}.`, { tone: 'good' });
 }
 
-/** A sneaky crew tries to get by unseen: the quietest Wits against their lookouts. */
+/** Trying to get by unseen: the quietest Wits against their lookouts. */
 function slipPast(sim: Sim, v: SimVultures): boolean {
-  if (sim.plan.approach !== 'sneaky') return false;
   const scout = bestBy(standing(sim), (m) => effectiveStat(m.s, 'wits'))!;
   const result = check(sim, scout, 'wits', 8 + Math.floor(v.strength / 25), ['sneak'], { crew: true });
   if (result.success) {
@@ -128,42 +131,116 @@ function slipPast(sim: Sim, v: SimVultures): boolean {
   return false;
 }
 
-function standoff(sim: Sim, v: SimVultures, leader: VultureMember | undefined): void {
-  if (slipPast(sim, v)) return;
-  if (sim.plan.approach === 'aggressive') {
-    say(sim, `They want a toll for passing. ${crewWord(sim)} has other ideas.`, { tone: 'bad' });
-    fightThem(sim, v, leader, { ambushed: false, drop: false });
-    return;
-  }
-  const face = bestBy(standing(sim), (m) => effectiveStat(m.s, 'nerve'))!;
-  const result = check(sim, face, 'nerve', VULTURES_STANDOFF_DC + Math.floor(v.strength / 25), ['intimidate'], { crew: true });
-  if (result.success) {
-    say(sim, `${face.s.firstName} stares them down. After a long moment the Vultures step aside.`, { check: result.info, tone: 'good' });
-    if (leader) meet(v, sim, leader, `Backed down from a guild crew at ${sim.loc.name}.`);
-    return;
-  }
+/** Hand over a share of everything carried. */
+function payToll(sim: Sim, share: number): string {
   const toll: Partial<Record<ResourceId, number>> = {};
   for (const r of RESOURCE_IDS) {
-    const n = Math.floor(sim.loot[r] * VULTURES_TOLL);
+    const n = Math.floor(sim.loot[r] * share);
     if (n > 0) {
       toll[r] = n;
       sim.loot[r] -= n;
     }
   }
-  const paid = lootText(toll);
+  return lootText(toll);
+}
+
+/** The one who does the talking, and calls home: the steadiest nerve. */
+function face(sim: Sim): Member {
+  return bestBy(standing(sim), (m) => effectiveStat(m.s, 'nerve'))!;
+}
+
+/** What the crew does unasked, by its orders (§7.12). */
+function waryPick(sim: Sim): string {
+  return sim.plan.approach === 'sneaky' ? 'slip' : sim.plan.approach === 'aggressive' ? 'fight' : 'talk';
+}
+
+function warPick(sim: Sim): string {
+  if (sim.plan.approach === 'sneaky') return 'slip';
+  return sim.plan.approach === 'aggressive' || sim.plan.retreat === 'never' ? 'hit' : 'home';
+}
+
+/** Wary: they want a toll to let the crew by. A fork: the guild can say how to answer them. */
+function standoff(sim: Sim, v: SimVultures, leader: VultureMember | undefined, intro: string): void {
+  const talker = face(sim);
+  const { order } = reachFork(sim, {
+    forkId: 'vultures',
+    title: 'The Vultures',
+    kind: 'vultures',
+    by: talker,
+    intro,
+    ask: 'Vultures on the road, and they want a toll to let us by. A quarter of what we carry. What do we do?',
+    orders: [
+      { id: 'slip', label: 'Slip past' },
+      { id: 'talk', label: 'Talk them down' },
+      { id: 'toll', label: 'Pay the toll' },
+      { id: 'fight', label: 'Fight' },
+    ],
+    pick: waryPick(sim),
+  });
+  if (order === 'slip') {
+    if (slipPast(sim, v)) return;
+    say(sim, 'Caught sneaking, there is no more talk of tolls.', { tone: 'bad' });
+    fightThem(sim, v, leader, { ambushed: true, drop: false });
+    return;
+  }
+  if (order === 'fight') {
+    say(sim, `They want a toll for passing. ${crewWord(sim)} has other ideas.`, { tone: 'bad' });
+    fightThem(sim, v, leader, { ambushed: false, drop: false });
+    return;
+  }
+  if (order === 'toll') {
+    const paid = payToll(sim, VULTURES_TOLL);
+    say(sim, paid ? `${crewWord(sim)} hands over ${paid}, and they step aside.` : 'The packs are empty. They laugh, and wave them on.', paid ? {} : { tone: 'good' });
+    if (paid) v.news.standing += VULTURES_TOLL_STANDING;
+    if (leader) meet(v, sim, leader, `Took a toll from a guild crew at ${sim.loc.name}.`);
+    return;
+  }
+  const result = check(sim, talker, 'nerve', VULTURES_STANDOFF_DC + Math.floor(v.strength / 25), ['intimidate'], { crew: true });
+  if (result.success) {
+    say(sim, `${talker.s.firstName} stares them down. After a long moment the Vultures step aside.`, { check: result.info, tone: 'good' });
+    if (leader) meet(v, sim, leader, `Backed down from a guild crew at ${sim.loc.name}.`);
+    return;
+  }
+  // Talked back and lost: the toll goes up.
+  const paid = payToll(sim, VULTURES_TOLL_RAISED);
   say(
     sim,
-    paid ? `They want a toll for passing, and ${face.s.firstName} can't talk them out of it. ${crewWord(sim)} hands over ${paid}.` : 'They want a toll for passing, but the packs are empty. They laugh, and wave them on.',
+    paid ? `${talker.s.firstName} can't talk them out of it, and now they want half. ${crewWord(sim)} hands over ${paid}.` : 'They want a toll, but the packs are empty. They laugh, and wave them on.',
     { check: result.info, tone: 'bad' },
   );
-  if (paid) v.news.standing += VULTURES_TOLL_STANDING;
   if (leader) meet(v, sim, leader, `Took a toll from a guild crew at ${sim.loc.name}.`);
 }
 
-function hostile(sim: Sim, v: SimVultures, leader: VultureMember | undefined): void {
+/** At war: they haven't seen the crew yet. A fork: slip by, strike first, or turn for home. */
+function hostile(sim: Sim, v: SimVultures, leader: VultureMember | undefined, intro: string): void {
+  const { order } = reachFork(sim, {
+    forkId: 'vultures',
+    title: 'The Vultures',
+    kind: 'vultures',
+    by: face(sim),
+    intro,
+    ask: "Vultures ahead, and we're at war with them. They haven't seen us yet. Do we slip past, hit them first, or turn back?",
+    orders: [
+      { id: 'slip', label: 'Slip past' },
+      { id: 'hit', label: 'Hit them first' },
+      { id: 'home', label: 'Turn for home' },
+    ],
+    pick: warPick(sim),
+  });
+  if (order === 'home') {
+    sim.turnBack = true;
+    const solo = sim.members.length === 1 ? sim.members[0]!.s : undefined;
+    say(sim, solo ? `${solo.firstName} backs away the way ${pronounForms(solo.pronouns).they} came, and heads for home.` : 'The crew backs away the way it came, and heads for home.');
+    return;
+  }
+  if (order === 'hit') {
+    say(sim, `${crewWord(sim)} strikes first, before the Vultures know what's coming.`);
+    fightThem(sim, v, leader, { ambushed: false, drop: true });
+    return;
+  }
   if (slipPast(sim, v)) return;
   say(sim, 'They don\'t stop to talk.', { tone: 'bad' });
-  fightThem(sim, v, leader, { ambushed: sim.plan.approach !== 'aggressive', drop: false });
+  fightThem(sim, v, leader, { ambushed: true, drop: false });
 }
 
 function fightThem(sim: Sim, v: SimVultures, leader: VultureMember | undefined, start: { ambushed: boolean; drop: boolean }, scale = 1): CombatEnd {

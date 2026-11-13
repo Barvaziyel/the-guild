@@ -92,9 +92,9 @@ function addIds(list: string[], ids: readonly string[]): void {
 }
 
 /** The nemesis that joins this fight, if one haunts the place and the dice say so. At most one per run. */
-export function nemesisJoins(sim: Sim): Nemesis | undefined {
+export function nemesisJoins(sim: Sim, type?: string): Nemesis | undefined {
   if (sim.nemesisMet) return undefined;
-  const here = sim.nemeses.find((n) => n.status === 'atLarge' && n.locationId === sim.loc.id);
+  const here = sim.nemeses.find((n) => n.status === 'atLarge' && n.locationId === sim.loc.id && (!type || getEnemy(n.enemyId).type === type));
   if (!here || !sim.rng.chance(NEMESIS_APPEAR)) return undefined;
   sim.nemesisMet = true;
   return here;

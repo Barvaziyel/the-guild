@@ -157,6 +157,9 @@ const MIGRATIONS: Record<number, (save: Record<string, unknown>) => void> = {
     const state = save as unknown as GameState;
     state.vultures ??= newVultures(Math.max(VULTURES_ARRIVE_DAY, state.depot.lastDay + VULTURES_LATE_ARRIVAL));
   },
+  18: () => {
+    // Radio calls (1.12.0): runs and reports may carry a `radio` call. Older ones have none, which is fine.
+  },
 };
 
 export function serialize(state: GameState): string {

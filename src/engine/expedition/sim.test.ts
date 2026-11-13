@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { CARRY_COST_DOWNED, MAX_BEATS, MIN_BEATS } from '../constants.ts';
+import { CARRY_COST_DOWNED, MAX_BEATS, MIN_BEATS, RADIO_WAIT } from '../constants.ts';
 import { LOCATIONS, getTrait } from '../content/index.ts';
 import { adjustRelationship } from '../relationships.ts';
 import { carryCapacity, maxHp } from '../stats.ts';
@@ -43,11 +43,13 @@ describe('simulateRun', () => {
         // Log shape.
         assert.equal(beats[0]!.kind, 'depart');
         assert.equal(beats.at(-1)!.kind, 'return');
-        assert.ok(beats.length >= 2 && beats.length <= MAX_BEATS + 1, `beats ${beats.length}`);
+        // A fork (§7.12) adds the answer's beat, and one more for an order that takes time.
+        assert.ok(beats.length >= 2 && beats.length <= MAX_BEATS + 1 + (run.fork ? 2 : 0), `beats ${beats.length}`);
         if (result.outcome === 'completed') assert.ok(beats.length >= MIN_BEATS + 1);
         for (let b = 1; b < beats.length; b++) assert.ok(beats[b]!.at >= beats[b - 1]!.at, 'beats in time order');
         assert.equal(run.returnAt, 5000 + beats.at(-1)!.at);
-        assert.ok(beats.at(-1)!.at <= duration);
+        // ...and the time spent there: waiting on the radio, and what the order takes.
+        assert.ok(beats.at(-1)!.at <= duration + (run.fork ? RADIO_WAIT + 60 * 60_000 : 0));
         for (const beat of beats) {
           assert.ok(beat.lines.length > 0, `${beat.kind} beat has text`);
           for (const line of beat.lines) {
@@ -196,7 +198,8 @@ describe('traits shape what happens', () => {
 
   test('a Geiger counter lets the crew walk around hot zones', () => {
     const withCounter = { avoided: 0, hit: 0 };
-    for (let i = 0; i < 150; i++) {
+    // Forks (§7.12) take some hazard beats too, so the sample is bigger than it was.
+    for (let i = 0; i < 250; i++) {
       const state = openGame(`geiger-${i % 5}`);
       state.survivors[0]!.equipment.tool = { uid: 'i998', defId: 'geiger_counter', quality: 'common' };
       const { beats } = simulateRun(state, testPlan(state, 'the_glow', { approach: 'sneaky' }), `g${i}`, 0);

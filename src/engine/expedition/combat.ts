@@ -93,9 +93,13 @@ const living = (enemies: readonly Enemy[]): Enemy[] => enemies.filter((e) => !e.
  * Pick an encounter for this location and buy enemies with the threat budget.
  * A nemesis that haunts the place may lead it.
  */
-export function buildEncounter(sim: Sim): Enemy[] {
-  const nemesis = nemesisJoins(sim);
-  const all: readonly EncounterDef[] = sim.loc.encounters;
+export function buildEncounter(sim: Sim, type?: string): Enemy[] {
+  // A nemesis only leads its own kind.
+  const nemesis = nemesisJoins(sim, type);
+  const every: readonly EncounterDef[] = sim.loc.encounters;
+  // Only encounters with this kind of enemy, if the place has any (raiders on the road, §7.12).
+  const ofType = type ? every.filter((e) => e.enemies.some((id) => getEnemy(id).type === type)) : [];
+  const all = ofType.length > 0 ? ofType : every;
   const withIt = nemesis ? all.filter((e) => e.enemies.includes(nemesis.enemyId)) : [];
   const table = withIt.length > 0 ? withIt : all;
   const encounter = sim.rng.weightedBy(table, (e) => {

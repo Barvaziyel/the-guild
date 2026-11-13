@@ -500,7 +500,7 @@ Each place has three levels: **the outskirts**, **deeper in** and **the heart of
 
 ### 7.11 The Vultures (1.11.0)
 
-Another scavenger guild that works the Reach. Asked for in the first design (phase 2); Aviel's answers (2026-11-13): rivals you can deal with, named people, and they compete for places, people, outposts and traders. Meetings on runs become radio calls in 18b (§15); until then the crew settles them by its orders.
+Another scavenger guild that works the Reach. Asked for in the first design (phase 2); Aviel's answers (2026-11-13): rivals you can deal with, named people, and they compete for places, people, outposts and traders. Meetings on runs became radio calls in 1.12.0 (§7.12).
 
 **Arrival.** On game day 40 (about five real days in; an older save gets them a real day after updating) word comes that a crew calling themselves the Vultures has set up at a danger-3 or 4 place, which goes on the map. Their **boss** and **three lieutenants** are people, made like survivors: portraits, names, traits. A lieutenant comes to the gate the next day (§9.5).
 
@@ -526,7 +526,7 @@ It moves with what the guild does: fights (−5, −20 for hitting a camp), kill
 - **Outposts.** At war, a guild outpost in their turf is raided by them 1% a day (0.3% wary), as hard as raiders plus a fifth of their strength. The guild can take theirs: a new job, **Hit their camp**, at a place with one.
 - **Traders.** Until they're trading partners, caravan swaps are smaller by a quarter of their strength in percent (a tenth at 40). As trading partners, their own traders come with better swaps (×1.25), and each trade is +3 standing.
 
-**Meetings on runs** (settled by the crew's orders until radio calls):
+**Meetings on runs** (with a Radio Tower they're radio calls, §7.12; unanswered, or without one, the crew's orders decide):
 
 - **Truce or trading partners:** a nod in passing, +1 standing (+2 as partners). One time in five they share news of a place.
 - **Wary:** a standoff. Sneaky crews try to slip past (a Wits check). Otherwise the best talker faces them down (Nerve against 9 + strength/25): they back off, or demand a toll of a quarter of what the crew carries. An aggressive crew refuses the toll and fights, and so does any crew that fails to slip past.
@@ -563,6 +563,33 @@ Their effects move standing and strength, swap supplies, take the envoy prisoner
 **Balance** (the simulated player, 24 guilds over 35 real days): by then they hold two or three camps at strength 80–90 and have taken about 7 people. A player who checks in often ends where 1.10.1 did (22.3 building levels against 22.5); a casual one who never deals with them is about 1.4 levels behind (19.4 against 20.8), with a tenth less scrap and tech. Deaths and hunger are unchanged.
 
 **On screen:** a Vultures screen (`#/vultures`) with their standing and what it means, their strength, their people with portraits and where they are, their camps, the guild's prisoners and their history. The Reach shows their camps on the map and tags their turf in the list; a place's panel says what they do there. The planner warns and offers *Hit their camp*. The Depot's header shows the standing once they've come. Tour step: *The Vultures*.
+
+### 7.12 Radio calls (1.12.0)
+
+Step 18b, from the ideas in `claude/interactive-ideas.md` (Aviel, 2026-11-13: "Yes, radio calls"). Runs can get repetitive; this gives the player a say partway through one without breaking "runs are decided at departure" (§7.3).
+
+**Forks.** Now and then a run comes to a fork: a choice the crew has to make, at most one a run. Forks are data (`content/forks.ts`), like events: each has who's there, what they find, what they say on the radio, two to four orders, and what each order leads to (checks, effects, extra time). A travel, hazard or discovery beat becomes a fork 20% of the time when one fits (about one scavenging run in seven, one scouting run in four); meeting the Vultures when they're wary or at war is always a fork (§7.11).
+
+**The call.** With a Radio Tower, whoever found it calls home:
+- a notice on the phone, and a card on the run, on the Depot's Today tab and on the Runs tab;
+- the card shows what they found, what they say, and the orders;
+- they **wait on the radio for 30 real minutes**. Answered, they go on at once. Unanswered, the one on the radio decides by the crew's orders and their own traits (a Hothead goes through the raiders, a Cautious one leaves the door shut), and the run is 30 minutes longer for the wait.
+
+Without a Radio Tower the crew decides on the spot, the same way, and loses no time.
+
+**How it's decided at departure.** The run is played once with nobody answering, then once for each order. The dice are seeded, so every replay is the same up to the fork. All of them are stored; the answer picks which future happens, and the rest of the run moves to start from the moment of the answer. Once the call is settled the other branches are dropped.
+
+**The forks** (1.12.0):
+
+| Fork | Where | Orders | Unasked |
+|---|---|---|---|
+| A sealed door | buildings, danger 2+ | Open it (50 min, a hard Wits check: supplies, maybe gear) · Leave it | Tinkerer, Curious, Greedy or an aggressive crew open it |
+| Raiders on the road | raider places, danger 2+ | Go around (40 min, Grit) · Go through them (a fight, the crew strikes first) · Sneak past (hard Wits: their ammo, or a fight caught out) | Hothead or aggressive: through; sneaky: sneak; else around |
+| Someone on the road | danger 1–3 | Bring them along (3 in 5 join the guild; otherwise they slip off with some meds) · Send them on | Generous: bring them |
+| A hot roof | places with radiation | Go up (Grit: supplies, and rads) · Leave it | Greedy or aggressive: up |
+| A storm | anywhere | Shelter (60 min, eases stress) · Push on (Grit, or hurt and strained) | Cautious, or orders to pull out when wounded: shelter |
+| The Vultures, wary | their turf | Slip past (Wits, or a fight) · Talk them down (Nerve, or the toll) · Pay the toll · Fight | Sneaky: slip; aggressive: fight; else talk |
+| The Vultures, at war | their turf | Slip past (Wits, or caught out) · Hit them first · Turn for home | Sneaky: slip; aggressive or never pulling out: hit them; else home |
 
 ## 8. Gear
 
@@ -968,7 +995,7 @@ Planned 2026-11-11, in this order, all on Opus:
 | 17b | **Ageing and babies** (§5.2, §5.3) | **done** (1.10.0) |
 | — | Beds (partners share, children with their parents until 6), one run a game day, loot by danger inside each find (§5.3, §7.2, §7.6) | **done** (1.10.1) |
 | 18 | The Vultures, a rival guild (§7.11), asked for in the first design; Aviel's answers 2026-11-13 | **done** (1.11.0) |
-| 18b | Radio calls: a run stops at a fork (a Vulture meeting first) and calls home, and the player answers or the crew settles it by its orders | planned |
+| 18b | Radio calls (§7.12): a run stops at a fork (a Vulture meeting, or one of five scripted forks) and calls home; the player answers or the crew settles it by its orders | **done** (1.12.0) |
 
 - **Tutorial.** Starts with a new guild, and can be replayed from Settings. It walks through the resources and how to get more of each, food and the Garden, why crews go out on runs, why to build, and taking in recruits. It's optional: the player can skip the whole thing, or skip ahead to the next part. Built as the tour (§12); later steps that add something to explain (gas, vehicles) add a step to it.
 - **Stories.** An enemy that downs a survivor and gets away becomes a named, recurring foe (a nemesis). Survivors earn nicknames from feats. A weapon with 10 kills earns a name and a history. Built as §7.7.

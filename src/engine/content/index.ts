@@ -14,6 +14,7 @@ export { ENEMIES, type EnemyDef, type EnemyType } from './enemies.ts';
 export { LOCATIONS, type LocationDef, type EncounterDef, type HazardKind } from './locations.ts';
 export {
   EVENTS,
+  type EventBase,
   type EventDef,
   type EventRole,
   type EventEffect,
@@ -21,6 +22,7 @@ export {
   type EventCheck,
   type EventTarget,
 } from './events.ts';
+export { FORKS, type ForkDef, type ForkOrder, type ForkPick } from './forks.ts';
 export { EVOLUTIONS, type EvolutionRule, type RunTally, type NumericCounter } from './evolutions.ts';
 export { BUILDINGS, type BuildingDef, type BuildingLevel } from './buildings.ts';
 export { RECIPES, UPGRADES, type Recipe, type Upgrade } from './workshop.ts';
