@@ -109,6 +109,8 @@ export interface TraitDef {
   needsTarget?: boolean;
   /** Survivors with this trait can't be sent on runs (serious wounds). */
   blocksRuns?: boolean;
+  /** Keeps them off runs, but they still hold the gate in a raid (§9.8): tired, not hurt. */
+  stillDefends?: boolean;
 }
 
 export interface TraitInstance {
@@ -881,6 +883,47 @@ export interface DepotState {
   strays: Stray[];
   /** More people than beds on the last day played: someone sleeps on the floor (§9.1). */
   crowded?: boolean;
+  /** Raiders coming for the Depot, at the gate, or the last raid fought (§9.8). */
+  raid?: DepotRaid;
+}
+
+/**
+ * A raid on the Depot (§9.8). Decided on the Depot day that brings it, it
+ * arrives at a set time: seen coming first if the Watchtower spots it. At the
+ * gate the raiders wait for the player's orders, and only those who were home
+ * and fit when they arrived can defend. Kept once it's over, for the screen
+ * that shows how it went, until the next one.
+ */
+export interface DepotRaid {
+  id: string;
+  /** Raiders, or the Vultures with one of their named people at their head. */
+  by: 'raiders' | 'vultures';
+  leadId?: string;
+  /** The fight's dice. */
+  seed: string;
+  /** The game day that brought them. */
+  day: number;
+  /** When they reach the gate, and when the Watchtower sees them coming (if it does). */
+  arrive: number;
+  seen?: number;
+  /** After this they stop waiting: the defenders fight on their own. */
+  until: number;
+  /** Set when they arrive: the enemies (ids, the leader first), and who was home and fit to fight. */
+  enemies?: string[];
+  defenders?: string[];
+  /** Set when the fight begins: those who fight, as they were then, and the Depot's meds and ammo for them. */
+  start?: GameState;
+  marks?: Record<string, DepartureMark>;
+  /** Lookouts with a gun on the Watchtower: they shoot from up there. */
+  perch?: string[];
+  meds?: number;
+  ammo?: number;
+  /** The player took command at this time, and the orders given since, round by round. */
+  took?: number;
+  rounds?: RoundOrders[];
+  /** Over: when, and how it ended. */
+  ended?: number;
+  end?: 'held' | 'broken';
 }
 
 // ---------------------------------------------------------------- guild

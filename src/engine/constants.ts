@@ -6,7 +6,7 @@
 import type { BuildingId, Quality, RelationshipLabel, ResourceId, Resources } from './types.ts';
 
 /** Save format version. Bump together with a migration in save.ts. */
-export const SAVE_VERSION = 20;
+export const SAVE_VERSION = 21;
 
 // ---------------------------------------------------------------- time
 
@@ -733,6 +733,31 @@ export const FORK_CHANCE = 0.2;
 export const LEAD_WAIT = RADIO_WAIT;
 /** Ids set aside at departure for whatever a led run's replays find (they all count from the start copy's counter). */
 export const LEAD_ID_BLOCK = 500;
+
+// ---------------------------------------------------------------- raids at the gate (§9.8)
+
+/** Raiders reach the gate this long after the Depot day that brings them begins (minutes, at random between). */
+export const RAID_ARRIVE_MINUTES = [50, 160] as const;
+/** At the gate they wait this long for the player's orders; then whoever is home fights them on their own. */
+export const RAID_WAIT = 3 * 60 * 60_000;
+/** The chance the Watchtower sees them coming, by its level, and how much more for each lookout posted. */
+export const WATCH_SPOT_CHANCE = [0, 0.5, 0.7, 0.9] as const;
+export const WATCH_SPOT_LOOKOUT = 0.1;
+/** How long before they arrive they're seen, by the Watchtower's level (minutes). */
+export const WATCH_LEAD_MINUTES = [0, 45, 75, 120] as const;
+/** The raiders are as many and as tough as at a place of this danger, for a fence of at least three. */
+export const RAID_DANGER = 2;
+/** More of them than a run's fight at that danger would bring: they came for the Depot. */
+export const RAID_BUDGET_MULT = 1.05;
+/** A lookout on the Watchtower shoots from up there, out of reach, with this much more to hit for each level of the tower. */
+export const TOWER_TO_HIT = 1;
+/** Behind the Wall, raiders need this much more to hit the defenders. */
+export const WALL_COVER = 3;
+/** The guild's dog joins in: its bite, to hit and damage. */
+export const DOG_TO_HIT = 3;
+export const DOG_DAMAGE = [2, 3] as const;
+/** The Infirmary is right there: a defender who goes down gets this on the wound roll, and nobody dies at the gate. */
+export const RAID_WOUND_BONUS = 10;
 /** Take cover: enemies need this much more to hit them this round. */
 export const COVER_DEFENSE = 3;
 /** Aim: the next shot is this much more likely to hit, and does this much more damage. */

@@ -61,6 +61,8 @@ export interface Member {
   woundPending?: { cause: string; enemyType?: string; nemesisId?: string };
   /** Patched up mid-fight after going down: a bonus to the wound roll (§7.13). */
   woundBonus?: number;
+  /** A lookout on the Watchtower in a raid (§9.8): shoots from up there, and can't be reached. */
+  perch?: boolean;
   /** Aimed last round: the next shot is better (§7.13). */
   aimed?: boolean;
   /** Name of the nemesis this member killed on the run, for nicknames. */
@@ -142,6 +144,8 @@ export interface Sim {
   answerWait?: number;
   /** The player leads the fights (§7.13): the orders given so far, and where the run stopped to call. */
   lead?: SimLead;
+  /** A raid at the Depot (§9.8): the Watchtower's level for its lookouts, the Wall's cover, and the guild's dog. */
+  gate?: { tower: number; wall: boolean; dog?: string };
   /** The acts of the commanded fight being played, for the battle stage (§7.13); unset in any other fight. */
   fightActs?: { round: number; acts: FightAct[] };
 }
@@ -154,6 +158,8 @@ export interface SimLead {
   stops: SimStop[];
   /** Each commanded fight as it ended, by its place in `stops`. */
   ends: (FightView | undefined)[];
+  /** A raid at the Depot (§9.8), not a run: nobody calls on the radio, and there's no waiting on one. */
+  home?: boolean;
 }
 
 /** The player's part in one fight. */

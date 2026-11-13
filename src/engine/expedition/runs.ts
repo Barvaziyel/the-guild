@@ -360,7 +360,7 @@ function summaryOf(run: Run): RunSummary {
  * the Depot's to change; Grief over another crew's dead, news of a nemesis,
  * and the Chronicle lines that came with them were written to the real record.
  */
-function homecoming(home: Survivor, after: Survivor, departed: DepartureMark | undefined): Survivor {
+export function homecoming(home: Survivor, after: Survivor, departed: DepartureMark | undefined): Survivor {
   if (home.post) after.post = home.post;
   else delete after.post;
   if (!departed) return after;

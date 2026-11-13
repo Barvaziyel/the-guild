@@ -400,6 +400,7 @@ export const TRAITS: readonly TraitDef[] = [
     kind: 'condition',
     description: 'Back from a run today. Can go out again tomorrow.',
     blocksRuns: true,
+    stillDefends: true,
     durationDays: [1, 1],
   },
   {

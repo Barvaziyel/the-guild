@@ -1,6 +1,7 @@
 /**
  * Planning a run: how long it takes, what it costs, and whether it's allowed.
  */
+import { raidAtGate } from '../depot/raids.ts';
 import { DAY_MS, DEPTH_DURATION, HUNGER_STRESS, OUTPOST_SHORTCUT, RAID_FULL_FENCE, SNEAKY_DURATION_MULT, STRESS_HIGH } from '../constants.ts';
 import { depthOpen, DEPTH_NAMES, locationState, planDepth } from '../locations.ts';
 import { outpostNear } from '../outposts.ts';
@@ -103,6 +104,9 @@ export function validatePlan(state: GameState, plan: RunPlan): string[] {
   const depth = planDepth(plan);
   if (plan.depth !== undefined && (plan.depth < 1 || plan.depth > 3 || !Number.isInteger(plan.depth))) problems.push('That level does not exist.');
   else if (!depthOpen(state, loc.id, depth)) problems.push(`${DEPTH_NAMES[depth - 1]} opens once ${DEPTH_NAMES[depth - 2]!.toLowerCase()} ${depth === 2 ? 'are' : 'is'} fully explored.`);
+
+  // Nobody sets out with raiders at the gate (§9.8).
+  if (raidAtGate(state)) problems.push('Raiders are at the gate. Nobody goes out until it\u2019s over.');
 
   // Leading the fights means orders over the radio (§7.13).
   if (plan.lead && (state.buildings.radio_tower ?? 0) < 1) problems.push('Leading the fights needs a Radio Tower.');

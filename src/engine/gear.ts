@@ -113,8 +113,12 @@ export function findGearWithHook(s: Survivor, key: FlagGearHook): ItemInstance |
  * gear it left with, and comes home with exactly that (see completeRun), so
  * swapping items in the meantime would duplicate or lose them.
  */
-export function canChangeGear(s: Survivor): boolean {
-  return s.status === 'ready' && s.outpost === undefined;
+export function canChangeGear(s: Survivor, state?: GameState): boolean {
+  if (s.status !== 'ready' || s.outpost !== undefined) return false;
+  // In the fight at the gate (§9.8): it's fought with what they had when it began.
+  const raid = state?.depot.raid;
+  if (raid && raid.ended === undefined && raid.start?.survivors.some((x) => x.id === s.id)) return false;
+  return true;
 }
 
 /**
@@ -123,7 +127,7 @@ export function canChangeGear(s: Survivor): boolean {
  * the survivor isn't at the Depot.
  */
 export function equipFromStash(state: GameState, s: Survivor, uid: string): boolean {
-  if (!canChangeGear(s)) return false;
+  if (!canChangeGear(s, state)) return false;
   const idx = state.stash.findIndex((i) => i.uid === uid);
   if (idx < 0) return false;
   const item = state.stash[idx]!;
@@ -140,7 +144,7 @@ export function equipFromStash(state: GameState, s: Survivor, uid: string): bool
 
 /** Move whatever is in a slot back to the stash. Does nothing unless the survivor is at the Depot. */
 export function unequip(state: GameState, s: Survivor, slot: Slot): ItemInstance | undefined {
-  if (!canChangeGear(s)) return undefined;
+  if (!canChangeGear(s, state)) return undefined;
   const item = s.equipment[slot];
   if (!item) return undefined;
   delete s.equipment[slot];

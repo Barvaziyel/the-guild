@@ -61,6 +61,7 @@ import type {
   RunOutcome,
   RunPlan,
   RunResult,
+  Survivor,
   VehicleNews,
   VultureNews,
 } from '../types.ts';
@@ -442,6 +443,25 @@ export interface SimulatedRun {
 }
 
 /** Replaying a run with the player's part in it. */
+/** Someone setting out on a run, or standing at the gate in a raid (§9.8). */
+export function newMember(s: Survivor): Member {
+  const rerolls = startingRerolls(s);
+  return {
+    s,
+    down: false,
+    dead: false,
+    fled: false,
+    fleeRolled: false,
+    tally: newTally(),
+    rerollFails: rerolls.fails,
+    rerollSuccesses: rerolls.successes,
+    chronicleStart: s.chronicle.length,
+    weaponKillsAtStart: s.equipment.weapon?.kills ?? 0,
+    countersAtStart: { ...s.counters },
+    traitsAtStart: s.traits.map((t) => t.id),
+  };
+}
+
 export interface SimOptions {
   /** The order the guild gives at the fork (§7.12)... */
   answer?: string;
@@ -496,23 +516,7 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
     rng,
     plan,
     loc,
-    members: crew.map((s): Member => {
-      const rerolls = startingRerolls(s);
-      return {
-        s,
-        down: false,
-        dead: false,
-        fled: false,
-        fleeRolled: false,
-        tally: newTally(),
-        rerollFails: rerolls.fails,
-        rerollSuccesses: rerolls.successes,
-        chronicleStart: s.chronicle.length,
-        weaponKillsAtStart: s.equipment.weapon?.kills ?? 0,
-        countersAtStart: { ...s.counters },
-        traitsAtStart: s.traits.map((t) => t.id),
-      };
-    }),
+    members: crew.map(newMember),
     departAt,
     offset: 0,
     beats: [],
