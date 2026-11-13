@@ -500,7 +500,7 @@ Each place has three levels: **the outskirts**, **deeper in** and **the heart of
 
 ### 7.11 The Vultures (1.11.0)
 
-Another scavenger guild that works the Reach. Asked for in the first design (phase 2); Aviel's answers (2026-11-13): rivals you can deal with, named people, and they compete for places, people, outposts and traders. Meetings on runs become radio calls in 18b (§7.12); until then the crew settles them by its orders.
+Another scavenger guild that works the Reach. Asked for in the first design (phase 2); Aviel's answers (2026-11-13): rivals you can deal with, named people, and they compete for places, people, outposts and traders. Meetings on runs become radio calls in 18b (§15); until then the crew settles them by its orders.
 
 **Arrival.** On game day 40 (about five real days in; an older save gets them a real day after updating) word comes that a crew calling themselves the Vultures has set up at a danger-3 or 4 place, which goes on the map. Their **boss** and **three lieutenants** are people, made like survivors: portraits, names, traits. A lieutenant comes to the gate the next day (§9.5).
 
@@ -515,14 +515,14 @@ Another scavenger guild that works the Reach. Asked for in the first design (pha
 
 It moves with what the guild does: fights (−5, −20 for hitting a camp), killing their people (−10), paying tribute (+10), trades (+3), letting prisoners go (+10), and the answers given to their envoys.
 
-**Strength**, from 0 to 100, starts at 40. It grows by about 2 a real day (0.25 a game day), and with each person they take in (+3). It drops with each of theirs killed (−2), each lieutenant lost (−5), and each camp lost (−15). It sets how many camps they hold (1 + one per 35), the size of their crews, and how much they hurt the trade.
+**Strength**, from 0 to 100, starts at 40. It grows by about 0.8 a real day (0.1 a game day), and with each person they take in (+2). It drops with each of theirs killed (−2), each lieutenant lost (−5), and each camp lost (−15). It sets how many camps they hold (1 + one per 35), the size of their crews, and how much they hurt the trade.
 
-**Camps.** The first is their home, where the boss is. They set up another every 24 game days or so while their strength allows, next to one they hold, never where the guild has an outpost, each with a lieutenant. **Their turf** is their camps' places and the places next to those. Strength 25 or less loses a camp.
+**Camps.** The first is their home, where the boss is. They set up another every 24 game days or so while their strength allows, next to one they hold, never where the guild has an outpost, each with a lieutenant. **Their turf** is their camps' places and the places of danger 2 or more next to those (the safe places near the Depot are never theirs). Strength 25 or less loses a camp.
 
 **What they compete for:**
 
 - **Places.** At a place in their turf, finds are 20% thinner, and a crew may meet them (one meeting a run at most, likelier at a camp).
-- **People.** A call for help left unanswered goes to the Vultures half the time. Someone at the gate who's left waiting until they go goes to them half the time. Each makes them +3 stronger.
+- **People.** A call for help left unanswered goes to the Vultures half the time. Someone at the gate who's left waiting until they go goes to them half the time. Each makes them +2 stronger.
 - **Outposts.** At war, a guild outpost in their turf is raided by them 1% a day (0.3% wary), as hard as raiders plus a fifth of their strength. The guild can take theirs: a new job, **Hit their camp**, at a place with one.
 - **Traders.** Until they're trading partners, caravan swaps are smaller by a quarter of their strength in percent (a tenth at 40). As trading partners, their own traders come with better swaps (×1.25), and each trade is +3 standing.
 
@@ -559,6 +559,8 @@ A lieutenant lost (killed, captured, joined) is replaced 15–25 game days later
 - a prisoner exchange (while the guild holds one).
 
 Their effects move standing and strength, swap supplies, take the envoy prisoner, or take in a defector.
+
+**Balance** (the simulated player, 24 guilds over 35 real days): by then they hold two or three camps at strength 80–90 and have taken about 7 people. A player who checks in often ends where 1.10.1 did (22.3 building levels against 22.5); a casual one who never deals with them is about 1.4 levels behind (19.4 against 20.8), with a tenth less scrap and tech. Deaths and hunger are unchanged.
 
 **On screen:** a Vultures screen (`#/vultures`) with their standing and what it means, their strength, their people with portraits and where they are, their camps, the guild's prisoners and their history. The Reach shows their camps on the map and tags their turf in the list; a place's panel says what they do there. The planner warns and offers *Hit their camp*. The Depot's header shows the standing once they've come. Tour step: *The Vultures*.
 
@@ -964,7 +966,9 @@ Planned 2026-11-11, in this order, all on Opus:
 | — | Projects and salvage (§9.6, §9.4), the long goal after the Depot | **done** (1.8.0) |
 | 17 | What's missing, in two parts (Aviel, 2026-11-12): **rescue jobs, feuds that make someone quit, animals and the last gear drawings** (§10.1, §9.5, §9.7) | **done** (1.9.0) |
 | 17b | **Ageing and babies** (§5.2, §5.3) | **done** (1.10.0) |
-| 18 | The Vultures, a rival guild | |
+| — | Beds (partners share, children with their parents until 6), one run a game day, loot by danger inside each find (§5.3, §7.2, §7.6) | **done** (1.10.1) |
+| 18 | The Vultures, a rival guild (§7.11), asked for in the first design; Aviel's answers 2026-11-13 | **done** (1.11.0) |
+| 18b | Radio calls: a run stops at a fork (a Vulture meeting first) and calls home, and the player answers or the crew settles it by its orders | planned |
 
 - **Tutorial.** Starts with a new guild, and can be replayed from Settings. It walks through the resources and how to get more of each, food and the Garden, why crews go out on runs, why to build, and taking in recruits. It's optional: the player can skip the whole thing, or skip ahead to the next part. Built as the tour (§12); later steps that add something to explain (gas, vehicles) add a step to it.
 - **Stories.** An enemy that downs a survivor and gets away becomes a named, recurring foe (a nemesis). Survivors earn nicknames from feats. A weapon with 10 kills earns a name and a history. Built as §7.7.
@@ -986,7 +990,7 @@ Planned 2026-11-11, in this order, all on Opus:
 - **Second and third depots** (Aviel, 2026-11-12): new regions beyond the Reach that can be settled for real, not just held as outposts.
 - **The economy** (Aviel, 2026-11-12, after `claude/economy-design.md`): finishing the Depot should take about five real weeks; the road should cost stress so people's time is the limit (both in 1.7.1); **projects** (big multi-stage works, like Civ's wonders) are the long goal; later, **expanding to new places** beyond the Reach. What comes after Balance C is decided once it has been played. Other ideas on the table: long expeditions, improving outposts, contracts from other settlements, training courses that teach a trait, feasts on demand, weapon mods.
 - **Ageing and babies** (part of step 17, asked for 2026-11-11). *Built in 1.10.0 as §5.2 and §5.3.* Decided while building it: birthdays go in the Chronicle; losing a parent goes in the child's; no tour step (the bonds step mentions babies); orphans for couples without children come later.
-- **The Vultures.** A rival guild competing for places. They raid, trade, and turn up on runs.
+- **The Vultures.** A rival guild competing for places, people, outposts and traders, with named people and a standing that runs from war to trading partners. *Built in 1.11.0 as §7.11.* Radio calls (18b) come next, so their meetings on runs can be answered from home.
 
 **Later ideas:** weather and seasons, planned Depot defense during raids, interactive combat. Runs are decided at departure, so a hands-on fight would fit where the player is there when it happens: a raid on the Depot, or a nemesis met again.
 
@@ -1002,5 +1006,11 @@ Decided 2026-11-11:
 - People resting until healed can't take a new post.
 - Survivors have an orientation (85% straight, 6% gay, 9% bi), so about 96% of couples are a man and a woman.
 - Ageing and babies: yes. Everyone ages a year every 365 game days, and children grow up at that pace (about two real years to 16). They help a little at the Depot and inherit looks, a stat lean and maybe a trait. Built in 1.10.0 (§5.2, §5.3).
+
+Decided 2026-11-13:
+
+- Beds: partners share one, children share their parents' until 6; someone without a bed sleeps on the floor (stress), and nobody new comes in (1.10.1).
+- One run a game day for each person; deeper levels find more inside each find, by danger only (1.10.1).
+- The Vultures are rivals you can deal with, with named people, and they compete for places, people, outposts and traders; their meetings on runs become radio calls (1.11.0, then 18b).
 
 No open questions right now.

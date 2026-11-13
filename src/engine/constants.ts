@@ -643,8 +643,8 @@ export const VULTURES_LATE_ARRIVAL = 8;
 export const VULTURES_HOME_DANGER: readonly [number, number] = [3, 4];
 export const VULTURES_START_STANDING = -10;
 export const VULTURES_START_STRENGTH = 40;
-/** Strength each game day (about 2 a real day), up to the cap. */
-export const VULTURES_GROWTH = 0.25;
+/** Strength each game day (about 0.8 a real day), up to the cap. */
+export const VULTURES_GROWTH = 0.1;
 export const VULTURES_MAX_STRENGTH = 100;
 /** Standing bands: at war at or below the first, trading partners at or above the last. */
 export const VULTURES_WAR = -40;
@@ -700,7 +700,7 @@ export const VULTURES_KILLED_STRENGTH = -2;
 export const VULTURES_LIEUTENANT_STRENGTH = -5;
 export const VULTURES_CAMP_STRENGTH = -15;
 export const VULTURES_BOSS_STRENGTH = -30;
-export const VULTURES_TAKEN_STRENGTH = 3;
+export const VULTURES_TAKEN_STRENGTH = 2;
 
 /** People: an unanswered call, or someone left waiting at the gate, goes to them this often. */
 export const VULTURES_TAKE_CHANCE = 0.5;

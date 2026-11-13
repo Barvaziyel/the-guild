@@ -109,13 +109,13 @@ export function neighbours(locationId: string): string[] {
   return [...out];
 }
 
-/** Their turf: their camps' places and the places next to those. */
+/** Their turf: their camps' places and the places of danger 2 or more next to those (the safe places near the Depot stay the guild's). */
 export function turf(state: GameState): string[] {
   if (!vulturesActive(state)) return [];
   const out = new Set<string>();
   for (const c of state.vultures.camps) {
     out.add(c.locationId);
-    for (const n of neighbours(c.locationId)) out.add(n);
+    for (const n of neighbours(c.locationId)) if (getLocation(n).danger >= 2) out.add(n);
   }
   return [...out];
 }

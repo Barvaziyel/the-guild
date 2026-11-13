@@ -110,7 +110,7 @@ export function Vultures({ state }: { state: GameState }) {
                   <span className="roster-traits">{p.where}</span>
                   {p.story.length > 0 && (
                     <details className="nemesis-story">
-                      <summary>With the guild</summary>
+                      <summary>The story so far</summary>
                       <ul>
                         {p.story.map((line, i) => (
                           <li key={i}>{line}</li>

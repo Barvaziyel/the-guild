@@ -107,6 +107,7 @@ describe('standing and strength', () => {
     assert.ok(camps.length >= 2 && camps.length <= 3, `${camps.length} camps`);
     for (const c of camps.filter((x) => !x.home)) assert.ok(camps.some((o) => o !== c && neighbours(o.locationId).includes(c.locationId)), `${c.locationId} is next to another camp`);
     for (const c of camps) assert.ok(turf(state).includes(c.locationId));
+    for (const id of turf(state)) assert.ok(getLocation(id).danger >= 2, `${id}: the safe places near the Depot stay the guild's`);
     state.vultures.strength = 10;
     playVulturesDay(state, 121, new Rng('weak'));
     assert.equal(state.vultures.camps.length, camps.length - 1, 'a camp is given up');
