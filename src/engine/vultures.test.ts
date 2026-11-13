@@ -24,7 +24,7 @@ import { startCall, playRescueDay } from './rescue.ts';
 import { Rng } from './rng.ts';
 import { deserialize } from './save.ts';
 import { T0, openGame, testPlan } from './test-utils.ts';
-import type { GameState } from './types.ts';
+import type { GameState, RunPlan } from './types.ts';
 import { RESOURCE_IDS } from './types.ts';
 import {
   applyVultureNews,
@@ -164,26 +164,32 @@ describe('what they compete for', () => {
   });
 
   test('meetings follow the standing: a nod at truce, a fight at war, and the news comes home', () => {
-    const tally = (standing: number): { fights: number; standing: number } => {
+    const tally = (standing: number, orders: Partial<RunPlan> = {}): { fights: number; standing: number; home: number } => {
       let fights = 0;
       let moved = 0;
+      let turned = 0;
       for (let i = 0; i < 150; i++) {
         const state = arrived(`band-${i % 3}`);
         state.vultures.standing = standing;
-        const { result, beats } = simulateRun(state, testPlan(state, home(state)), `b${i}`, 0);
+        const { result, beats } = simulateRun(state, testPlan(state, home(state), orders), `b${i}`, 0);
         const beat = beats.find((b) => b.kind === 'vultures');
         if (!beat) continue;
         if (beats.some((b) => b.lines.some((l) => /Vulture/.test(l.text) && /(shot|cut|struck) by/.test(l.text)))) fights++;
+        if (beats.some((b) => b.lines.some((l) => /heads for home/.test(l.text)))) turned++;
         moved += result.vultures?.standing ?? 0;
       }
-      return { fights, standing: moved };
+      return { fights, standing: moved, home: turned };
     };
     const truce = tally(20);
-    const war = tally(-60);
     assert.equal(truce.fights, 0, 'no fights at truce');
     assert.ok(truce.standing > 0, 'nods warm them');
+    // At war, unasked, an aggressive crew hits them first and a careful one turns for home (§7.12).
+    const war = tally(-60, { approach: 'aggressive' });
     assert.ok(war.fights > 10, `${war.fights} fights at war`);
     assert.ok(war.standing < 0);
+    const careful = tally(-60, { approach: 'balanced', retreat: 'wounded' });
+    assert.equal(careful.fights, 0);
+    assert.ok(careful.home > 10, `${careful.home} turned for home`);
   });
 
   test('hitting a camp: only where there is one; won, the camp falls and it means war', () => {

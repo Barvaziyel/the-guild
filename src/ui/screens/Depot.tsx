@@ -11,6 +11,7 @@ import {
   type GameState,
 } from '../../engine/index.ts';
 import { DilemmaCard } from '../components/DilemmaCard.tsx';
+import { RadioCalls } from '../components/RadioCard.tsx';
 import { Projects } from '../components/Projects.tsx';
 import { Portrait } from '../components/Portrait.tsx';
 import { navigate, useAction } from '../hooks.ts';
@@ -96,6 +97,7 @@ function Today({ state, now, away, onDismissAway }: Omit<Props, 'tab'>) {
 
   return (
     <>
+      <RadioCalls state={state} now={now} />
       <DilemmaCard state={state} now={now} />
       <CallForHelp state={state} now={now} />
       {away && away.days > 0 && <AwayNote state={state} summary={away} onDismiss={onDismissAway} />}

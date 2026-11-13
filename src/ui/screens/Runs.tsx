@@ -1,4 +1,4 @@
-import { getLocation, type GameState } from '../../engine/index.ts';
+import { getLocation, radioWaiting, type GameState } from '../../engine/index.ts';
 import { navigate, useNow } from '../hooks.ts';
 import { activeRuns, backIn, joinNames, latestBeat, reportItems, runCrewNames, runProgress, unreadCount } from '../runs-view.ts';
 
@@ -40,7 +40,11 @@ export function Runs({ state }: { state: GameState }) {
                   <button type="button" className="run-card" onClick={() => navigate({ screen: 'run', id: run.id })}>
                     <span className="run-card-place">{getLocation(run.plan.locationId).name}</span>
                     <span className="run-card-crew">{joinNames(runCrewNames(run))}</span>
-                    {beat && <span className="run-card-beat">Last heard: {beat.title.toLowerCase()}</span>}
+                    {radioWaiting(run, now) ? (
+                      <span className="run-card-beat is-calling">On the radio now, waiting for your answer</span>
+                    ) : (
+                      beat && <span className="run-card-beat">Last heard: {beat.title.toLowerCase()}</span>
+                    )}
                     <span className="run-track" aria-hidden="true">
                       <span className="run-fill" style={{ width: `${pct}%` }} />
                     </span>

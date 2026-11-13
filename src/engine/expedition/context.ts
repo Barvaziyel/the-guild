@@ -35,6 +35,7 @@ import type {
   LogLine,
   Nemesis,
   NemesisNews,
+  RadioOrder,
   RescueTrouble,
   Resources,
   RunDeath,
@@ -123,6 +124,30 @@ export interface Sim {
   vultures?: SimVultures;
   /** Finds out here are this much thinner: the Vultures work the place (§7.11). */
   thin: number;
+  /** ms added to every beat from here on: time spent at a fork, waiting on the radio or doing what was ordered (§7.12). */
+  delay: number;
+  /** The guild has a Radio Tower, so the crew calls home at a fork. */
+  radio: boolean;
+  /** A replay for one answer: the order the guild gives at the fork. */
+  answer?: string;
+  /** The fork this run came to (at most one). */
+  fork?: SimFork;
+}
+
+/** A fork on a run (§7.12): what the crew found and asked, and when. */
+export interface SimFork {
+  forkId: string;
+  title: string;
+  by: string;
+  intro: string;
+  ask: string;
+  orders: RadioOrder[];
+  /** ms after departure. */
+  at: number;
+  /** They called home (a Radio Tower), rather than deciding on the spot. */
+  called: boolean;
+  /** Index of the first beat after the call. */
+  fromBeat: number;
 }
 
 /** What a run knows of the Vultures: copies, so the real ones only change when the crew is back. */

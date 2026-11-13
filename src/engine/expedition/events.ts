@@ -5,7 +5,7 @@
  */
 import { addChronicle } from '../chronicle.ts';
 import { DC, EVENT_CHANCE, EVENT_SEEN_PENALTY } from '../constants.ts';
-import { EVENTS, getAnimal, getLocation, getTrait, type EventDef, type EventEffect, type EventOutcome, type EventRole, type EventTarget } from '../content/index.ts';
+import { EVENTS, getAnimal, getLocation, getTrait, type EventBase, type EventCheck, type EventDef, type EventEffect, type EventOutcome, type EventRole, type EventTarget } from '../content/index.ts';
 import { locationState } from '../locations.ts';
 import { newAnimal } from '../animals.ts';
 import { generateSurvivor } from '../generator.ts';
@@ -17,7 +17,7 @@ import { addLoot, findGear, lootMult, pickResource, relate, resolveFight, richFi
 import { buildEncounter, describeGroup } from './combat.ts';
 import { absorbRads, capitalize, check, fmt, hurt, say, simDay, standing, startBeat, stress, type Member, type Sim } from './context.ts';
 
-interface Cast {
+export interface Cast {
   a: Member;
   b?: Member;
 }
@@ -43,7 +43,7 @@ function choose(sim: Sim, candidates: Member[], role: EventRole): Member | undef
   return top;
 }
 
-function pairFits(sim: Sim, a: Member, b: Member, relation: NonNullable<EventDef['pair']>): boolean {
+function pairFits(sim: Sim, a: Member, b: Member, relation: NonNullable<EventBase['pair']>): boolean {
   const label = relationshipLabel(sim.state, a.s.id, b.s.id);
   if (relation === 'partners') return arePartners(sim.state, a.s.id, b.s.id);
   if (relation === 'bonded') return label === 'bonded';
@@ -52,7 +52,7 @@ function pairFits(sim: Sim, a: Member, b: Member, relation: NonNullable<EventDef
 }
 
 /** Find crew members to play the event's roles, or undefined if the crew can't. */
-function cast(sim: Sim, event: EventDef): Cast | undefined {
+export function cast(sim: Sim, event: EventBase): Cast | undefined {
   const crew = standing(sim);
   const forA = crew.filter((m) => fitsRole(m, event.a));
   if (!event.b) {
@@ -81,12 +81,13 @@ function leads(sim: Sim): string[] {
 }
 
 /** Could this event happen here, now, to this crew? (Casting is checked separately.) */
-function fitsSituation(sim: Sim, event: EventDef, kind: BeatKind): boolean {
+export function fitsSituation(sim: Sim, event: EventBase, kind: BeatKind): boolean {
   if (event.kind !== kind || sim.events.includes(event.id)) return false;
   if (event.locations && !event.locations.includes(sim.loc.id)) return false;
   if (event.minDanger !== undefined && sim.loc.danger < event.minDanger) return false;
   if (event.maxDanger !== undefined && sim.loc.danger > event.maxDanger) return false;
   if (event.noRadiation && sim.loc.radiation > 0) return false;
+  if (event.needsRadiation && sim.loc.radiation <= 0) return false;
   if (event.minCrew !== undefined && standing(sim).length < event.minCrew) return false;
   if (event.needsLead && leads(sim).length === 0) return false;
   if (event.needsMeds !== undefined && sim.meds < event.needsMeds) return false;
@@ -108,13 +109,13 @@ function targets(sim: Sim, who: EventTarget, roles: Cast): Member[] {
   }
 }
 
-function text(sim: Sim, template: string, roles: Cast, vars: Record<string, string> = {}): string {
+export function text(sim: Sim, template: string, roles: Cast, vars: Record<string, string> = {}): string {
   const members: Record<string, Member> = { a: roles.a };
   if (roles.b) members.b = roles.b;
   return fmt(template, members, { loc: sim.loc.name, ...vars });
 }
 
-function applyEffect(sim: Sim, event: EventDef, effect: EventEffect, roles: Cast): void {
+export function applyEffect(sim: Sim, event: EventBase, effect: EventEffect, roles: Cast): void {
   const { rng } = sim;
   const day = simDay(sim);
   const source = `"${event.title}" at ${sim.loc.name}`;
@@ -202,10 +203,10 @@ function applyEffect(sim: Sim, event: EventDef, effect: EventEffect, roles: Cast
       break;
     }
     case 'fight': {
-      const enemies = buildEncounter(sim);
+      const enemies = buildEncounter(sim, effect.enemy);
       const group = describeGroup(enemies);
-      say(sim, `${capitalize(group)}${enemies.length === 1 ? ' attacks' : ' attack'} at once.`, { tone: 'bad' });
-      resolveFight(sim, enemies, { ambushed: effect.ambushed !== false, drop: false });
+      if (!effect.drop) say(sim, `${capitalize(group)}${enemies.length === 1 ? ' attacks' : ' attack'} at once.`, { tone: 'bad' });
+      resolveFight(sim, enemies, { ambushed: effect.ambushed !== false && !effect.drop, drop: effect.drop === true });
       break;
     }
   }
@@ -227,21 +228,25 @@ function play(sim: Sim, event: EventDef, roles: Cast): void {
   }
 
   say(sim, text(sim, event.intro, roles));
+  playOutcome(sim, event, roles, event);
+}
 
-  let outcome: EventOutcome = event.success;
+/** Roll the check (if any), say what came of it, and apply its effects. Shared with forks (§7.12). */
+export function playOutcome(sim: Sim, event: EventBase, roles: Cast, spec: { check?: EventCheck; success: EventOutcome; failure?: EventOutcome }): void {
+  let outcome: EventOutcome = spec.success;
   let line: Omit<LogLine, 'text'> = {};
-  const spec = event.check;
-  if (spec && 'chance' in spec) {
-    if (!sim.rng.chance(spec.chance)) outcome = event.failure ?? event.success;
-  } else if (spec) {
-    const who = spec.who === 'b' ? (roles.b ?? roles.a) : roles.a;
-    const dc = DC[spec.dc] + (spec.danger ? Math.floor(sim.loc.danger / 2) : 0);
-    const result = check(sim, who, spec.stat, dc, spec.contexts ?? [], spec.crew ? { crew: true } : {});
+  const roll = spec.check;
+  if (roll && 'chance' in roll) {
+    if (!sim.rng.chance(roll.chance)) outcome = spec.failure ?? spec.success;
+  } else if (roll) {
+    const who = roll.who === 'b' ? (roles.b ?? roles.a) : roles.a;
+    const dc = DC[roll.dc] + (roll.danger ? Math.floor(sim.loc.danger / 2) : 0);
+    const result = check(sim, who, roll.stat, dc, roll.contexts ?? [], roll.crew ? { crew: true } : {});
     line = { check: result.info };
-    if (!result.success) outcome = event.failure ?? event.success;
+    if (!result.success) outcome = spec.failure ?? spec.success;
   }
-  const good = outcome === event.success;
-  say(sim, text(sim, outcome.text, roles), spec ? { ...line, tone: good ? 'good' : 'bad' } : line);
+  const good = outcome === spec.success;
+  say(sim, text(sim, outcome.text, roles), roll ? { ...line, tone: good ? 'good' : 'bad' } : line);
   for (const effect of outcome.effects ?? []) {
     // Someone who has gone down takes no further part.
     if (roles.a.down || roles.a.dead) break;

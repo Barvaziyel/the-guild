@@ -489,20 +489,65 @@ export interface Run {
   plan: RunPlan;
   seed: string;
   departAt: number;
+  /** When they're back. While a radio call waits, as if nobody answers. */
   returnAt: number;
   rations: number;
   /** Gas taken for the vehicles. */
   gas?: number;
+  /** As if nobody answers a radio call, until someone does. */
   beats: Beat[];
   result: RunResult;
   /** By survivor id. Missing on runs sent before save version 8. */
   departed?: Record<string, DepartureMark>;
+  /** The crew called home from a fork (§7.12). */
+  radio?: RadioCall;
+}
+
+/** An order the player can give over the radio. */
+export interface RadioOrder {
+  id: string;
+  label: string;
+}
+
+/**
+ * A crew on the radio at a fork (§7.12). Every answer's run was played at
+ * departure; answering picks one, and the rest of the run moves to start then.
+ */
+export interface RadioCall {
+  /** The fork's content id, or 'vultures'. */
+  forkId: string;
+  title: string;
+  /** Survivor id of whoever is on the radio. */
+  by: string;
+  /** What they found, and what they say. */
+  intro: string;
+  ask: string;
+  orders: RadioOrder[];
+  /** When they called, and how long they wait for an answer (epoch ms). */
+  at: number;
+  until: number;
+  /** Index of the first beat after the call: the answer, and the rest. */
+  fromBeat: number;
+  /** Each order's run from the fork on, timed as if answered the moment they called. Dropped once the call is settled. */
+  branches?: Record<string, RadioBranch>;
+  /** The order given; 'none' when nobody answered in time. Missing while they wait. */
+  answer?: string;
+}
+
+/** One order's run from the fork on. */
+export interface RadioBranch {
+  returnAt: number;
+  /** The beats from `fromBeat` on. */
+  beats: Beat[];
+  result: RunResult;
 }
 
 /** A finished run kept for the report screen. */
 export interface RunReport {
   id: string;
   plan: RunPlan;
+  /** The radio call on the run, if there was one: what was asked, and the answer. */
+  radio?: { title: string; by: string; answer: string; orders: RadioOrder[] };
   departAt: number;
   returnAt: number;
   beats: Beat[];

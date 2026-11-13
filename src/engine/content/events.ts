@@ -55,8 +55,8 @@ export type EventEffect =
   /** A line for the Chronicle, written without a subject. */
   | { type: 'chronicle'; who: EventTarget; text: string }
   | { type: 'turnBack' }
-  /** A fight breaks out with whatever lives here. */
-  | { type: 'fight'; ambushed?: boolean }
+  /** A fight breaks out with whatever lives here (only enemies of this type, if there are any). `drop`: the crew strikes first. */
+  | { type: 'fight'; ambushed?: boolean; drop?: boolean; enemy?: string }
   /** An animal follows a home, to be kept by the guild (§9.7). */
   | { type: 'animal'; kind: AnimalKind; chance?: number }
   /** Someone comes home with the crew to join the guild, found by a (§10). */
@@ -72,7 +72,8 @@ export type EventCheck =
   /** No skill involved: success with this probability. */
   | { chance: number };
 
-export interface EventDef {
+/** What events and forks (content/forks.ts) share: where they happen, and who plays a part. */
+export interface EventBase {
   id: string;
   title: string;
   kind: 'travel' | 'hazard' | 'discovery' | 'social';
@@ -84,6 +85,8 @@ export interface EventDef {
   maxDanger?: number;
   minCrew?: number;
   noRadiation?: boolean;
+  /** Only where there is radiation. */
+  needsRadiation?: boolean;
   /** Only if there is still a location to discover from here. */
   needsLead?: boolean;
   needsMeds?: number;
@@ -93,6 +96,9 @@ export interface EventDef {
   /** a and b must have this kind of relationship. */
   pair?: 'friendly' | 'hostile' | 'bonded' | 'partners';
   intro: string;
+}
+
+export interface EventDef extends EventBase {
   /** Without a check, `success` always happens. */
   check?: EventCheck;
   success: EventOutcome;

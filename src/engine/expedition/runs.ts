@@ -3,7 +3,7 @@
  * log while they're away, and applying the outcome when they come home.
  */
 import { addChronicle, addGuildLog } from '../chronicle.ts';
-import { BLAME_CHANCE, MAX_REPORTS, PARTNER_GRIEF_EXTRA_DAYS, PARTNER_LOSS_STRESS, REL_BLAME, STRESS_MAX } from '../constants.ts';
+import { BLAME_CHANCE, MAX_REPORTS, PARTNER_GRIEF_EXTRA_DAYS, PARTNER_LOSS_STRESS, RADIO_WAIT, REL_BLAME, STRESS_MAX } from '../constants.ts';
 import { buildingName, trimPosts } from '../depot/buildings.ts';
 import { ENEMIES, getLocation } from '../content/index.ts';
 import { dayAt, withRng } from '../game.ts';
@@ -14,7 +14,7 @@ import { Rng } from '../rng.ts';
 import { changeStress } from '../stats.ts';
 import { fullName, pronounForms } from '../text.ts';
 import { addTrait, getTraitInstance, hasTrait } from '../traits.ts';
-import type { Beat, DepartureMark, GameState, Run, RunDeath, RunPlan, RunReport, RunSummary, Survivor } from '../types.ts';
+import type { Beat, DepartureMark, GameState, RadioBranch, RadioCall, Run, RunDeath, RunPlan, RunReport, RunSummary, Survivor } from '../types.ts';
 import { RESOURCE_IDS, SLOTS } from '../types.ts';
 import { rationsPacked, validatePlan } from './plan.ts';
 import { simulateRun } from './sim.ts';
@@ -35,8 +35,9 @@ export function startRun(state: GameState, plan: RunPlan, now: number): Run {
 
   const seed = String(withRng(state, (rng) => rng.seed32()));
   const sim = simulateRun(state, plan, seed, now);
-  // Items found on the run already have ids; keep the counter ahead of them.
-  state.nextId = sim.nextId;
+  const radio = radioCall(state, plan, seed, now, sim);
+  // Items found on the run already have ids; keep the counter ahead of them, in every branch.
+  state.nextId = Math.max(sim.nextId, radio?.nextId ?? 0);
 
   const run: Run = {
     id: newId(state, 'r'),
@@ -47,6 +48,7 @@ export function startRun(state: GameState, plan: RunPlan, now: number): Run {
     rations: sim.rations,
     beats: sim.beats,
     result: sim.result,
+    ...(radio ? { radio: radio.call } : {}),
   };
 
   state.resources.rations -= rationsPacked(state, plan);
@@ -70,6 +72,68 @@ export function startRun(state: GameState, plan: RunPlan, now: number): Run {
   const riding = vehicles.length === 0 ? '' : ` in the ${vehicles.map(vehicleName).join(' and the ')}`;
   addGuildLog(state, dayAt(state, now), `${names.join(', ')} set out for ${getLocation(plan.locationId).name}${riding}.`, ['run', run.id]);
   return run;
+}
+
+/**
+ * A crew that calls home from a fork (§7.12): play the run again once for
+ * each order the guild could give. Every replay is the same up to the fork,
+ * so only what comes after is kept.
+ */
+function radioCall(state: GameState, plan: RunPlan, seed: string, now: number, sim: ReturnType<typeof simulateRun>): { call: RadioCall; nextId: number } | undefined {
+  const fork = sim.fork;
+  if (!fork?.called) return undefined;
+  const branches: Record<string, RadioBranch> = {};
+  let nextId = 0;
+  for (const order of fork.orders) {
+    const replay = simulateRun(state, plan, seed, now, order.id);
+    // A replay that didn't come to the same fork would be a bug; the crew decides alone then.
+    if (!replay.fork || replay.fork.at !== fork.at || replay.fork.fromBeat !== fork.fromBeat) return undefined;
+    branches[order.id] = { returnAt: replay.returnAt, beats: replay.beats.slice(fork.fromBeat), result: replay.result };
+    nextId = Math.max(nextId, replay.nextId);
+  }
+  const at = now + fork.at;
+  return {
+    nextId,
+    call: { forkId: fork.forkId, title: fork.title, by: fork.by, intro: fork.intro, ask: fork.ask, orders: fork.orders, at, until: at + RADIO_WAIT, fromBeat: fork.fromBeat, branches },
+  };
+}
+
+/** A crew on the radio, waiting for an answer at `now`. */
+export function radioWaiting(run: Run, now: number): RadioCall | undefined {
+  const call = run.radio;
+  return call && call.answer === undefined && now >= call.at && now < call.until ? call : undefined;
+}
+
+/**
+ * The guild answers a crew on the radio: their run from the fork on is the one
+ * played for this order, and it goes on from now.
+ */
+export function answerRadio(state: GameState, runId: string, order: string, now: number): void {
+  const run = state.runs.find((r) => r.id === runId);
+  const call = run?.radio;
+  if (!run || !call) throw new Error('Nobody is on the radio from that run.');
+  if (call.answer !== undefined) throw new Error('That call has been settled already.');
+  if (now < call.at) throw new Error('They have not called yet.');
+  if (now >= call.until) throw new Error('Too late: they have made the call themselves.');
+  const branch = call.branches?.[order];
+  if (!branch) throw new Error(`Unknown order: ${order}`);
+  const shift = Math.round(now - call.at);
+  run.beats = [...run.beats.slice(0, call.fromBeat), ...branch.beats.map((b) => ({ ...b, at: b.at + shift }))];
+  run.returnAt = branch.returnAt + shift;
+  run.result = branch.result;
+  call.answer = order;
+  delete call.branches;
+}
+
+/** Calls nobody answered in time: the crew made the call themselves, and the other branches go. */
+export function settleRadio(state: GameState, now: number): void {
+  for (const run of state.runs) {
+    const call = run.radio;
+    if (call && call.answer === undefined && now >= call.until) {
+      call.answer = 'none';
+      delete call.branches;
+    }
+  }
 }
 
 /** The part of a run's log that has happened by `now`. */
@@ -250,9 +314,11 @@ export function completeRun(state: GameState, runId: string, now: number): RunRe
   const outcomeText = { completed: 'returned from', turnedBack: 'came back early from', routed: solo ? 'was routed at' : 'were routed at', lost: 'never came back from' }[result.outcome];
   addGuildLog(state, day, `${solo ?? 'The crew'} ${outcomeText} ${loc.name}.`, ['run', run.id]);
 
+  const call = run.radio;
   const report: RunReport = {
     id: run.id,
     plan,
+    ...(call ? { radio: { title: call.title, by: call.by, answer: call.answer ?? 'none', orders: call.orders } } : {}),
     departAt: run.departAt,
     returnAt: run.returnAt,
     beats: run.beats,

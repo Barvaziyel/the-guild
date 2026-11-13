@@ -9,6 +9,9 @@ export {
   dueRuns,
   estimateRisk,
   getEnemyTypeName,
+  answerRadio,
+  radioWaiting,
+  settleRadio,
   type RiskEstimate,
   type RiskLabel,
 } from './runs.ts';
