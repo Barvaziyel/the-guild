@@ -10,6 +10,7 @@ import type { GameState } from '../types.ts';
 import { validatePlan } from '../expedition/plan.ts';
 import { startRun } from '../expedition/runs.ts';
 import { simulateRun } from '../expedition/sim.ts';
+import { takeCaptive } from '../captives.ts';
 import { assignPost } from './buildings.ts';
 import {
   canTalk,
@@ -22,6 +23,7 @@ import {
   raidAtGate,
   raidFightNow,
   raidPreview,
+  raidPrice,
   raidRegroup,
   raidSeen,
   raidTeam,
@@ -37,11 +39,16 @@ import {
   takeRaidCommand,
 } from './raids.ts';
 import type { FightView, RoundOrders } from '../index.ts';
+import type { RaidBand, RaidWant } from '../types.ts';
 import { advanceTime, dayStart } from './time.ts';
 
 /** A raid on day 1, arrived at the gate. */
-function atGate(state: GameState, seed: string, by: 'raiders' | 'vultures' = 'raiders') {
+/** Raiders at the gate: of the band asked for (raiders, unless the Vultures), wanting nothing in particular unless asked. */
+function atGate(state: GameState, seed: string, by: 'raiders' | 'vultures' = 'raiders', band: RaidBand = by, wants?: RaidWant) {
   const raid = scheduleRaid(state, 1, new Rng(seed), by)!;
+  raid.by = band;
+  delete raid.wants;
+  if (wants) raid.wants = wants;
   stepRaid(state, raid.arrive);
   return raid;
 }
@@ -505,3 +512,158 @@ describe('who holds the gate, and a second band', () => {
     assert.fail('no two-band raid held');
   });
 });
+
+describe('who comes', () => {
+  test('raiders always; the Reach’s other bands once the guild knows a place they come from', () => {
+    const bands = (known: string[]): Set<string> => {
+      const seen = new Set<string>();
+      for (let i = 0; i < 300; i++) {
+        const state = testGame(`band-pick-${i}`);
+        for (const id of Object.keys(state.locations)) state.locations[id]!.discovered = known.includes(id);
+        seen.add(scheduleRaid(state, 1, new Rng(`bp${i}`), 'raiders')!.by);
+      }
+      return seen;
+    };
+    assert.deepEqual([...bands([])], ['raiders']);
+    // The Old Metro has ferals, hollows and raiders.
+    const metro = bands(['old_metro']);
+    assert.ok(metro.has('raiders') && metro.has('hollows') && !metro.has('vultures'));
+  });
+
+  test('ferals, hollows and scrapbots can’t be talked to', () => {
+    for (const band of ['ferals', 'hollows', 'scrapbots'] as const) {
+      const state = testGame(`mute-${band}`);
+      const raid = atGate(state, `m-${band}`, 'raiders', band);
+      assert.equal(canTalk(state, raid.arrive + 1000), false);
+      assert.throws(() => payRaiders(state, raid.arrive + 1000), /past talking/);
+    }
+  });
+
+  test('inside, each band goes for its own: ferals the rations, scrapbots scrap and tech, hollows the people', () => {
+    const broken = (band: RaidBand) => {
+      const state = testGame(`in-${band}`);
+      for (const s of state.survivors) s.status = 'away';
+      state.resources = { scrap: 200, rations: 200, meds: 20, ammo: 100, tech: 100, gas: 50 };
+      const before = { ...state.resources };
+      // Hollows need someone home to hurt: one, laid up so they can't fight.
+      const home = state.survivors[0]!;
+      if (band === 'hollows') {
+        home.status = 'ready';
+        home.traits.push({ id: 'badly_wounded', gainedDay: 0 } as never);
+      }
+      const raid = atGate(state, `ib-${band}`, 'raiders', band);
+      assert.equal(raid.end, 'broken');
+      const lost = Object.fromEntries(Object.entries(before).map(([r, n]) => [r, n - state.resources[r as keyof typeof before]]));
+      return { state, lost };
+    };
+    const ferals = broken('ferals').lost;
+    assert.ok(ferals.rations! > 0 && ferals.scrap === 0 && ferals.tech === 0 && ferals.ammo === 0);
+    const bots = broken('scrapbots').lost;
+    assert.ok(bots.scrap! > 0 && bots.tech! > 0 && bots.rations === 0);
+    const hollows = broken('hollows');
+    assert.ok(Object.values(hollows.lost).every((n) => n === 0), 'hollows take nothing');
+    assert.ok(hollows.state.log.some((l) => /Hollows broke into the Depot\..* was hurt\./.test(l.text)));
+  });
+});
+
+describe('what they came for', () => {
+  test('a vehicle: handed over to make them go, or driven off if they break in', () => {
+    const state = testGame('want-car');
+    state.vehicles.push({ id: 'v1', defId: 'pickup', condition: 100, runs: 0 });
+    const want: RaidWant = { what: 'vehicle', vehicleId: 'v1', name: 'Pickup' };
+    const raid = atGate(state, 'wc', 'raiders', 'raiders', want);
+    assert.equal(raidPrice(state, raid).text, 'the Pickup');
+    payRaiders(state, raid.arrive + 1000);
+    assert.equal(state.vehicles.length, 0);
+    assert.ok(state.log.some((l) => /handed over the Pickup/.test(l.text)));
+
+    const empty = testGame('want-car-2');
+    for (const s of empty.survivors) s.status = 'away';
+    empty.vehicles.push({ id: 'v1', defId: 'pickup', condition: 100, runs: 0 }, { id: 'v2', defId: 'car', condition: 100, runs: 0 });
+    atGate(empty, 'wc2', 'raiders', 'raiders', want);
+    assert.deepEqual(empty.vehicles.map((v) => v.id), ['v2'], 'they took the one they came for');
+  });
+
+  test('gone before they came, they take what they can', () => {
+    const state = testGame('want-gone');
+    const raid = atGate(state, 'wg', 'raiders', 'raiders', { what: 'vehicle', vehicleId: 'nope', name: 'Pickup' });
+    assert.equal(raid.wants?.missing, true);
+    assert.equal(raidPrice(state, raid).refused, undefined);
+    assert.notEqual(raidPrice(state, raid).text, 'the Pickup', 'a toll instead');
+  });
+
+  test('one of theirs back: handed over, or freed if they break in', () => {
+    const state = testGame('want-back');
+    const c = takeCaptive(state, 'raiders', 1, new Rng('cap'));
+    const raid = atGate(state, 'wb', 'raiders', 'raiders', { what: 'prisoner', id: c.person.id, name: 'X' });
+    payRaiders(state, raid.arrive + 1000);
+    assert.equal(state.captives.length, 0);
+  });
+
+  test('a score to settle: they won’t be paid, they go for that person, and beat them if they get in', () => {
+    const state = testGame('want-score');
+    const marked = state.survivors[2]!;
+    marked.counters.killsByEnemy.raider = 9;
+    const raid = atGate(state, 'ws', 'raiders', 'raiders', { what: 'score', id: marked.id, name: marked.firstName, kills: 9 });
+    const price = raidPrice(state, raid);
+    assert.equal(price.refused, true);
+    assert.throws(() => payRaiders(state, raid.arrive + 1000), /won’t take anything/);
+    // In the fight, raiders go for the marked one far more often: they lose more HP than the others.
+    let markedLoss = 0;
+    let otherLoss = 0;
+    for (let i = 0; i < 80; i++) {
+      const g = testGame(`score-fight-${i}`);
+      const m = g.survivors[2]!;
+      const full = new Map(g.survivors.map((x) => [x.id, x.hp]));
+      const r = atGate(g, `sf${i}`, 'raiders', 'raiders', { what: 'score', id: m.id, name: m.firstName, kills: 9 });
+      letRaidFight(g, r.arrive + 1000);
+      for (const x of g.survivors) {
+        const loss = full.get(x.id)! - x.hp;
+        if (x.id === m.id) markedLoss += loss;
+        else otherLoss += loss / 3;
+      }
+    }
+    assert.ok(markedLoss > otherLoss * 1.8, `marked lost ${markedLoss}, the others ${otherLoss.toFixed(0)} each`);
+  });
+
+  test('raiders sometimes come for something on their own, and only what the guild has', () => {
+    const wants = new Map<string, number>();
+    for (let i = 0; i < 300; i++) {
+      const state = testGame(`want-${i}`);
+      const raid = scheduleRaid(state, 1, new Rng(`w${i}`), 'raiders')!;
+      if (raid.by !== 'raiders') continue;
+      const w = raid.wants?.what ?? 'none';
+      wants.set(w, (wants.get(w) ?? 0) + 1);
+    }
+    assert.ok((wants.get('store') ?? 0) > 10);
+    assert.equal(wants.get('vehicle'), undefined, 'no vehicles to want');
+    assert.equal(wants.get('prisoner'), undefined, 'nobody of theirs held');
+    assert.ok((wants.get('none') ?? 0) > (wants.get('store') ?? 0));
+  });
+});
+
+describe('spoils of a held raid', () => {
+  test('what they carried, now and then gear off a raider, and sometimes one left behind', () => {
+    let gear = 0;
+    let captives = 0;
+    let found = 0;
+    for (let i = 0; i < 150; i++) {
+      const state = testGame(`spoils-${i}`);
+      for (const s of state.survivors) s.stats.aim = s.stats.brawn = 9;
+      const raid = atGate(state, `sp${i}`);
+      letRaidFight(state, raid.arrive + 1000);
+      if (raid.end !== 'held' || !raid.spoils) continue;
+      gear += raid.spoils.gear.length;
+      if (Object.keys(raid.spoils.found).length > 0) found++;
+      if (raid.spoils.captive) {
+        captives++;
+        assert.ok(state.captives.some((c) => c.person.id === raid.spoils!.captive && c.from === 'raiders'));
+      }
+      for (const uid of raid.spoils.gear) assert.ok(state.stash.some((it) => it.uid === uid));
+    }
+    assert.ok(found > 50, `found ${found}`);
+    assert.ok(gear > 10, `gear ${gear}`);
+    assert.ok(captives > 10 && captives < 70, `captives ${captives}`);
+  });
+});
+

@@ -904,11 +904,35 @@ export interface DepotState {
  * and fit when they arrived can defend. Kept once it's over, for the screen
  * that shows how it went, until the next one.
  */
+/** Who comes (§9.8): raiders, the Vultures, or the Reach's other bands. */
+export type RaidBand = 'raiders' | 'vultures' | 'ferals' | 'hollows' | 'scrapbots';
+
+/** What raiders came for in particular (§9.8). `missing`: it wasn't there when they came. */
+export type RaidWant = (
+  | { what: 'vehicle'; vehicleId: string; name: string }
+  | { what: 'prisoner'; id: string; name: string }
+  | { what: 'score'; id: string; name: string; kills: number }
+  | { what: 'store'; resource: 'rations' | 'meds' | 'ammo'; amount: number }
+) & { missing?: true };
+
+/** What a held raid left behind: supplies off the beaten, gear (item uids) and maybe a captive (a captive's id). */
+export interface RaidSpoils {
+  found: Partial<Resources>;
+  gear: string[];
+  captive?: string;
+}
+
 export interface DepotRaid {
   id: string;
-  /** Raiders, or the Vultures with one of their named people at their head. */
-  by: 'raiders' | 'vultures';
+  /** Raiders, the Vultures with one of their named people at their head, or another band from the Reach. */
+  by: RaidBand;
   leadId?: string;
+  /** Raiders at one of the guild's outposts (its place id) rather than the Depot. */
+  outpost?: string;
+  /** What they came for in particular, if anything. */
+  wants?: RaidWant;
+  /** What a held raid left behind. */
+  spoils?: RaidSpoils;
   /** The fight's dice. */
   seed: string;
   /** The game day that brought them. */
@@ -950,7 +974,19 @@ export interface DepotRaid {
 }
 
 /** What was said at the gate. */
-export type RaidTalk = { how: 'pay'; paid: Partial<Resources> } | { how: 'stare'; by: string; ok: boolean; check: CheckInfo };
+export type RaidTalk = { how: 'pay'; paid: Partial<Resources>; gave?: string } | { how: 'stare'; by: string; ok: boolean; check: CheckInfo };
+
+/** Someone a raid left behind, held at the Depot (§9.8). */
+export interface Captive {
+  /** Made like a survivor, for the portrait, name and stats; joins as one if asked and willing. */
+  person: Survivor;
+  from: 'raiders' | 'vultures';
+  /** Game day they were taken. */
+  since: number;
+  questioned?: true;
+  /** Asked to join and said no. */
+  refused?: true;
+}
 
 // ---------------------------------------------------------------- guild
 
@@ -1015,6 +1051,8 @@ export interface GameState {
   rescue: RescueState;
   /** The rival guild (§7.11). */
   vultures: VulturesState;
+  /** People raids left behind, held at the Depot (§9.8). */
+  captives: Captive[];
   log: GuildLogEntry[];
   settings: {
     mercyMode: boolean;

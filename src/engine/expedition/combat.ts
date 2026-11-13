@@ -35,7 +35,7 @@ import {
   HEAVY_ARMOR,
   HEAVY_ARMOR_SOAK,
   SURVIVOR_DEFENSE,
-  UNARMED_DAMAGE, TOWER_TO_HIT, WALL_COVER, RAID_SHORE_COVER, DOG_TO_HIT, DOG_DAMAGE } from '../constants.ts';
+  UNARMED_DAMAGE, TOWER_TO_HIT, WALL_COVER, RAID_SHORE_COVER, RAID_MARKED_WEIGHT, RAID_WORKSHOP_TO_HIT, DOG_TO_HIT, DOG_DAMAGE } from '../constants.ts';
 import { getEnemy, type EncounterDef, type EnemyDef } from '../content/index.ts';
 import { ENEMIES_BREAK, FLEE_LINES, STALEMATE_LINES, WITHDRAW_FAIL, WITHDRAW_SUCCESS } from '../content/flavor.ts';
 import { armorValue, itemDef, itemName, qualityMod, weaponDamage } from '../gear.ts';
@@ -234,7 +234,9 @@ function survivorAttack(sim: Sim, m: Member, target: Enemy, ctx: AttackContext, 
   // An aimed shot (§7.13) is better, and aiming is spent on the next shot.
   const aimed = ranged && m.aimed === true;
   if (ranged) m.aimed = false;
-  const extra = toHit + (sim.plan.approach === 'aggressive' ? AGGRESSIVE_ATTACK_BONUS : 0) + grudgeBonus(m, target) + (mods.toHit ?? 0) + (aimed ? AIM_TO_HIT : 0);
+  // At the gate the Workshop's people know where to hit a scrapbot (§9.8).
+  const machines = sim.gate?.machines && target.def.type === 'scrapbot' ? sim.gate.machines * RAID_WORKSHOP_TO_HIT : 0;
+  const extra = toHit + (sim.plan.approach === 'aggressive' ? AGGRESSIVE_ATTACK_BONUS : 0) + grudgeBonus(m, target) + (mods.toHit ?? 0) + (aimed ? AIM_TO_HIT : 0) + machines;
   const bonus = simBonus(sim, m, stat, ['combat', ...enemyContexts(m.s, target.def.type)], { extra });
   const roll = sim.rng.d10();
   practice(sim, m, stat, target.defense);
@@ -331,7 +333,11 @@ function enemyRound(sim: Sim, fight: FightState, tactics?: Tactics): void {
     const targets = active(sim).filter((m) => !m.perch);
     if (targets.length === 0) return;
     // Without orders this is exactly the automatic fight: one weighted pick, then the roll.
-    let target = sim.rng.weightedBy(targets, (m) => mulTraitHook(m.s, 'attentionWeight') * (tactics?.drawFire.has(m) ? 20 : 1));
+    // Raiders with a score to settle go for that person (§9.8).
+    let target = sim.rng.weightedBy(
+      targets,
+      (m) => mulTraitHook(m.s, 'attentionWeight') * (tactics?.drawFire.has(m) ? 20 : 1) * (sim.gate?.marked === m.s.id && enemy.def.type === 'raider' ? RAID_MARKED_WEIGHT : 1),
+    );
     const guard = tactics?.guards.get(target);
     if (guard && !guard.down && !guard.dead && !guard.fled) target = guard;
     const armor = target.s.equipment.armor ? armorValue(target.s.equipment.armor) : 0;

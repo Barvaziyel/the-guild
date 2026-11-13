@@ -107,7 +107,7 @@ export function validatePlan(state: GameState, plan: RunPlan): string[] {
   else if (!depthOpen(state, loc.id, depth)) problems.push(`${DEPTH_NAMES[depth - 1]} opens once ${DEPTH_NAMES[depth - 2]!.toLowerCase()} ${depth === 2 ? 'are' : 'is'} fully explored.`);
 
   // Nobody sets out with raiders at the gate (§9.8).
-  if (raidAtGate(state)) problems.push('Raiders are at the gate. Nobody goes out until it\u2019s over.');
+  if (raidAtGate(state) && !raidAtGate(state)!.outpost) problems.push('Raiders are at the gate. Nobody goes out until it\u2019s over.');
 
   // Leading the fights means orders over the radio (§7.13).
   if (plan.lead && (state.buildings.radio_tower ?? 0) < 1) problems.push('Leading the fights needs a Radio Tower.');

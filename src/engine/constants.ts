@@ -6,7 +6,7 @@
 import type { BuildingId, Quality, RelationshipLabel, ResourceId, Resources } from './types.ts';
 
 /** Save format version. Bump together with a migration in save.ts. */
-export const SAVE_VERSION = 21;
+export const SAVE_VERSION = 22;
 
 // ---------------------------------------------------------------- time
 
@@ -522,8 +522,11 @@ export const OUTPOST_PROWLER_DC = 8;
 /** Raiders hit an outpost with this chance a day: base, plus per point of danger. */
 export const OUTPOST_RAID_BASE = 0.005;
 export const OUTPOST_RAID_PER_DANGER = 0.005;
-/** d10 + the best Aim there + 1 for each other person against this + danger. */
-export const OUTPOST_RAID_DC = 7;
+/** Raids on an outpost are fought like the gate (§9.8): bought at the place's danger for a fence of at least this many, this big. */
+export const OUTPOST_RAID_FENCE = 1;
+export const OUTPOST_RAID_BUDGET = 0.75;
+/** The danger an outpost raid is fought at, by the place's danger: raiders who come for a camp aren't the worst the place has. */
+export const OUTPOST_RAID_DANGER: readonly number[] = [0, 1, 2, 2, 2, 3];
 /** Deeper levels: +1 danger, this much longer, and this much likelier to turn up gear, per level down. */
 export const DEPTH_DURATION = 0.25;
 export const DEPTH_GEAR = 0.5;
@@ -708,9 +711,8 @@ export const VULTURES_TAKEN_STRENGTH = 2;
 export const VULTURES_TAKE_CHANCE = 0.5;
 /** Prisoners eat a ration a day and slip out this often. */
 export const VULTURES_ESCAPE_CHANCE = 0.02;
-/** Outpost raids a day in their turf, at war and wary; their raids are this much harder per point of strength. */
+/** Outpost raids a day in their turf, at war and wary (fought like the gate, §9.8; they come stronger as they grow). */
 export const VULTURES_OUTPOST_RAID: readonly [number, number] = [0.01, 0.003];
-export const VULTURES_RAID_PER_STRENGTH = 0.2;
 /** Depot raids: as often as raiders at war (this share wary), and this much harder to hold off. */
 export const VULTURES_WARY_RAIDS = 0.25;
 export const VULTURES_RAID_DC = 2;
@@ -772,6 +774,24 @@ export const RAID_STARE_VULTURES = 2;
 /** Some raids come in two bands: the second comes on if the gate holds, this much the size of the first. */
 export const RAID_WAVE_CHANCE = 0.25;
 export const RAID_WAVE_BUDGET = 0.6;
+/** The Workshop's people know the machines: +this to hit scrapbots at the gate for each Workshop level. */
+export const RAID_WORKSHOP_TO_HIT = 1;
+/** Raiders and the Vultures come wanting something in particular this often (§9.8). */
+export const RAID_WANT_CHANCE = 0.4;
+/** A score to settle: someone with at least this many raider kills; in the fight raiders go for them this many times as often. */
+export const RAID_SCORE_KILLS = 5;
+export const RAID_MARKED_WEIGHT = 4;
+/** A kind of store: this share of it, but at least this much. */
+export const RAID_WANT_SHARE = 0.3;
+export const RAID_WANT_MIN = { rations: 15, meds: 4, ammo: 10 } as const;
+/** Spoils of a held raid: each raider killed leaves gear this often, and one is left behind as a captive this often. */
+export const RAID_SPOILS_GEAR = 0.35;
+export const RAID_CAPTIVE_CHANCE = 0.3;
+/** Captives: questioned (Nerve, against this), they tell of a cache; asked, they join this often; they slip out this often a day. */
+export const CAPTIVE_QUESTION_DC = 12;
+export const CAPTIVE_CACHE = { scrap: [8, 16], rations: [4, 10], ammo: [3, 8] } as const;
+export const CAPTIVE_JOIN_CHANCE = 0.25;
+export const CAPTIVE_ESCAPE_CHANCE = 0.02;
 /** Take cover: enemies need this much more to hit them this round. */
 export const COVER_DEFENSE = 3;
 /** Aim: the next shot is this much more likely to hit, and does this much more damage. */
