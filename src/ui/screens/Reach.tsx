@@ -21,6 +21,7 @@ import { PLACE_TABS, type PlaceTab } from '../route.ts';
 import { callCard } from '../rescue-view.ts';
 import { dangerText, formatDuration, joinNames, locationView, placeNote, radiationText, runCrewNames } from '../runs-view.ts';
 import { nemesesAt, nemesisRows } from '../stories-view.ts';
+import { vulturePlaceLine, vulturesSummary, vultureTag } from '../vultures-view.ts';
 
 const today = (s: GameState): number => dayAt(s, Date.now());
 const PLACE_TAB_LABELS: Record<PlaceTab, string> = { about: 'About', outpost: 'Outpost' };
@@ -63,6 +64,7 @@ export function Reach({ state, selected, tab = 'about' }: { state: GameState; se
                         {loc.name}
                         {outpost && <span className={`place-tag${outpost.damaged ? ' is-damaged' : ''}`}>{outpost.damaged ? 'Outpost, damaged' : 'Outpost'}</span>}
                         {state.rescue.call?.locationId === loc.id && <span className="place-tag is-calling">Calling for help</span>}
+                        {vultureTag(state, loc.id) && <span className="place-tag is-vultures">{vultureTag(state, loc.id)}</span>}
                       </span>
                       <span className="place-facts">
                         {dangerText(loc.danger)}, {radiationText(loc.radiation).toLowerCase()}, {formatDuration(loc.durationMin * 60_000)}
@@ -76,12 +78,31 @@ export function Reach({ state, selected, tab = 'about' }: { state: GameState; se
             })}
         </ul>
       </div>
+      <VulturesPanel state={state} />
       <NemesesPanel state={state} />
     </section>
   );
 }
 
 /** Enemies the guild knows by name. Only shown once there is one. */
+/** The rival guild: how things stand, and the way to their screen (§7.11). */
+function VulturesPanel({ state }: { state: GameState }) {
+  const arrived = state.vultures.arrived;
+  return (
+    <div className="panel" aria-labelledby="vultures-panel-title" data-tour="vultures">
+      <h3 id="vultures-panel-title" className="panel-title">
+        The Vultures
+      </h3>
+      <p className="panel-help">{vulturesSummary(state)}</p>
+      {arrived && (
+        <button type="button" className="btn btn-wide" onClick={() => navigate({ screen: 'vultures' })}>
+          See the Vultures
+        </button>
+      )}
+    </div>
+  );
+}
+
 function NemesesPanel({ state }: { state: GameState }) {
   const rows = nemesisRows(state);
   if (rows.length === 0) return null;
@@ -214,6 +235,11 @@ function About({ state, id }: { state: GameState; id: string }) {
         </div>
       )}
       <p className="place-note">{placeNote(v, deeper)}</p>
+      {vulturePlaceLine(state, id) && (
+        <button type="button" className="vulture-here" onClick={() => navigate({ screen: 'vultures' })}>
+          {vulturePlaceLine(state, id)}
+        </button>
+      )}
       {haunting.map((n) => (
         <p key={n.id} className="nemesis-here">
           <strong>{n.name}</strong>, {n.kind}, haunts this place. {n.record}

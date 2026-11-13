@@ -32,6 +32,7 @@ import {
 } from '../runs-view.ts';
 import { clockTime } from '../time.ts';
 import { foundLines, rescueLine, rescuedWhere } from '../rescue-view.ts';
+import { vultureReportLines } from '../vultures-view.ts';
 import { followedHome } from '../animals-view.ts';
 import { findAnySurvivor } from '../view.ts';
 
@@ -189,6 +190,14 @@ function Report({ state, report }: { state: GameState; report: RunReport }) {
           </p>
         )}
         <p>{loot.length > 0 ? `Brought home ${loot.join(', ')}.` : 'Brought nothing home.'}</p>
+        {vultureReportLines(state, s).map((line) => (
+          <p key={line} className="summary-found">
+            {line}{' '}
+            <button type="button" className="link" onClick={() => navigate({ screen: 'vultures' })}>
+              See the Vultures
+            </button>
+          </p>
+        ))}
         {foundLines(state, s, report.plan.locationId).map((f) => (
           <p key={f.id} className="summary-found">
             {f.text}{' '}

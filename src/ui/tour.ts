@@ -264,6 +264,15 @@ export const TOUR_STEPS: readonly TourStep[] = [
     text: () =>
       "Explore a place's outskirts fully and two things open: the way deeper in, deadlier but richer, and an outpost, a camp that sends supplies home and shortens runs nearby. Outposts need the Radio Tower.",
   },
+  {
+    id: 'vultures',
+    part: 'runs',
+    title: 'The Vultures',
+    route: () => ({ screen: 'reach' }),
+    target: 'vultures',
+    text: () =>
+      "Another guild, the Vultures, works the Reach too. A few days in they set up camp and send someone to the gate. They compete for places, people and trade; deal with them, trade with them or fight them. This panel shows how things stand.",
+  },
 
   // ---------------------------------------------------------------- building
   {

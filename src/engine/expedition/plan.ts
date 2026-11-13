@@ -12,7 +12,7 @@ import { maxTraitHook, mulTraitHook } from '../traits.ts';
 import type { GameState, RunPlan, Survivor } from '../types.ts';
 import { crewLimit, findVehicle, gasNeeded, planVehicles, vehicleDef, vehicleName, vehicleProblem } from '../vehicles.ts';
 import { lineShare } from '../projects.ts';
-import { campAt } from '../vultures.ts';
+import { campAt, onTurf, vultureBand } from '../vultures.ts';
 
 function crewOf(state: GameState, plan: RunPlan): Survivor[] {
   const out: Survivor[] = [];
@@ -185,6 +185,19 @@ export function planWarnings(state: GameState, plan: RunPlan): string[] {
     const settle = crew.filter((s) => n.downed.includes(s.id)).map((s) => s.firstName);
     const scores = settle.length === 0 ? '' : ` ${settle.length === 1 ? `${settle[0]} has` : `${settle.slice(0, -1).join(', ')} and ${settle[settle.length - 1]} have`} a score to settle.`;
     warnings.push(`${n.name[0]!.toUpperCase()}${n.name.slice(1)}, ${/^[AEIOU]/.test(kind) ? 'an' : 'a'} ${kind} the guild knows by name, haunts this place.${scores}`);
+  }
+  // The Vultures (§7.11): their turf, and what hitting a camp does.
+  if (plan.job === 'assault' && campAt(state, plan.locationId)) {
+    if (vultureBand(state) !== 'war') warnings.push('Hitting their camp means war with the Vultures.');
+  } else if (onTurf(state, plan.locationId)) {
+    const band = vultureBand(state);
+    warnings.push(
+      band === 'war'
+        ? 'The Vultures work here, and they\'re at war with the guild: if the crew meets them, they\'ll fight.'
+        : band === 'wary'
+          ? 'The Vultures work here: if the crew meets them, they\'ll want a toll, or a fight.'
+          : 'The Vultures work here, so finds are thinner.',
+    );
   }
   for (const v of planVehicles(state, plan)) {
     if (v.condition > 0 && v.condition < 30) warnings.push(`The ${vehicleName(v)} is in poor shape (${v.condition}%), so it's more likely to be wrecked.`);

@@ -4,7 +4,7 @@
  * near the middle; the three roads out lead west, north and east.
  * `npm run check` tests that every place has a spot and none crowd each other.
  */
-import { LOCATIONS, findLocation, locationState, type GameState } from '../engine/index.ts';
+import { campAt, LOCATIONS, findLocation, locationState, type GameState } from '../engine/index.ts';
 
 export type LabelSide = 'above' | 'below' | 'left' | 'right';
 
@@ -69,6 +69,8 @@ export interface MapNode {
   crewsOut: number;
   /** The guild's outpost here, if it has one. */
   outpost?: 'ok' | 'damaged';
+  /** A Vultures' camp here (§7.11). */
+  vultureCamp?: true;
 }
 
 export interface MapRoad {
@@ -118,6 +120,7 @@ export function reachMap(state: GameState): ReachMap {
       explored: here.explored,
       crewsOut: state.runs.filter((r) => r.plan.locationId === loc.id).length,
       ...outpostMark(state, loc.id),
+      ...(campAt(state, loc.id) ? { vultureCamp: true as const } : {}),
     });
   }
   return { nodes, roads };
