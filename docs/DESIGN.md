@@ -999,6 +999,21 @@ Planned 2026-11-11, in this order, all on Opus:
 | 18 | The Vultures, a rival guild (§7.11), asked for in the first design; Aviel's answers 2026-11-13 | **done** (1.11.0) |
 | 18b | Radio calls (§7.12): a run stops at a fork (a Vulture meeting, or one of five scripted forks) and calls home; the player answers or the crew settles it by its orders | **done** (1.12.0) |
 
+### Picked next (Aviel, 2026-11-13)
+
+From the ideas in `claude/interactive-ideas.md`. The order isn't set yet.
+
+| Idea | What Aviel said | Status |
+|---|---|---|
+| Take command of a fight: turn-based fights, at least as an option (his ask from 2026-11-12) | Yes. **The game is 2.0.0 when this is done.** | planned |
+| Haggle with traders | Yes | planned |
+| Names: things get their names from the guild's people, not from the player, once they've spent enough time with them | Yes, named by the people | planned |
+| What people want: now and then someone asks for something, and doing it (or not) matters | Maybe | to decide |
+| Long expeditions beyond the Reach | Possible | to decide |
+| Prisoners | Fine as built in the Vultures (§7.11) | **done** (1.11.0) |
+
+Not picked: choosing the rooms before a scavenge, raids you see coming, feasts and gatherings, talking to people in the yard.
+
 - **Tutorial.** Starts with a new guild, and can be replayed from Settings. It walks through the resources and how to get more of each, food and the Garden, why crews go out on runs, why to build, and taking in recruits. It's optional: the player can skip the whole thing, or skip ahead to the next part. Built as the tour (§12); later steps that add something to explain (gas, vehicles) add a step to it.
 - **Stories.** An enemy that downs a survivor and gets away becomes a named, recurring foe (a nemesis). Survivors earn nicknames from feats. A weapon with 10 kills earns a name and a history. Built as §7.7.
 - **Partners.** Uncommon, and a step beyond Bonded. About 96% of couples are a man and a woman, and 99% are monogamous. Losing a partner hits harder than losing a friend.
@@ -1014,14 +1029,14 @@ Planned 2026-11-11, in this order, all on Opus:
 - **Expansion.** Outposts on fully explored places extend the guild's reach (the Civ-style expansion). Places get deeper, more dangerous areas with better loot. Decided 2026-11-12: outposts send supplies home every day, shorten runs nearby, are a rest stop on the way home, and can be raided; people live there and can be swapped out any time; deeper levels open by exploring; the Radio Tower's level sets how many outposts. *Built in 1.6.0 as §7.9 and §7.10.*
 - **Decisions** (step 16, Aviel, 2026-11-12). Now and then something comes up that the player decides: two people fighting over something, a dilemma. Four answers, with costs and rewards that aren't obvious. If he doesn't answer within about a day, the people involved settle it themselves, usually not the best way. *Built in 1.7.0 as §9.5.*
 - **The order from here** (Aviel, 2026-11-12): first, balance everything up to where the content runs out (1.7.2); then what was already planned (projects with salvage, which was Aviel's addition, in 1.8.0; then step 17 and step 18); then the next steps below.
-- **Interactive combat** (Aviel, 2026-11-12): runs can get repetitive, so fights should be playable, turn-based RPG style, at least as an option. Since runs are decided at departure, this needs a way to stop a run at a fight and wait for the player.
+- **Interactive combat** (Aviel, 2026-11-12): runs can get repetitive, so fights should be playable, turn-based RPG style, at least as an option. Since runs are decided at departure, this needs a way to stop a run at a fight and wait for the player. Picked 2026-11-13 (*Take command of a fight*, above); the game is 2.0.0 when it's done.
 - **Weapon mods** (Aviel liked them, 2026-11-12): a scope, a suppressor, a bayonet, made from tech and spare gear.
 - **Second and third depots** (Aviel, 2026-11-12): new regions beyond the Reach that can be settled for real, not just held as outposts.
 - **The economy** (Aviel, 2026-11-12, after `claude/economy-design.md`): finishing the Depot should take about five real weeks; the road should cost stress so people's time is the limit (both in 1.7.1); **projects** (big multi-stage works, like Civ's wonders) are the long goal; later, **expanding to new places** beyond the Reach. What comes after Balance C is decided once it has been played. Other ideas on the table: long expeditions, improving outposts, contracts from other settlements, training courses that teach a trait, feasts on demand, weapon mods.
 - **Ageing and babies** (part of step 17, asked for 2026-11-11). *Built in 1.10.0 as §5.2 and §5.3.* Decided while building it: birthdays go in the Chronicle; losing a parent goes in the child's; no tour step (the bonds step mentions babies); orphans for couples without children come later.
 - **The Vultures.** A rival guild competing for places, people, outposts and traders, with named people and a standing that runs from war to trading partners. *Built in 1.11.0 as §7.11.* Radio calls (18b) come next, so their meetings on runs can be answered from home.
 
-**Later ideas:** weather and seasons, planned Depot defense during raids, interactive combat. Runs are decided at departure, so a hands-on fight would fit where the player is there when it happens: a raid on the Depot, or a nemesis met again.
+**Later ideas:** weather and seasons, planned Depot defense during raids. (Interactive combat is picked, above.) Runs are decided at departure, so a hands-on fight would fit where the player is there when it happens: a raid on the Depot, or a nemesis met again.
 
 ## 16. Decisions and open questions
 
@@ -1041,5 +1056,6 @@ Decided 2026-11-13:
 - Beds: partners share one, children share their parents' until 6; someone without a bed sleeps on the floor (stress), and nobody new comes in (1.10.1).
 - One run a game day for each person; deeper levels find more inside each find, by danger only (1.10.1).
 - The Vultures are rivals you can deal with, with named people, and they compete for places, people, outposts and traders; their meetings on runs become radio calls (1.11.0, then 18b).
+- Picked from the interactive ideas: taking command of a fight (2.0.0 when done), haggling with traders, and names given by the guild's people rather than the player; maybe what people want; possibly long expeditions; prisoners stay as built. The order isn't set (§15).
 
 No open questions right now.
