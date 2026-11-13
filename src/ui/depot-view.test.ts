@@ -133,18 +133,20 @@ describe('while you were away', () => {
     assert.deepEqual(homeCounts(state), { home: 4, out: 0, outposts: 0, beds: 4, cap: 4 });
   });
 
-  test('beds count the children and a baby on the way', () => {
+  test('beds: partners share, a baby sleeps with them, and the summary counts nights on the floor', () => {
     const state = testGame('beds');
     state.buildings.bunks = 3;
     const [m, f] = state.survivors as [Survivor, Survivor];
     m.pronouns = 'she';
     f.pronouns = 'he';
     becomePartners(state, m, f, 1);
+    assert.equal(bedsLine(state), '3 of 12 beds taken.');
     expecting(state, m, f, 1);
-    assert.match(bedsLine(state), /^5 of \d+ beds taken, including 1 kept for a baby on the way\.$/);
     birth(state, m, 2, new Rng('b'));
-    assert.match(bedsLine(state), /^5 of \d+ beds taken, including 1 for a child\.$/);
-    assert.equal(homeCounts(state).beds, 5);
+    assert.equal(bedsLine(state), '3 of 12 beds taken.');
+    assert.equal(homeCounts(state).beds, 3);
+    const s = { ...emptySummary(), days: 2, floorNights: 3 };
+    assert.ok(summaryLines(s).includes('For want of a bed, someone slept on the floor 3 nights.'));
   });
 });
 

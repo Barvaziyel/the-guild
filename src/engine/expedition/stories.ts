@@ -48,14 +48,22 @@ export function takenNames(state: GameState): Set<string> {
   return names;
 }
 
-/** A name from the pool nobody has yet ("Widowmaker II" once the pool runs out). */
+/** A name from the pool nobody has yet ("Widowmaker II", "Widowmaker III", "Widowmaker IV"... once the pool runs out). */
 function freshName(sim: Sim, pool: readonly string[]): string {
   const free = pool.filter((n) => !sim.takenNames.has(n));
   const base = sim.rng.pick(free.length > 0 ? free : pool);
   let name = base;
-  for (let n = 2; sim.takenNames.has(name); n++) name = `${base} ${'I'.repeat(Math.min(n, 3))}`;
+  for (let n = 2; sim.takenNames.has(name); n++) name = `${base} ${roman(n)}`;
   sim.takenNames.add(name);
   return name;
+}
+
+/** 2 → "II", 4 → "IV", 14 → "XIV". */
+export function roman(n: number): string {
+  const marks: [number, string][] = [[1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'], [100, 'C'], [90, 'XC'], [50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']];
+  let out = '';
+  for (const [v, m] of marks) for (; n >= v; n -= v) out += m;
+  return out;
 }
 
 /** Add a line to a story, keeping where it began and the latest few. */

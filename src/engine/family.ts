@@ -28,12 +28,13 @@ import {
   OLD_AGE_DEATH_BASE,
   PREGNANCY_DAYS,
   REL_FAMILY,
+  SHARE_BED_AGE,
   STAT_GEN_MAX,
   STAT_MIN,
   YEAR_DAYS,
 } from './constants.ts';
 import { getTrait } from './content/index.ts';
-import { atDepot, hasEmptyBed } from './depot/buildings.ts';
+import { atDepot } from './depot/buildings.ts';
 import { mourn } from './expedition/runs.ts';
 import { recruit } from './game.ts';
 import { createItem } from './gear.ts';
@@ -72,11 +73,6 @@ export function parentsOf(state: GameState, child: Survivor): { mother?: Survivo
   const mother = anyone(state, child.parents.mother);
   const father = anyone(state, child.parents.father);
   return { ...(mother ? { mother } : {}), ...(father ? { father } : {}) };
-}
-
-/** Beds the children take, and the babies on the way. */
-export function bedsForFamilies(state: GameState): number {
-  return state.children.length + state.survivors.filter((s) => s.expecting).length;
 }
 
 /** Rations the children eat a day. */
@@ -131,6 +127,12 @@ function birthday(state: GameState, s: Survivor, day: number, rng: Rng): void {
     return;
   }
   let line = `Turned ${s.age}.`;
+  // Big enough for a bed of their own (§9.1).
+  if (state.children.includes(s) && s.age === SHARE_BED_AGE && s.parents && state.survivors.some((p) => p.id === s.parents!.mother || p.id === s.parents!.father)) {
+    const their = pronounForms(s.pronouns).their;
+    line = `Turned ${s.age}, and moved to a bed of ${their} own.`;
+    addGuildLog(state, day, `${s.firstName} is ${s.age} now, and needs a bed of ${their} own.`, ['family', 'beds', s.id]);
+  }
   if (s.age >= DECLINE_AGE && rng.chance(DECLINE_CHANCE)) {
     const options = DECLINING.filter((k) => s.stats[k] > DECLINE_FLOOR);
     if (options.length > 0) {
@@ -177,7 +179,6 @@ export function parentGone(state: GameState, parent: Survivor, day: number, how:
 /** Couples who could find a baby on the way today: a woman and a man, partners, both at the Depot. */
 function couplesReady(state: GameState, day: number): [Survivor, Survivor][] {
   const out: [Survivor, Survivor][] = [];
-  if (!hasEmptyBed(state)) return out;
   for (const mother of state.survivors) {
     if (mother.pronouns !== 'she' || mother.expecting || !atDepot(mother)) continue;
     if (mother.age < MOTHER_AGES[0] || mother.age > MOTHER_AGES[1]) continue;

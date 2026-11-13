@@ -15,6 +15,8 @@ import {
   FIREPIT_PER_KEEPER,
   FIREPIT_PER_NERVE,
   FIREPIT_RELIEF,
+  FLOOR_STRESS,
+  FLOOR_STRESS_CAP,
   GARDEN_BASE,
   GARDEN_PER_WITS,
   GARDEN_PER_WORKER,
@@ -41,7 +43,7 @@ import { expireConditions, maxTraitHook, mulTraitHook, removeTrait } from '../tr
 import type { BuildingId, GameState, GuildLogEntry, Resources, Survivor } from '../types.ts';
 import { BUILDING_IDS } from '../types.ts';
 import { playOutpostsDay } from '../outposts.ts';
-import { atDepot, buildingLevel, postBuilding, postStat, upkeepOf, workingAt, workingLevel } from './buildings.ts';
+import { atDepot, bedsTaken, buildingLevel, bunksCap, postBuilding, postStat, upkeepOf, workingAt, workingLevel } from './buildings.ts';
 import { clinicHealMult, crewRations, fasterHealing, memorialRelief, postProject, workOnProjects, workingOnProject } from '../projects.ts';
 
 /** What happened over one or more Depot days, for the "while you were away" note. */
@@ -61,10 +63,12 @@ export interface DepotSummary {
   upkeep: Partial<Resources>;
   /** Buildings that worked a level lower on at least one day because their upkeep couldn't be paid. */
   unpaid: BuildingId[];
+  /** Nights someone slept on the floor, for want of a bed (§9.1). */
+  floorNights?: number;
 }
 
 export function emptySummary(): DepotSummary {
-  return { days: 0, grown: 0, eaten: 0, hungryDays: 0, ammoMade: 0, healed: 0, cured: 0, news: [], outposts: {}, upkeep: {}, unpaid: [] };
+  return { days: 0, grown: 0, eaten: 0, hungryDays: 0, ammoMade: 0, healed: 0, cured: 0, news: [], outposts: {}, upkeep: {}, unpaid: [], floorNights: 0 };
 }
 
 /** Round a fractional amount up or down at random, so 2.3 is 3 about a third of the time. */
@@ -146,9 +150,14 @@ export function playDepotDay(state: GameState, day: number, rng: Rng, summary: D
 
   // Nerves.
   const fire = firepitRelief(state) + memorialRelief(state) + childRelief(state);
+  const onTheFloor = floorSleepers(state, home, day, rng, summary);
   for (const s of home) {
     if (hungry) {
       hungerStress(s, rng, day);
+      continue;
+    }
+    if (onTheFloor.has(s.id)) {
+      floorStress(s, rng, day);
       continue;
     }
     const bonded = home.some((o) => o.id !== s.id && relationshipLabel(state, s.id, o.id) === 'bonded');
@@ -217,6 +226,36 @@ function growFood(state: GameState, rng: Rng, summary: DepotSummary): void {
   const grown = roundChance(rng, gardenYield(state)) + goatMilk(state);
   state.resources.rations += grown;
   summary.grown += grown;
+}
+
+/**
+ * More people than beds (§9.1): that many people at home sleep on the floor
+ * tonight, picked at random, and go without the night's rest.
+ */
+function floorSleepers(state: GameState, home: Survivor[], day: number, rng: Rng, summary: DepotSummary): Set<string> {
+  const over = bedsTaken(state) - bunksCap(state);
+  if (over <= 0) {
+    if (state.depot.crowded) addGuildLog(state, day, 'Everyone has a bed again.', ['beds']);
+    delete state.depot.crowded;
+    return new Set();
+  }
+  if (!state.depot.crowded) {
+    addGuildLog(state, day, `There are more people than beds. Until the Bunks are improved, ${over === 1 ? 'someone sleeps' : `${over} people sleep`} on the floor each night.`, ['beds']);
+  }
+  state.depot.crowded = true;
+  const pool = [...home];
+  const out = new Set<string>();
+  while (out.size < over && pool.length > 0) out.add(pool.splice(rng.int(0, pool.length - 1), 1)[0]!.id);
+  summary.floorNights = (summary.floorNights ?? 0) + out.size;
+  return out;
+}
+
+/** A night on the floor: no rest, and a little stress, never past the cap. */
+function floorStress(s: Survivor, rng: Rng, day: number): void {
+  const room = FLOOR_STRESS_CAP - s.stress;
+  if (room <= 0) return;
+  changeStress(s, Math.min(FLOOR_STRESS, room), { rng, day, source: 'sleeping on the floor' });
+  if (s.stress > FLOOR_STRESS_CAP) s.stress = FLOOR_STRESS_CAP;
 }
 
 /** Everyone at home eats. Returns whether the guild went hungry. */

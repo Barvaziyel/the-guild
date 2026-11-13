@@ -20,7 +20,6 @@ import {
   buildingName,
   bedsTaken,
   bunksCap,
-  hasEmptyBed,
   costText,
   craftProblem,
   dailyUpkeep,
@@ -339,6 +338,8 @@ export function summaryLines(s: DepotSummary, state?: GameState): string[] {
   if (used !== 'nothing') out.push(`Keeping the buildings going used ${used}.`);
   const short = (s.unpaid ?? []).map((id) => (state ? buildingName(state, id) : buildingDef(id).name));
   if (short.length > 0) out.push(`The ${joinList(short)} ran short and worked a level lower.`);
+  const floor = s.floorNights ?? 0;
+  if (floor > 0) out.push(`For want of a bed, someone slept on the floor ${floor === 1 ? 'one night' : `${floor} nights`}.`);
   return out;
 }
 
@@ -351,14 +352,16 @@ export function depotNews(state: GameState, limit = 12): { day: number; text: st
     .map((e) => ({ day: e.day, text: e.text }));
 }
 
-/** "6 of 8 beds taken." and who takes the beds that aren't survivors': "including 1 for a child and 1 kept for a baby on the way." */
+/**
+ * "6 of 8 beds taken.", or, with more people than beds, "9 beds needed and 8
+ * in the Bunks: someone sleeps on the floor each night."
+ */
 export function bedsLine(state: GameState): string {
-  const kids = state.children.length;
-  const babies = state.survivors.filter((s) => s.expecting).length;
-  const extra = [kids > 0 ? `${kids} for ${kids === 1 ? 'a child' : 'children'}` : '', babies > 0 ? `${babies} kept for ${babies === 1 ? 'a baby' : 'babies'} on the way` : ''].filter(Boolean);
-  const line = `${bedsTaken(state)} of ${bunksCap(state)} beds taken${extra.length > 0 ? `, including ${extra.join(' and ')}` : ''}.`;
-  if (!state.depot.familyBed) return line;
-  return `${line} ${hasEmptyBed(state) ? 'One of the empty beds is kept for a family.' : 'The next bed to come free will be kept for a family.'}`;
+  const taken = bedsTaken(state);
+  const cap = bunksCap(state);
+  if (taken <= cap) return `${taken} of ${cap} beds taken.`;
+  const over = taken - cap;
+  return `${taken} beds needed and ${cap} in the Bunks: ${over === 1 ? 'someone sleeps' : `${over} people sleep`} on the floor each night.`;
 }
 
 export function homeCounts(state: GameState): { home: number; out: number; outposts: number; beds: number; cap: number } {
