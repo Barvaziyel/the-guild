@@ -498,6 +498,70 @@ Each place has three levels: **the outskirts**, **deeper in** and **the heart of
 - Measured in 1.6.1 with fresh crews of 4 (no gear) at the Drowned Mall: deaths 1 in 200 runs at the outskirts, 1 in 32 deeper in, 1 in 12 at the heart. Loot per run 14.8, 20.9 and 20.6 (crews turn back more at the heart); gear 0.27, 0.33, 0.30 a run. At Maple Street: deaths 1 in 600, 300 and 67, loot 7.1, 15.7 and 23.5. Deeper is for strong, well-equipped crews.
 - The news says when each level is fully explored, and the place's *About* tab lists the levels with their danger and progress. The planner offers only open levels.
 
+### 7.11 The Vultures (1.11.0)
+
+Another scavenger guild that works the Reach. Asked for in the first design (phase 2); Aviel's answers (2026-11-13): rivals you can deal with, named people, and they compete for places, people, outposts and traders. Meetings on runs become radio calls in 18b (§7.12); until then the crew settles them by its orders.
+
+**Arrival.** On game day 40 (about five real days in; an older save gets them a real day after updating) word comes that a crew calling themselves the Vultures has set up at a danger-3 or 4 place, which goes on the map. Their **boss** and **three lieutenants** are people, made like survivors: portraits, names, traits. A lieutenant comes to the gate the next day (§9.5).
+
+**Standing**, from −100 to 100, starts at −10:
+
+| Standing | From | What it means |
+|---|---|---|
+| At war | −40 and below | They attack crews they meet, raid the Depot and outposts, and send threats. |
+| Wary | −39 | Meetings are standoffs. Raids now and then. |
+| Truce | 10 | Meetings are a nod, sometimes news. No raids. |
+| Trading partners | 40 | Friendly meetings, their own traders at the gate. |
+
+It moves with what the guild does: fights (−5, −20 for hitting a camp), killing their people (−10), paying tribute (+10), trades (+3), letting prisoners go (+10), and the answers given to their envoys.
+
+**Strength**, from 0 to 100, starts at 40. It grows by about 2 a real day (0.25 a game day), and with each person they take in (+3). It drops with each of theirs killed (−2), each lieutenant lost (−5), and each camp lost (−15). It sets how many camps they hold (1 + one per 35), the size of their crews, and how much they hurt the trade.
+
+**Camps.** The first is their home, where the boss is. They set up another every 24 game days or so while their strength allows, next to one they hold, never where the guild has an outpost, each with a lieutenant. **Their turf** is their camps' places and the places next to those. Strength 25 or less loses a camp.
+
+**What they compete for:**
+
+- **Places.** At a place in their turf, finds are 20% thinner, and a crew may meet them (one meeting a run at most, likelier at a camp).
+- **People.** A call for help left unanswered goes to the Vultures half the time. Someone at the gate who's left waiting until they go goes to them half the time. Each makes them +3 stronger.
+- **Outposts.** At war, a guild outpost in their turf is raided by them 1% a day (0.3% wary), as hard as raiders plus a fifth of their strength. The guild can take theirs: a new job, **Hit their camp**, at a place with one.
+- **Traders.** Until they're trading partners, caravan swaps are smaller by a quarter of their strength in percent (a tenth at 40). As trading partners, their own traders come with better swaps (×1.25), and each trade is +3 standing.
+
+**Meetings on runs** (settled by the crew's orders until radio calls):
+
+- **Truce or trading partners:** a nod in passing, +1 standing (+2 as partners). One time in five they share news of a place.
+- **Wary:** a standoff. Sneaky crews try to slip past (a Wits check). Otherwise the best talker faces them down (Nerve against 9 + strength/25): they back off, or demand a toll of a quarter of what the crew carries. An aggressive crew refuses the toll and fights, and so does any crew that fails to slip past.
+- **At war:** they attack, unless a sneaky crew slips past.
+- **A fight** is with two to four Vultures, more with their strength, and a lieutenant 40% of the time near their camps. A downed lieutenant is captured half the time when the crew holds the field, and killed otherwise.
+
+**Hit their camp** (a job at a place with a camp): the crew goes straight for the camp, a fight half again as big as usual, with the camp's lieutenant (the boss at their home). If they win:
+- the camp is gone and its stores come home (20–40 supplies and maybe a piece of gear);
+- strength −15, standing −20 (straight to war from anything above it);
+- the planner warns what it will do to the standing.
+
+Taking their home camp puts the boss down, captured or killed. They fall back to another camp under a new boss; with no other camp they're gone for 20–30 game days, then come back with a new boss at strength 25. **The Vultures never go for good.**
+
+**Prisoners.** A captured lieutenant or boss is held at the Depot and eats a ration a day. Each game day there's a 2% chance they slip out. On the Vultures screen:
+- **let them go:** +10 standing;
+- **trade them back:** +15 standing, plus 20 scrap and 10 tech;
+- **ask them to join:** 25%, better with someone close at home; they join if there's a bed, and it's −10 standing either way;
+- or keep them.
+
+A lieutenant lost (killed, captured, joined) is replaced 15–25 game days later.
+
+**Raids on the Depot.** At war, Vulture raids come as often as raider raids, led by a lieutenant, 2 harder to hold off. Wary, a quarter as often.
+
+**Envoys** are decisions (§9.5) that come up every 12–20 game days once the Vultures are here, cast with a lieutenant as the envoy ({v.first}):
+- first contact;
+- tribute (wary or war, strength 40+);
+- a trade (truce or better);
+- a truce offer (at war);
+- a defector at the gate;
+- a prisoner exchange (while the guild holds one).
+
+Their effects move standing and strength, swap supplies, take the envoy prisoner, or take in a defector.
+
+**On screen:** a Vultures screen (`#/vultures`) with their standing and what it means, their strength, their people with portraits and where they are, their camps, the guild's prisoners and their history. The Reach shows their camps on the map and tags their turf in the list; a place's panel says what they do there. The planner warns and offers *Hit their camp*. The Depot's header shows the standing once they've come. Tour step: *The Vultures*.
+
 ## 8. Gear
 
 Every survivor has four slots: **Weapon · Armor · Tool · Trinket**
