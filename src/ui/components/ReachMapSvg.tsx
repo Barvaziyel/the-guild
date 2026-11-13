@@ -93,7 +93,7 @@ function Node({ node: n, selected, onPick }: { node: MapNode; selected: boolean;
       className="map-node"
       role="button"
       tabIndex={0}
-      aria-label={`${n.label.join(' ')}, danger ${n.danger}, explored ${n.explored}%${n.outpost ? `, the guild has an outpost here${n.outpost === 'damaged' ? ' that needs mending' : ''}` : ''}${n.crewsOut ? `, a crew is there now` : ''}`}
+      aria-label={`${n.label.join(' ')}, danger ${n.danger}, explored ${n.explored}%${n.outpost ? `, the guild has an outpost here${n.outpost === 'damaged' ? ' that needs mending' : ''}` : ''}${n.vultureCamp ? ', the Vultures have a camp here' : ''}${n.crewsOut ? `, a crew is there now` : ''}`}
       aria-pressed={selected}
       onClick={pick}
       onKeyDown={onKey}
@@ -118,6 +118,7 @@ function Node({ node: n, selected, onPick }: { node: MapNode; selected: boolean;
         {n.danger}
       </text>
       {n.outpost && <Flag x={x - 4.4} y={y - 2.4} damaged={n.outpost === 'damaged'} />}
+      {n.vultureCamp && <Feather x={x + 4.6} y={y + 3.4} />}
       {n.crewsOut > 0 && (
         <g>
           <circle cx={x + 4.2} cy={y - 4.2} r={2.1} fill="#a64d27" stroke={INK} strokeWidth={0.4} />
@@ -139,6 +140,16 @@ function Flag({ x, y, damaged }: { x: number; y: number; damaged: boolean }) {
     <g aria-hidden="true">
       <path d={cloth} fill={damaged ? '#9aa79f' : '#a64d27'} stroke={INK} strokeWidth={0.35} strokeLinejoin="round" />
       <line x1={x} y1={y} x2={x} y2={top - 0.4} stroke={INK} strokeWidth={0.5} strokeLinecap="round" />
+    </g>
+  );
+}
+
+/** A black feather where the Vultures have a camp (§7.11). */
+function Feather({ x, y }: { x: number; y: number }) {
+  return (
+    <g aria-hidden="true" transform={`rotate(-35 ${x} ${y})`}>
+      <path d={`M${x} ${y - 3.2}C${x + 1.5} ${y - 1.8} ${x + 1.3} ${y + 1.2} ${x} ${y + 2}C${x - 1.3} ${y + 1.2} ${x - 1.5} ${y - 1.8} ${x} ${y - 3.2}Z`} fill={INK} stroke="#efe6d2" strokeWidth={0.3} />
+      <line x1={x} y1={y - 2.4} x2={x} y2={y + 3.2} stroke="#efe6d2" strokeWidth={0.25} />
     </g>
   );
 }

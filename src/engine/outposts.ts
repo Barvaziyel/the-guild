@@ -271,24 +271,34 @@ function injure(s: Survivor, damage: number, day: number, rng: Rng, source: stri
   if (s.hp <= maxHp(s) / 3) addTrait(s, 'wounded', { day, rng, source });
 }
 
+/** Who's raiding: "Raiders" and "raiders", or the Vultures (§7.11), who are harder to hold off. */
+export interface Raiders {
+  name: string;
+  lower: string;
+  /** Added to the defenders' DC. */
+  dc: number;
+}
+
+export const RAIDERS: Raiders = { name: 'Raiders', lower: 'raiders', dc: 0 };
+
 /**
  * Raiders come for an outpost. Held (only if someone is there to hold it):
  * practice and a little stress. Broken: someone is hurt and the outpost is
  * damaged, or burns if it already was. Returns what happened.
  */
-export function raidOutpost(state: GameState, outpost: Outpost, day: number, rng: Rng): 'held' | 'damaged' | 'burned' {
+export function raidOutpost(state: GameState, outpost: Outpost, day: number, rng: Rng, by: Raiders = RAIDERS): 'held' | 'damaged' | 'burned' {
   const loc = getLocation(outpost.locationId);
   const staff = outpostStaff(state, outpost.locationId);
   const fit = staff.filter((s) => !s.traits.some((t) => getTrait(t.id).blocksRuns));
   const best = Math.max(0, ...fit.map((s) => effectiveStat(s, 'aim')));
-  const roll = rollCheck(rng, best + Math.max(0, fit.length - 1), OUTPOST_RAID_DC + loc.danger);
+  const roll = rollCheck(rng, best + Math.max(0, fit.length - 1), OUTPOST_RAID_DC + loc.danger + by.dc);
 
   if (fit.length > 0 && roll.success) {
     for (const s of fit) {
       addPractice(s, 'aim', 2, day);
       changeStress(s, 5, { rng, day, source: 'a raid' });
     }
-    addGuildLog(state, day, `Raiders came for the outpost at ${loc.name}. ${listNames(fit.map((s) => s.firstName))} drove them off.`, ['outpost', loc.id]);
+    addGuildLog(state, day, `${by.name} came for the outpost at ${loc.name}. ${listNames(fit.map((s) => s.firstName))} drove them off.`, ['outpost', loc.id]);
     return 'held';
   }
 
@@ -296,21 +306,21 @@ export function raidOutpost(state: GameState, outpost: Outpost, day: number, rng
   const hurt = fit.length > 0 ? rng.pick(fit) : undefined;
   if (hurt) {
     addTrait(hurt, 'wounded', { day, rng, source: `defending the outpost at ${loc.name}` });
-    addChronicle(hurt, day, `Hurt holding the outpost at ${loc.name} against raiders.`, ['raid']);
+    addChronicle(hurt, day, `Hurt holding the outpost at ${loc.name} against ${by.lower}.`, ['raid']);
   }
 
   if (outpost.damaged) {
     state.outposts = state.outposts.filter((o) => o !== outpost);
     for (const s of staff) {
       delete s.outpost;
-      addChronicle(s, day, `Fled home when raiders burned the outpost at ${loc.name}.`, ['raid']);
+      addChronicle(s, day, `Fled home when ${by.lower} burned the outpost at ${loc.name}.`, ['raid']);
     }
     const who = staff.length > 0 ? ` ${listNames(staff.map((s) => s.firstName))} made it home.` : ' Nobody was there to stop them.';
-    addGuildLog(state, day, `Raiders burned the outpost at ${loc.name}.${who}`, ['outpost', loc.id]);
+    addGuildLog(state, day, `${by.name} burned the outpost at ${loc.name}.${who}`, ['outpost', loc.id]);
     return 'burned';
   }
   outpost.damaged = true;
-  addGuildLog(state, day, `Raiders broke into the outpost at ${loc.name}.${hurt ? ` ${hurt.firstName} was hurt.` : ''} It sends home half until it's mended.`, ['outpost', loc.id]);
+  addGuildLog(state, day, `${by.name} broke into the outpost at ${loc.name}.${hurt ? ` ${hurt.firstName} was hurt.` : ''} It sends home half until it's mended.`, ['outpost', loc.id]);
   return 'damaged';
 }
 

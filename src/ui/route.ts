@@ -32,6 +32,8 @@ export type Route =
   /** The Reach map, optionally with a location picked, and its outpost tab. */
   | { screen: 'reach'; id?: string; tab?: Exclude<PlaceTab, 'about'> }
   | { screen: 'plan'; locationId: string }
+  /** The Vultures (§7.11). */
+  | { screen: 'vultures' }
   | { screen: 'runs' }
   /** A crew that is out, or the report once they're back (same id). */
   | { screen: 'run'; id: string };
@@ -72,6 +74,8 @@ export function parseRoute(hash: string): Route {
     }
     case 'plan':
       return a ? { screen: 'plan', locationId: a } : { screen: 'reach' };
+    case 'vultures':
+      return { screen: 'vultures' };
     case 'run':
       return a ? { screen: 'run', id: a } : { screen: 'runs' };
     case 's': {
@@ -96,6 +100,7 @@ export function routeHash(route: Route): string {
     case 'memorial':
     case 'settings':
     case 'runs':
+    case 'vultures':
       return `#/${route.screen}`;
     case 'building':
       return `#/b/${enc(route.id)}`;
@@ -125,6 +130,7 @@ export function tabFor(route: Route): TabScreen {
       return 'roster';
     case 'reach':
     case 'plan':
+    case 'vultures':
       return 'reach';
     case 'runs':
     case 'run':

@@ -24,6 +24,7 @@ export * from './rescue.ts';
 export * from './animals.ts';
 export * from './leaving.ts';
 export * from './family.ts';
+export * from './vultures.ts';
 export * from './expedition/index.ts';
 export * from './depot/index.ts';
 export { newId } from './ids.ts';

@@ -36,6 +36,9 @@ import {
   WRECK_HURT,
   WRECK_PER_DANGER,
   WRECK_WORN,
+  VULTURES_MEET_CAMP_WEIGHT,
+  VULTURES_MEET_WEIGHT,
+  VULTURES_TURF_FINDS,
 } from '../constants.ts';
 import { getLocation, getTrait, getVehicleDef } from '../content/index.ts';
 import { DEPART_LINES, RETURN_LINES } from '../content/flavor.ts';
@@ -59,6 +62,7 @@ import type {
   RunPlan,
   RunResult,
   VehicleNews,
+  VultureNews,
 } from '../types.ts';
 import { RESOURCE_IDS } from '../types.ts';
 import { combatBeat, discoveryBeat, hazardBeat, richness, scavengeBeat, socialBeat, travelBeat } from './beats.ts';
@@ -82,6 +86,7 @@ import {
   stress,
   type Member,
   type Sim,
+  type SimVultures,
   revealHook,
 } from './context.ts';
 import { tryEvent } from './events.ts';
@@ -92,26 +97,30 @@ import { seating } from '../vehicles.ts';
 import { earnNickname, nameWeapon, nemesisNewsList, takenNames } from './stories.ts';
 import { resolveWounds } from './wounds.ts';
 import { rescueBeat, rescueNews } from './rescue.ts';
+import { vulturesBeat } from './vultures.ts';
+import { campAt, campLeader, neighbours, onTurf, vultureBand, vulturesActive } from '../vultures.ts';
 
 type MidKind = Exclude<BeatKind, 'depart' | 'return'>;
 
 /** How often each kind of beat comes up, by job. */
 const JOB_WEIGHTS: Record<RunJob, Record<MidKind, number>> = {
-  scavenge: { scavenge: 40, combat: 18, hazard: 14, travel: 10, social: 10, discovery: 6, rescue: 0 },
-  scout: { discovery: 26, travel: 18, hazard: 18, combat: 14, social: 12, scavenge: 10, rescue: 0 },
-  hunt: { combat: 42, travel: 14, hazard: 10, scavenge: 10, social: 10, discovery: 8, rescue: 0 },
+  scavenge: { scavenge: 40, combat: 18, hazard: 14, travel: 10, social: 10, discovery: 6, rescue: 0, vultures: 0 },
+  scout: { discovery: 26, travel: 18, hazard: 18, combat: 14, social: 12, scavenge: 10, rescue: 0, vultures: 0 },
+  hunt: { combat: 42, travel: 14, hazard: 10, scavenge: 10, social: 10, discovery: 8, rescue: 0, vultures: 0 },
   // Getting there is most of it, and the rescue comes once (§10.1).
-  rescue: { rescue: 40, travel: 16, hazard: 14, combat: 14, social: 8, scavenge: 6, discovery: 2 },
+  rescue: { rescue: 40, travel: 16, hazard: 14, combat: 14, social: 8, scavenge: 6, discovery: 2, vultures: 0 },
+  // Straight for the Vultures' camp (§7.11): the attack comes once, and early.
+  assault: { vultures: 60, travel: 16, hazard: 10, combat: 6, social: 6, scavenge: 0, discovery: 2, rescue: 0 },
 };
 
 /** The beat every run of this job gets at least once. */
-const MAIN_BEAT: Record<RunJob, MidKind> = { scavenge: 'scavenge', scout: 'discovery', hunt: 'combat', rescue: 'rescue' };
+const MAIN_BEAT: Record<RunJob, MidKind> = { scavenge: 'scavenge', scout: 'discovery', hunt: 'combat', rescue: 'rescue', assault: 'vultures' };
 
-const MID_KINDS = ['scavenge', 'combat', 'hazard', 'travel', 'social', 'discovery', 'rescue'] as const;
+const MID_KINDS = ['scavenge', 'combat', 'hazard', 'travel', 'social', 'discovery', 'rescue', 'vultures'] as const;
 
 function pickBeatKind(sim: Sim, previous: MidKind | undefined, isLast: boolean): MidKind {
   const main = MAIN_BEAT[sim.plan.job];
-  if (isLast && !sim.beatCounts[main] && (main !== 'rescue' || sim.rescue)) return main;
+  if (isLast && !sim.beatCounts[main] && (main !== 'rescue' || sim.rescue) && (main !== 'vultures' || sim.vultures?.camp)) return main;
 
   const crew = standing(sim);
   const weights = { ...JOB_WEIGHTS[sim.plan.job] };
@@ -129,6 +138,10 @@ function pickBeatKind(sim: Sim, previous: MidKind | undefined, isLast: boolean):
   weights.social += 10 * temper + 3 * conflictPairs(sim);
   if (crew.length < 2 || previous === 'social') weights.social = 0;
   if (!sim.rescue || sim.beatCounts.rescue) weights.rescue = 0;
+  // The Vultures: met at most once a run, in their turf; an attack on a camp comes once (§7.11).
+  const v = sim.vultures;
+  if (!v || v.met || (sim.plan.job === 'assault' && !v.camp)) weights.vultures = 0;
+  else if (sim.plan.job !== 'assault') weights.vultures = (v.camp ? VULTURES_MEET_CAMP_WEIGHT : VULTURES_MEET_WEIGHT) * (v.strength / 50);
   return sim.rng.weightedBy(MID_KINDS, (k) => weights[k]);
 }
 
@@ -152,6 +165,7 @@ const BEAT_FNS: Record<MidKind, (sim: Sim) => void> = {
   social: socialBeat,
   discovery: discoveryBeat,
   rescue: rescueBeat,
+  vultures: vulturesBeat,
 };
 
 // ---------------------------------------------------------------- between beats
@@ -491,6 +505,8 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
     foundVehicles: [],
     animals: [],
     found: [],
+    thin: onTurf(state, plan.locationId) ? VULTURES_TURF_FINDS : 1,
+    ...simVultures(state, plan),
   };
   // A rescue run carries the person who called for help, and what trouble they're in (§10.1).
   const call = state.rescue?.call;
@@ -612,6 +628,34 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
       ...(rescue ? { rescue } : {}),
       ...(sim.animals.length > 0 && (outcome === 'completed' || outcome === 'turnedBack') ? { animals: sim.animals } : {}),
       ...(sim.found.length > 0 && (outcome === 'completed' || outcome === 'turnedBack') ? { found: sim.found } : {}),
+      ...(sim.vultures && vultureNewsMatters(sim.vultures.news) ? { vultures: sim.vultures.news } : {}),
     },
   };
+}
+
+/** The Vultures as this run sees them: only in their turf, or when going for a camp (§7.11). Copies, so the real ones don't change. */
+function simVultures(state: GameState, plan: RunPlan): { vultures?: SimVultures } {
+  if (!vulturesActive(state) || (!onTurf(state, plan.locationId) && plan.job !== 'assault')) return {};
+  const v = state.vultures;
+  const camp = campAt(state, plan.locationId);
+  const leader = camp ? campLeader(state, camp) : undefined;
+  const near = neighbours(plan.locationId)
+    .map((id) => campAt(state, id))
+    .map((c) => (c ? campLeader(state, c) : undefined))
+    .find((m) => m !== undefined);
+  return {
+    vultures: {
+      band: vultureBand(state),
+      standing: v.standing,
+      strength: v.strength,
+      ...(camp ? { camp: { locationId: camp.locationId, home: camp.home === true, ...(leader ? { leader: structuredClone(leader) } : {}) } } : {}),
+      ...(near ? { nearby: structuredClone(near) } : {}),
+      met: false,
+      news: { standing: 0, strength: 0, met: [], killed: [], captured: [], history: [] },
+    },
+  };
+}
+
+function vultureNewsMatters(n: VultureNews): boolean {
+  return n.standing !== 0 || n.strength !== 0 || n.met.length > 0 || n.killed.length > 0 || n.captured.length > 0 || n.campTaken !== undefined || n.history.length > 0;
 }

@@ -6,7 +6,7 @@
 import type { BuildingId, Quality, RelationshipLabel, ResourceId, Resources } from './types.ts';
 
 /** Save format version. Bump together with a migration in save.ts. */
-export const SAVE_VERSION = 17;
+export const SAVE_VERSION = 18;
 
 // ---------------------------------------------------------------- time
 
@@ -217,11 +217,12 @@ export const RELIC_HEART_WEIGHT = 6;
 export const RELIC_STAT_BONUS = 1;
 
 /** Explored % gained per finished run, by job. */
-export const EXPLORE_GAIN: Record<'scavenge' | 'scout' | 'hunt' | 'rescue', readonly [number, number]> = {
+export const EXPLORE_GAIN: Record<'scavenge' | 'scout' | 'hunt' | 'rescue' | 'assault', readonly [number, number]> = {
   scavenge: [4, 6],
   scout: [10, 15],
   hunt: [2, 4],
   rescue: [2, 4],
+  assault: [2, 4],
 };
 
 // ---------------------------------------------------------------- the Depot
@@ -632,3 +633,87 @@ export const SHARE_BED_AGE = 6;
  */
 export const FLOOR_STRESS = 3;
 export const FLOOR_STRESS_CAP = 70;
+
+// ---------------------------------------------------------------- the Vultures (§7.11, 1.11.0)
+
+/** The game day they turn up (about five real days in). Older saves get them this many days after updating. */
+export const VULTURES_ARRIVE_DAY = 40;
+export const VULTURES_LATE_ARRIVAL = 8;
+/** Where they set up first: a place of this danger. */
+export const VULTURES_HOME_DANGER: readonly [number, number] = [3, 4];
+export const VULTURES_START_STANDING = -10;
+export const VULTURES_START_STRENGTH = 40;
+/** Strength each game day (about 0.8 a real day), up to the cap. */
+export const VULTURES_GROWTH = 0.1;
+export const VULTURES_MAX_STRENGTH = 100;
+/** Standing bands: at war at or below the first, trading partners at or above the last. */
+export const VULTURES_WAR = -40;
+export const VULTURES_TRUCE = 10;
+export const VULTURES_TRADE = 40;
+/** A camp for every this much strength, on top of their home. */
+export const VULTURES_STRENGTH_PER_CAMP = 35;
+/** A new camp at most this often (game days); one is lost at or below this strength per extra camp. */
+export const VULTURES_CAMP_GAP: readonly [number, number] = [20, 28];
+export const VULTURES_CAMP_HOLD = 25;
+/** Lieutenants under the boss. A lost one is replaced after this many game days. */
+export const VULTURES_LIEUTENANTS = 3;
+export const VULTURES_PROMOTION_DAYS: readonly [number, number] = [15, 25];
+/** Driven out of their last camp, they're gone this many game days and come back this strong. */
+export const VULTURES_GONE_DAYS: readonly [number, number] = [20, 30];
+export const VULTURES_RETURN_STRENGTH = 25;
+
+/** Finds at a place in their turf. */
+export const VULTURES_TURF_FINDS = 0.8;
+/** How often a run in their turf meets them: beat weight, more at a camp, scaled by strength / 50. */
+export const VULTURES_MEET_WEIGHT = 10;
+export const VULTURES_MEET_CAMP_WEIGHT = 18;
+/** A meeting near a camp brings its lieutenant this often. */
+export const VULTURES_LIEUTENANT_CHANCE = 0.4;
+/** A wary standoff: Nerve against this + strength / 25; a toll is this share of what the crew carries. */
+export const VULTURES_STANDOFF_DC = 9;
+export const VULTURES_TOLL = 0.25;
+/** Friendly meetings share news of a place this often. */
+export const VULTURES_NEWS_CHANCE = 0.2;
+/** A downed lieutenant is captured (rather than killed) this often when the crew holds the field. */
+export const VULTURES_CAPTURE_CHANCE = 0.5;
+/** Their side of a fight is bought like any encounter's, ×(0.8 + strength / 200); at a camp, this much bigger. The camp's stores. */
+export const VULTURES_ASSAULT_BUDGET = 1.4;
+export const VULTURES_CAMP_STORES: readonly [number, number] = [20, 40];
+export const VULTURES_CAMP_GEAR_CHANCE = 0.5;
+
+/** Standing changes. */
+export const VULTURES_FIGHT_STANDING = -5;
+export const VULTURES_KILL_STANDING = -10;
+export const VULTURES_ASSAULT_STANDING = -20;
+export const VULTURES_NOD_STANDING = 1;
+export const VULTURES_PARTNER_NOD_STANDING = 2;
+export const VULTURES_TOLL_STANDING = 3;
+export const VULTURES_TRADE_STANDING = 3;
+export const VULTURES_RELEASE_STANDING = 10;
+export const VULTURES_RANSOM_STANDING = 15;
+export const VULTURES_RANSOM: Readonly<Partial<Record<'scrap' | 'tech', number>>> = { scrap: 20, tech: 10 };
+export const VULTURES_RECRUIT_STANDING = -10;
+/** Asking a prisoner to join: this chance, plus this for each friend or better at home... */
+export const VULTURES_JOIN_CHANCE = 0.25;
+/** Strength changes. */
+export const VULTURES_KILLED_STRENGTH = -2;
+export const VULTURES_LIEUTENANT_STRENGTH = -5;
+export const VULTURES_CAMP_STRENGTH = -15;
+export const VULTURES_BOSS_STRENGTH = -30;
+export const VULTURES_TAKEN_STRENGTH = 2;
+
+/** People: an unanswered call, or someone left waiting at the gate, goes to them this often. */
+export const VULTURES_TAKE_CHANCE = 0.5;
+/** Prisoners eat a ration a day and slip out this often. */
+export const VULTURES_ESCAPE_CHANCE = 0.02;
+/** Outpost raids a day in their turf, at war and wary; their raids are this much harder per point of strength. */
+export const VULTURES_OUTPOST_RAID: readonly [number, number] = [0.01, 0.003];
+export const VULTURES_RAID_PER_STRENGTH = 0.2;
+/** Depot raids: as often as raiders at war (this share wary), and this much harder to hold off. */
+export const VULTURES_WARY_RAIDS = 0.25;
+export const VULTURES_RAID_DC = 2;
+/** Caravan swaps shrink by strength / this, until trading partners; their own traders' swaps. */
+export const VULTURES_TRADE_CUT = 400;
+export const VULTURES_TRADER_RATE = 1.25;
+/** Envoys come to the gate this often (game days). */
+export const VULTURES_ENVOY_GAP: readonly [number, number] = [12, 20];

@@ -27,6 +27,10 @@ import {
   TRADE_DAYS,
   VEHICLE_THEFT_CHANCE,
   WATCHTOWER_DEFENSE,
+  VULTURES_RAID_DC,
+  VULTURES_TRADER_RATE,
+  VULTURES_TRADE_STANDING,
+  VULTURES_WARY_RAIDS,
 } from '../constants.ts';
 import { GEAR, VEHICLES } from '../content/index.ts';
 import { createVehicle, vehicleName } from '../vehicles.ts';
@@ -44,8 +48,10 @@ import { atDepot, buildingLevel, canWork, workingLevel, canAfford, costText, pay
 import { addWanderer } from './recruits.ts';
 import { wallDefense } from '../projects.ts';
 import { dogDefense, strayArrives } from '../animals.ts';
+import { RAIDERS, type Raiders } from '../outposts.ts';
+import { changeStanding, freeLieutenants, noteMember, tradeCut, vultureBand, vultureBoss, vulturesActive } from '../vultures.ts';
 
-type EventKind = 'wanderer' | 'trader' | 'raid' | 'celebration' | 'sickness' | 'stray';
+type EventKind = 'wanderer' | 'trader' | 'raid' | 'celebration' | 'sickness' | 'stray' | 'vultureRaid' | 'vultureTrader';
 
 const EVENT_WEIGHTS: Record<EventKind, number> = {
   // Most new people come from the Reach (rescues, people found on runs) rather than turning up (1.9.0).
@@ -55,7 +61,19 @@ const EVENT_WEIGHTS: Record<EventKind, number> = {
   celebration: 2,
   sickness: 2,
   stray: 2,
+  // The Vultures (§7.11): raids as often as raiders' at war, a quarter of that wary; their traders once partners.
+  vultureRaid: 2,
+  vultureTrader: 1.5,
 };
+
+/** How much the Vultures' events weigh today, by how things stand with them. */
+function vultureWeight(state: GameState, k: EventKind): number {
+  if (k !== 'vultureRaid' && k !== 'vultureTrader') return 1;
+  if (!vulturesActive(state)) return 0;
+  const band = vultureBand(state);
+  if (k === 'vultureTrader') return band === 'trade' ? 1 : 0;
+  return band === 'war' ? 1 : band === 'wary' ? VULTURES_WARY_RAIDS : 0;
+}
 
 /** Roll the day's events. Returns what happened, for tests. */
 export function rollDepotEvents(state: GameState, day: number, rng: Rng): EventKind[] {
@@ -66,10 +84,11 @@ export function rollDepotEvents(state: GameState, day: number, rng: Rng): EventK
   const options = (Object.keys(EVENT_WEIGHTS) as EventKind[]).filter((k) => {
     if (k === 'celebration') return home.length >= 2 && state.resources.rations >= home.length * 2;
     if (k === 'sickness' || k === 'stray') return home.length > 0;
-    return true;
+    return vultureWeight(state, k) > 0;
   });
   // Raiders watch the Depot: an empty one draws them.
-  const weight = (k: EventKind): number => EVENT_WEIGHTS[k] * (k === 'raid' && home.filter(canWork).length <= 1 ? RAID_EMPTY_WEIGHT : 1);
+  const weight = (k: EventKind): number =>
+    EVENT_WEIGHTS[k] * vultureWeight(state, k) * ((k === 'raid' || k === 'vultureRaid') && home.filter(canWork).length <= 1 ? RAID_EMPTY_WEIGHT : 1);
   const kind = rng.weightedBy(options, weight);
   HANDLERS[kind](state, day, rng, home);
   happened.push(kind);
@@ -90,6 +109,22 @@ const HANDLERS: Record<EventKind, (state: GameState, day: number, rng: Rng, home
 
   raid(state, day, rng) {
     raid(state, day, rng);
+  },
+
+  vultureRaid(state, day, rng) {
+    // Led by one of their lieutenants (or the boss, with none left).
+    const lead = rng.shuffle([...freeLieutenants(state)])[0] ?? vultureBoss(state);
+    if (lead) {
+      lead.met = true;
+      noteMember(lead, day, 'Led a raid on the guild\'s Depot.');
+    }
+    raid(state, day, rng, { name: lead ? `The Vultures, led by ${fullName(lead.person)},` : 'The Vultures', lower: 'the Vultures', dc: VULTURES_RAID_DC });
+  },
+
+  vultureTrader(state, day, rng) {
+    const offer = makeOffer(state, day, rng, { vultures: true });
+    state.depot.offers.push(offer);
+    addGuildLog(state, day, `A Vulture trader came to the gate: ${offerText(offer)}.`, ['trade', 'vultures', offer.id]);
   },
 
   celebration(state, day, rng, home) {
@@ -136,11 +171,11 @@ export function raidDefense(state: GameState): number {
 }
 
 /** Raiders come for the Depot. Returns whether they broke in. */
-export function raid(state: GameState, day: number, rng: Rng): boolean {
+export function raid(state: GameState, day: number, rng: Rng, by: Raiders = RAIDERS): boolean {
   const home = state.survivors.filter(atDepot);
   const defenders = home.filter(canWork);
   const tower = workingLevel(state, 'watchtower');
-  const roll = rollCheck(rng, raidDefense(state), RAID_DC);
+  const roll = rollCheck(rng, raidDefense(state), RAID_DC + by.dc);
   const names = defenders.slice(0, 3).map((s) => s.firstName);
 
   if (defenders.length > 0 && roll.success) {
@@ -148,7 +183,7 @@ export function raid(state: GameState, day: number, rng: Rng): boolean {
       addPractice(s, 'aim', 2, day);
       changeStress(s, 5, { rng, day, source: 'a raid' });
     }
-    addGuildLog(state, day, `Raiders came for the Depot. ${listNames(names)} drove them off.`, ['raid']);
+    addGuildLog(state, day, `${by.name} came for the Depot. ${listNames(names)} drove them off.`, ['raid']);
     return false;
   }
 
@@ -164,8 +199,8 @@ export function raid(state: GameState, day: number, rng: Rng): boolean {
   for (const s of home) changeStress(s, 10, { rng, day, source: 'a raid' });
   const hurt = defenders.length > 0 ? rng.pick(defenders) : undefined;
   if (hurt) {
-    addTrait(hurt, 'wounded', { day, rng, source: 'defending the Depot from raiders' });
-    addChronicle(hurt, day, 'Hurt holding the fence against raiders.', ['raid']);
+    addTrait(hurt, 'wounded', { day, rng, source: `defending the Depot from ${by.lower}` });
+    addChronicle(hurt, day, `Hurt holding the fence against ${by.lower}.`, ['raid']);
   }
   const lost = Object.keys(taken).length > 0 ? ` They got away with ${costText(taken)}.` : '';
   const warned = tower > 0 ? ' The Watchtower saw them coming, which saved the rest.' : '';
@@ -175,7 +210,7 @@ export function raid(state: GameState, day: number, rng: Rng): boolean {
   const stolen = parked.length > 0 && rng.chance(theft) ? rng.pick(parked) : undefined;
   if (stolen) state.vehicles = state.vehicles.filter((v) => v !== stolen);
   const drove = stolen ? ` They drove off in the ${vehicleName(stolen)}.` : '';
-  addGuildLog(state, day, `Raiders broke into the Depot.${lost}${drove}${hurt ? ` ${hurt.firstName} was hurt.` : ''}${warned}`, ['raid']);
+  addGuildLog(state, day, `${by.name} broke into the Depot.${lost}${drove}${hurt ? ` ${hurt.firstName} was hurt.` : ''}${warned}`, ['raid']);
   return true;
 }
 
@@ -233,9 +268,10 @@ function buyOffer(state: GameState, id: string, expiresDay: number, rng: Rng): T
 }
 
 /** A caravan's offer: a swap of supplies, or a piece of gear for scrap and tech. */
-export function makeOffer(state: GameState, day: number, rng: Rng): TradeOffer {
+export function makeOffer(state: GameState, day: number, rng: Rng, opts: { vultures?: boolean } = {}): TradeOffer {
   const id = newId(state, 'o');
   const expiresDay = day + TRADE_DAYS;
+  if (opts.vultures) return { ...swapOffer(state, id, expiresDay, rng, VULTURES_TRADER_RATE), vultures: true };
   if (rng.chance(TRADER_VEHICLE_CHANCE)) {
     // Now and then, wheels: the trader's own spare, with some miles on it.
     const def = rng.weightedBy(VEHICLES, (d) => d.findWeight);
@@ -247,7 +283,11 @@ export function makeOffer(state: GameState, day: number, rng: Rng): TradeOffer {
   }
   if (rng.chance(TRADER_BUY_CHANCE)) {
     const buying = buyOffer(state, id, expiresDay, rng);
-    if (buying) return buying;
+    if (buying) {
+      // While the Vultures are strong (and not partners), every caravan pays less (§7.11).
+      buying.get.scrap = Math.max(1, Math.round(buying.get.scrap! * tradeCut(state)));
+      return buying;
+    }
   }
   if (rng.chance(0.35)) {
     const gear = rng.weightedBy(
@@ -260,6 +300,11 @@ export function makeOffer(state: GameState, day: number, rng: Rng): TradeOffer {
     const tech = gear.slot === 'weapon' && gear.weaponType === 'ranged' ? rng.int(2, 5) : 0;
     return { id, give: tech > 0 ? { scrap: price, tech } : { scrap: price }, get: {}, item, expiresDay };
   }
+  return swapOffer(state, id, expiresDay, rng, tradeCut(state));
+}
+
+/** A swap of one supply for another, at the caravan's rate times `rate`. */
+function swapOffer(state: GameState, id: string, expiresDay: number, rng: Rng, rate: number): TradeOffer {
   const swaps: { give: ResourceId; get: ResourceId; rate: number }[] = [
     { give: 'scrap', get: 'rations', rate: 1.5 },
     { give: 'scrap', get: 'meds', rate: 0.4 },
@@ -274,7 +319,7 @@ export function makeOffer(state: GameState, day: number, rng: Rng): TradeOffer {
   // A caravan deals in what the guild can spare: 8-20 to a new guild, up to an eighth of a big stockpile (1.7.2).
   const share = Math.round(state.resources[swap.give] * (TRADE_SHARE_MIN + rng.next() * (TRADE_SHARE_MAX - TRADE_SHARE_MIN)));
   const give = Math.max(rng.int(8, 20), Math.min(TRADE_MAX_GIVE, share));
-  const get = Math.max(1, Math.round(give * swap.rate * (0.8 + rng.next() * 0.4)));
+  const get = Math.max(1, Math.round(give * swap.rate * rate * (0.8 + rng.next() * 0.4)));
   return { id, give: { [swap.give]: give }, get: { [swap.get]: get }, expiresDay };
 }
 
@@ -302,6 +347,11 @@ export function acceptOffer(state: GameState, offerId: string, day: number): voi
   for (const r of RESOURCE_IDS) state.resources[r] += offer!.get[r] ?? 0;
   if (offer!.item) state.stash.push(offer!.item);
   if (offer!.vehicle) state.vehicles.push(offer!.vehicle);
+  if (offer!.vultures) {
+    changeStanding(state, VULTURES_TRADE_STANDING, day);
+    addGuildLog(state, day, `Traded with the Vultures: ${offerText(offer!)}.`, ['trade', 'vultures']);
+    return;
+  }
   addGuildLog(state, day, `Traded with the caravan: ${offerText(offer!)}.`, ['trade']);
 }
 

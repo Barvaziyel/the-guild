@@ -14,6 +14,7 @@ import { Gear } from './screens/Gear.tsx';
 import { Vehicles } from './screens/Vehicles.tsx';
 import { LoadError } from './screens/LoadError.tsx';
 import { Memorial } from './screens/Memorial.tsx';
+import { Vultures } from './screens/Vultures.tsx';
 import { Planner } from './screens/Planner.tsx';
 import { Reach } from './screens/Reach.tsx';
 import { Recruits } from './screens/Recruits.tsx';
@@ -26,7 +27,7 @@ import { tourStep } from './tour.ts';
 import { resourceList } from './view.ts';
 
 /** Screens that have their own back bar instead of the guild header. */
-const DETAIL_SCREENS: Route['screen'][] = ['survivor', 'plan', 'run', 'building', 'recruits', 'gear'];
+const DETAIL_SCREENS: Route['screen'][] = ['survivor', 'plan', 'run', 'building', 'recruits', 'gear', 'vultures'];
 
 export function App() {
   const snap = useSnapshot();
@@ -89,6 +90,9 @@ export function App() {
       break;
     case 'run':
       screen = <RunView key={route.id} state={s} id={route.id} />;
+      break;
+    case 'vultures':
+      screen = <Vultures state={s} />;
       break;
   }
 

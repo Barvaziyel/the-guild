@@ -35,6 +35,7 @@ import {
 import { errorMessage } from '../persist.ts';
 import { depthChoices, outpostPlanNote, withDepth } from '../outposts-view.ts';
 import { jobChoices, withRescue } from '../rescue-view.ts';
+import { assaultChoice } from '../vultures-view.ts';
 import { toggleVehicle, vehicleChoices, vehicleNote } from '../vehicles-view.ts';
 import { clockTime } from '../time.ts';
 
@@ -78,8 +79,9 @@ function PlannerForm({ state, locationId }: { state: GameState; locationId: stri
   const limit = crewLimit(state, plan);
   const vehicles = vehicleChoices(state);
   // A rescue goes to the outskirts, where the call came from.
-  const depths = plan.job === 'rescue' ? [] : depthChoices(state, locationId);
-  const jobs = jobChoices(state, locationId, JOBS);
+  const depths = plan.job === 'rescue' || plan.job === 'assault' ? [] : depthChoices(state, locationId);
+  const assault = assaultChoice(state, locationId);
+  const jobs = jobChoices(state, locationId, assault ? [...JOBS, assault] : JOBS);
   const fromOutpost = outpostPlanNote(state, plan);
   const toggle = (id: string): void => {
     const crew = toggleCrew(plan.crew, id, limit);

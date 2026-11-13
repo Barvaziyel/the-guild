@@ -1,4 +1,4 @@
-import { DAY_MS, RESCUE_FIRST_GAP, SAVE_VERSION, YEAR_DAYS } from './constants.ts';
+import { DAY_MS, RESCUE_FIRST_GAP, SAVE_VERSION, VULTURES_ARRIVE_DAY, VULTURES_LATE_ARRIVAL, YEAR_DAYS } from './constants.ts';
 
 /** A small stable number from a string, for spreading birthdays over the year. */
 function hashText(text: string): number {
@@ -13,6 +13,7 @@ import { initialLocations } from './locations.ts';
 import { FIRST_NAMES } from './content/index.ts';
 import { orientationFor } from './generator.ts';
 import type { GameState, Pronouns, Survivor } from './types.ts';
+import { newVultures } from './vultures.ts';
 
 /** A game day lasted one real hour until save version 6. */
 const HOUR_DAY_MS = 60 * 60 * 1000;
@@ -150,6 +151,11 @@ const MIGRATIONS: Record<number, (save: Record<string, unknown>) => void> = {
     const state = save as unknown as GameState;
     state.children ??= [];
     for (const s of state.survivors) s.nextBirthday ??= state.depot.lastDay + 1 + (hashText(s.id) % YEAR_DAYS);
+  },
+  17: (save) => {
+    // The Vultures (1.11.0): they turn up a real day after the update, or on day 40, whichever is later.
+    const state = save as unknown as GameState;
+    state.vultures ??= newVultures(Math.max(VULTURES_ARRIVE_DAY, state.depot.lastDay + VULTURES_LATE_ARRIVAL));
   },
 };
 

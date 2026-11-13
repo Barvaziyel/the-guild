@@ -48,7 +48,8 @@ export function dilemmaCard(state: GameState, now: number): DilemmaCard | undefi
   return {
     title: def.title,
     text: fillRoles(def.text, roles),
-    people: [...involved, ...(roles.s && !involved.includes(roles.s) ? [roles.s] : [])],
+    // The stranger, the Vultures' envoy and a prisoner of theirs get faces too (§7.11).
+    people: [...involved, ...[roles.s, roles.v, roles.p].filter((x): x is Survivor => x !== undefined && !involved.includes(x))],
     choices: def.choices.map((c) => fillRoles(c.label, roles)),
     deadline: `Decide by ${whenText(dilemmaDeadline(state)!, now)}.`,
     otherwise: `After that, ${joinNames(involved.map((s) => s.firstName))} will settle it ${involved.length === 1 ? 'alone' : 'themselves'}.`,

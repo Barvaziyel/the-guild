@@ -122,7 +122,7 @@ export function nemesisEnemy(n: Nemesis, danger = 1): Enemy {
 
 /** "Old Notch", or "a Rad-hound". */
 export function enemyRef(e: Enemy): string {
-  return e.nemesis ? e.nemesis.name : withArticle(e.def.name);
+  return e.nemesis ? e.nemesis.name : e.vulture ? e.vulture.name : withArticle(e.def.name);
 }
 
 /** When a nemesis turns up: say who it is, and who remembers it. */
@@ -211,7 +211,8 @@ export function afterFight(sim: Sim, enemies: readonly Enemy[]): void {
     for (const m of e.downed) addChronicle(m.s, day, `Put down by ${n.name} at ${place}. ${n.name} got away again.`, ['nemesis', n.id]);
   }
 
-  const candidates = enemies.filter((e) => !e.nemesis && !e.dead && e.downed.length > 0);
+  // The Vultures have names of their own already, and don't haunt places (§7.11).
+  const candidates = enemies.filter((e) => !e.nemesis && !e.dead && e.downed.length > 0 && !e.def.id.startsWith('vulture_'));
   if (candidates.length === 0) return;
   if (sim.nemeses.filter((n) => n.status === 'atLarge').length >= NEMESIS_MAX) return;
   if (!sim.rng.chance(NEMESIS_CHANCE)) return;

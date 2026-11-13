@@ -19,6 +19,7 @@ import { Yard } from '../components/Yard.tsx';
 import { activeRuns, backIn, joinNames, runCrewNames } from '../runs-view.ts';
 import { outpostRows } from '../outposts-view.ts';
 import { projectNote } from '../projects-view.ts';
+import { vulturesSummary } from '../vultures-view.ts';
 import { bedsLine, buildingRows, depotNews, foodWarning, homeCounts, summaryLines, type BuildingRow } from '../depot-view.ts';
 import { stashLine } from '../gear-view.ts';
 import { vehiclesLine } from '../vehicles-view.ts';
@@ -49,6 +50,11 @@ export function Depot({ state, now, tab, away, onDismissAway }: Props) {
           {counts.outposts > 0 ? `, ${counts.outposts} at ${state.outposts.length === 1 ? 'the outpost' : 'outposts'}` : ''}. {bedsLine(state)}
           {state.depot.hungry ? ' The rations have run out.' : ''}
         </p>
+        {state.vultures.arrived && (
+          <button type="button" className="link vulture-standing" onClick={() => navigate({ screen: 'vultures' })}>
+            The Vultures: {vulturesSummary(state)}
+          </button>
+        )}
       </div>
 
       <div className="sheet-tabs depot-tabs" role="tablist" aria-label="Depot">
@@ -318,7 +324,7 @@ function Offers({ state }: { state: GameState }) {
         return (
           <div key={o.id} className="offer">
             <p>
-              They&rsquo;ll trade {offerText(o)}. They leave {o.expiresDay - 1 <= day ? 'at the end of today' : `after day ${o.expiresDay - 1}`}.
+              {o.vultures ? 'A Vulture trader. ' : ''}They&rsquo;ll trade {offerText(o)}. They leave {o.expiresDay - 1 <= day ? 'at the end of today' : `after day ${o.expiresDay - 1}`}.
             </p>
             {problem && <p className="field-error">{problem}</p>}
             <div className="btn-row">
