@@ -23,7 +23,7 @@ import {
 } from '../../engine/index.ts';
 import { keeperLine } from '../animals-view.ts';
 import { postChoices } from '../depot-view.ts';
-import { childOriginLine, familyLines, growingLine, isChild, noRoomLine } from '../family-view.ts';
+import { childOriginLine, familyLines, growingLine, isChild } from '../family-view.ts';
 import { outpostChoices } from '../outposts-view.ts';
 import { postLink, postValue, projectChoices } from '../projects-view.ts';
 import { BondBar, Meter, Vitals } from '../components/Bars.tsx';
@@ -134,7 +134,7 @@ function SheetHeader({ state, survivor: s, day, now }: { state: GameState; survi
   const dead = s.status === 'dead';
   const gone = dead || s.status === 'left';
   const child = isChild(state, s.id);
-  const family = [...familyLines(state, s, day), ...(gone ? [] : [noRoomLine(state, s)].filter((l): l is string => l !== undefined))];
+  const family = familyLines(state, s, day);
   const status = survivorStatus(s, day);
   const keeps = gone ? undefined : keeperLine(state, s.id);
   const run = runOfSurvivor(state, s.id);

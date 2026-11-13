@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { ADULT_AGE, PREGNANCY_DAYS, Rng, YEAR_DAYS, becomePartners, birth, dayStart, expecting, addTrait, keepFamilyBed, type GameState, type Survivor } from '../engine/index.ts';
+import { ADULT_AGE, PREGNANCY_DAYS, Rng, YEAR_DAYS, becomePartners, birth, dayStart, expecting, addTrait, type GameState, type Survivor } from '../engine/index.ts';
 import { bedsLine } from './depot-view.ts';
 import { testGame } from '../engine/test-utils.ts';
-import { ageText, childOriginLine, childRows, childrenSummary, familyLines, familyNoticeKey, familyNotices, growingLine, noRoomLine, parentsLine, realSpan } from './family-view.ts';
+import { ageText, childOriginLine, childRows, childrenSummary, familyLines, familyNoticeKey, familyNotices, growingLine, parentsLine, realSpan } from './family-view.ts';
 
 function family(seed: string): { state: GameState; mother: Survivor; father: Survivor } {
   const state = testGame(seed);
@@ -79,17 +79,17 @@ describe('families on screen', () => {
     assert.equal(n!.at, dayStart(state, c.nextBirthday!));
   });
 
-  test('a couple in a full house is told why there is no baby, and where to make room', () => {
-    const { state, mother, father } = family('room');
-    mother.age = 30;
-    state.buildings.bunks = 1; // four beds, four people
-    assert.equal(noRoomLine(state, mother), "Every bed is taken, so there's no room for a baby. The Bunks can keep one free.");
-    assert.equal(noRoomLine(state, father), noRoomLine(state, mother));
-    assert.equal(noRoomLine(state, state.survivors[2]!), undefined, 'not for someone without a partner');
-    keepFamilyBed(state, true);
-    assert.equal(bedsLine(state), '4 of 4 beds taken. The next bed to come free will be kept for a family.');
-    state.buildings.bunks = 2;
-    assert.equal(noRoomLine(state, mother), undefined);
-    assert.equal(bedsLine(state), '4 of 8 beds taken. One of the empty beds is kept for a family.');
+  test('a small child sleeps in the parents\' bed, and a guild short of beds is told so', () => {
+    const { state, mother, father } = family('beds');
+    state.buildings.bunks = 1;
+    expecting(state, mother, father, 1);
+    const c = birth(state, mother, 2, new Rng('b'));
+    assert.ok(familyLines(state, c, 3).includes(`Sleeps in ${c.pronouns === 'she' ? 'her' : 'his'} parents' bed until 6.`));
+    assert.equal(bedsLine(state), '3 of 4 beds taken.');
+    c.age = 6;
+    assert.ok(!familyLines(state, c, 3).some((l) => l.startsWith('Sleeps')));
+    assert.equal(bedsLine(state), '4 of 4 beds taken.');
+    state.survivors.push({ ...structuredClone(state.survivors[2]!), id: 'x9' });
+    assert.equal(bedsLine(state), '5 beds needed and 4 in the Bunks: someone sleeps on the floor each night.');
   });
 });

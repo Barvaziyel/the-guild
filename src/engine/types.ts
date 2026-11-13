@@ -690,8 +690,8 @@ export interface DepotState {
   unpaid?: BuildingId[];
   /** Animals at the gate (§9.7). */
   strays: Stray[];
-  /** One bed is kept free for a family (§5.3): nobody new takes it, and a couple at home can have a baby. */
-  familyBed?: boolean;
+  /** More people than beds on the last day played: someone sleeps on the floor (§9.1). */
+  crowded?: boolean;
 }
 
 // ---------------------------------------------------------------- guild

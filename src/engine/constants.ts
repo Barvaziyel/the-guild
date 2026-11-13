@@ -597,9 +597,9 @@ export const OLD_AGE_DEATH_BASE = 0.0000076;
 // ---------------------------------------------------------------- babies and children (§5.3, 1.10.0)
 
 /**
- * The day's chance that partners, both at the Depot with an empty bed, find a
- * baby is on the way: about one in every 100 days they're home together (12
- * real days). A busy guild keeps them apart most days, so in play it's rarer.
+ * The day's chance that partners, both at the Depot, find a baby is on the
+ * way: about one in every 100 days they're home together (12 real days). A
+ * busy guild keeps them apart most days, so in play it's rarer.
  */
 export const CONCEIVE_CHANCE = 0.01;
 /** Mothers between these ages. */
@@ -623,3 +623,14 @@ export const CHILD_RELIEF_MAX = 2;
 export const BIRTH_RELIEF = 15;
 /** Relationship between someone who grows up at the Depot and each parent. */
 export const REL_FAMILY = 50;
+
+// ---------------------------------------------------------------- beds (§9.1, 1.10.0)
+
+/** Children sleep in their parents' bed until this age, then need one of their own (about 9 real months). */
+export const SHARE_BED_AGE = 6;
+/**
+ * With more people than beds, someone at home sleeps on the floor each night
+ * (each Depot day): no rest that night, and this much stress instead, up to the cap.
+ */
+export const FLOOR_STRESS = 3;
+export const FLOOR_STRESS_CAP = 70;

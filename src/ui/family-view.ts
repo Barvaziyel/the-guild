@@ -3,7 +3,7 @@
  * when they join the guild, the family lines on a survivor's sheet, and the
  * notices for a baby due or a child about to join.
  */
-import { ADULT_AGE, CHILD_HELP_AGE, MOTHER_AGES, YEAR_DAYS, dayStart, getOrigin, hasEmptyBed, hasTrait, partnerOf, type GameState, type Survivor } from '../engine/index.ts';
+import { ADULT_AGE, CHILD_HELP_AGE, SHARE_BED_AGE, YEAR_DAYS, dayStart, getOrigin, hasTrait, sharesParentsBed, type GameState, type Survivor } from '../engine/index.ts';
 import type { PlannedNotice } from './runs-view.ts';
 
 /** Eight Depot days make a real day. */
@@ -109,6 +109,7 @@ export function familyLines(state: GameState, s: Survivor, day: number): string[
   if (kids.length > 0) out.push(`${s.pronouns === 'she' ? 'Mother' : 'Father'} of ${joinFirstNames(kids)}.`);
   const parents = parentsLine(state, s);
   if (parents) out.push(parents);
+  if (state.children.includes(s) && sharesParentsBed(state, s)) out.push(`Sleeps in ${s.pronouns === 'she' ? 'her' : 'his'} parents' bed until ${SHARE_BED_AGE}.`);
   return out;
 }
 
@@ -170,15 +171,3 @@ export function familyNoticeKey(state: GameState): string {
   return [...due, ...grown].join(';');
 }
 
-/**
- * For a couple who could have a baby but for the beds: "Every bed is taken,
- * so there's no room for a baby. The Bunks can keep one free." Undefined
- * otherwise.
- */
-export function noRoomLine(state: GameState, s: Survivor): string | undefined {
-  const partner = partnerOf(state, s.id);
-  if (!partner || partner.pronouns === s.pronouns || !state.survivors.includes(partner)) return undefined;
-  const mother = s.pronouns === 'she' ? s : partner;
-  if (mother.expecting || mother.age < MOTHER_AGES[0] || mother.age > MOTHER_AGES[1] || hasEmptyBed(state)) return undefined;
-  return "Every bed is taken, so there's no room for a baby. The Bunks can keep one free.";
-}
