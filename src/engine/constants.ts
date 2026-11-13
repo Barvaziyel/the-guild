@@ -758,6 +758,20 @@ export const DOG_TO_HIT = 3;
 export const DOG_DAMAGE = [2, 3] as const;
 /** The Infirmary is right there: a defender who goes down gets this on the wound roll, and nobody dies at the gate. */
 export const RAID_WOUND_BONUS = 10;
+/** Getting ready (§9.8): shoring up the fence takes this, and raiders need this much more to hit the defenders behind it (on top of the Wall). */
+export const RAID_SHORE_COST = { scrap: 20 } as const;
+export const RAID_SHORE_COVER = 2;
+/** Hidden stores: raiders who break in find only this share of them, and the defenders reach only this share of the meds and ammo. */
+export const RAID_HIDDEN_SHARE = 0.5;
+/** Paying raiders off at the gate: this share of what they'd take breaking in, but at least this much scrap and rations for each of them. */
+export const RAID_TOLL_SHARE = 0.6;
+export const RAID_TOLL_PER_RAIDER = 3;
+/** Staring them down: the best Nerve at the gate against this, and this much more against the Vultures. Failing, the raiders strike first. */
+export const RAID_STARE_DC = 13;
+export const RAID_STARE_VULTURES = 2;
+/** Some raids come in two bands: the second comes on if the gate holds, this much the size of the first. */
+export const RAID_WAVE_CHANCE = 0.25;
+export const RAID_WAVE_BUDGET = 0.6;
 /** Take cover: enemies need this much more to hit them this round. */
 export const COVER_DEFENSE = 3;
 /** Aim: the next shot is this much more likely to hit, and does this much more damage. */

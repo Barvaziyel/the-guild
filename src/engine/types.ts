@@ -574,6 +574,16 @@ export interface Run {
   radio?: RadioCall;
   /** The player leads the fights (§7.13). */
   lead?: RunLead;
+  /** With a Radio Tower, what the run set out with, so the crew can be called home (§9.8). A led run uses its own copy. */
+  home?: RunHome;
+  /** Called home over the radio at this time: raiders on the way. */
+  recalled?: number;
+}
+
+/** A run's copy of the game as it set out, to play it again with the crew called home. */
+export interface RunHome {
+  start: GameState;
+  taken: string[];
 }
 
 /** An order the player can give over the radio. */
@@ -908,9 +918,20 @@ export interface DepotRaid {
   seen?: number;
   /** After this they stop waiting: the defenders fight on their own. */
   until: number;
-  /** Set when they arrive: the enemies (ids, the leader first), and who was home and fit to fight. */
+  /** A second band behind the first: they come on if the gate holds. */
+  waves?: 2;
+  /** Getting ready while they're on the road: the fence shored up, and stores hidden (half out of reach, of the raiders and the defenders both). */
+  shored?: boolean;
+  hidden?: boolean;
+  /** Set when they arrive: the enemies (ids, the leader first), the second band's, and who was home and fit to fight. */
   enemies?: string[];
+  enemies2?: string[];
   defenders?: string[];
+  /** Words at the gate before any fighting: paid off, or stared down (by whom, and whether it worked). */
+  talk?: RaidTalk;
+  /** Who holds the gate against the first band (every defender unless the player picks), and the second. */
+  team?: string[];
+  team2?: string[];
   /** Set when the fight begins: those who fight, as they were then, and the Depot's meds and ammo for them. */
   start?: GameState;
   marks?: Record<string, DepartureMark>;
@@ -921,10 +942,15 @@ export interface DepotRaid {
   /** The player took command at this time, and the orders given since, round by round. */
   took?: number;
   rounds?: RoundOrders[];
+  /** Orders in the fight with the second band, once the player has picked who holds the gate. */
+  rounds2?: RoundOrders[];
   /** Over: when, and how it ended. */
   ended?: number;
-  end?: 'held' | 'broken';
+  end?: 'held' | 'broken' | 'paid' | 'stared';
 }
+
+/** What was said at the gate. */
+export type RaidTalk = { how: 'pay'; paid: Partial<Resources> } | { how: 'stare'; by: string; ok: boolean; check: CheckInfo };
 
 // ---------------------------------------------------------------- guild
 

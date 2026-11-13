@@ -35,7 +35,7 @@ import {
   HEAVY_ARMOR,
   HEAVY_ARMOR_SOAK,
   SURVIVOR_DEFENSE,
-  UNARMED_DAMAGE, TOWER_TO_HIT, WALL_COVER, DOG_TO_HIT, DOG_DAMAGE } from '../constants.ts';
+  UNARMED_DAMAGE, TOWER_TO_HIT, WALL_COVER, RAID_SHORE_COVER, DOG_TO_HIT, DOG_DAMAGE } from '../constants.ts';
 import { getEnemy, type EncounterDef, type EnemyDef } from '../content/index.ts';
 import { ENEMIES_BREAK, FLEE_LINES, STALEMATE_LINES, WITHDRAW_FAIL, WITHDRAW_SUCCESS } from '../content/flavor.ts';
 import { armorValue, itemDef, itemName, qualityMod, weaponDamage } from '../gear.ts';
@@ -338,7 +338,7 @@ function enemyRound(sim: Sim, fight: FightState, tactics?: Tactics): void {
     const extra =
       (tactics
         ? (tactics.cover.has(target) ? COVER_DEFENSE : 0) + (tactics.drawFire.has(target) ? DRAW_FIRE_DEFENSE : 0) - (tactics.charging.has(target) ? CHARGE_BONUS : 0)
-        : 0) + (sim.gate?.wall ? WALL_COVER : 0);
+        : 0) + (sim.gate?.wall ? WALL_COVER : 0) + (sim.gate?.shored ? RAID_SHORE_COVER : 0);
     const shot = /shot|zapped/.test(enemy.def.hitVerb);
     if (sim.rng.d10() + enemy.attack < SURVIVOR_DEFENSE + armor + extra) {
       act(sim, { by: fight.enemies.indexOf(enemy), at: target.s.id, kind: 'miss', shot });
@@ -521,7 +521,7 @@ function prepareRound(sim: Sim, enemies: readonly Enemy[], orders: RoundOrders):
 }
 
 /** Use a med on someone mid-fight. Someone down gets back up, a little, with a better wound roll. */
-function patchUp(sim: Sim, medic: Member, ally: Member): void {
+export function patchUp(sim: Sim, medic: Member, ally: Member): void {
   const result = check(sim, medic, 'wits', DC.easy, ['medicine']);
   const heal = result.success ? MEDS_HEAL_SKILLED : MEDS_HEAL;
   sim.meds -= 1;

@@ -176,6 +176,15 @@ const BEAT_FNS: Record<MidKind, (sim: Sim) => void> = {
 
 // ---------------------------------------------------------------- between beats
 
+/** Word over the radio: raiders on the way to the Depot. The crew turns for home at `offset`. */
+function calledHome(sim: Sim, offset: number): void {
+  sim.offset = offset;
+  sim.turnBack = true;
+  startBeat(sim, 'travel', 'Called home');
+  const solo = sim.members.length === 1 ? sim.members[0]!.s.firstName : undefined;
+  say(sim, solo ? `Word over the radio: raiders on the way to the Depot. ${solo} turns for home.` : 'Word over the radio: raiders on the way to the Depot. The crew turns for home.', { tone: 'bad' });
+}
+
 /** Use meds on anyone below half health. The crew's best medic does the work. */
 function useMeds(sim: Sim): void {
   for (const m of standing(sim)) {
@@ -471,6 +480,8 @@ export interface SimOptions {
   fights?: (FightPlan | undefined)[];
   /** Names already in use when the run set out; a replay from a run's start copy needs them, since the copy keeps only the crew. */
   taken?: readonly string[];
+  /** Called home over the radio this long after setting out (ms, §9.8): the crew turns back instead of going on. */
+  recallAt?: number;
 }
 
 /**
@@ -581,6 +592,11 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
     if (sim.turnBack || sim.routed || standing(sim).length === 0) break;
     // Time spent at a fork (waiting on the radio, or on what was ordered) pushes the rest back.
     sim.offset = Math.round(slot * (i + 1) + slot * (rng.next() - 0.5) * 0.4) + sim.delay;
+    // Called home (§9.8): what would have come next never does.
+    if (opts.recallAt !== undefined && sim.offset >= opts.recallAt) {
+      calledHome(sim, Math.max(opts.recallAt, sim.beats.at(-1)?.at ?? 0));
+      break;
+    }
     const kind = pickBeatKind(sim, previous, i === middle - 1);
     if (!tryFork(sim, kind) && !tryEvent(sim, kind)) BEAT_FNS[kind](sim);
     endBeat(sim, kind);

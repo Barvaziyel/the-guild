@@ -144,8 +144,8 @@ export interface Sim {
   answerWait?: number;
   /** The player leads the fights (§7.13): the orders given so far, and where the run stopped to call. */
   lead?: SimLead;
-  /** A raid at the Depot (§9.8): the Watchtower's level for its lookouts, the Wall's cover, and the guild's dog. */
-  gate?: { tower: number; wall: boolean; dog?: string };
+  /** A raid at the Depot (§9.8): the Watchtower's level for its lookouts, the Wall's cover, the fence shored up, and the guild's dog. */
+  gate?: { tower: number; wall: boolean; shored?: boolean; dog?: string };
   /** The acts of the commanded fight being played, for the battle stage (§7.13); unset in any other fight. */
   fightActs?: { round: number; acts: FightAct[] };
 }

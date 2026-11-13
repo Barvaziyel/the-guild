@@ -32,7 +32,36 @@ export {
 } from './buildings.ts';
 export { dailyUpkeep, emptySummary, guildUpkeep, firepitRelief, frontier, gardenYield, healRate, playDepotDay, type DepotSummary } from './day.ts';
 export { acceptOffer, declineOffer, offerProblem, offerText, raid, raidDefense, rollDepotEvents } from './events.ts';
-export { canDefend, commandRaidRound, lastRaidFight, letRaidFight, openRaid, raidAgainst, raidAtGate, raidFightNow, raidPreview, raidSeen, raidersName, takeRaidCommand } from './raids.ts';
+export {
+  canDefend,
+  canTalk,
+  commandRaidRound,
+  hideStores,
+  lastRaidFight,
+  letRaidFight,
+  openRaid,
+  payRaiders,
+  raidAgainst,
+  raidAtGate,
+  raidFighters,
+  raidFightNow,
+  raidPreview,
+  raidRegroup,
+  raidSeen,
+  raidTalker,
+  raidTeam,
+  raidToll,
+  raidersName,
+  recallCrew,
+  recallPreview,
+  regroupRaid,
+  setRaidTeam,
+  shoreUpFence,
+  stareDc,
+  stareDown,
+  takeRaidCommand,
+  type RaidRegroup,
+} from './raids.ts';
 export { addRadioRecruit, radioAnswerChance, recruitProblem, refreshRecruits, takeIn } from './recruits.ts';
 export {
   craft,
