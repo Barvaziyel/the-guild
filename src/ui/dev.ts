@@ -109,9 +109,16 @@ export function shiftTimeline(state: GameState, delta: number): void {
   for (const run of state.runs) {
     run.departAt += delta;
     run.returnAt += delta;
+    for (const f of run.lead?.fights ?? []) {
+      f.at += delta;
+      f.until += delta;
+      if (f.took !== undefined) f.took += delta;
+      if (f.ended !== undefined) f.ended += delta;
+    }
     if (run.radio) {
       run.radio.at += delta;
       run.radio.until += delta;
+      if (run.radio.answeredAt !== undefined) run.radio.answeredAt += delta;
       for (const b of Object.values(run.radio.branches ?? {})) b.returnAt += delta;
     }
   }

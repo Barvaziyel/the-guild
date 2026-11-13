@@ -23,6 +23,7 @@ export const GEAR: readonly GearDef[] = [
   {
     id: 'sledge',
     name: 'Sledge',
+    hooks: { moves: ['smash'] },
     slot: 'weapon',
     weaponType: 'melee',
     damage: 5,
@@ -37,7 +38,7 @@ export const GEAR: readonly GearDef[] = [
     weaponType: 'melee',
     damage: 3,
     description: 'An old security baton, rewired. Fries Scrapbot circuits.',
-    hooks: { checkMods: [{ context: 'enemy:scrapbot', mod: 2 }] },
+    hooks: { moves: ['stun'], checkMods: [{ context: 'enemy:scrapbot', mod: 2 }] },
     lootWeight: 2,
   },
 
@@ -55,6 +56,7 @@ export const GEAR: readonly GearDef[] = [
   {
     id: 'hunting_rifle',
     name: 'Hunting Rifle',
+    hooks: { moves: ['called_shot'] },
     slot: 'weapon',
     weaponType: 'ranged',
     damage: 5,
@@ -69,7 +71,7 @@ export const GEAR: readonly GearDef[] = [
     weaponType: 'ranged',
     damage: 4,
     description: 'Silent and needs no ammo. Bolts can be pulled back out.',
-    hooks: { silent: true },
+    hooks: { moves: ['called_shot'], silent: true },
     lootWeight: 3,
   },
   {
@@ -80,7 +82,7 @@ export const GEAR: readonly GearDef[] = [
     damage: 6,
     usesAmmo: true,
     description: 'Devastating up close, useless far away.',
-    hooks: { closeRange: true },
+    hooks: { moves: ['spray'], closeRange: true },
     lootWeight: 2,
   },
 
@@ -107,7 +109,7 @@ export const GEAR: readonly GearDef[] = [
     slot: 'armor',
     armor: 3,
     description: 'Heavy pre-Burn police armor. Hard to sneak in.',
-    hooks: { sneakPenalty: 1 },
+    hooks: { moves: ['guard'], sneakPenalty: 1 },
     lootWeight: 2,
   },
   {
@@ -151,7 +153,7 @@ export const GEAR: readonly GearDef[] = [
     name: 'Binoculars',
     slot: 'tool',
     description: 'See them before they see you.',
-    hooks: { ambushBonus: 2 },
+    hooks: { moves: ['spot'], ambushBonus: 2 },
     lootWeight: 4,
   },
   {
@@ -167,7 +169,7 @@ export const GEAR: readonly GearDef[] = [
     name: 'Multitool',
     slot: 'tool',
     description: 'Every tool, none of them great.',
-    hooks: { checkMods: [{ stat: 'wits', context: 'tech', mod: 2 }] },
+    hooks: { moves: ['short_out'], checkMods: [{ stat: 'wits', context: 'tech', mod: 2 }] },
     lootWeight: 4,
   },
 

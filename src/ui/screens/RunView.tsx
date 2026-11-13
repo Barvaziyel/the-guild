@@ -3,6 +3,7 @@ import {
   amountOf,
   dayAt,
   getLocation,
+  ledFightNow,
   markReportRead,
   visibleBeats,
   type GameState,
@@ -12,6 +13,8 @@ import {
 } from '../../engine/index.ts';
 import { BeatLog } from '../components/BeatLog.tsx';
 import { RadioCalls } from '../components/RadioCard.tsx';
+import { FightCalls } from '../components/FightCard.tsx';
+import { leadReportLine } from '../fight-view.ts';
 import { radioCard, radioReportLine } from '../radio-view.ts';
 import { Portrait } from '../components/Portrait.tsx';
 import { skipToReturn } from '../dev.ts';
@@ -92,7 +95,7 @@ function ActiveRun({ state, run }: { state: GameState; run: Run }) {
   const loc = getLocation(run.plan.locationId);
   const beats = visibleBeats(run, now);
   const left = run.returnAt - now;
-  const call = radioCard(state, run, now);
+  const call = radioCard(state, run, now) ?? (ledFightNow(run, now) ? true : undefined);
   const crew = run.plan.crew.map((cid) => ({
     id: cid,
     name: run.result.crew.find((c) => c.id === cid)?.firstName ?? cid,
@@ -131,6 +134,7 @@ function ActiveRun({ state, run }: { state: GameState; run: Run }) {
           </button>
         )}
       </header>
+      <FightCalls state={state} now={now} runId={run.id} />
       <RadioCalls state={state} now={now} runId={run.id} />
       <section className="panel" aria-labelledby="log-title">
         <h3 id="log-title" className="panel-title">
@@ -195,6 +199,7 @@ function Report({ state, report }: { state: GameState; report: RunReport }) {
         )}
         <p>{loot.length > 0 ? `Brought home ${loot.join(', ')}.` : 'Brought nothing home.'}</p>
         {radioReportLine(report) && <p className="summary-radio">{radioReportLine(report)}</p>}
+        {leadReportLine(report) && <p className="summary-radio">{leadReportLine(report)}</p>}
         {vultureReportLines(state, s).map((line) => (
           <p key={line} className="summary-found">
             {line}{' '}

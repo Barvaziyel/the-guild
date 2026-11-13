@@ -10,6 +10,7 @@ import {
   LOCATIONS,
   MAX_CATCHUP_DAYS,
   MAX_CREW,
+  LEAD_WAIT,
   RADIO_WAIT,
   dailyUpkeep,
   gardenYield,
@@ -250,6 +251,18 @@ export const TOUR_STEPS: readonly TourStep[] = [
     route: () => ({ screen: 'runs' }),
     text: () =>
       `Now and then a crew comes to a fork: a sealed door, raiders on the road, the Vultures. With a Radio Tower they call home, and you get a notice and a card with their options. They wait ${Math.round(RADIO_WAIT / 60_000)} minutes for your answer, then decide by their orders. Without a tower they decide on the spot.`,
+  },
+  {
+    id: 'lead',
+    part: 'runs',
+    title: 'Leading the fights',
+    route: (state) => {
+      const place = easiestPlace(state);
+      return place ? { screen: 'plan', locationId: place.id } : { screen: 'reach' };
+    },
+    target: 'lead',
+    text: () =>
+      `With a Radio Tower you can lead a crew's fights. Switch on Lead the fights, and at every fight they call home and wait up to ${Math.round(LEAD_WAIT / 60_000)} minutes. Then it's yours, round by round: a move for each person, from what their gear and traits let them do. Nobody answers? They fight on their own, as always.`,
   },
   {
     id: 'vehicles',

@@ -101,7 +101,7 @@ function resolveOne(sim: Sim, m: Member, helpers: readonly Member[], opts: { spa
   const { cause, enemyType, nemesisId } = pending;
   const first = m.s.firstName;
 
-  const own = effectiveStat(m.s, 'grit') * WOUND_GRIT_MULT + sumTraitHook(m.s, 'woundRollBonus');
+  const own = effectiveStat(m.s, 'grit') * WOUND_GRIT_MULT + sumTraitHook(m.s, 'woundRollBonus') + (m.woundBonus ?? 0);
   let allyBonus = 0;
   for (const h of helpers) allyBonus += sumTraitHook(h.s, 'allyWoundBonus');
   const bonded = helpers.find((h) => isBonded(sim, h, m));

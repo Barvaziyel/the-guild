@@ -3,7 +3,7 @@
  * log while they're away, and applying the outcome when they come home.
  */
 import { addChronicle, addGuildLog } from '../chronicle.ts';
-import { BLAME_CHANCE, MAX_REPORTS, PARTNER_GRIEF_EXTRA_DAYS, PARTNER_LOSS_STRESS, RADIO_WAIT, REL_BLAME, STRESS_MAX } from '../constants.ts';
+import { BLAME_CHANCE, LEAD_ID_BLOCK, LEAD_WAIT, MAX_REPORTS, PARTNER_GRIEF_EXTRA_DAYS, PARTNER_LOSS_STRESS, RADIO_WAIT, REL_BLAME, STRESS_MAX } from '../constants.ts';
 import { buildingName, trimPosts } from '../depot/buildings.ts';
 import { ENEMIES, getLocation } from '../content/index.ts';
 import { dayAt, withRng } from '../game.ts';
@@ -14,12 +14,14 @@ import { Rng } from '../rng.ts';
 import { changeStress } from '../stats.ts';
 import { fullName, pronounForms } from '../text.ts';
 import { addTrait, getTraitInstance, hasTrait } from '../traits.ts';
-import type { Beat, DepartureMark, GameState, RadioBranch, RadioCall, Run, RunDeath, RunPlan, RunReport, RunSummary, Survivor } from '../types.ts';
+import type { Beat, DepartureMark, GameState, LedFight, RadioBranch, RadioCall, RoundOrders, Run, RunDeath, RunLead, RunPlan, RunReport, RunSummary, Survivor } from '../types.ts';
 import { RESOURCE_IDS, SLOTS } from '../types.ts';
 import { rationsPacked, validatePlan } from './plan.ts';
-import { simulateRun } from './sim.ts';
+import { runStart, simulateRun, type SimulatedRun } from './sim.ts';
+import { FightPause, type FightView } from './command.ts';
+import type { FightPlan, SimFork, SimStop } from './context.ts';
 import { gasNeeded, planVehicles, vehicleName } from '../vehicles.ts';
-import { addStory, applyNemesisNews } from './stories.ts';
+import { addStory, applyNemesisNews, takenNames } from './stories.ts';
 import { answerCall, applyRescue, bringHomeFound } from '../rescue.ts';
 import { applyVultureNews } from '../vultures.ts';
 import { animalsFollowHome, rehomeAnimals } from '../animals.ts';
@@ -35,9 +37,14 @@ export function startRun(state: GameState, plan: RunPlan, now: number): Run {
 
   const seed = String(withRng(state, (rng) => rng.seed32()));
   const sim = simulateRun(state, plan, seed, now);
-  const radio = radioCall(state, plan, seed, now, sim);
-  // Items found on the run already have ids; keep the counter ahead of them, in every branch.
-  state.nextId = Math.max(sim.nextId, radio?.nextId ?? 0);
+  // A led run (§7.13) keeps what it set out with, to be replayed with the player's orders.
+  const lead: RunLead | undefined = sim.stops
+    ? { start: structuredClone(runStart(state, plan)), taken: [...takenNames(state)], fights: fightsFrom(sim.stops, now) }
+    : undefined;
+  const radio = radioCall(state, plan, seed, now, sim, lead === undefined);
+  // Items found on the run already have ids; keep the counter ahead of them, in every branch,
+  // and for a led run far enough ahead for anything its replays find.
+  state.nextId = Math.max(sim.nextId, radio?.nextId ?? 0, lead ? lead.start.nextId + LEAD_ID_BLOCK : 0);
 
   const run: Run = {
     id: newId(state, 'r'),
@@ -49,6 +56,7 @@ export function startRun(state: GameState, plan: RunPlan, now: number): Run {
     beats: sim.beats,
     result: sim.result,
     ...(radio ? { radio: radio.call } : {}),
+    ...(lead ? { lead } : {}),
   };
 
   state.resources.rations -= rationsPacked(state, plan);
@@ -79,23 +87,27 @@ export function startRun(state: GameState, plan: RunPlan, now: number): Run {
  * each order the guild could give. Every replay is the same up to the fork,
  * so only what comes after is kept.
  */
-function radioCall(state: GameState, plan: RunPlan, seed: string, now: number, sim: ReturnType<typeof simulateRun>): { call: RadioCall; nextId: number } | undefined {
+function radioCall(state: GameState, plan: RunPlan, seed: string, now: number, sim: SimulatedRun, withBranches: boolean): { call: RadioCall; nextId: number } | undefined {
   const fork = sim.fork;
   if (!fork?.called) return undefined;
+  // A led run is replayed from its start copy when the answer comes, so it keeps no branches.
+  if (!withBranches) return { nextId: 0, call: callFrom(fork, now) };
   const branches: Record<string, RadioBranch> = {};
   let nextId = 0;
   for (const order of fork.orders) {
-    const replay = simulateRun(state, plan, seed, now, order.id);
+    const replay = simulateRun(state, plan, seed, now, { answer: order.id });
     // A replay that didn't come to the same fork would be a bug; the crew decides alone then.
     if (!replay.fork || replay.fork.at !== fork.at || replay.fork.fromBeat !== fork.fromBeat) return undefined;
     branches[order.id] = { returnAt: replay.returnAt, beats: replay.beats.slice(fork.fromBeat), result: replay.result };
     nextId = Math.max(nextId, replay.nextId);
   }
-  const at = now + fork.at;
-  return {
-    nextId,
-    call: { forkId: fork.forkId, title: fork.title, by: fork.by, intro: fork.intro, ask: fork.ask, orders: fork.orders, at, until: at + RADIO_WAIT, fromBeat: fork.fromBeat, branches },
-  };
+  return { nextId, call: { ...callFrom(fork, now), branches } };
+}
+
+/** The call a fork makes, without branches. */
+function callFrom(fork: SimFork, departAt: number): RadioCall {
+  const at = departAt + fork.at;
+  return { forkId: fork.forkId, title: fork.title, by: fork.by, intro: fork.intro, ask: fork.ask, orders: fork.orders, at, until: at + RADIO_WAIT, fromBeat: fork.fromBeat };
 }
 
 /** A crew on the radio, waiting for an answer at `now`. */
@@ -115,6 +127,14 @@ export function answerRadio(state: GameState, runId: string, order: string, now:
   if (call.answer !== undefined) throw new Error('That call has been settled already.');
   if (now < call.at) throw new Error('They have not called yet.');
   if (now >= call.until) throw new Error('Too late: they have made the call themselves.');
+  if (!call.orders.some((o) => o.id === order)) throw new Error(`Unknown order: ${order}`);
+  if (run.lead) {
+    // A led run is played again from its start copy, with the answer given now.
+    call.answer = order;
+    call.answeredAt = now;
+    storeReplay(state, run, replayLed(run));
+    return;
+  }
   const branch = call.branches?.[order];
   if (!branch) throw new Error(`Unknown order: ${order}`);
   const shift = Math.round(now - call.at);
@@ -122,7 +142,149 @@ export function answerRadio(state: GameState, runId: string, order: string, now:
   run.returnAt = branch.returnAt + shift;
   run.result = branch.result;
   call.answer = order;
+  call.answeredAt = now;
   delete call.branches;
+}
+
+// ---------------------------------------------------------------- led runs (§7.13)
+
+/**
+ * The fights a run stopped at, as the game keeps them. Fights already taken
+ * up or settled stay as they are; the rest are as the latest replay has them.
+ */
+function fightsFrom(stops: readonly SimStop[], departAt: number, kept: readonly LedFight[] = []): LedFight[] {
+  return stops.map((st, k) => {
+    const old = kept[k];
+    if (old && (old.took !== undefined || old.ended !== undefined)) return old;
+    const at = departAt + st.at;
+    return { at, until: at + LEAD_WAIT, by: st.by, against: st.against, fromBeat: st.fromBeat, rounds: [] };
+  });
+}
+
+/** The player's part in each fight so far: none for a fight nobody took up (it was fought alone after the wait). */
+function plansFor(lead: RunLead): (FightPlan | undefined)[] {
+  return lead.fights.map((f) => (f.took === undefined ? undefined : { rounds: f.rounds, live: f.ended === undefined, delay: (f.ended ?? f.took) - f.at }));
+}
+
+/** Play a led run again from what it set out with, with every answer and order given so far. A fight under command that needs the next round throws a FightPause. */
+function replayLed(run: Run): SimulatedRun {
+  const lead = run.lead!;
+  const call = run.radio;
+  const answer = call?.answer !== undefined && call.answer !== 'none' ? call.answer : undefined;
+  return simulateRun(lead.start, run.plan, run.seed, run.departAt, {
+    fights: plansFor(lead),
+    taken: lead.taken,
+    ...(answer !== undefined ? { answer, answerWait: (call!.answeredAt ?? call!.at) - call!.at } : {}),
+  });
+}
+
+/** Keep a led run's new future: its log, outcome, return, fights and any call ahead. */
+function storeReplay(state: GameState, run: Run, sim: SimulatedRun): void {
+  run.beats = sim.beats;
+  run.result = sim.result;
+  run.returnAt = sim.returnAt;
+  run.lead!.fights = fightsFrom(sim.stops ?? [], run.departAt, run.lead!.fights);
+  // A call still ahead moves with the run, or doesn't come at all.
+  if (!run.radio || run.radio.answer === undefined) {
+    if (sim.fork?.called) run.radio = callFrom(sim.fork, run.departAt);
+    else delete run.radio;
+  }
+  state.nextId = Math.max(state.nextId, sim.nextId);
+}
+
+/** The fight on a led run that waits for the player, or is under command, at `now`. */
+export function ledFightNow(run: Run, now: number): LedFight | undefined {
+  return run.lead?.fights.find((f) => f.ended === undefined && now >= f.at && now < f.until);
+}
+
+function fightToCommand(state: GameState, runId: string, now: number): { run: Run; fight: LedFight } {
+  const run = state.runs.find((r) => r.id === runId);
+  if (!run?.lead) throw new Error('That run is not led from the Depot.');
+  const fight = ledFightNow(run, now);
+  if (!fight) throw new Error('There is no fight waiting on that run.');
+  return { run, fight };
+}
+
+/**
+ * Take command of the fight a led run has stopped at. Returns the fight as it
+ * stands for the first round's orders (rounds follow with commandRound), or
+ * undefined if it was over before the crew could act (an ambush that put
+ * everyone down), in which case the run goes on from now.
+ */
+export function takeCommand(state: GameState, runId: string, now: number): FightView | undefined {
+  const { run, fight } = fightToCommand(state, runId, now);
+  if (fight.took !== undefined) throw new Error('You are in command already.');
+  fight.took = now;
+  return nextRound(state, run, fight, now);
+}
+
+/** Play up to the round that needs orders; if none does, the fight is over and the run goes on from now. */
+function nextRound(state: GameState, run: Run, fight: LedFight, now: number): FightView | undefined {
+  try {
+    replayLed(run);
+  } catch (e) {
+    if (e instanceof FightPause) return e.view;
+    throw e;
+  }
+  fight.ended = now;
+  storeReplay(state, run, replayLed(run));
+  return undefined;
+}
+
+/** Send them in on their own now, or leave them to fight the rest of it alone. */
+export function letThemFight(state: GameState, runId: string, now: number): void {
+  const { run, fight } = fightToCommand(state, runId, now);
+  fight.took ??= now;
+  fight.auto = true;
+  fight.ended = now;
+  storeReplay(state, run, replayLed(run));
+}
+
+/**
+ * Give the next round's orders. Returns the fight as it stands for the round
+ * after, or undefined once it's over (the run then goes on from now).
+ */
+export function commandRound(state: GameState, runId: string, orders: RoundOrders, now: number): FightView | undefined {
+  const { run, fight } = fightToCommand(state, runId, now);
+  if (fight.took === undefined) throw new Error('Take command first.');
+  fight.rounds.push(structuredClone(orders));
+  // No round left to wait for: the fight is over, and the rest of the run goes on from now.
+  return nextRound(state, run, fight, now);
+}
+
+/** The fight under command on this run, as it stands, waiting for the next round's orders. */
+export function fightNow(state: GameState, runId: string, now: number): FightView | undefined {
+  const run = state.runs.find((r) => r.id === runId);
+  const fight = run && ledFightNow(run, now);
+  if (!run || !fight || fight.took === undefined) return undefined;
+  try {
+    replayLed(run);
+  } catch (e) {
+    if (e instanceof FightPause) return e.view;
+    throw e;
+  }
+  return undefined;
+}
+
+/**
+ * Fights whose time ran out: one under command is fought to the end on the
+ * crew's own, from the round it had reached; one nobody took up was fought
+ * alone after the wait, as the run already has it.
+ */
+export function settleLed(state: GameState, now: number): void {
+  for (const run of state.runs) {
+    const lead = run.lead;
+    if (!lead) continue;
+    // Settling one fight can move the next; go until nothing is left over.
+    for (;;) {
+      const due = lead.fights.find((f) => f.ended === undefined && now >= f.until);
+      if (!due) break;
+      due.ended = due.until;
+      if (due.took === undefined) continue;
+      due.auto = true;
+      storeReplay(state, run, replayLed(run));
+    }
+  }
 }
 
 /** Calls nobody answered in time: the crew made the call themselves, and the other branches go. */
@@ -319,6 +481,7 @@ export function completeRun(state: GameState, runId: string, now: number): RunRe
     id: run.id,
     plan,
     ...(call ? { radio: { title: call.title, by: call.by, answer: call.answer ?? 'none', orders: call.orders } } : {}),
+    ...(run.lead ? { lead: { fights: run.lead.fights.length, commanded: run.lead.fights.filter((f) => f.rounds.length > 0).length } } : {}),
     departAt: run.departAt,
     returnAt: run.returnAt,
     beats: run.beats,

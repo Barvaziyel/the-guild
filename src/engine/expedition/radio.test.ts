@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { RADIO_WAIT } from '../constants.ts';
+import { RADIO_WAIT, SAVE_VERSION } from '../constants.ts';
 import { FORKS, LOCATIONS, findLocation, findTrait, type ForkDef } from '../content/index.ts';
 import { advanceTime } from '../depot/time.ts';
 import { Rng } from '../rng.ts';
@@ -98,7 +98,7 @@ describe('forks in play', () => {
         if (simulateRun(state, plan, seed, 0).fork?.forkId !== fork.id) continue;
         found++;
         for (const order of fork.orders) {
-          const replay = simulateRun(state, plan, seed, 0, order.id);
+          const replay = simulateRun(state, plan, seed, 0, { answer: order.id });
           assert.equal(replay.fork?.forkId, fork.id);
           for (const b of replay.beats) for (const line of b.lines) assert.ok(!/[{}]|undefined|NaN/.test(line.text), `${fork.id}: ${line.text}`);
           const after = replay.beats.slice(replay.fork!.fromBeat);
@@ -178,7 +178,7 @@ describe('a crew on the radio', () => {
     assert.equal(run.departAt + waited.at, call.until);
     // Every order's run is the same up to the fork.
     for (const order of call.orders) {
-      const replay = simulateRun(state, run.plan, run.seed, run.departAt, order.id);
+      const replay = simulateRun(state, run.plan, run.seed, run.departAt, { answer: order.id });
       assert.equal(replay.beats.length >= call.fromBeat, true);
       assert.equal(call.branches![order.id]!.beats[0]!.title, 'Word from home');
     }
@@ -240,7 +240,7 @@ describe('the Vultures on the radio', () => {
     const plan = testPlan(state, camp);
     const first = simulateRun(state, plan, `vr${i}`, 0);
     if (first.fork?.forkId !== 'vultures') return undefined;
-    const replay = simulateRun(state, plan, `vr${i}`, 0, order);
+    const replay = simulateRun(state, plan, `vr${i}`, 0, { answer: order });
     return replay.beats.slice(replay.fork!.fromBeat).flatMap((b) => b.lines.map((l) => l.text));
   }
 
@@ -280,7 +280,7 @@ describe('saves', () => {
     old.version = 18;
     delete old.runs[0]!.radio;
     const loaded = deserialize(JSON.stringify(old));
-    assert.equal(loaded.version, 19);
+    assert.equal(loaded.version, SAVE_VERSION);
     assert.equal(loaded.runs[0]!.id, run.id);
   });
 });

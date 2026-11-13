@@ -160,6 +160,9 @@ const MIGRATIONS: Record<number, (save: Record<string, unknown>) => void> = {
   18: () => {
     // Radio calls (1.12.0): runs and reports may carry a `radio` call. Older ones have none, which is fine.
   },
+  19: () => {
+    // Commanded fights (1.13.0): plans, runs and reports may say the player leads the fights. Older ones don't.
+  },
 };
 
 export function serialize(state: GameState): string {

@@ -1,0 +1,194 @@
+/**
+ * Fights the player commands (§7.13): which moves each person has this round,
+ * and what the fight looks like when it stops for the next round's orders.
+ * The rounds themselves are played in combat.ts.
+ */
+import { MAX_COMBAT_ROUNDS } from '../constants.ts';
+import { MOVES } from '../content/moves.ts';
+import { gearHooks, itemDef } from '../gear.ts';
+import { maxHp } from '../stats.ts';
+import { visibleTraits } from '../traits.ts';
+import { getTrait } from '../content/index.ts';
+import type { LogLine, MoveId } from '../types.ts';
+import type { Enemy } from './combat.ts';
+import { active, type Member, type Sim } from './context.ts';
+
+/** A move someone can make this round, and what it can be aimed at. */
+export interface MoveChoice {
+  move: MoveId;
+  /** "Shoot", "Strike" or "Punch" for an attack; the move's name otherwise. */
+  name: string;
+  detail: string;
+  target: 'enemy' | 'ally' | 'none';
+  /** Enemy places in the fight, or ally survivor ids. Empty when the move needs no target. */
+  targets: (number | string)[];
+}
+
+export interface FightEnemyView {
+  /** Its place in the fight: what an order's target names. */
+  index: number;
+  /** "Raider Scav 2", or a nemesis's or a Vulture's name. */
+  name: string;
+  /** Its kind of enemy: raider, feral, hollow, scrapbot. */
+  type: string;
+  hp: number;
+  maxHp: number;
+  state: 'up' | 'dead' | 'fled';
+  /** Loses its next attack. */
+  stunned: boolean;
+  /** A nemesis or one of the Vultures' named people. */
+  named: boolean;
+}
+
+export interface FightMemberView {
+  id: string;
+  name: string;
+  hp: number;
+  maxHp: number;
+  state: 'up' | 'down' | 'dead' | 'fled';
+  /** Aimed last round: the next shot is better. */
+  aimed: boolean;
+  /** Empty for anyone who can't act. */
+  moves: MoveChoice[];
+}
+
+/** A fight stopped for orders: what the player sees on the fight screen. */
+export interface FightView {
+  /** The round about to be played, and how many there can be. */
+  round: number;
+  maxRounds: number;
+  place: string;
+  enemies: FightEnemyView[];
+  crew: FightMemberView[];
+  /** What's left in the packs. */
+  meds: number;
+  ammo: number;
+  /** The fight so far. */
+  lines: LogLine[];
+}
+
+/** Thrown inside a replay when a fight under command needs the next round's orders. */
+export class FightPause extends Error {
+  view: FightView;
+  constructor(view: FightView) {
+    super('The fight waits for orders.');
+    this.view = view;
+  }
+}
+
+const living = (enemies: readonly Enemy[]): Enemy[] => enemies.filter((e) => !e.dead && !e.fled);
+
+/** Names to tell enemies apart: "Raider Scav 1", "Raider Scav 2", "Old Notch". */
+export function enemyNames(enemies: readonly Enemy[]): string[] {
+  const counts = new Map<string, number>();
+  for (const e of enemies) if (!e.nemesis && !e.vulture) counts.set(e.def.name, (counts.get(e.def.name) ?? 0) + 1);
+  const seen = new Map<string, number>();
+  return enemies.map((e) => {
+    if (e.nemesis) return e.nemesis.name;
+    if (e.vulture) return e.vulture.name;
+    if ((counts.get(e.def.name) ?? 0) < 2) return e.def.name;
+    const n = (seen.get(e.def.name) ?? 0) + 1;
+    seen.set(e.def.name, n);
+    return `${e.def.name} ${n}`;
+  });
+}
+
+/** Moves traits (that show) and equipped gear add. */
+export function grantedMoves(m: Member): Set<MoveId> {
+  const out = new Set<MoveId>();
+  for (const t of visibleTraits(m.s)) for (const move of getTrait(t.id).hooks?.moves ?? []) out.add(move);
+  for (const hooks of gearHooks(m.s)) for (const move of hooks.moves ?? []) out.add(move);
+  return out;
+}
+
+/** What their weapon does this round: shoot (a gun with ammo, or the crossbow), strike, or punch. */
+export function attackKind(sim: Sim, m: Member): 'shoot' | 'strike' | 'punch' {
+  const weapon = m.s.equipment.weapon;
+  if (!weapon) return 'punch';
+  const def = itemDef(weapon);
+  if (def.weaponType === 'ranged') return !def.usesAmmo || sim.ammo > 0 ? 'shoot' : 'strike';
+  return 'strike';
+}
+
+const ATTACK_NAMES = { shoot: 'Shoot', strike: 'Strike', punch: 'Punch' } as const;
+
+/** Everything this person can do this round, with what each move can be aimed at. */
+export function movesFor(sim: Sim, m: Member, enemies: readonly Enemy[]): MoveChoice[] {
+  if (m.down || m.dead || m.fled) return [];
+  const foes = living(enemies);
+  const foeIds = foes.map((e) => enemies.indexOf(e));
+  const kind = attackKind(sim, m);
+  const gun = kind === 'shoot';
+  const granted = grantedMoves(m);
+  const out: MoveChoice[] = [];
+  const add = (move: MoveId, targets: (number | string)[] = [], name?: string): void => {
+    const def = MOVES[move];
+    if (def.target !== 'none' && targets.length === 0) return;
+    out.push({ move, name: name ?? def.name, detail: def.detail, target: def.target, targets });
+  };
+  const ofType = (type: string, unnamed = false): number[] =>
+    foes.filter((e) => e.def.type === type && (!unnamed || (!e.nemesis && !e.vulture))).map((e) => enemies.indexOf(e));
+
+  add('attack', foeIds, ATTACK_NAMES[kind]);
+  add('cover');
+  if (sim.meds > 0) {
+    const hurt = sim.members.filter((o) => !o.dead && !o.fled && (o.down || o.s.hp < maxHp(o.s))).map((o) => o.s.id);
+    add('patch', hurt);
+  }
+  if (gun && !m.aimed) add('aim');
+  if (granted.has('called_shot') && gun) add('called_shot', foeIds);
+  const weapon = m.s.equipment.weapon ? itemDef(m.s.equipment.weapon) : undefined;
+  if (granted.has('spray') && gun && foes.length >= 2 && (!weapon?.usesAmmo || sim.ammo >= 2)) add('spray', foeIds);
+  if (granted.has('smash') && weapon?.weaponType === 'melee') add('smash', foeIds);
+  if (granted.has('stun') && weapon?.weaponType === 'melee') add('stun', foeIds);
+  if (granted.has('charge')) add('charge', foeIds);
+  if (granted.has('draw_fire')) add('draw_fire');
+  const others = active(sim).filter((o) => o !== m);
+  if (granted.has('guard')) add('guard', others.map((o) => o.s.id));
+  if (granted.has('spot') && others.length > 0) add('spot', foeIds);
+  if (granted.has('intimidate')) add('intimidate', ofType('raider', true));
+  if (granted.has('soothe')) add('soothe', ofType('feral'));
+  if (granted.has('short_out')) add('short_out', ofType('scrapbot'));
+  return out;
+}
+
+/** The move this person was ordered to make, if they can still make it at that target. */
+export function validOrder(sim: Sim, m: Member, enemies: readonly Enemy[], move: MoveId, target: number | string | undefined): MoveChoice | undefined {
+  const choice = movesFor(sim, m, enemies).find((c) => c.move === move);
+  if (!choice) return undefined;
+  if (choice.target !== 'none' && (target === undefined || !choice.targets.includes(target))) return undefined;
+  return choice;
+}
+
+/** The fight as it stands before `round`, for the fight screen. */
+export function fightView(sim: Sim, enemies: readonly Enemy[], round: number, fromLine: number): FightView {
+  const names = enemyNames(enemies);
+  const beat = sim.beats.at(-1);
+  return {
+    round,
+    maxRounds: MAX_COMBAT_ROUNDS,
+    place: sim.loc.name,
+    enemies: enemies.map((e, index) => ({
+      index,
+      name: names[index]!,
+      type: e.def.type,
+      hp: Math.max(0, e.hp),
+      maxHp: e.maxHp,
+      state: e.dead ? 'dead' : e.fled ? 'fled' : 'up',
+      stunned: e.stunned === true,
+      named: e.nemesis !== undefined || e.vulture !== undefined,
+    })),
+    crew: sim.members.map((m) => ({
+      id: m.s.id,
+      name: m.s.firstName,
+      hp: m.s.hp,
+      maxHp: maxHp(m.s),
+      state: m.dead ? 'dead' : m.down ? 'down' : m.fled ? 'fled' : 'up',
+      aimed: m.aimed === true,
+      moves: movesFor(sim, m, enemies),
+    })),
+    meds: sim.meds,
+    ammo: sim.ammo,
+    lines: beat ? beat.lines.slice(fromLine) : [],
+  };
+}
