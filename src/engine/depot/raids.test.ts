@@ -234,3 +234,21 @@ describe('raids, measured', () => {
     assert.ok(lookout.held > fresh.held + 0.1, `with a lookout ${lookout.held}`);
   });
 });
+
+describe('back from a run', () => {
+  test('tired only keeps them off runs: they work their post and hold the gate', async () => {
+    const { canWork, laidUp, resting } = await import('./buildings.ts');
+    const { addTrait } = await import('../traits.ts');
+    const state = testGame('tired');
+    const s = state.survivors[0]!;
+    addTrait(s, 'exhausted', { day: 1, rng: new Rng('t') });
+    assert.equal(laidUp(s), false);
+    assert.equal(canWork(s), true, 'works at the Depot');
+    assert.equal(resting(s), false);
+    assert.ok(validatePlan(state, { ...testPlan(state, 'maple_street', {}, 1), crew: [s.id] }).some((p) => /exhausted/.test(p)), 'but no runs');
+    const raid = atGate(state, 'tired');
+    assert.ok(raid.defenders!.includes(s.id), 'and holds the gate');
+    addTrait(s, 'wounded', { day: 1, rng: new Rng('w') });
+    assert.equal(canWork(s), false, 'a wound lays them up');
+  });
+});

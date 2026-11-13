@@ -11,6 +11,7 @@ export {
   bunksCap,
   canAfford,
   canWork,
+  laidUp,
   resting,
   costText,
   defaultPosts,

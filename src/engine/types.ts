@@ -109,8 +109,8 @@ export interface TraitDef {
   needsTarget?: boolean;
   /** Survivors with this trait can't be sent on runs (serious wounds). */
   blocksRuns?: boolean;
-  /** Keeps them off runs, but they still hold the gate in a raid (§9.8): tired, not hurt. */
-  stillDefends?: boolean;
+  /** Keeps them off runs and nothing else (Exhausted): tired, not hurt, so they still work their posts and hold the gate. */
+  onlyRuns?: boolean;
 }
 
 export interface TraitInstance {

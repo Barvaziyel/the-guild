@@ -133,9 +133,9 @@ export function crewOptions(state: GameState): CrewOption[] {
 /** One run a game day: "Vic has been out today, and can go again at 18:00." */
 export function restingReason(state: GameState, s: Survivor): string | undefined {
   if (s.status !== 'ready' || s.outpost !== undefined) return undefined;
-  const tired = s.traits.find((t) => t.id === 'exhausted');
+  const tired = s.traits.find((t) => getTrait(t.id).onlyRuns);
   if (!tired || tired.expiresDay === undefined) return undefined;
-  if (s.traits.some((t) => t.id !== 'exhausted' && getTrait(t.id).blocksRuns)) return undefined;
+  if (s.traits.some((t) => getTrait(t.id).blocksRuns && !getTrait(t.id).onlyRuns)) return undefined;
   return `${s.firstName} has been out today, and can go again at ${clockTime(dayStart(state, tired.expiresDay))}.`;
 }
 

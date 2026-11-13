@@ -24,8 +24,8 @@ import type { FightPlan } from '../expedition/context.ts';
 import { playRaid, raidEnemies, raidPause } from '../expedition/raid.ts';
 import { runStart } from '../expedition/sim.ts';
 import { homecoming } from '../expedition/runs.ts';
-import { atDepot, costText, workingAt, workingLevel } from './buildings.ts';
-import { getEnemy, getTrait } from '../content/index.ts';
+import { atDepot, canWork, costText, workingAt, workingLevel } from './buildings.ts';
+import { getEnemy } from '../content/index.ts';
 import { describeGroup, newEnemy } from '../expedition/combat.ts';
 import { raidCap } from './events.ts';
 import type { Rng as RngType } from '../rng.ts';
@@ -132,9 +132,9 @@ function arrive(state: GameState, raid: DepotRaid): void {
   if (raid.defenders.length === 0) finish(state, raid, raid.arrive, undefined);
 }
 
-/** Home and fit to hold the gate: anyone not laid up (tired from a run is fine). */
+/** Home and fit to hold the gate: anyone who can work (tired from a run is fine). */
 export function canDefend(s: Survivor): boolean {
-  return atDepot(s) && s.traits.every((t) => !getTrait(t.id).blocksRuns || getTrait(t.id).stillDefends === true);
+  return canWork(s);
 }
 
 /** Those who fight: the defenders still home and fit. */
