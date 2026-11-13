@@ -12,6 +12,7 @@ import { maxTraitHook, mulTraitHook } from '../traits.ts';
 import type { GameState, RunPlan, Survivor } from '../types.ts';
 import { crewLimit, findVehicle, gasNeeded, planVehicles, vehicleDef, vehicleName, vehicleProblem } from '../vehicles.ts';
 import { lineShare } from '../projects.ts';
+import { campAt } from '../vultures.ts';
 
 function crewOf(state: GameState, plan: RunPlan): Survivor[] {
   const out: Survivor[] = [];
@@ -102,6 +103,12 @@ export function validatePlan(state: GameState, plan: RunPlan): string[] {
   const depth = planDepth(plan);
   if (plan.depth !== undefined && (plan.depth < 1 || plan.depth > 3 || !Number.isInteger(plan.depth))) problems.push('That level does not exist.');
   else if (!depthOpen(state, loc.id, depth)) problems.push(`${DEPTH_NAMES[depth - 1]} opens once ${DEPTH_NAMES[depth - 2]!.toLowerCase()} ${depth === 2 ? 'are' : 'is'} fully explored.`);
+
+  if (plan.job === 'assault') {
+    // Only where the Vultures have a camp, and the camp is in the outskirts (§7.11).
+    if (!campAt(state, plan.locationId)) problems.push('The Vultures have no camp here.');
+    else if (depth > 1) problems.push('Their camp is in the outskirts.');
+  }
 
   if (plan.job === 'rescue') {
     // Only while someone is calling for help from here, and nobody has gone yet (§10.1).

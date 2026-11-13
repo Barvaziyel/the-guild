@@ -56,7 +56,7 @@ import { amountOf } from '../text.ts';
 import { maxTraitHook, sumTraitHook } from '../traits.ts';
 import type { Quality, ResourceId } from '../types.ts';
 import { QUALITIES, RESOURCE_IDS } from '../types.ts';
-import { buildEncounter, describeGroup, fight, type Enemy, type FightStart } from './combat.ts';
+import { buildEncounter, describeGroup, fight, type Enemy, type FightResult, type FightStart } from './combat.ts';
 import {
   absorbRads,
   bestBy,
@@ -108,11 +108,11 @@ export function addLoot(sim: Sim, res: ResourceId, amount: number): void {
 
 /**
  * A find's size out of this place: what was found, made richer by the danger
- * (§7.6), rounded to whole supplies so the expected amount is kept ("2.5" is
+ * (§7.6) and thinner where the Vultures work (§7.11), rounded to whole supplies so the expected amount is kept ("2.5" is
  * 2 or 3, half the time each). At least 1.
  */
 export function richFind(sim: Sim, amount: number): number {
-  const x = amount * richness(sim.plan);
+  const x = amount * richness(sim.plan) * sim.thin;
   const whole = Math.floor(x);
   return Math.max(1, whole + (sim.rng.chance(x - whole) ? 1 : 0));
 }
@@ -353,7 +353,7 @@ export function combatBeat(sim: Sim): void {
 }
 
 /** Fight it out and deal with the result: loot from the bodies, or a retreat home. */
-export function resolveFight(sim: Sim, enemies: Enemy[], start: FightStart): void {
+export function resolveFight(sim: Sim, enemies: Enemy[], start: FightStart): FightResult {
   const result = fight(sim, enemies, start);
   if (result.end === 'won') {
     const taken: Partial<Record<ResourceId, number>> = {};
@@ -365,6 +365,7 @@ export function resolveFight(sim: Sim, enemies: Enemy[], start: FightStart): voi
   } else if (result.end === 'withdrew') {
     sim.turnBack = true;
   }
+  return result;
 }
 
 // ---------------------------------------------------------------- social

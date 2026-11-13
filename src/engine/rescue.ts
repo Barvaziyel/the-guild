@@ -27,6 +27,7 @@ import { maxHp } from './stats.ts';
 import { fill, fullName, pronounForms } from './text.ts';
 import type { FoundNews, GameState, RescueCall, RescueNews, RescueTrouble, Run, Survivor } from './types.ts';
 import { STAT_IDS } from './types.ts';
+import { vulturesGet, vulturesTake } from './vultures.ts';
 
 export const RESCUE_TROUBLES: readonly RescueTrouble[] = ['trapped', 'hurt', 'cornered', 'lost'];
 
@@ -60,7 +61,10 @@ export function playRescueDay(state: GameState, day: number, rng: Rng): RescueCa
   const r = state.rescue;
   if (r.call) {
     if (!r.call.runId && day >= r.call.expiresDay) {
-      addGuildLog(state, day, `The voice from ${getLocation(r.call.locationId).name} has gone quiet. Nobody went for ${fullName(r.call.person)}.`, ['rescue']);
+      const place = getLocation(r.call.locationId).name;
+      // Nobody went: the Vultures may have (§7.11).
+      if (vulturesGet(state, rng)) vulturesTake(state, r.call.person, day, `The voice from ${place} has gone quiet. The Vultures got to {name} first.`);
+      else addGuildLog(state, day, `The voice from ${place} has gone quiet. Nobody went for ${fullName(r.call.person)}.`, ['rescue']);
       delete r.call;
       r.nextDay = day + rng.int(RESCUE_GAP[0], RESCUE_GAP[1]);
     }

@@ -11,6 +11,7 @@ import { refreshRecruits } from './recruits.ts';
 import { playDilemmaDay } from '../dilemmas.ts';
 import { playRescueDay } from '../rescue.ts';
 import { playFamilyDay } from '../family.ts';
+import { playVulturesDay } from '../vultures.ts';
 import { expireStrays } from '../animals.ts';
 
 export interface AdvanceResult {
@@ -60,6 +61,7 @@ export function advanceTime(state: GameState, now: number): AdvanceResult {
       playDilemmaDay(state, day, rng);
       playRescueDay(state, day, rng);
       playFamilyDay(state, day, rng);
+      playVulturesDay(state, day, rng);
     });
     state.depot.lastDay = day;
   }

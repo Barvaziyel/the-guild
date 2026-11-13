@@ -145,7 +145,7 @@ export function generateSurvivor(state: GameState, rng: Rng, opts: GenerateOptio
   const origin = opts.origin ? getOrigin(opts.origin) : pickOrigin(rng);
   const pronouns = opts.pronouns ?? rng.weighted(PRONOUN_WEIGHTS);
   // Avoid repeating first or last names within the guild (shared surnames would imply family).
-  const taken = new Set([...state.survivors, ...(state.children ?? [])].flatMap((x) => [x.firstName, x.lastName]));
+  const taken = new Set([...state.survivors, ...(state.children ?? []), ...(state.vultures?.people ?? []).map((m) => m.person)].flatMap((x) => [x.firstName, x.lastName]));
   const { first, last } = rollName(rng, pronouns, taken);
 
   const s: Survivor = {

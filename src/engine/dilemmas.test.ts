@@ -10,6 +10,7 @@ import { Rng } from './rng.ts';
 import { deserialize } from './save.ts';
 import { openGame, testGame } from './test-utils.ts';
 import { addTrait } from './traits.ts';
+import { playVulturesDay } from './vultures.ts';
 import type { GameState } from './types.ts';
 import { STAT_IDS } from './types.ts';
 
@@ -33,6 +34,17 @@ function guildFor(def: DilemmaDef, seed: string): GameState {
     becomePartners(state, a, b, 1);
     becomePartners(state, c, d, 1);
   }
+  // The Vultures' envoys: they've arrived, things stand as the decision needs, and the guild may hold one of theirs.
+  const v = def.needs?.vultures;
+  if (v) {
+    state.vultures.arriveDay = 1;
+    playVulturesDay(state, 1, new Rng(`v-${seed}`));
+    const band = v.bands?.[new Rng(`band-${seed}`).int(0, v.bands.length - 1)];
+    state.vultures.standing = band === 'war' ? -60 : band === 'truce' ? 20 : band === 'trade' ? 50 : -10;
+    state.vultures.strength = Math.max(state.vultures.strength, v.minStrength ?? 0);
+    if (!v.first) state.dilemmas.seen.vulture_first_contact = 1;
+    if (v.prisoner) state.vultures.people.find((m) => m.role === 'lieutenant')!.status = 'captured';
+  }
   return state;
 }
 
@@ -48,7 +60,7 @@ function told(def: DilemmaDef, text: string): RegExp {
 
 /** Placeholders a decision's texts may use: its roles' keys, and {place} where a place is revealed. */
 function checkText(def: DilemmaDef, text: string, where: string): void {
-  const roles = new Set(['a', ...(def.cast.b ? ['b'] : []), ...(def.needs?.stranger ? ['s'] : [])]);
+  const roles = new Set(['a', ...(def.cast.b ? ['b'] : []), ...(def.needs?.stranger ? ['s'] : []), ...(def.needs?.vultures ? ['v'] : []), ...(def.needs?.vultures?.prisoner ? ['p'] : [])]);
   for (const [, role, key] of text.matchAll(/\{(\w+)\.(\w+)\}/g)) {
     assert.ok(roles.has(role!), `${def.id} ${where}: role ${role} isn't cast`);
     assert.ok(['first', 'last', 'name', 'they', 'them', 'their', 'theirs', 'themself', 'is', 'was', 'has', 'does'].includes(key!.toLowerCase()), `${def.id} ${where}: {${role}.${key}}`);

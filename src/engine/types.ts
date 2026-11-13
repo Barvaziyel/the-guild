@@ -307,7 +307,7 @@ export interface Relationship {
 // ---------------------------------------------------------------- expeditions
 
 /** Rescue: answer a call for help (§10.1); only while someone is calling from that place. */
-export type RunJob = 'scavenge' | 'scout' | 'hunt' | 'rescue';
+export type RunJob = 'scavenge' | 'scout' | 'hunt' | 'rescue' | 'assault';
 export type Approach = 'sneaky' | 'balanced' | 'aggressive';
 /** When the crew pulls out of a fight: someone below half HP, someone downed, or never. */
 export type RetreatOrder = 'wounded' | 'downed' | 'never';
@@ -330,7 +330,7 @@ export interface RunPlan {
   depth?: number;
 }
 
-export type BeatKind = 'depart' | 'travel' | 'scavenge' | 'hazard' | 'combat' | 'social' | 'discovery' | 'rescue' | 'return';
+export type BeatKind = 'depart' | 'travel' | 'scavenge' | 'hazard' | 'combat' | 'social' | 'discovery' | 'rescue' | 'vultures' | 'return';
 
 /** A dice check shown next to a log line: "Wits 6+5 vs 10". */
 export interface CheckInfo {
@@ -448,6 +448,8 @@ export interface RunSummary {
   animals?: Animal[];
   /** People the crew found out there and brought home (§10). */
   found?: FoundNews[];
+  /** What the run did to the Vultures (§7.11). */
+  vultures?: VultureNews;
 }
 
 /** Someone a crew found out there, and who found them. */
@@ -630,6 +632,8 @@ export interface TradeOffer {
   vehicle?: Vehicle;
   /** The caravan leaves at the start of this day. */
   expiresDay: number;
+  /** The Vultures' own trader, once they're trading partners (§7.11): better swaps, and trading warms them. */
+  vultures?: true;
 }
 
 // ---------------------------------------------------------------- vehicles
@@ -665,10 +669,75 @@ export interface ActiveDilemma {
   cast: Record<string, string>;
   /** Someone at the gate, for decisions about a stranger. Joins the guild only if taken in. */
   stranger?: Survivor;
+  /** The Vultures' envoy, a member id, for their decisions (§7.11). Shown as {v}. */
+  envoy?: string;
+  /** A Vulture the guild holds, a member id, for the decisions about them. Shown as {p}. */
+  prisoner?: string;
   /** Game day it came up. */
   day: number;
   /** Game day on which, still unanswered, the people involved settle it themselves. */
   deadlineDay: number;
+}
+
+// ---------------------------------------------------------------- the Vultures (§7.11)
+
+export type VultureRole = 'boss' | 'lieutenant';
+/** free: with the Vultures; captured: the guild's prisoner; joined: one of the guild now. */
+export type VultureStatus = 'free' | 'captured' | 'dead' | 'joined';
+
+export interface VultureMember {
+  /** A person made like a survivor, for the portrait, name and stats. Their id is the member's id. */
+  person: Survivor;
+  role: VultureRole;
+  status: VultureStatus;
+  /** The place of the camp they hold, while free. */
+  campId?: string;
+  /** Whether the guild has met them (seen at the gate, on a run, in a fight). */
+  met: boolean;
+  /** What happened between them and the guild, oldest first. */
+  history: StoryLine[];
+}
+
+export interface VultureCamp {
+  locationId: string;
+  /** Game day it was set up. */
+  since: number;
+  /** Their first camp, where the boss is. */
+  home?: true;
+}
+
+export interface VulturesState {
+  /** The game day they turn up; until then they aren't in the Reach. */
+  arriveDay: number;
+  arrived: boolean;
+  /** −100 (war) to 100 (trading partners). */
+  standing: number;
+  /** 0 to 100: how many camps, how big their crews, how much they cut into the trade. */
+  strength: number;
+  camps: VultureCamp[];
+  people: VultureMember[];
+  /** Game day of their next camp, while their strength allows one. */
+  nextCampDay: number;
+  /** Game day a lost lieutenant (or boss) is replaced. */
+  nextPromotionDay?: number;
+  /** Driven out of their last camp: back on this game day, under a new boss. */
+  returnDay?: number;
+  /** Game day the next envoy may come to the gate (a decision, §9.5). */
+  nextEnvoyDay: number;
+}
+
+/** What a run did to the Vultures, applied when the crew is back (runs overlap, like nemeses). */
+export interface VultureNews {
+  standing: number;
+  strength: number;
+  /** Members met on the run. */
+  met: string[];
+  killed: string[];
+  captured: string[];
+  /** A camp the crew took (Hit their camp). */
+  campTaken?: string;
+  /** Lines for each member's history. */
+  history: { id: string; line: StoryLine }[];
 }
 
 export interface DilemmaState {
@@ -755,6 +824,8 @@ export interface GameState {
   animals: Animal[];
   /** Calls for help over the radio (§10.1). */
   rescue: RescueState;
+  /** The rival guild (§7.11). */
+  vultures: VulturesState;
   log: GuildLogEntry[];
   settings: {
     mercyMode: boolean;

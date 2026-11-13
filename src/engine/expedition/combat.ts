@@ -66,6 +66,8 @@ export interface Enemy {
   downed: Member[];
   /** One of the guild's nemeses (the run's copy). */
   nemesis?: Nemesis;
+  /** One of the Vultures' named people (§7.11): their member id and name. */
+  vulture?: { id: string; name: string };
   /** A nemesis gets one try per fight at slipping away. */
   escapeTried?: boolean;
 }
@@ -127,9 +129,9 @@ export function buildEncounter(sim: Sim): Enemy[] {
 
 /** "three Rad-hounds", "a Raider Gunner and two Raider Scavs", "Old Notch and a Rad-hound". */
 export function describeGroup(enemies: readonly Enemy[]): string {
-  const parts: string[] = enemies.filter((e) => e.nemesis).map((e) => e.nemesis!.name);
+  const parts: string[] = enemies.filter((e) => e.nemesis || e.vulture).map((e) => e.nemesis?.name ?? e.vulture!.name);
   const counts = new Map<EnemyDef, number>();
-  for (const e of enemies) if (!e.nemesis) counts.set(e.def, (counts.get(e.def) ?? 0) + 1);
+  for (const e of enemies) if (!e.nemesis && !e.vulture) counts.set(e.def, (counts.get(e.def) ?? 0) + 1);
   for (const [def, n] of counts) parts.push(n === 1 ? withArticle(def.name) : `${numberWord(n)} ${def.plural}`);
   return listNames(parts);
 }

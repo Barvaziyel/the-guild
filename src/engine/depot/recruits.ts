@@ -12,6 +12,7 @@ import { maxHp } from '../stats.ts';
 import type { Candidate, GameState, Survivor } from '../types.ts';
 import { STAT_IDS } from '../types.ts';
 import { bunksCap, hasFreeBunk, workingLevel } from './buildings.ts';
+import { vulturesGet, vulturesTake } from '../vultures.ts';
 
 /** The day's chance that someone answers the radio. */
 export function radioAnswerChance(state: GameState): number {
@@ -37,6 +38,10 @@ export function generateCandidate(state: GameState, rng: Rng, day: number): Surv
  * then someone answers the radio (more often with a Radio Tower).
  */
 export function refreshRecruits(state: GameState, day: number, rng: Rng): void {
+  // Left waiting until they give up, they may go to the Vultures instead (§7.11).
+  for (const c of state.depot.recruits) {
+    if (c.expiresDay <= day && vulturesGet(state, rng)) vulturesTake(state, c.survivor, day, '{name} got tired of waiting at the gate, and went to the Vultures.');
+  }
   state.depot.recruits = state.depot.recruits.filter((c) => c.expiresDay > day);
   if (rng.chance(radioAnswerChance(state))) addRadioRecruit(state, day, rng);
 }

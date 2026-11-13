@@ -5,7 +5,8 @@
  * on luck. Left unanswered for about a real day, the people involved settle it
  * themselves, usually not the best way.
  *
- * Text placeholders: {a.first}, {b.first}, {s.first} (the stranger), and each
+ * Text placeholders: {a.first}, {b.first}, {s.first} (the stranger), {v.first}
+ * (the Vultures' envoy), {p.first} (a Vulture the guild holds prisoner), and each
  * role's pronouns: {a.they}, {b.Their}, {s.them}... Survivors are men or women,
  * so verbs are singular: "{a.They} says".
  *
@@ -46,7 +47,15 @@ export type DilemmaEffect =
   /** Someone new turns up at the gate. */
   | { kind: 'wanderer' }
   /** They walk out of the guild for good, with what they carry (1.9.0). `reason` is their last Chronicle line. */
-  | { kind: 'leaves'; who: 'a' | 'b'; reason: string };
+  | { kind: 'leaves'; who: 'a' | 'b'; reason: string }
+  /** The Vultures (§7.11): standing and strength up or down; `atLeast` raises standing to at least this. */
+  | { kind: 'vultures'; standing?: number; strength?: number; atLeast?: number }
+  /** The envoy is taken prisoner. */
+  | { kind: 'captured' }
+  /** The prisoner goes back to the Vultures. */
+  | { kind: 'released' }
+  /** The Vultures raid the Depot, now. */
+  | { kind: 'raid' };
 
 export interface DilemmaOutcome {
   test?: DilemmaTest;
@@ -69,7 +78,16 @@ export interface DilemmaDef {
     b?: { with?: 'close' | 'apart' | 'feud' | 'partner' };
   };
   /** What has to be true for it to come up. */
-  needs?: { supplies?: Partial<Resources>; stranger?: true; undiscovered?: true };
+  needs?: {
+    supplies?: Partial<Resources>;
+    stranger?: true;
+    undiscovered?: true;
+    /**
+     * An envoy from the Vultures (§7.11): comes only on their schedule, with one of their people as {v}.
+     * `first`: their first visit. `bands`: how things must stand. `prisoner`: the guild holds one of theirs, as {p}.
+     */
+    vultures?: { first?: true; bands?: readonly ('war' | 'wary' | 'truce' | 'trade')[]; minStrength?: number; prisoner?: true };
+  };
   choices: readonly [DilemmaChoice, DilemmaChoice, DilemmaChoice, DilemmaChoice];
   /** What happens when nobody decides. */
   unanswered: readonly DilemmaOutcome[];
@@ -1167,6 +1185,218 @@ export const DILEMMAS: readonly DilemmaDef[] = [
         ],
       },
     ],
+  },
+  // ------------------------------------------------------------ the Vultures' envoys (§7.11)
+  // They come on the Vultures' own schedule, with one of their people as {v}.
+  {
+    id: 'vulture_first_contact',
+    title: 'Black feathers at the gate',
+    text: '{v.first} {v.last} of the Vultures is at the gate, alone, hands where everyone can see them. "The Reach is big. We\'d like to keep it that way: you work your places, we work ours." {a.first} went out to hear {v.them} out.',
+    cast: { a: {} },
+    needs: { vultures: { first: true } },
+    chronicle: { a: 'Met {v.first} {v.last} of the Vultures at the gate.' },
+    choices: [
+      {
+        label: 'Agree: your places and ours.',
+        outcomes: [{ text: '{v.first} nods once and leaves the way {v.they} came. The Vultures will remember that the guild talked first.', effects: [{ kind: 'vultures', standing: 20 }] }],
+      },
+      {
+        label: 'Ask {v.them} in for a meal.',
+        outcomes: [
+          {
+            test: { stat: 'nerve', who: 'a', dc: 10 },
+            text: '{v.first} eats like someone who hasn\'t in a while, and talks more than {v.they} meant to: about the Vultures, and about a place the guild hasn\'t found, {place}.',
+            effects: [{ kind: 'supplies', change: { rations: -6 } }, { kind: 'vultures', standing: 15 }, { kind: 'reveal' }],
+          },
+          { text: '{v.first} eats in silence, thanks {a.first}, and goes. Hard to say what {v.they} made of the place.', effects: [{ kind: 'supplies', change: { rations: -6 } }, { kind: 'vultures', standing: 10 }] },
+        ],
+      },
+      {
+        label: 'Tell {v.them} the Reach is ours.',
+        outcomes: [
+          {
+            test: { stat: 'nerve', who: 'best', dc: 12 },
+            text: '{v.first} looks at the fence, the people on it, and nods slowly. "We\'ll see." It sounded more like respect than a threat.',
+            effects: [{ kind: 'vultures', standing: -10 }],
+          },
+          { text: '{v.first} laughs. "We\'ll see." It sounded like a threat.', effects: [{ kind: 'vultures', standing: -20 }] },
+        ],
+      },
+      {
+        label: 'Take {v.them} prisoner.',
+        outcomes: [
+          { test: { chance: 0.7 }, text: '{a.first} and two others have {v.first} on the ground before {v.they} can run. The Vultures will hear of it by nightfall.', effects: [{ kind: 'captured' }, { kind: 'vultures', standing: -40 }] },
+          { text: '{v.first} is faster than {v.they} looks, and over the fence before anyone reaches {v.them}. The Vultures will hear of it by nightfall.', effects: [{ kind: 'vultures', standing: -30 }] },
+        ],
+      },
+    ],
+    unanswered: [{ text: 'Nobody came out to talk. {v.first} waited an hour at the gate, spat, and left.', effects: [{ kind: 'vultures', standing: -5 }] }],
+  },
+  {
+    id: 'vulture_tribute',
+    title: 'A toll for the Reach',
+    text: '{v.first} is back, with more of them this time, waiting just out of range. "Everybody who works the Reach pays the Vultures. Thirty scrap and twenty rations, and your crews come home." {a.first} is the one at the gate.',
+    cast: { a: {} },
+    needs: { vultures: { bands: ['war', 'wary'], minStrength: 40 } },
+    choices: [
+      {
+        label: 'Pay it.',
+        outcomes: [{ text: '{v.first} counts it twice, and they go. For now, the roads are quieter.', effects: [{ kind: 'supplies', change: { scrap: -30, rations: -20 } }, { kind: 'vultures', standing: 10, strength: 2 }] }],
+      },
+      {
+        label: 'Haggle.',
+        outcomes: [
+          {
+            test: { stat: 'nerve', who: 'best', dc: 12 },
+            text: 'It takes an hour at the gate, but {v.first} goes away with half, and something like a grin.',
+            effects: [{ kind: 'supplies', change: { scrap: -15, rations: -10 } }, { kind: 'vultures', standing: 5, strength: 1 }],
+          },
+          {
+            text: '{v.first} doesn\'t haggle. The guild pays the full toll, and a little more for the trouble.',
+            effects: [{ kind: 'supplies', change: { scrap: -35, rations: -20 } }, { kind: 'vultures', standing: 5, strength: 2 }],
+          },
+        ],
+      },
+      {
+        label: 'Refuse.',
+        outcomes: [
+          { test: { chance: 0.5 }, text: '{v.first} shrugs. "Your funeral." They go, slowly.', effects: [{ kind: 'vultures', standing: -15 }] },
+          { text: 'They don\'t wait for the funeral.', effects: [{ kind: 'vultures', standing: -15 }, { kind: 'raid' }] },
+        ],
+      },
+      {
+        label: 'Take {v.first} prisoner.',
+        outcomes: [
+          { test: { stat: 'aim', who: 'best', dc: 11 }, text: 'Two shots over their heads, and the rest of them scatter. {v.first} doesn\'t get as far.', effects: [{ kind: 'captured' }, { kind: 'vultures', standing: -30 }] },
+          { text: 'They were ready for that. {a.first} comes back inside bleeding, and {v.first} comes back not at all.', effects: [{ kind: 'hurt', who: 'a', amount: 6 }, { kind: 'vultures', standing: -25 }] },
+        ],
+      },
+    ],
+    unanswered: [{ text: 'Nobody answered. The Vultures took their toll anyway, from the gardens, in the night.', effects: [{ kind: 'supplies', change: { rations: -25 } }, { kind: 'vultures', standing: -5 }] }],
+  },
+  {
+    id: 'vulture_trade',
+    title: 'A deal with the Vultures',
+    text: '{v.first} has a cart of salvage and a proposal for {a.first}: "Your rations for our tech. You\'ve more mouths than parts, and we\'re the other way round." Twenty rations for eight tech.',
+    cast: { a: {} },
+    needs: { vultures: { bands: ['truce', 'trade'] }, supplies: { rations: 20 } },
+    choices: [
+      {
+        label: 'Deal.',
+        outcomes: [{ text: 'They load the rations and unload the tech, and {v.first} shakes {a.first}\'s hand.', effects: [{ kind: 'supplies', change: { rations: -20, tech: 8 } }, { kind: 'vultures', standing: 5 }] }],
+      },
+      {
+        label: 'Ask for more.',
+        outcomes: [
+          { test: { stat: 'nerve', who: 'a', dc: 11 }, text: '{v.first} grumbles, and throws in four more.', effects: [{ kind: 'supplies', change: { rations: -20, tech: 12 } }, { kind: 'vultures', standing: 3 }] },
+          { text: '{v.first} turns the cart around. "Some other day."', effects: [{ kind: 'vultures', standing: -3 }] },
+        ],
+      },
+      {
+        label: 'Ask what they\'ve heard instead.',
+        outcomes: [{ text: '{v.first} trades gossip for a cup of something hot: a place the guild hasn\'t found, {place}.', effects: [{ kind: 'reveal' }, { kind: 'vultures', standing: 2 }] }],
+      },
+      {
+        label: 'Not today.',
+        outcomes: [{ text: '{v.first} shrugs. There\'ll be other days.', effects: [{ kind: 'vultures', standing: -2 }] }],
+      },
+    ],
+    unanswered: [{ text: '{v.first} waited at the gate until dark, and took the cart home.', effects: [{ kind: 'vultures', standing: -3 }] }],
+  },
+  {
+    id: 'vulture_truce_offer',
+    title: 'Peace, or something like it',
+    text: '{v.first} comes under a white rag tied to a pole. "This is costing us both. A truce: nobody hits anybody\'s camp, crews pass crews." {a.first} has the gate.',
+    cast: { a: {} },
+    needs: { vultures: { bands: ['war'] } },
+    choices: [
+      {
+        label: 'Accept.',
+        outcomes: [{ text: '{v.first} ties the rag to the gate and leaves it there. The guild leaves it there too.', effects: [{ kind: 'vultures', atLeast: 10 }] }],
+      },
+      {
+        label: 'Make them pay for it.',
+        outcomes: [
+          {
+            test: { stat: 'nerve', who: 'best', dc: 12 },
+            text: 'It costs the Vultures twenty scrap and ten meds, and {v.first} pays it with a straight face.',
+            effects: [{ kind: 'supplies', change: { scrap: 20, meds: 10 } }, { kind: 'vultures', atLeast: 10 }],
+          },
+          { text: '{v.first} walks away. The war goes on.', effects: [{ kind: 'vultures', standing: -5 }] },
+        ],
+      },
+      {
+        label: 'Refuse.',
+        outcomes: [{ text: '{v.first} takes the rag down and goes. The war goes on.', effects: [{ kind: 'vultures', standing: -5 }] }],
+      },
+      {
+        label: 'Take the messenger.',
+        outcomes: [
+          {
+            test: { chance: 0.6 },
+            text: 'They have {v.first} before {v.they} gets the pole down. Not everyone at the Depot liked how.',
+            effects: [{ kind: 'captured' }, { kind: 'vultures', standing: -20 }, { kind: 'stress', who: 'home', amount: 4 }],
+          },
+          { text: '{v.first} got away, and so did any chance of peace for a while.', effects: [{ kind: 'vultures', standing: -20 }] },
+        ],
+      },
+    ],
+    unanswered: [{ text: 'Nobody came out under a white flag of their own. {v.first} left the rag on the gate, and the war went on.', effects: [] }],
+  },
+  {
+    id: 'vulture_defector',
+    title: 'A Vulture at the gate',
+    text: 'Someone is at the gate with the black feathers torn off {s.their} collar: {s.first}, who says the Vultures are no place for {s.them} any more. "I know how they work. Let me in." {v.first} won\'t like it, whatever the guild does. {a.first} keeps an eye on {s.them}.',
+    cast: { a: {} },
+    needs: { vultures: {}, stranger: true },
+    choices: [
+      {
+        label: 'Let {s.them} in.',
+        outcomes: [{ text: '{s.first} takes the bunk nobody wanted, and the Vultures are a little smaller tonight.', effects: [{ kind: 'joins' }, { kind: 'vultures', standing: -10, strength: -3 }] }],
+      },
+      {
+        label: 'Hear {s.them} out, then send {s.them} on.',
+        outcomes: [{ text: '{s.first} talks for an hour: where they go, who they fear. One of the places is {place}. Then {s.they} goes, toward the edge of the Reach.', effects: [{ kind: 'reveal' }] }],
+      },
+      {
+        label: 'Send {s.them} back to the Vultures.',
+        outcomes: [{ text: '{v.first} comes for {s.first} the next morning, and nods at the gate on the way out.', effects: [{ kind: 'vultures', standing: 10 }, { kind: 'stress', who: 'a', amount: 4 }] }],
+      },
+      {
+        label: 'Turn {s.them} away.',
+        outcomes: [{ text: '{s.first} goes, without looking back.', effects: [] }],
+      },
+    ],
+    unanswered: [{ text: '{s.first} waited a night at the gate, and moved on toward the edge of the Reach.', effects: [] }],
+  },
+  {
+    id: 'vulture_exchange',
+    title: 'A prisoner exchange',
+    text: '{v.first} wants {p.first} back. "Twenty-five scrap and ten tech. More than {p.they}\'s worth, between us." {p.first} is listening from the storeroom. {a.first} has the gate.',
+    cast: { a: {} },
+    needs: { vultures: { prisoner: true } },
+    choices: [
+      {
+        label: 'Agree.',
+        outcomes: [{ text: '{p.first} walks out to {v.first} without a word, and the scrap and tech come in.', effects: [{ kind: 'released' }, { kind: 'supplies', change: { scrap: 25, tech: 10 } }, { kind: 'vultures', standing: 15 }] }],
+      },
+      {
+        label: 'Ask for more.',
+        outcomes: [
+          { test: { stat: 'nerve', who: 'best', dc: 12 }, text: '{v.first} pays forty scrap and fifteen tech, and doesn\'t look happy about it.', effects: [{ kind: 'released' }, { kind: 'supplies', change: { scrap: 40, tech: 15 } }, { kind: 'vultures', standing: 10 }] },
+          { text: '"Keep {p.them}, then." {v.first} doesn\'t look back.', effects: [{ kind: 'vultures', standing: -5 }] },
+        ],
+      },
+      {
+        label: 'Let {p.first} go for nothing.',
+        outcomes: [{ text: '{p.first} stops at the gate, looks back once, and goes with {v.first}.', effects: [{ kind: 'released' }, { kind: 'vultures', standing: 20 }] }],
+      },
+      {
+        label: '{p.first} stays.',
+        outcomes: [{ text: '{v.first} goes. {p.first} watches {v.them} go.', effects: [{ kind: 'vultures', standing: -10 }] }],
+      },
+    ],
+    unanswered: [{ text: 'Nobody answered. {v.first} left, and {p.first} watched {v.them} go.', effects: [{ kind: 'vultures', standing: -5 }] }],
   },
 ];
 

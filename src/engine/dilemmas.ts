@@ -7,7 +7,7 @@
  * Content is data in `content/dilemmas.ts`; this file casts, plays and settles.
  */
 import { addChronicle, addGuildLog } from './chronicle.ts';
-import { DILEMMA_DAYS, DILEMMA_GAP } from './constants.ts';
+import { DILEMMA_DAYS, DILEMMA_GAP, VULTURES_BOSS_STRENGTH, VULTURES_ENVOY_GAP, VULTURES_LIEUTENANT_STRENGTH, VULTURES_RAID_DC } from './constants.ts';
 import { DILEMMAS, getDilemma, getLocation, type DilemmaDef, type DilemmaEffect, type DilemmaOutcome, type DilemmaTest, type DilemmaWho } from './content/index.ts';
 import { atDepot, hasFreeBunk } from './depot/buildings.ts';
 import { frontier } from './depot/day.ts';
@@ -15,12 +15,14 @@ import { addWanderer, generateCandidate } from './depot/recruits.ts';
 import { dayAt, recruit, withRng } from './game.ts';
 import { ensureLocationState } from './locations.ts';
 import { leaveGuild } from './leaving.ts';
+import { raid } from './depot/events.ts';
+import { changeStanding, changeStrength, freeLieutenants, noteMember, prisoners, vultureBand, vultureBoss, vultureMember, vulturesActive } from './vultures.ts';
 import { adjustRelationship, arePartners, relationshipLabel } from './relationships.ts';
 import type { Rng } from './rng.ts';
 import { addPractice, changeStress, effectiveStat, maxHp, rollCheck } from './stats.ts';
 import { fillRoles } from './text.ts';
 import { addTrait, hasTrait } from './traits.ts';
-import type { ActiveDilemma, GameState, Resources, Survivor } from './types.ts';
+import type { ActiveDilemma, GameState, Resources, Survivor, VultureMember } from './types.ts';
 import { RESOURCE_IDS } from './types.ts';
 
 /** What a decision came to: shown to the player and written in the news. */
@@ -42,6 +44,17 @@ export function dilemmaRoles(state: GameState, d: ActiveDilemma): Record<string,
     roles[role] = s;
   }
   if (d.stranger) roles.s = state.survivors.find((x) => x.id === d.stranger!.id) ?? d.stranger;
+  // The Vultures' envoy, still one of theirs; a prisoner, still the guild's (§7.11).
+  if (d.envoy) {
+    const m = vultureMember(state, d.envoy);
+    if (!m || m.status !== 'free') return undefined;
+    roles.v = m.person;
+  }
+  if (d.prisoner) {
+    const m = vultureMember(state, d.prisoner);
+    if (!m || m.status !== 'captured') return undefined;
+    roles.p = m.person;
+  }
   return roles;
 }
 
@@ -79,7 +92,29 @@ function cast(state: GameState, def: DilemmaDef, rng: Rng): Record<string, strin
 function fits(state: GameState, def: DilemmaDef): boolean {
   if (!afford(state, def.needs?.supplies)) return false;
   if (def.needs?.undiscovered && frontier(state).length === 0) return false;
+  const v = def.needs?.vultures;
+  if (v) {
+    if (!vulturesActive(state) || !envoyFor(state)) return false;
+    const met = (state.dilemmas.seen[FIRST_CONTACT] ?? 0) > 0;
+    if (v.first ? met : !met) return false;
+    if (v.bands && !v.bands.includes(vultureBand(state))) return false;
+    if (v.minStrength !== undefined && state.vultures.strength < v.minStrength) return false;
+    if (v.prisoner && prisoners(state).length === 0) return false;
+  }
   return true;
+}
+
+/** The Vultures' first visit: the decision every other envoy waits for. */
+const FIRST_CONTACT = 'vulture_first_contact';
+
+/** Who the Vultures send: a lieutenant, or the boss when there are none. */
+function envoyFor(state: GameState): VultureMember | undefined {
+  return freeLieutenants(state)[0] ?? vultureBoss(state);
+}
+
+/** An envoy's due: the Vultures are here, and their day has come. */
+function envoyDue(state: GameState, day: number): boolean {
+  return vulturesActive(state) && day >= state.vultures.nextEnvoyDay;
 }
 
 // ---------------------------------------------------------------- coming up and settling
@@ -101,20 +136,33 @@ export function playDilemmaDay(state: GameState, day: number, rng: Rng): Dilemma
     if (day < active.deadlineDay) return undefined;
     return resolve(state, getDilemma(active.defId).unanswered, undefined, day, rng);
   }
+  // The Vultures keep their own schedule (§7.11): an envoy comes when it's due, whatever else is.
+  if (envoyDue(state, day)) {
+    const d = startDilemma(state, day, rng, undefined, true);
+    state.vultures.nextEnvoyDay = day + (d ? rng.int(VULTURES_ENVOY_GAP[0], VULTURES_ENVOY_GAP[1]) : 1);
+    if (d) return undefined;
+  }
   if (day < state.dilemmas.nextDay) return undefined;
   startDilemma(state, day, rng);
   return undefined;
 }
 
 /** Bring up a decision, if one fits the guild today. New ones come first. Returns it. */
-export function startDilemma(state: GameState, day: number, rng: Rng, only?: string): ActiveDilemma | undefined {
-  const options = DILEMMAS.filter((d) => (!only || d.id === only) && fits(state, d));
+export function startDilemma(state: GameState, day: number, rng: Rng, only?: string, envoy = false): ActiveDilemma | undefined {
+  // The Vultures' decisions come only as envoys, on their schedule; `only` asks for one directly (tests).
+  const options = DILEMMAS.filter((d) => (only ? d.id === only : (d.needs?.vultures !== undefined) === envoy) && fits(state, d));
   const picks = rng.shuffle([...options]).sort((a, b) => (state.dilemmas.seen[a.id] ?? 0) - (state.dilemmas.seen[b.id] ?? 0));
   for (const def of picks) {
     const who = cast(state, def, rng);
     if (!who) continue;
     const d: ActiveDilemma = { defId: def.id, cast: who, day, deadlineDay: day + DILEMMA_DAYS };
     if (def.needs?.stranger) d.stranger = generateCandidate(state, rng, day);
+    if (def.needs?.vultures) {
+      const envoy = envoyFor(state)!;
+      envoy.met = true;
+      d.envoy = envoy.person.id;
+      if (def.needs.vultures.prisoner) d.prisoner = prisoners(state)[0]!.person.id;
+    }
     state.dilemmas.active = d;
     state.dilemmas.seen[def.id] = (state.dilemmas.seen[def.id] ?? 0) + 1;
     return d;
@@ -247,6 +295,32 @@ function apply(state: GameState, e: DilemmaEffect, roles: Record<string, Survivo
       if (s && state.survivors.includes(s)) leaveGuild(state, s, day, fillRoles(e.reason, roles), rng);
       return undefined;
     }
+    case 'vultures':
+      if (e.standing) changeStanding(state, e.standing, day);
+      if (e.atLeast !== undefined && state.vultures.standing < e.atLeast) changeStanding(state, e.atLeast - state.vultures.standing, day);
+      if (e.strength) changeStrength(state, e.strength);
+      return undefined;
+    case 'captured': {
+      const m = d.envoy ? vultureMember(state, d.envoy) : undefined;
+      if (!m || m.status !== 'free') return undefined;
+      m.status = 'captured';
+      delete m.campId;
+      changeStrength(state, m.role === 'boss' ? VULTURES_BOSS_STRENGTH : VULTURES_LIEUTENANT_STRENGTH);
+      noteMember(m, day, 'Taken prisoner at the guild\'s gate.');
+      return undefined;
+    }
+    case 'released': {
+      const m = d.prisoner ? vultureMember(state, d.prisoner) : undefined;
+      if (!m || m.status !== 'captured') return undefined;
+      m.status = 'free';
+      const home = state.vultures.camps.find((c) => c.home) ?? state.vultures.camps[0];
+      if (home) m.campId = home.locationId;
+      noteMember(m, day, 'Traded back to the Vultures by the guild.');
+      return undefined;
+    }
+    case 'raid':
+      raid(state, day, rng, { name: 'The Vultures', lower: 'the Vultures', dc: VULTURES_RAID_DC });
+      return undefined;
   }
 }
 

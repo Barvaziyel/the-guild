@@ -8,6 +8,7 @@ import { initRelationships } from './relationships.ts';
 import { Rng } from './rng.ts';
 import { fullName } from './text.ts';
 import type { GameState, Survivor } from './types.ts';
+import { newVultures } from './vultures.ts';
 
 export interface NewGameOptions {
   seed: string;
@@ -102,6 +103,7 @@ export function newGame(opts: NewGameOptions): GameState {
     memorial: [],
     departed: [],
     children: [],
+    vultures: newVultures(),
     relationships: {},
     stash: [],
     resources: { ...STARTING_RESOURCES },

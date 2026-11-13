@@ -43,6 +43,8 @@ import type {
   Survivor,
   TraitHooks,
   Vehicle,
+  VultureMember,
+  VultureNews,
 } from '../types.ts';
 
 export interface Member {
@@ -117,6 +119,24 @@ export interface Sim {
   animals: Animal[];
   /** People coming home with the crew to join (§10). */
   found: FoundNews[];
+  /** The Vultures as they stand for this run (§7.11), if the place is in their turf or it's an attack on a camp. */
+  vultures?: SimVultures;
+  /** Finds out here are this much thinner: the Vultures work the place (§7.11). */
+  thin: number;
+}
+
+/** What a run knows of the Vultures: copies, so the real ones only change when the crew is back. */
+export interface SimVultures {
+  band: 'war' | 'wary' | 'truce' | 'trade';
+  standing: number;
+  strength: number;
+  /** Their camp at this place, if any, and who holds it. */
+  camp?: { locationId: string; home: boolean; leader?: VultureMember };
+  /** A lieutenant from a camp next door, who may lead a crew here. */
+  nearby?: VultureMember;
+  /** They've been met on this run (at most once). */
+  met: boolean;
+  news: VultureNews;
 }
 
 /** A vehicle on a run. */
