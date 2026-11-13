@@ -567,7 +567,7 @@ export function payRaiders(state: GameState, now: number): void {
   if (raid.by === 'vultures') {
     applyVultureNews(state, { standing: VULTURES_TOLL_STANDING, strength: VULTURES_TAKEN_STRENGTH, met: [], killed: [], captured: [], history: [] }, day, new Rng(`raid-after:${raid.seed}`));
   }
-  addGuildLog(state, day, `${name} came for ${raidPlace(raid)}. The guild ${gave ? `handed over ${gave}` : `paid them ${costText(paid)}`} to make them go away.`, ['raid']);
+  addGuildLog(state, day, `${name} came for ${raidPlace(raid)}. The guild ${gave ? `handed over ${gave}` : `paid them ${costText(paid)}`} to make them go away.`, ['raid', raid.id]);
   raid.ended = now;
   raid.end = 'paid';
 }
@@ -633,7 +633,7 @@ export function stareDown(state: GameState, now: number): boolean {
   const { name, lower } = raidersName(state, raid);
   if (!result.success) return false;
   addChronicle(talker, day, `Stared down ${lower} at the gate.`, ['raid']);
-  addGuildLog(state, day, `${name} came for the Depot. ${talker.firstName} stared them down at the gate, and they went away.`, ['raid']);
+  addGuildLog(state, day, `${name} came for ${raidPlace(raid)}. ${talker.firstName} stared them down, and they went away.`, ['raid', raid.id]);
   raid.ended = now;
   raid.end = 'stared';
   return true;
@@ -679,13 +679,13 @@ function finish(state: GameState, raid: DepotRaid, at: number): void {
       addChronicle(s, day, `Held ${where} against ${lower}.`, ['raid']);
     }
     const bands = raid.waves === 2 ? ' both bands' : ' them';
-    addGuildLog(state, day, `${name} came for ${place}. ${listNames(names)} drove${bands} off${led}.`, ['raid']);
+    addGuildLog(state, day, `${name} came for ${place}. ${listNames(names)} drove${bands} off${led}.`, ['raid', raid.id]);
     if (result) takeSpoils(state, raid, result, day, rng);
   } else {
     for (const s of fought) addChronicle(s, day, `Fought ${lower} at ${where}, and couldn’t keep them out.`, ['raid']);
     if (raid.outpost) {
       const outpost = findOutpost(state, raid.outpost);
-      if (outpost) outpostBroken(state, outpost, day, rng, { name, lower, dc: 0 }, fought.length > 0);
+      if (outpost) outpostBroken(state, outpost, day, rng, { name, lower, dc: 0 }, fought.length > 0, [raid.id]);
     } else breakIn(state, raid, day, rng, name, fought.length);
   }
   raid.ended = at;
@@ -715,11 +715,11 @@ function takeSpoils(state: GameState, raid: DepotRaid, result: RaidFight, day: n
   raid.spoils = spoils;
   const bits: string[] = [];
   if (Object.keys(spoils.found).length > 0) bits.push(costText(spoils.found));
-  if (spoils.gear.length > 0) bits.push(listNames(spoils.gear.map((uid) => itemName(state.stash.find((i) => i.uid === uid)!))));
-  if (bits.length > 0) addGuildLog(state, day, `They left behind ${listNames(bits)}.`, ['raid']);
+  if (spoils.gear.length > 0) bits.push(listNames(spoils.gear.map((uid) => withArticle(itemName(state.stash.find((i) => i.uid === uid)!)))));
+  if (bits.length > 0) addGuildLog(state, day, `They left behind ${listNames(bits)}.`, ['raid', raid.id]);
   if (spoils.captive) {
     const c = state.captives.find((x) => x.person.id === spoils.captive)!;
-    addGuildLog(state, day, `One of them was left behind alive: ${fullName(c.person)}, now held at the Depot.`, ['raid', 'captive', c.person.id]);
+    addGuildLog(state, day, `One of them was left behind alive: ${fullName(c.person)}, now held at the Depot.`, ['raid', raid.id, 'captive', c.person.id]);
   }
 }
 
@@ -788,6 +788,11 @@ function breakIn(state: GameState, raid: DepotRaid, day: number, rng: Rng, name:
   const people = hurt.length > 0 ? ` ${listNames(hurt.map((s) => s.firstName))} ${hurt.length === 1 ? 'was' : 'were'} hurt.` : '';
   const nobody = defenders === 0 ? ' Nobody was home to stop them.' : '';
   addGuildLog(state, day, `${name} broke into the Depot.${nobody}${lost}${drove}${freed}${beaten}${people}`, ['raid', raid.id]);
+}
+
+/** "a Rusty Pipe", "an Old Machete". */
+function withArticle(name: string): string {
+  return `${/^[AEIOU]/i.test(name) ? 'an' : 'a'} ${name}`;
 }
 
 function listNames(names: string[]): string {

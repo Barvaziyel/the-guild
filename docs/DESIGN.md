@@ -475,11 +475,13 @@ Expansion: camps out in the Reach that extend what the guild can reach and bring
   - Nobody dies of it: health never drops below 1, and anyone left under a third of their health is Wounded. Hurts and sickness go in the news and the Chronicle. Measured: 2–6 such lines per 60 days, from Maple Street to the Glow.
 - **Shorter runs.** A run to the place, or to any place next to it on the roads, sets out from the outpost and takes half the time (and half the gas).
 - **A rest stop.** A crew heading home from a run there or next door stops at the outpost: +2 HP and −8 stress each (not a crew walking home from a wreck, or a lost run).
-- **Raids.** Each day an outpost is raided with a chance of 0.5% + 0.5% × danger. Its people hold it on d10 + the best Aim among them + 1 for each other fit person, against 7 + danger.
-  - **Held:** Aim practice, +5 stress each.
-  - **Broken:** +10 stress each and one is Wounded. The outpost is **damaged** and sends home half until it's mended (15 scrap). Broken again while damaged, it **burns**: it's gone, and its people come home.
+- **Raids.** Each day an outpost is raided with a chance of 0.5% + 0.5% × danger. Since 2.1.0 (Aviel: "like the gate") it's a raid like the Depot's (§9.8): a notice when they arrive (an outpost has no Watchtower to see them coming), a 3-hour wait, then take command or let them fight; whoever lives there and isn't laid up defends. One raid at a time anywhere: an outpost raid on a day one is already on passes by.
+  - The fight: raiders bought for the defenders there (at least one), ×0.75, at a gentler danger than the place's own (1, 2, 2, 2, 3 for danger 1–5: raiders who come for a camp aren't the worst the place has). No meds; the Depot's ammo. Nobody dies, as at the gate.
+  - **Held:** Aim practice and a Chronicle line; the spoils go home (§9.8).
+  - **Broken:** +10 stress each. The outpost is **damaged** and sends home half until it's mended (15 scrap). Broken again while damaged, it **burns**: it's gone, and its people come home.
   - An empty outpost can't be held, so it's damaged by the first raid and burns at the second.
-  - Measured over 120 days with no mending: three people at Maple Street lost it 0% of the time; three at Checkpoint Bravo 22%; nobody at all, 37–84%.
+  - Measured (250 raids each, fresh people, no orders): Maple Street with one, two or three people held 80%, 82%, 94% (the old roll: 68%, 89%, 97%); Kessler Farm 75%, 73%, 82% (62%, 78%, 91%); St. Jude's 76%, 71%, 85% (48%, 67%, 82%); Checkpoint Bravo 79%, 76%, 82% (39%, 59%, 73%); the Glow 8%, 22%, 48% (29%, 45%, 64%). Gear counts now, which the roll ignored.
+  - *Before 2.1.0:* d10 + the best Aim there + 1 for each other fit person, against 7 + danger; broken, one was Wounded. Over 120 days with no mending, three people at Maple Street lost it 0% of the time; three at Checkpoint Bravo 22%.
 - **Where they show:** the Outpost tab says what life is like there with the place's numbers; a flag on the map (torn while damaged), a tag in the list of places, the Depot's *Out in the Reach* panel, the header count ("2 at the outpost"), the yard's list of who's away, the roster and sheet ("At the outpost at Maple Street"), and the sheet's post picker, which lists the outposts.
 
 ### 7.10 Deeper in (1.6.0)
@@ -523,7 +525,7 @@ It moves with what the guild does: fights (−5, −20 for hitting a camp), kill
 
 - **Places.** At a place in their turf, finds are 20% thinner, and a crew may meet them (one meeting a run at most, likelier at a camp).
 - **People.** A call for help left unanswered goes to the Vultures half the time. Someone at the gate who's left waiting until they go goes to them half the time. Each makes them +2 stronger.
-- **Outposts.** At war, a guild outpost in their turf is raided by them 1% a day (0.3% wary), as hard as raiders plus a fifth of their strength. The guild can take theirs: a new job, **Hit their camp**, at a place with one.
+- **Outposts.** At war, a guild outpost in their turf is raided by them 1% a day (0.3% wary), fought like the gate (§9.8, since 2.1.0; before, as hard as raiders plus a fifth of their strength). The guild can take theirs: a new job, **Hit their camp**, at a place with one.
 - **Traders.** Until they're trading partners, caravan swaps are smaller by a quarter of their strength in percent (a tenth at 40). As trading partners, their own traders come with better swaps (×1.25), and each trade is +3 standing.
 
 **Meetings on runs** (with a Radio Tower they're radio calls, §7.12; unanswered, or without one, the crew's orders decide):
@@ -862,7 +864,20 @@ Aviel's answers, 2026-11-13: raiders come; with a Watchtower a roll may see them
 - **Who holds the gate.** By default everyone who can; the player can keep people back.
 - **Two bands.** A quarter of raids (own dice) come in two bands; the second is 60% the size of the first and never has a leader. The Watchtower sees both; at the gate the card says a second band waits on the road. If the gate holds against the first, the second comes on: anyone down or badly hurt gets patched up with a med while there are any (they get back up as in a fight, §7.13). Under command the player then picks who meets it (those kept back are fresh) and commands that fight too or lets them fight; left alone, everyone still up meets it. Held means holding against both.
 - **Measured** (600 raids each, a new guild of 4, everything left to the defenders): held 48% (the old roll: 46%), two-band raids 34%; about 0.6 people hurt a raid. With a Watchtower and a lookout with a rifle 70% (old 75%); Watchtower 2 and a lookout 81% (old 92%); the Wall and a dog 85% (old 98%). Shored up: a new guild 67%, Watchtower and lookout 85%, the Wall and a dog 95%, and fewer hurt. Hidden stores: a little worse (half the ammo and meds), 45% for a new guild. Staring down works about 31% of the time for a new guild.
-- **Next, picked by Aviel (2026-11-13).** Raids that differ: feral packs, hollows, scrapbots; raiders who want something (stores, a vehicle, a person to rescue); spoils and a trail back to their camp; outposts defended the same way.
+- **Raids that differ** (Aviel's picks, 2026-11-14, in 2.1.0). Besides raiders and the Vultures, the Reach's other bands come for the Depot once the guild knows a place they come from (from the places' encounters). Weights: raiders 6, feral packs 2, hollows 1.5, scrapbots 1.5, on the raid's own dice. Each band (`content/raids.ts`):
+  - *Raiders and the Vultures* talk, take stores and maybe a vehicle (as above).
+  - *A feral pack* (rad-hounds, mire stalkers): can't be paid or stared down; inside they take only rations, half again raiders' share. Bought ×1.12.
+  - *Hollows* (hollows, glowing hollows): can't be talked to; the Watchtower sees them half as often (they come in the dark); inside they take nothing and hurt two of those home. Bought ×1.15.
+  - *Scrapbots* (drones, sentries): can't be talked to; inside they take scrap and tech (half again raiders' share of tech); the Workshop's people know where to hit them, +1 to hit for each Workshop level. Bought as raiders.
+  - Measured (400 raids each, a new guild of 4, no orders): raiders 46% held, ferals 56%, hollows 54%, scrapbots 66% (the Workshop helps); with a Watchtower and a lookout 70/80/74/73%; the Wall and a dog 87/89/94/93%. All bands together, a new guild holds 52% (the old roll: 46%).
+- **What they want** (2.1.0). Raiders and the Vultures at the Depot come for something in particular 40% of the time, picked from what applies (on their own dice): a parked **vehicle** (weight 1), **one of theirs back**, a captive or a Vulture lieutenant the guild holds (2), **a score to settle** with whoever has killed the most raiders, at least 5 (1), or **a kind of store**, rations, meds or ammo, 30% of it and at least 15, 4 or 10 (1). The Watchtower and the gate say so.
+  - Paying them off gives them what they came for instead of a toll: the vehicle, the prisoner, the store. A score can't be paid ("They won't take anything for Gray"); staring them down still can work.
+  - In the fight, raiders with a score go for that person four times as often.
+  - Broken in, they take it: the vehicle for sure, the prisoner freed, twice the share of the store, or the person beaten (Wounded).
+  - Gone when they came (the vehicle out on a run, the prisoner gone, the person out), they take what they can.
+- **Spoils** (2.1.0). A held raid leaves what the beaten carried (each enemy's drops, as on runs, when the fight is won), and each raider or Vulture killed leaves a weapon or armor 35% of the time (rusty a third of the time; `RAID_SPOILS`). The end screen and the news list it.
+- **Captives** (2.1.0). After a won fight against raiders or the Vultures, one is left behind alive 30% of the time, held at the Depot (`state.captives`, the Roster's *Captives* panel). They eat a ration every other day and slip out 2% of days. **Question** them once: the best Nerve at the Depot (intimidate counts) against 12, and they tell of a cache (8–16 scrap, 4–10 rations, 3–8 ammo). **Ask them to join**: 25%, needs a bed; a no is final. **Let them go**: the Vultures warm to it (+5). Their own may come back for them (*one of theirs back*).
+- **Not picked:** a trail back to their camp.
 
 ## 10. Recruitment
 
@@ -1073,7 +1088,7 @@ From the ideas in `claude/interactive-ideas.md`, and Aviel's own additions. The 
 
 | Idea | What Aviel said | Status |
 |---|---|---|
-| Take command of a fight: turn-based fights, at least as an option (his ask from 2026-11-12) | Yes. **The game is 2.0.0 when this is done.** Picked first (§7.13) | runs: 1.13.0; the battle stage: 1.14.0; raids at the gate, getting ready, talking first and two bands: 2.0.0 (§9.8). Next: raids that differ and what comes after |
+| Take command of a fight: turn-based fights, at least as an option (his ask from 2026-11-12) | Yes. **The game is 2.0.0 when this is done.** Picked first (§7.13) | runs: 1.13.0; the battle stage: 1.14.0; raids at the gate, getting ready, talking first and two bands: 2.0.0; raids that differ, what they want, spoils and captives, outposts like the gate: 2.1.0 (§9.8) |
 | Haggle with traders | Yes | planned |
 | Names: things get their names from the guild's people, not from the player, once they've spent enough time with them | Yes, named by the people | planned |
 | What people want: now and then someone asks for something, and doing it (or not) matters | Maybe | to decide |

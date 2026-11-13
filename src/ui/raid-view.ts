@@ -22,10 +22,13 @@ import {
   raidRegroup,
   raidSeen,
   raidTeam,
-  raidToll,
+  RAID_BANDS,
+  raidPlace,
+  raidPrice,
   raidersName,
   recallPreview,
   stareOdds,
+  type DepotRaid,
   type GameState,
   type Run,
 } from '../engine/index.ts';
@@ -52,14 +55,43 @@ function names(list: readonly string[]): string {
   return `${list.slice(0, -1).join(', ')} and ${list[list.length - 1]}`;
 }
 
-/** The raid card on the Depot: raiders seen on the road, or at the gate. Undefined with neither. */
+/** What they came for, as the card says it: on the road, or at the gate (where it may turn out not to be there). */
+export function wantLine(raid: DepotRaid): string | undefined {
+  const w = raid.wants;
+  if (!w) return undefined;
+  const road = raid.defenders === undefined;
+  switch (w.what) {
+    case 'vehicle':
+      return w.missing ? `They came for the ${w.name}. It isn’t here, so they’ll take what they can.` : `${road ? 'They’re coming for' : 'They want'} the ${w.name}.`;
+    case 'prisoner':
+      return w.missing ? `They came for ${w.name}, who isn’t held here any more.` : `${road ? 'They’re coming for' : 'They want'} ${w.name} back.`;
+    case 'score':
+      return w.missing
+        ? `They came for ${w.name}, who isn’t home.`
+        : `${road ? 'They’re coming for' : 'They want'} ${w.name}, who has killed ${w.kills} of theirs. In a fight they’ll go for ${w.name}.`;
+    case 'store':
+      return `${road ? 'They’re coming for' : 'They want'} ${w.amount} ${w.resource}.`;
+  }
+}
+
+/** "at the gate" for the Depot, "at the outpost at Maple Street" for an outpost. */
+function atPlace(raid: DepotRaid): string {
+  return raid.outpost ? `at ${raidPlace(raid)}` : 'at the gate';
+}
+
+/** The raid card on the Depot: raiders seen on the road, or at the gate (or an outpost). Undefined with neither. */
 export function raidCard(state: GameState, now: number): RaidCardView | undefined {
   const seen = raidSeen(state, now);
   if (seen) {
     const { name } = raidersName(state, seen);
     const coming = name.replace(/,$/, '');
     const home = state.survivors.filter(canDefend).map((s) => s.firstName);
-    const lines = [`At the gate around ${clockTime(seen.arrive)}.`, home.length > 0 ? `Home to hold it now: ${names(home)}.` : 'Nobody is home to hold it.'];
+    const want = wantLine(seen);
+    const lines = [
+      `At the gate around ${clockTime(seen.arrive)}.`,
+      want ?? RAID_BANDS[seen.by].after,
+      home.length > 0 ? `Home to hold it now: ${names(home)}.` : 'Nobody is home to hold it.',
+    ];
     // Crews out: back in time to defend, or not.
     for (const r of state.runs) {
       const crew = r.result.crew.filter((s) => r.plan.crew.includes(s.id)).map((s) => s.firstName);
@@ -72,17 +104,22 @@ export function raidCard(state: GameState, now: number): RaidCardView | undefine
   const raid = raidAtGate(state);
   if (!raid) return undefined;
   const { name } = raidersName(state, raid);
-  const defenders = state.survivors.filter((s) => raid.defenders!.includes(s.id) && canDefend(s)).map((s) => s.firstName);
+  const defenders = state.survivors.filter((s) => raid.defenders!.includes(s.id)).map((s) => s.firstName);
   const left = Math.max(0, raid.until - now);
   const inCommand = raid.took !== undefined;
+  const there = raid.outpost ? 'there' : 'home';
+  const want = wantLine(raid);
   return {
     kind: 'gate',
-    title: `${name.replace(/,$/, '')} at the gate`,
+    title: `${name.replace(/,$/, '')} ${atPlace(raid)}`,
     against: sentence(raidAgainst(state, raid)),
-    lines: [defenders.length > 0 ? `Here to hold it: ${names(defenders)}.` : 'Nobody is here to hold it.'],
+    lines: [
+      ...(want ? [want] : RAID_BANDS[raid.by].talk ? [] : [RAID_BANDS[raid.by].after]),
+      defenders.length > 0 ? `${raid.outpost ? 'There' : 'Here'} to hold it: ${names(defenders)}.` : `Nobody is ${there} to hold it.`,
+    ],
     wait: inCommand
       ? `You’re in command. ${formatDuration(left)} left to finish it.`
-      : `They’ll wait ${formatDuration(left)} more for your orders. After that, whoever is home fights them on their own.`,
+      : `They’ll wait ${formatDuration(left)} more for your orders. After that, whoever is ${there} fights them on their own.`,
     inCommand,
   };
 }
@@ -103,7 +140,12 @@ export function raidNotices(state: GameState): PlannedNotice[] {
     out.push({ id: `raid-seen-${raid.id}`, at: raid.seen, title: `${who} on the road`, body: `Seen from the Watchtower. At the gate around ${clockTime(raid.arrive)}.` });
   }
   if (raid.took === undefined) {
-    out.push({ id: `raid-${raid.id}`, at: raid.arrive, title: `${who} at the gate`, body: `They’ll wait ${formatDuration(RAID_WAIT)} for your orders. After that, whoever is home fights them on their own.` });
+    out.push({
+      id: `raid-${raid.id}`,
+      at: raid.arrive,
+      title: `${who} ${atPlace(raid)}`,
+      body: `They’ll wait ${formatDuration(RAID_WAIT)} for your orders. After that, whoever is ${raid.outpost ? 'there' : 'home'} fights them on their own.`,
+    });
   }
   return out;
 }
@@ -140,6 +182,8 @@ export interface RecallRow {
 export interface ReadyView {
   /** "At the gate around 13:45." */
   when: string;
+  /** What they're after, or what they're coming for in particular. */
+  after: string;
   /** "A second band follows the first." */
   secondBand?: string;
   home: string;
@@ -180,6 +224,7 @@ export function readyView(state: GameState, now: number): ReadyView | undefined 
   const hands = state.survivors.some(canWork) ? undefined : 'Nobody is home to do it.';
   return {
     when: `At the gate around ${clockTime(raid.arrive)}.`,
+    after: wantLine(raid) ?? RAID_BANDS[raid.by].after,
     ...(raid.waves === 2 ? { secondBand: 'A second band follows the first.' } : {}),
     home: home.length > 0 ? `Home to hold it now: ${names(home)}.` : 'Nobody is home to hold it.',
     crews: state.runs.map((r) => recallRow(state, r, raid.arrive, now)),
@@ -204,8 +249,15 @@ export interface GateView {
   team: { id: string; name: string; in: boolean }[];
   teamHint: string;
   secondBand?: string;
-  /** Talking first, while nothing has been said or done. */
-  talk?: { pay: string; payProblem?: string; stare: string };
+  /** Talking first, while nothing has been said or done: paying them (what they want, or a toll), and staring them down. */
+  talk?: {
+    pay?: { text: string; label: string; problem?: string };
+    /** They won't be paid: "They won’t take anything for Gray." */
+    refused?: string;
+    stare: string;
+  };
+  /** A band there's no talking to. */
+  mute?: string;
   /** What came of talking. */
   said?: string;
 }
@@ -219,15 +271,24 @@ export function gateView(state: GameState, now: number): GateView | undefined {
     team: raidFighters(state).map((s) => ({ id: s.id, name: s.firstName, in: team.has(s.id) })),
     teamHint: raid.waves === 2 ? 'Tap to keep someone back: they stay fresh for the second band.' : 'Tap to keep someone out of it.',
     ...(raid.waves === 2 ? { secondBand: 'A second band waits back on the road. If the gate holds, they come on.' } : {}),
+    ...(RAID_BANDS[raid.by].talk ? {} : { mute: 'There’s no talking to them.' }),
   };
   if (canTalk(state, now)) {
-    const toll = raidToll(state, raid);
+    const price = raidPrice(state, raid);
     const odds = stareOdds(state);
-    view.talk = {
-      pay: `They want ${costText(toll)} to go away.`,
-      ...(canAfford(state, toll) ? {} : { payProblem: 'The guild doesn’t have it.' }),
-      stare: odds ? `${odds.talker.firstName} does the talking: about ${Math.round(odds.chance * 100)}% they back off. If not, they strike first.` : '',
-    };
+    const want = raid.wants && !raid.wants.missing ? raid.wants : undefined;
+    const stare = odds ? `${odds.talker.firstName} does the talking: about ${Math.round(odds.chance * 100)}% they back off. If not, they strike first.` : '';
+    if (price.refused) view.talk = { refused: price.problem!, stare };
+    else
+      view.talk = {
+        pay: {
+          text: want?.what === 'vehicle' || want?.what === 'prisoner' ? `Hand over ${price.text}, and they go.` : `They want ${price.text} to go away.`,
+          label: want?.what === 'vehicle' || want?.what === 'prisoner' ? 'Hand them over' : 'Pay them off',
+          ...(price.problem ? { problem: price.problem } : {}),
+        },
+        stare,
+      };
+    if (want?.what === 'vehicle' && view.talk.pay) view.talk.pay.label = 'Hand it over';
   }
   const talk = raid.talk;
   if (talk?.how === 'stare' && !talk.ok) {
@@ -256,4 +317,22 @@ export function regroupView(state: GameState, now: number): RegroupView | undefi
     lines: at.lines.map((l) => l.text),
     people: at.people.map((p) => ({ id: p.id, name: p.name, state: p.down ? 'Down' : `${p.hp}/${p.maxHp} HP${p.fought ? '' : ', fresh'}`, can: !p.down })),
   };
+}
+
+// ---------------------------------------------------------------- the end
+
+export interface RaidOverView {
+  /** What happened, from the news: who came, how it went, what they left or took. */
+  lines: string[];
+  /** One of them left behind alive, held at the Depot. */
+  captive?: { id: string; name: string };
+}
+
+/** The raid just over: its news, and a captive if one was taken. */
+export function raidOver(state: GameState): RaidOverView | undefined {
+  const raid = state.depot.raid;
+  if (!raid || raid.ended === undefined) return undefined;
+  const lines = state.log.filter((l) => l.tags?.includes(raid.id)).map((l) => l.text);
+  const held = raid.spoils?.captive ? state.captives.find((c) => c.person.id === raid.spoils!.captive) : undefined;
+  return { lines, ...(held ? { captive: { id: held.person.id, name: `${held.person.firstName} ${held.person.lastName}` } } : {}) };
 }

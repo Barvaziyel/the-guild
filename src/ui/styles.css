@@ -3885,3 +3885,8 @@ p.is-bad {
   opacity: 0.55;
   cursor: default;
 }
+
+/* Prisoner and captive buttons stay finger-sized. */
+.prisoner-actions .btn-small {
+  min-height: 44px;
+}

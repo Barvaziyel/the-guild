@@ -296,7 +296,7 @@ export function raidOutpost(state: GameState, outpost: Outpost, day: number, rng
  * defenders fought it out, so their wounds are already theirs; with nobody
  * fighting, someone there may be hurt.
  */
-export function outpostBroken(state: GameState, outpost: Outpost, day: number, rng: Rng, by: Raiders, fought: boolean): 'damaged' | 'burned' {
+export function outpostBroken(state: GameState, outpost: Outpost, day: number, rng: Rng, by: Raiders, fought: boolean, tags: string[] = []): 'damaged' | 'burned' {
   const loc = getLocation(outpost.locationId);
   const staff = outpostStaff(state, outpost.locationId);
   for (const s of staff) changeStress(s, 10, { rng, day, source: 'a raid' });
@@ -314,11 +314,11 @@ export function outpostBroken(state: GameState, outpost: Outpost, day: number, r
       addChronicle(s, day, `Fled home when ${by.lower} burned the outpost at ${loc.name}.`, ['raid']);
     }
     const who = staff.length > 0 ? ` ${listNames(staff.map((s) => s.firstName))} made it home.` : ' Nobody was there to stop them.';
-    addGuildLog(state, day, `${by.name} burned the outpost at ${loc.name}.${who}`, ['outpost', loc.id]);
+    addGuildLog(state, day, `${by.name} burned the outpost at ${loc.name}.${who}`, ['outpost', loc.id, ...tags]);
     return 'burned';
   }
   outpost.damaged = true;
-  addGuildLog(state, day, `${by.name} broke into the outpost at ${loc.name}.${hurt ? ` ${hurt.firstName} was hurt.` : ''} It sends home half until it's mended.`, ['outpost', loc.id]);
+  addGuildLog(state, day, `${by.name} broke into the outpost at ${loc.name}.${hurt ? ` ${hurt.firstName} was hurt.` : ''} It sends home half until it's mended.`, ['outpost', loc.id, ...tags]);
   return 'damaged';
 }
 

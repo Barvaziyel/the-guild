@@ -74,7 +74,7 @@ export const RAID_BANDS: Record<RaidBand, RaidBandDef> = {
     take: { rations: 1.5 },
     vehicles: false,
     spot: 1,
-    after: 'They’re after food. There’s no talking to them.',
+    after: 'They’re after food.',
   },
   hollows: {
     id: 'hollows',
@@ -89,7 +89,7 @@ export const RAID_BANDS: Record<RaidBand, RaidBandDef> = {
     vehicles: false,
     hurt: 2,
     spot: 0.5,
-    after: 'They don’t want the stores. Inside, they go for people. There’s no talking to them.',
+    after: 'They don’t want the stores. Inside, they go for people.',
   },
   scrapbots: {
     id: 'scrapbots',
