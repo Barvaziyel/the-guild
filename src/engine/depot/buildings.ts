@@ -130,9 +130,17 @@ export function atDepot(s: Survivor): boolean {
   return s.status === 'ready' && s.outpost === undefined;
 }
 
-/** At the Depot and fit to work (serious wounds keep people in bed). */
+/** Laid up: a condition that keeps them in bed, not only off runs (a wound, not being tired from one). */
+export function laidUp(s: Survivor): boolean {
+  return s.traits.some((t) => {
+    const def = getTrait(t.id);
+    return def.blocksRuns === true && def.onlyRuns !== true;
+  });
+}
+
+/** At the Depot and fit to work (serious wounds keep people in bed; back from a run today is fine). */
 export function canWork(s: Survivor): boolean {
-  return atDepot(s) && !s.traits.some((t) => getTrait(t.id).blocksRuns);
+  return atDepot(s) && !laidUp(s);
 }
 
 /** At the Depot but in bed until healed: no work, and no new post until then. */

@@ -35,8 +35,7 @@ import {
   HEAVY_ARMOR,
   HEAVY_ARMOR_SOAK,
   SURVIVOR_DEFENSE,
-  UNARMED_DAMAGE,
-} from '../constants.ts';
+  UNARMED_DAMAGE, TOWER_TO_HIT, WALL_COVER, RAID_SHORE_COVER, DOG_TO_HIT, DOG_DAMAGE } from '../constants.ts';
 import { getEnemy, type EncounterDef, type EnemyDef } from '../content/index.ts';
 import { ENEMIES_BREAK, FLEE_LINES, STALEMATE_LINES, WITHDRAW_FAIL, WITHDRAW_SUCCESS } from '../content/flavor.ts';
 import { armorValue, itemDef, itemName, qualityMod, weaponDamage } from '../gear.ts';
@@ -217,6 +216,8 @@ function survivorAttack(sim: Sim, m: Member, target: Enemy, ctx: AttackContext, 
       damage = weaponDamage(weapon);
       toHit = (def.toHit ?? 0) + qualityMod(weapon);
       if (needsAmmo) sim.ammo -= 1;
+      // A lookout shoots from the Watchtower (§9.8): the higher, the better.
+      if (m.perch && sim.gate) toHit += sim.gate.tower * TOWER_TO_HIT;
       // Close-range weapons are poor until the distance closes.
       if (def.hooks?.closeRange && ctx.round === 1 && !ctx.ambushed) toHit -= 2;
       // A silent weapon makes the most of surprise.
@@ -326,16 +327,18 @@ function enemyRound(sim: Sim, fight: FightState, tactics?: Tactics): void {
       act(sim, { by: fight.enemies.indexOf(enemy), kind: 'reel' });
       continue;
     }
-    const targets = active(sim);
+    // Lookouts on the Watchtower are out of reach (§9.8).
+    const targets = active(sim).filter((m) => !m.perch);
     if (targets.length === 0) return;
     // Without orders this is exactly the automatic fight: one weighted pick, then the roll.
     let target = sim.rng.weightedBy(targets, (m) => mulTraitHook(m.s, 'attentionWeight') * (tactics?.drawFire.has(m) ? 20 : 1));
     const guard = tactics?.guards.get(target);
     if (guard && !guard.down && !guard.dead && !guard.fled) target = guard;
     const armor = target.s.equipment.armor ? armorValue(target.s.equipment.armor) : 0;
-    const extra = tactics
-      ? (tactics.cover.has(target) ? COVER_DEFENSE : 0) + (tactics.drawFire.has(target) ? DRAW_FIRE_DEFENSE : 0) - (tactics.charging.has(target) ? CHARGE_BONUS : 0)
-      : 0;
+    const extra =
+      (tactics
+        ? (tactics.cover.has(target) ? COVER_DEFENSE : 0) + (tactics.drawFire.has(target) ? DRAW_FIRE_DEFENSE : 0) - (tactics.charging.has(target) ? CHARGE_BONUS : 0)
+        : 0) + (sim.gate?.wall ? WALL_COVER : 0) + (sim.gate?.shored ? RAID_SHORE_COVER : 0);
     const shot = /shot|zapped/.test(enemy.def.hitVerb);
     if (sim.rng.d10() + enemy.attack < SURVIVOR_DEFENSE + armor + extra) {
       act(sim, { by: fight.enemies.indexOf(enemy), at: target.s.id, kind: 'miss', shot });
@@ -357,6 +360,31 @@ function enemyRound(sim: Sim, fight: FightState, tactics?: Tactics): void {
       maybeFlee(sim, target, fight);
     }
   }
+}
+
+/** The guild's dog joins in at the gate (§9.8): a bite at whichever raider is closest to the people. */
+function dogBite(sim: Sim, enemies: readonly Enemy[], ctx: AttackContext): void {
+  const name = sim.gate!.dog!;
+  const targets = living(enemies);
+  if (targets.length === 0) return;
+  const target = sim.rng.weightedBy(targets, (e) => (e.hp < e.maxHp ? 2 : 1));
+  const at = enemies.indexOf(target);
+  const label = ctx.names[at] ?? target.def.name;
+  if (sim.rng.d10() + DOG_TO_HIT < target.defense) {
+    act(sim, { by: 'dog', at, kind: 'miss' });
+    if (ctx.commanded) say(sim, `${name} snaps at ${label} and misses.`);
+    return;
+  }
+  const dealt = sim.rng.int(DOG_DAMAGE[0], DOG_DAMAGE[1]);
+  target.hp -= dealt;
+  if (target.hp > 0) {
+    act(sim, { by: 'dog', at, kind: 'hit', amount: dealt });
+    say(sim, `${name} gets hold of ${label} (-${dealt}).`, { tone: 'good' });
+    return;
+  }
+  act(sim, { by: 'dog', at, kind: 'kill', amount: dealt });
+  target.dead = true;
+  say(sim, `${name} brings ${label} down.`, { tone: 'good' });
 }
 
 /** Enemies that can break do so once more than half the group is dead. Returns true if any ran. */
@@ -440,6 +468,14 @@ export interface FightResult {
 function callHome(sim: Sim, enemies: readonly Enemy[]): FightPlan | undefined {
   const lead = sim.lead;
   if (!lead) return undefined;
+  if (lead.home) {
+    // A raid at the Depot (§9.8): the player is there or isn't; nobody calls.
+    const plan = lead.plans[lead.stops.length];
+    lead.stops.push({ at: sim.offset, by: standing(sim)[0]?.s.id ?? '', against: describeGroup(enemies), fromBeat: sim.beats.length });
+    startBeat(sim, 'combat', 'At the gate');
+    if (plan && (plan.rounds.length > 0 || plan.live)) say(sim, 'You take command at the gate.');
+    return plan;
+  }
   const caller = bestBy(standing(sim), (m) => simBonus(sim, m, 'nerve', []));
   if (!caller) return undefined;
   const plan = lead.plans[lead.stops.length];
@@ -485,7 +521,7 @@ function prepareRound(sim: Sim, enemies: readonly Enemy[], orders: RoundOrders):
 }
 
 /** Use a med on someone mid-fight. Someone down gets back up, a little, with a better wound roll. */
-function patchUp(sim: Sim, medic: Member, ally: Member): void {
+export function patchUp(sim: Sim, medic: Member, ally: Member): void {
   const result = check(sim, medic, 'wits', DC.easy, ['medicine']);
   const heal = result.success ? MEDS_HEAL_SKILLED : MEDS_HEAL;
   sim.meds -= 1;
@@ -647,6 +683,7 @@ export function fight(sim: Sim, enemies: Enemy[], start: FightStart): FightResul
         const target = sim.rng.weightedBy(targets, (e) => (e.hp < e.maxHp ? 3 : 1));
         survivorAttack(sim, m, target, attackCtx, tactics?.spotted === target && tactics.spotter !== m ? { toHit: SPOT_TO_HIT } : {});
       }
+      if (sim.gate?.dog) dogBite(sim, enemies, attackCtx);
       if (living(enemies).length === 0 || (checkMorale(sim, state) && living(enemies).length === 0)) {
         end = 'won';
         break;
@@ -657,6 +694,12 @@ export function fight(sim: Sim, enemies: Enemy[], start: FightStart): FightResul
 
     if (active(sim).length === 0) {
       end = standing(sim).length === 0 ? 'routed' : 'withdrew';
+      break;
+    }
+    // At the gate, lookouts on the tower can't hold it alone (§9.8).
+    if (sim.gate && active(sim).every((m) => m.perch)) {
+      say(sim, 'Nobody is left at the gate. The raiders are through.', { tone: 'bad' });
+      end = 'withdrew';
       break;
     }
 

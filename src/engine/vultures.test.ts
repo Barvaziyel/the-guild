@@ -264,7 +264,11 @@ describe('what they compete for', () => {
       const state = arrived('raids');
       state.vultures.standing = standing;
       let n = 0;
-      for (let i = 0; i < 600; i++) if (rollDepotEvents(state, 4, new Rng(`r${i}`)).includes('vultureRaid' as never)) n++;
+      for (let i = 0; i < 600; i++) {
+        // One raid at a time (§9.8): each roll starts with none on the way.
+        delete state.depot.raid;
+        if (rollDepotEvents(state, 4, new Rng(`r${i}`)).includes('vultureRaid' as never)) n++;
+      }
       return n;
     };
     assert.equal(count(20), 0);

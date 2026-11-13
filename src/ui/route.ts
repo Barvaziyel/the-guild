@@ -34,6 +34,7 @@ export type Route =
   | { screen: 'plan'; locationId: string }
   /** The Vultures (§7.11). */
   | { screen: 'vultures' }
+  | { screen: 'raid' }
   | { screen: 'runs' }
   /** A crew that is out, or the report once they're back (same id). */
   | { screen: 'run'; id: string }
@@ -78,6 +79,8 @@ export function parseRoute(hash: string): Route {
       return a ? { screen: 'plan', locationId: a } : { screen: 'reach' };
     case 'vultures':
       return { screen: 'vultures' };
+    case 'raid':
+      return { screen: 'raid' };
     case 'run':
       return a ? { screen: 'run', id: a } : { screen: 'runs' };
     case 'fight':
@@ -105,6 +108,7 @@ export function routeHash(route: Route): string {
     case 'settings':
     case 'runs':
     case 'vultures':
+    case 'raid':
       return `#/${route.screen}`;
     case 'building':
       return `#/b/${enc(route.id)}`;
@@ -129,6 +133,7 @@ export function tabFor(route: Route): TabScreen {
     case 'recruits':
     case 'gear':
     case 'vehicles':
+    case 'raid':
       return 'depot';
     case 'roster':
     case 'survivor':

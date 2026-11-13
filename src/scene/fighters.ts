@@ -422,6 +422,28 @@ export const DRAWN_ENEMIES: readonly string[] = [
   'scrapbot_sentry',
 ];
 
+/** The guild's dog at the gate (§9.8), facing right like the people. */
+export function dogSvg(): string {
+  const fur = '#9a6a3c';
+  const light = '#d9b98a';
+  return (
+    ellipse(2, 0, 18, 3, '#1d1915', 'stroke="none" opacity="0.28"') +
+    pathEl('M -14 -18 Q -22 -26 -18 -32', 'none', `stroke="${INK}" stroke-width="3.4" stroke-linecap="round"`) +
+    limb(-10, -14, -12, -1, darken(fur, 0.15), 4) +
+    limb(-5, -14, -5, -1, fur, 4) +
+    ellipse(-1, -17, 15, 7, fur, STROKE) +
+    ellipse(0, -14, 8, 3, light, NONE) +
+    limb(7, -13, 8, -1, darken(fur, 0.15), 4) +
+    limb(11, -14, 12, -1, fur, 4) +
+    ellipse(16, -24, 7, 6, fur, STROKE) +
+    pathEl('M 11 -29 Q 9 -22 13 -20 Z', darken(fur, 0.3), THIN) +
+    pathEl('M 20 -25 L 27 -23 L 26 -19 L 20 -19 Z', light, STROKE) +
+    circle(26.5, -23, 1.3, INK, NONE) +
+    circle(18, -26, 1.2, INK, NONE) +
+    rect(6, -21, 5, 2.4, '#b5432f', THIN)
+  );
+}
+
 /** How tall an enemy stands at scale 1, for where its bar goes. */
 export function enemyHeight(kind: string): number {
   if (kind === 'rad_hound') return 40;

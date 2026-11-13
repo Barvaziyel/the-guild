@@ -180,7 +180,7 @@ export function resolveWounds(sim: Sim): void {
       resolveOne(sim, m, [], { spared: lastHope });
     });
     for (const m of sim.members) if (!m.dead) stress(sim, m, STRESS_ROUTED, `the rout at ${sim.loc.name}`);
-    if (crewSize >= 2 && sim.members.some((m) => !m.dead)) {
+    if (crewSize >= 2 && sim.members.some((m) => !m.dead) && !sim.gate) {
       say(sim, 'Hours later, those who can still move drag the others toward home.', { tone: 'bad' });
     }
   }

@@ -23,7 +23,7 @@ export const ANIMALS: readonly AnimalDef[] = [
     id: 'dog',
     name: 'dog',
     description: 'Thin, scarred and loyal to whoever feeds it. Barks at anything that moves past the fence at night.',
-    effect: 'Raiders have a harder time getting past the fence: +2 to holding off raids.',
+    effect: 'Fights alongside the defenders when raiders come, biting for 2–3.',
     arrives: 'A thin dog is sitting outside the gate, watching the cook pot.',
     names: ['Rust', 'Biscuit', 'Bones', 'Patch', 'Scout', 'Ranger', 'Diesel', 'Mutt', 'Tank', 'Ash', 'Lucky', 'Rook'],
   },

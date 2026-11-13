@@ -103,6 +103,8 @@ export interface FightMemberView {
   aimed: boolean;
   /** Empty for anyone who can't act. */
   moves: MoveChoice[];
+  /** A lookout shooting from the Watchtower in a raid (§9.8). */
+  perch?: boolean;
 }
 
 /** A fight stopped for orders: what the player sees on the fight screen. */
@@ -120,6 +122,8 @@ export interface FightView {
   lines: LogLine[];
   /** What happened in it, act by act, for the battle stage. */
   acts: FightAct[];
+  /** A raid at the Depot: the guild's dog, fighting alongside (§9.8). Its acts are by 'dog'. */
+  dog?: string;
   /** How it ended, once it's over. */
   over?: CombatEnd;
 }
@@ -186,6 +190,11 @@ export function movesFor(sim: Sim, m: Member, enemies: readonly Enemy[]): MoveCh
   const ofType = (type: string, unnamed = false): number[] =>
     foes.filter((e) => e.def.type === type && (!unnamed || (!e.nemesis && !e.vulture))).map((e) => enemies.indexOf(e));
 
+  // A lookout on the Watchtower (§9.8) can only shoot, aim and point things out from up there.
+  const PERCHED: readonly MoveId[] = ['attack', 'aim', 'called_shot', 'spray', 'spot'];
+  if (m.perch && kind === 'shoot') {
+    return movesFor(sim, { ...m, perch: false }, enemies).filter((c) => PERCHED.includes(c.move));
+  }
   add('attack', foeIds, ATTACK_NAMES[kind]);
   add('cover');
   if (sim.meds > 0) {
@@ -246,7 +255,9 @@ export function fightView(sim: Sim, enemies: readonly Enemy[], round: number, fr
       state: m.dead ? 'dead' : m.down ? 'down' : m.fled ? 'fled' : 'up',
       aimed: m.aimed === true,
       moves: movesFor(sim, m, enemies),
+      ...(m.perch ? { perch: true } : {}),
     })),
+    ...(sim.gate?.dog ? { dog: sim.gate.dog } : {}),
     meds: sim.meds,
     ammo: sim.ammo,
     lines: beat ? beat.lines.slice(fromLine) : [],

@@ -59,7 +59,13 @@ export function survivorStatus(s: Survivor, day?: number): StatusView {
   if (s.status === 'left') return { label: 'Left the guild', tone: 'dead' };
   if (s.status === 'away') return { label: 'Out on a run', tone: 'away' };
   if (s.outpost) return { label: `At the outpost at ${getLocation(s.outpost).name}`, tone: 'away' };
-  const blocking = s.traits.find((t) => getTrait(t.id).blocksRuns);
+  // Laid up first; tired from a run only keeps them off runs, so it says when they can go again.
+  const blocking = s.traits.find((t) => getTrait(t.id).blocksRuns && !getTrait(t.id).onlyRuns);
+  const tired = s.traits.find((t) => getTrait(t.id).onlyRuns);
+  if (!blocking && tired) {
+    const name = capitalize(getTrait(tired.id).name.toLowerCase());
+    return { label: tired.expiresDay !== undefined ? `${name}, out again on day ${tired.expiresDay}` : name, tone: 'ready' };
+  }
   if (blocking) {
     const name = capitalize(getTrait(blocking.id).name.toLowerCase());
     const heals = blocking.expiresDay !== undefined && (day === undefined || blocking.expiresDay > day);

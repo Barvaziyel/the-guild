@@ -93,7 +93,7 @@ describe('tapping the stage', () => {
 describe('a round on the stage', () => {
   test('the stage shows the crew in their own colors and gear, and the enemies as they stand', () => {
     const { state, run, view } = commanded('model');
-    const m = stageModel(state, run, view, { picks: {}, open: view.crew[0]!.id });
+    const m = stageModel(state, { place: run.plan.locationId, seed: run.id }, view, { picks: {}, open: view.crew[0]!.id });
     assert.equal(m.place, run.plan.locationId);
     assert.equal(m.crew.length, view.crew.length);
     assert.ok(m.crew.every((f) => f.look !== undefined));
@@ -120,7 +120,7 @@ describe('a round on the stage', () => {
         assert.ok(f.effect.by.startsWith('c:') || f.effect.by.startsWith('e:'));
         assert.ok(f.line >= view.lines.length && f.line <= next.lines.length, 'its line is in this round');
       }
-      const m = stageModel(state, run, next, { picks: {} }, frames[0]);
+      const m = stageModel(state, { place: run.plan.locationId, seed: run.id }, next, { picks: {} }, frames[0]);
       assert.ok(m.effect && m.targets.length === 0, 'no rings while a round plays');
       checked++;
     }

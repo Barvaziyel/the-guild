@@ -67,7 +67,7 @@ function vultureCrew(sim: Sim, leader: VultureMember | undefined, scale = 1): En
 }
 
 /** A lieutenant, or the boss (a little tougher), under their own name. */
-function namedEnemy(sim: Sim, m: VultureMember): Enemy {
+export function namedEnemy(sim: Sim, m: VultureMember): Enemy {
   const e = newEnemy(getEnemy('vulture_lieutenant'), sim.loc.danger);
   if (m.role === 'boss') {
     e.hp = e.maxHp = Math.round(e.hp * 1.3);
@@ -252,7 +252,7 @@ function fightThem(sim: Sim, v: SimVultures, leader: VultureMember | undefined, 
 }
 
 /** After a fight: their dead weaken them, and a named one down is captured or dead. */
-function settle(sim: Sim, v: SimVultures, enemies: readonly Enemy[], end: CombatEnd, leader: VultureMember | undefined): void {
+export function settle(sim: Sim, v: SimVultures, enemies: readonly Enemy[], end: CombatEnd, leader: VultureMember | undefined): void {
   const place = sim.loc.name;
   for (const e of enemies) {
     if (!e.dead) continue;

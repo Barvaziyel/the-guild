@@ -13,6 +13,7 @@ import { playRescueDay } from '../rescue.ts';
 import { playFamilyDay } from '../family.ts';
 import { playVulturesDay } from '../vultures.ts';
 import { expireStrays } from '../animals.ts';
+import { nextRaidMoment, stepRaid } from './raids.ts';
 
 export interface AdvanceResult {
   /** Crews that came home, oldest first. */
@@ -55,7 +56,7 @@ export function advanceTime(state: GameState, now: number): AdvanceResult {
   // Fights on led runs whose time ran out are fought to the end on the crew's own (§7.13).
   settleLed(state, now);
   for (let day = from; day <= today; day++) {
-    result.reports.push(...completeDueRuns(state, dayStart(state, day)));
+    upTo(state, dayStart(state, day), result);
     withRng(state, (rng) => {
       expireOffers(state, day);
       expireStrays(state, day);
@@ -71,10 +72,25 @@ export function advanceTime(state: GameState, now: number): AdvanceResult {
   }
   if (today > state.depot.lastDay) state.depot.lastDay = today;
 
-  result.reports.push(...completeDueRuns(state, now));
+  upTo(state, now, result);
   state.lastUpdate = Math.max(state.lastUpdate, now);
   result.depot.news = newsSince(state, firstLogged);
   return result;
+}
+
+/**
+ * Crews home and raids moved on up to `t`, in the order they happen: a crew
+ * back before the raiders arrive is there to defend (§9.8); one back after
+ * isn't.
+ */
+function upTo(state: GameState, t: number, result: AdvanceResult): void {
+  for (let moment = nextRaidMoment(state); moment !== undefined && moment <= t; moment = nextRaidMoment(state)) {
+    result.reports.push(...completeDueRuns(state, moment));
+    const before = nextRaidMoment(state);
+    stepRaid(state, moment);
+    if (nextRaidMoment(state) === before) break;
+  }
+  result.reports.push(...completeDueRuns(state, t));
 }
 
 /** Log entries written after `last` (all of them if it's gone). */

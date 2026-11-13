@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import { commandRound, fightNow, fightPreview, getLocation, lastFought, ledFightNow, letThemFight, takeCommand, type FightMemberView, type FightView, type GameState, type MoveId, type Run } from '../../engine/index.ts';
+import { commandRound, fightNow, fightPreview, getLocation, lastFought, ledFightNow, letThemFight, takeCommand, type FightMemberView, type FightView, type GameState, type MoveId, type RoundOrders, type Run } from '../../engine/index.ts';
 import { stageHint, tapOnStage } from '../battle-view.ts';
 import { Meter } from '../components/Bars.tsx';
 import { BattleStage } from '../components/BattleStage.tsx';
@@ -7,6 +7,7 @@ import { BeatLog } from '../components/BeatLog.tsx';
 import { Portrait } from '../components/Portrait.tsx';
 import { fightCard, fightEnd, livePicks, memberState, needsTarget, pickLabel, roundOrders, targetName, type Picks } from '../fight-view.ts';
 import { goBack, navigate, useAction, useNow } from '../hooks.ts';
+import { formatDuration } from '../runs-view.ts';
 
 /** A fight on a led run, under the player's command (§7.13). */
 export function Fight({ state, id }: { state: GameState; id: string }) {
@@ -29,7 +30,17 @@ export function Fight({ state, id }: { state: GameState; id: string }) {
       {!run ? (
         <p className="empty">That crew is back. Their report is on the Runs tab.</p>
       ) : view ? (
-        <Command state={state} run={run} view={view} until={live!.until} now={now} />
+        <Command
+          state={state}
+          view={view}
+          until={live!.until}
+          now={now}
+          place={run.plan.locationId}
+          seed={run.id}
+          title={`The fight at ${view.place}`}
+          give={(s, orders) => void commandRound(s, run.id, orders, Date.now())}
+          letThem={(s) => letThemFight(s, run.id, Date.now())}
+        />
       ) : live ? (
         <NotYet state={state} runId={run.id} now={now} />
       ) : (
@@ -54,7 +65,7 @@ function Over({ state, run, seen }: { state: GameState; run: Run; seen: FightVie
   return (
     <section className="panel">
       <h2 className="plan-title">{led ? 'The fight is over' : 'No fight right now'}</h2>
-      {end && <BattleStage state={state} run={run} view={end} before={before} onLine={setTold} caption={OVER[end.over ?? 'won']} />}
+      {end && <BattleStage state={state} place={run.plan.locationId} seed={run.id} view={end} before={before} onLine={setTold} caption={OVER[end.over ?? 'won']} />}
       {lines.length > 0 && (
         <ul className="fight-lines fight-end">
           {lines.map((l, k) => (
@@ -94,7 +105,7 @@ function NotYet({ state, runId, now }: { state: GameState; runId: string; now: n
     <section className="panel fight-call">
       <p className="dilemma-kicker">A fight at {card.place}</p>
       <h2 className="dilemma-title">Against {card.against}</h2>
-      {preview && <BattleStage state={state} run={run} view={preview} />}
+      {preview && <BattleStage state={state} place={run.plan.locationId} seed={run.id} view={preview} />}
       <p>{card.wait}</p>
       <div className="btn-row">
         <button type="button" className="btn btn-primary" onClick={() => act((s) => void takeCommand(s, runId, Date.now()))}>
@@ -109,8 +120,35 @@ function NotYet({ state, runId, now }: { state: GameState; runId: string; now: n
   );
 }
 
-function Command({ state, run, view, until, now }: { state: GameState; run: Run; view: FightView; until: number; now: number }) {
-  const runId = run.id;
+/**
+ * Giving orders in a fight under command (§7.13), on a run or at the gate
+ * (§9.8): the stage, the last round, a row of moves for each person, and the
+ * buttons. `give` sends a round's orders; `letThem` has them finish it alone.
+ */
+export function Command({
+  state,
+  view,
+  until,
+  now,
+  place,
+  seed,
+  title,
+  give: send,
+  letThem,
+  stores = 'in the packs',
+}: {
+  state: GameState;
+  view: FightView;
+  until: number;
+  now: number;
+  place: string;
+  seed: string;
+  title: string;
+  give: (s: GameState, orders: RoundOrders) => void;
+  letThem: (s: GameState) => void;
+  /** Where the meds and ammo are: in the packs on a run, in the stores at the gate. */
+  stores?: string;
+}) {
   const { act, error } = useAction();
   const [picks, setPicks] = useState<Picks>({});
   const [pullOut, setPullOut] = useState(false);
@@ -123,7 +161,6 @@ function Command({ state, run, view, until, now }: { state: GameState; run: Run;
   const lastRound = seen.current.round < view.round ? view.lines.slice(seen.current.lines, told ?? view.lines.length) : [];
   if (seen.current.round !== view.round && view.lines.length <= seen.current.lines) seen.current = { round: view.round, lines: view.lines.length };
   const current = livePicks(view, picks);
-  const minutes = Math.max(1, Math.ceil((until - now) / 60_000));
 
   const pick = (m: FightMemberView, move: MoveId | undefined, target?: number | string): void => {
     setPicks((p) => {
@@ -152,7 +189,7 @@ function Command({ state, run, view, until, now }: { state: GameState; run: Run;
   const give = (): void => {
     const orders = roundOrders(view, picks, pullOut);
     seen.current = { round: view.round, lines: view.lines.length };
-    if (act((s) => void commandRound(s, runId, orders, Date.now()))) {
+    if (act((s) => send(s, orders))) {
       setPullOut(false);
       setOpen(standing[0]?.id);
     }
@@ -162,16 +199,16 @@ function Command({ state, run, view, until, now }: { state: GameState; run: Run;
     <>
       <header className="sheet-head fight-head">
         <p className="place-biome">Under your command</p>
-        <h2 className="plan-title">The fight at {view.place}</h2>
+        <h2 className="plan-title">{title}</h2>
         <p className="fight-sub">
-          Round {view.round} of {view.maxRounds}. {minutes === 1 ? 'One minute' : `${minutes} minutes`} left to finish it.
+          Round {view.round} of {view.maxRounds}. {formatDuration(Math.max(60_000, until - now))} left to finish it.
         </p>
         <p className="fight-sub">
-          {view.meds === 1 ? '1 med' : `${view.meds} meds`} and {view.ammo} ammo in the packs.
+          {view.meds === 1 ? '1 med' : `${view.meds} meds`} and {view.ammo} ammo {stores}.
         </p>
       </header>
 
-      <BattleStage state={state} run={run} view={view} orders={{ picks, ...(open ? { open } : {}) }} onTap={tapStage} onLine={setTold} caption={stageHint(view, open, picks)} />
+      <BattleStage state={state} place={place} seed={seed} view={view} orders={{ picks, ...(open ? { open } : {}) }} onTap={tapStage} onLine={setTold} caption={stageHint(view, open, picks)} />
 
       {lastRound.length > 0 && (
         <section className="panel" aria-labelledby="last-title">
@@ -262,7 +299,7 @@ function Command({ state, run, view, until, now }: { state: GameState; run: Run;
           <button type="button" className="btn btn-primary" onClick={give}>
             Give the orders
           </button>
-          <button type="button" className="btn btn-quiet" onClick={() => act((s) => letThemFight(s, runId, Date.now()))}>
+          <button type="button" className="btn btn-quiet" onClick={() => act((s) => letThem(s))}>
             Let them finish it
           </button>
         </div>

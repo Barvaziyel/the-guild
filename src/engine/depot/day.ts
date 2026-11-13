@@ -333,7 +333,8 @@ function treat(state: GameState, day: number, rng: Rng, summary: DepotSummary): 
   const speedup = INFIRMARY_SPEEDUP[level] ?? 0;
   for (const s of home) {
     for (const t of s.traits) {
-      if (t.expiresDay === undefined || !getTrait(t.id).blocksRuns) continue;
+      const def = getTrait(t.id);
+      if (t.expiresDay === undefined || !def.blocksRuns || def.onlyRuns) continue;
       if (t.expiresDay > day + 1 && rng.chance(speedup)) t.expiresDay -= 1;
     }
   }

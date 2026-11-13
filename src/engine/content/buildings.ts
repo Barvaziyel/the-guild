@@ -100,9 +100,9 @@ export const BUILDINGS: readonly BuildingDef[] = [
     description: 'A lookout on the signal gantry with a view of every road in.',
     workStat: 'aim',
     levels: [
-      { effect: 'Raiders are spotted coming, which helps hold them off and halves what they take.', cost: { scrap: 25 } },
-      { effect: 'A stronger defense. Uses some ammo every day for practice.', cost: { scrap: 90, tech: 10, ammo: 30 } },
-      { effect: 'Few raiders get past the fence. Uses more ammo.', cost: { scrap: 210, tech: 36, ammo: 90 } },
+      { effect: 'Raiders may be seen coming, with a notice, and the defenders strike first. Lookouts with a gun shoot from up top. Halves what raiders take.', cost: { scrap: 25 } },
+      { effect: 'Raiders seen more often and sooner; lookouts shoot better. Uses some ammo every day for practice.', cost: { scrap: 90, tech: 10, ammo: 30 } },
+      { effect: 'Raiders seen nearly always, well ahead; lookouts shoot best. Uses more ammo.', cost: { scrap: 210, tech: 36, ammo: 90 } },
     ],
   },
   {

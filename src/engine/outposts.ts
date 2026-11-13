@@ -25,7 +25,7 @@ import {
   PARTNER_RELIEF,
 } from './constants.ts';
 import { getEnemy, getLocation, getTrait } from './content/index.ts';
-import { buildingLevel, canAfford, costText, payCost } from './depot/buildings.ts';
+import { buildingLevel, canAfford, costText, laidUp, payCost } from './depot/buildings.ts';
 import { addPractice, changeStress, effectiveStat, hungerStress, maxHp, rollCheck } from './stats.ts';
 import { locationState } from './locations.ts';
 import { adjustRelationship, arePartners, becomePartners, relationshipLabel, romanceChance, traitAffinity } from './relationships.ts';
@@ -110,7 +110,7 @@ export function stationProblem(state: GameState, survivorId: string, locationId:
   if (s.outpost === locationId) return `${s.firstName} already lives here.`;
   if (s.status === 'away') return `${s.firstName} is out on a run.`;
   if (s.status !== 'ready') return `${s.firstName} can't go.`;
-  if (s.traits.some((t) => getTrait(t.id).blocksRuns)) return `${s.firstName} is resting until healed.`;
+  if (laidUp(s)) return `${s.firstName} is resting until healed.`;
   if (outpostStaff(state, locationId).length >= OUTPOST_STAFF) return `The outpost has room for ${OUTPOST_STAFF}.`;
   return undefined;
 }
@@ -187,7 +187,7 @@ export function playOutpostsDay(state: GameState, day: number, rng: Rng, sent: P
     // What the place gives up.
     const [lo, hi] = outpostYieldEach(outpost.locationId);
     for (const s of staff) {
-      if (s.traits.some((t) => getTrait(t.id).blocksRuns)) continue;
+      if (laidUp(s)) continue;
       const res = rng.weightedBy(RESOURCE_IDS, (r) => loc.loot[r]);
       let amount = rng.int(lo, hi);
       if (outpost.damaged) amount = Math.ceil(amount / 2);
@@ -212,7 +212,7 @@ export function outpostTrouble(state: GameState, outpost: Outpost, day: number, 
   const loc = getLocation(outpost.locationId);
   const staff = outpostStaff(state, outpost.locationId);
   if (staff.length === 0) return undefined;
-  const fit = staff.filter((s) => !s.traits.some((t) => getTrait(t.id).blocksRuns));
+  const fit = staff.filter((s) => !laidUp(s));
   const kind = rng.weighted<'prowlers' | 'long night' | 'accident' | 'radiation'>([
     { item: 'prowlers', weight: fit.length > 0 ? 3 : 0 },
     { item: 'long night', weight: 2 },
@@ -289,7 +289,7 @@ export const RAIDERS: Raiders = { name: 'Raiders', lower: 'raiders', dc: 0 };
 export function raidOutpost(state: GameState, outpost: Outpost, day: number, rng: Rng, by: Raiders = RAIDERS): 'held' | 'damaged' | 'burned' {
   const loc = getLocation(outpost.locationId);
   const staff = outpostStaff(state, outpost.locationId);
-  const fit = staff.filter((s) => !s.traits.some((t) => getTrait(t.id).blocksRuns));
+  const fit = staff.filter((s) => !laidUp(s));
   const best = Math.max(0, ...fit.map((s) => effectiveStat(s, 'aim')));
   const roll = rollCheck(rng, best + Math.max(0, fit.length - 1), OUTPOST_RAID_DC + loc.danger + by.dc);
 

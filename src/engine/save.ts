@@ -163,6 +163,9 @@ const MIGRATIONS: Record<number, (save: Record<string, unknown>) => void> = {
   19: () => {
     // Commanded fights (1.13.0): plans, runs and reports may say the player leads the fights. Older ones don't.
   },
+  20: () => {
+    // Raids at the gate (2.0.0): the Depot may have a raid coming, at the gate, or just fought. Older saves have none.
+  },
 };
 
 export function serialize(state: GameState): string {

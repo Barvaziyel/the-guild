@@ -52,7 +52,7 @@ export const PROJECTS: readonly ProjectDef[] = [
     id: 'the_wall',
     name: 'The Wall',
     description: 'Replace the chain-link with sheet metal and sandbags, all the way round.',
-    effect: 'Raids are far harder to break through: +4 to holding them off.',
+    effect: 'Defenders fight raiders from behind it: raiders need 3 more to hit them.',
     needs: { building: ['watchtower', 3] },
     workStat: 'brawn',
     stages: [

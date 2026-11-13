@@ -109,6 +109,8 @@ export interface TraitDef {
   needsTarget?: boolean;
   /** Survivors with this trait can't be sent on runs (serious wounds). */
   blocksRuns?: boolean;
+  /** Keeps them off runs and nothing else (Exhausted): tired, not hurt, so they still work their posts and hold the gate. */
+  onlyRuns?: boolean;
 }
 
 export interface TraitInstance {
@@ -572,6 +574,16 @@ export interface Run {
   radio?: RadioCall;
   /** The player leads the fights (§7.13). */
   lead?: RunLead;
+  /** With a Radio Tower, what the run set out with, so the crew can be called home (§9.8). A led run uses its own copy. */
+  home?: RunHome;
+  /** Called home over the radio at this time: raiders on the way. */
+  recalled?: number;
+}
+
+/** A run's copy of the game as it set out, to play it again with the crew called home. */
+export interface RunHome {
+  start: GameState;
+  taken: string[];
 }
 
 /** An order the player can give over the radio. */
@@ -881,7 +893,64 @@ export interface DepotState {
   strays: Stray[];
   /** More people than beds on the last day played: someone sleeps on the floor (§9.1). */
   crowded?: boolean;
+  /** Raiders coming for the Depot, at the gate, or the last raid fought (§9.8). */
+  raid?: DepotRaid;
 }
+
+/**
+ * A raid on the Depot (§9.8). Decided on the Depot day that brings it, it
+ * arrives at a set time: seen coming first if the Watchtower spots it. At the
+ * gate the raiders wait for the player's orders, and only those who were home
+ * and fit when they arrived can defend. Kept once it's over, for the screen
+ * that shows how it went, until the next one.
+ */
+export interface DepotRaid {
+  id: string;
+  /** Raiders, or the Vultures with one of their named people at their head. */
+  by: 'raiders' | 'vultures';
+  leadId?: string;
+  /** The fight's dice. */
+  seed: string;
+  /** The game day that brought them. */
+  day: number;
+  /** When they reach the gate, and when the Watchtower sees them coming (if it does). */
+  arrive: number;
+  seen?: number;
+  /** After this they stop waiting: the defenders fight on their own. */
+  until: number;
+  /** A second band behind the first: they come on if the gate holds. */
+  waves?: 2;
+  /** Getting ready while they're on the road: the fence shored up, and stores hidden (half out of reach, of the raiders and the defenders both). */
+  shored?: boolean;
+  hidden?: boolean;
+  /** Set when they arrive: the enemies (ids, the leader first), the second band's, and who was home and fit to fight. */
+  enemies?: string[];
+  enemies2?: string[];
+  defenders?: string[];
+  /** Words at the gate before any fighting: paid off, or stared down (by whom, and whether it worked). */
+  talk?: RaidTalk;
+  /** Who holds the gate against the first band (every defender unless the player picks), and the second. */
+  team?: string[];
+  team2?: string[];
+  /** Set when the fight begins: those who fight, as they were then, and the Depot's meds and ammo for them. */
+  start?: GameState;
+  marks?: Record<string, DepartureMark>;
+  /** Lookouts with a gun on the Watchtower: they shoot from up there. */
+  perch?: string[];
+  meds?: number;
+  ammo?: number;
+  /** The player took command at this time, and the orders given since, round by round. */
+  took?: number;
+  rounds?: RoundOrders[];
+  /** Orders in the fight with the second band, once the player has picked who holds the gate. */
+  rounds2?: RoundOrders[];
+  /** Over: when, and how it ended. */
+  ended?: number;
+  end?: 'held' | 'broken' | 'paid' | 'stared';
+}
+
+/** What was said at the gate. */
+export type RaidTalk = { how: 'pay'; paid: Partial<Resources> } | { how: 'stare'; by: string; ok: boolean; check: CheckInfo };
 
 // ---------------------------------------------------------------- guild
 

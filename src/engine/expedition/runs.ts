@@ -14,7 +14,7 @@ import { Rng } from '../rng.ts';
 import { changeStress } from '../stats.ts';
 import { fullName, pronounForms } from '../text.ts';
 import { addTrait, getTraitInstance, hasTrait } from '../traits.ts';
-import type { Beat, DepartureMark, GameState, LedFight, RadioBranch, RadioCall, RoundOrders, Run, RunDeath, RunLead, RunPlan, RunReport, RunSummary, Survivor } from '../types.ts';
+import type { Beat, DepartureMark, GameState, LedFight, RadioBranch, RadioCall, RoundOrders, Run, RunDeath, RunHome, RunLead, RunPlan, RunReport, RunSummary, Survivor } from '../types.ts';
 import { RESOURCE_IDS, SLOTS } from '../types.ts';
 import { rationsPacked, validatePlan } from './plan.ts';
 import { runStart, simulateRun, type SimulatedRun } from './sim.ts';
@@ -41,10 +41,13 @@ export function startRun(state: GameState, plan: RunPlan, now: number): Run {
   const lead: RunLead | undefined = sim.stops
     ? { start: structuredClone(runStart(state, plan)), taken: [...takenNames(state)], fights: fightsFrom(sim.stops, now) }
     : undefined;
+  // With a Radio Tower and a Watchtower to see raiders coming, the crew can be called home (§9.8): keep what it set out with too.
+  const home: RunHome | undefined = !lead && canCallHome(state) ? { start: structuredClone(runStart(state, plan)), taken: [...takenNames(state)] } : undefined;
   const radio = radioCall(state, plan, seed, now, sim, lead === undefined);
   // Items found on the run already have ids; keep the counter ahead of them, in every branch,
-  // and for a led run far enough ahead for anything its replays find.
-  state.nextId = Math.max(sim.nextId, radio?.nextId ?? 0, lead ? lead.start.nextId + LEAD_ID_BLOCK : 0);
+  // and for a run that may be played again far enough ahead for anything its replays find.
+  const copy = lead ?? home;
+  state.nextId = Math.max(sim.nextId, radio?.nextId ?? 0, copy ? copy.start.nextId + LEAD_ID_BLOCK : 0);
 
   const run: Run = {
     id: newId(state, 'r'),
@@ -57,6 +60,7 @@ export function startRun(state: GameState, plan: RunPlan, now: number): Run {
     result: sim.result,
     ...(radio ? { radio: radio.call } : {}),
     ...(lead ? { lead } : {}),
+    ...(home ? { home } : {}),
   };
 
   state.resources.rations -= rationsPacked(state, plan);
@@ -146,6 +150,52 @@ export function answerRadio(state: GameState, runId: string, order: string, now:
   delete call.branches;
 }
 
+// ---------------------------------------------------------------- called home (§9.8)
+
+/** Runs set out now can be called home: the guild has a Radio Tower to reach them and a Watchtower to see raiders coming. */
+function canCallHome(state: GameState): boolean {
+  return (state.buildings.radio_tower ?? 0) >= 1 && (state.buildings.watchtower ?? 0) >= 1;
+}
+
+/**
+ * The run played again with the crew called home at `at`, or undefined if it
+ * can't be: no copy to play it from, or the crew is on the radio or in a fight
+ * under command right then. The same as before up to `at`.
+ */
+export function recallReplay(run: Run, at: number): SimulatedRun | undefined {
+  const copy = run.lead ?? run.home;
+  if (!copy || run.recalled !== undefined || at >= run.returnAt) return undefined;
+  if (radioWaiting(run, at) || ledFightNow(run, at)) return undefined;
+  const call = run.radio;
+  const answer = call?.answer !== undefined && call.answer !== 'none' ? call.answer : undefined;
+  try {
+    return simulateRun(copy.start, run.plan, run.seed, run.departAt, {
+      taken: copy.taken,
+      recallAt: at - run.departAt,
+      ...(run.lead ? { fights: plansFor(run.lead) } : {}),
+      ...(answer !== undefined ? { answer, answerWait: (call!.answeredAt ?? call!.at) - call!.at } : {}),
+    });
+  } catch (e) {
+    if (e instanceof FightPause) return undefined;
+    throw e;
+  }
+}
+
+/** Keep the run as played with the crew called home at `at`: its log, outcome and return; calls and fights still ahead don't happen. */
+export function storeRecall(state: GameState, run: Run, sim: SimulatedRun, at: number): void {
+  run.recalled = at;
+  if (run.lead) {
+    storeReplay(state, run, sim);
+    return;
+  }
+  run.beats = sim.beats;
+  run.result = sim.result;
+  run.returnAt = sim.returnAt;
+  // A call still ahead never comes.
+  if (run.radio && run.radio.answer === undefined && run.radio.at > at) delete run.radio;
+  state.nextId = Math.max(state.nextId, sim.nextId);
+}
+
 // ---------------------------------------------------------------- led runs (§7.13)
 
 /**
@@ -175,6 +225,7 @@ function replayLed(run: Run, fights: (FightPlan | undefined)[] = plansFor(run.le
     fights,
     taken: lead.taken,
     ...(answer !== undefined ? { answer, answerWait: (call!.answeredAt ?? call!.at) - call!.at } : {}),
+    ...(run.recalled !== undefined ? { recallAt: run.recalled - run.departAt } : {}),
   });
 }
 
@@ -360,7 +411,7 @@ function summaryOf(run: Run): RunSummary {
  * the Depot's to change; Grief over another crew's dead, news of a nemesis,
  * and the Chronicle lines that came with them were written to the real record.
  */
-function homecoming(home: Survivor, after: Survivor, departed: DepartureMark | undefined): Survivor {
+export function homecoming(home: Survivor, after: Survivor, departed: DepartureMark | undefined): Survivor {
   if (home.post) after.post = home.post;
   else delete after.post;
   if (!departed) return after;

@@ -49,6 +49,7 @@ import { addWanderer } from './recruits.ts';
 import { wallDefense } from '../projects.ts';
 import { dogDefense, strayArrives } from '../animals.ts';
 import { RAIDERS, type Raiders } from '../outposts.ts';
+import { openRaid, scheduleRaid } from './raids.ts';
 import { changeStanding, freeLieutenants, noteMember, tradeCut, vultureBand, vultureBoss, vulturesActive } from '../vultures.ts';
 
 type EventKind = 'wanderer' | 'trader' | 'raid' | 'celebration' | 'sickness' | 'stray' | 'vultureRaid' | 'vultureTrader';
@@ -82,6 +83,8 @@ export function rollDepotEvents(state: GameState, day: number, rng: Rng): EventK
   if (!rng.chance(DEPOT_EVENT_CHANCE)) return happened;
   const home = state.survivors.filter(atDepot);
   const options = (Object.keys(EVENT_WEIGHTS) as EventKind[]).filter((k) => {
+    // One raid at a time.
+    if ((k === 'raid' || k === 'vultureRaid') && openRaid(state)) return false;
     if (k === 'celebration') return home.length >= 2 && state.resources.rations >= home.length * 2;
     if (k === 'sickness' || k === 'stray') return home.length > 0;
     return vultureWeight(state, k) > 0;
@@ -107,18 +110,13 @@ const HANDLERS: Record<EventKind, (state: GameState, day: number, rng: Rng, home
     addGuildLog(state, day, `A trader caravan stopped at the gate: ${offerText(offer)}.`, ['trade', offer.id]);
   },
 
+  // Raiders set out for the gate, to arrive later in the day (§9.8).
   raid(state, day, rng) {
-    raid(state, day, rng);
+    scheduleRaid(state, day, rng, 'raiders');
   },
 
   vultureRaid(state, day, rng) {
-    // Led by one of their lieutenants (or the boss, with none left).
-    const lead = rng.shuffle([...freeLieutenants(state)])[0] ?? vultureBoss(state);
-    if (lead) {
-      lead.met = true;
-      noteMember(lead, day, 'Led a raid on the guild\'s Depot.');
-    }
-    raid(state, day, rng, { name: lead ? `The Vultures, led by ${fullName(lead.person)},` : 'The Vultures', lower: 'the Vultures', dc: VULTURES_RAID_DC });
+    scheduleRaid(state, day, rng, 'vultures');
   },
 
   vultureTrader(state, day, rng) {
