@@ -632,6 +632,8 @@ Gear and traits add moves (a `moves` hook on traits and gear):
 
 **Balance** (1,938 led runs at danger 2–4, each played twice from the same dice: every fight left to the crew, and every fight given to a simple commander who focuses the weakest enemy, patches up whoever is down, takes cover when badly hurt and uses intimidate, soothe and short out where they can): commanded fights are won 56% of the time against 49%, fewer people die (28 against 39 in 1,000 runs; deaths are rare, so this swings from one batch of runs to the next, and over 6,000 runs it was 30 against 38), and a run brings home a fifth more, mostly from the fights it wins. As many people go down either way. The +5 to the wound roll is what decides the deaths: with +10 they halved, with nothing they barely moved. Fights nobody commands play exactly as before (the same runs give the same logs, line for line).
 
+**Next: the battle stage** (Aviel, 2026-11-13, after seeing the first fight screen: "like in an RPG game"). The fight drawn as a side view: the crew on the left, as the full-body figures of the yard, facing the enemies on the right, over a backdrop of the place. Tap an enemy to target it; hits, misses and damage numbers show on the figures as a round plays. The moves stay below the stage. Every kind of enemy needs a drawing (15 enemies: raiders, ferals, hollows, scrapbots), and the Vultures' people and nemeses need a mark. 1.13.0 ships the plain screen first.
+
 ## 8. Gear
 
 Every survivor has four slots: **Weapon · Armor · Tool · Trinket**
@@ -1044,7 +1046,7 @@ From the ideas in `claude/interactive-ideas.md`. The order isn't set yet.
 
 | Idea | What Aviel said | Status |
 |---|---|---|
-| Take command of a fight: turn-based fights, at least as an option (his ask from 2026-11-12) | Yes. **The game is 2.0.0 when this is done.** Picked first (§7.13) | runs: 1.13.0; raids next |
+| Take command of a fight: turn-based fights, at least as an option (his ask from 2026-11-12) | Yes. **The game is 2.0.0 when this is done.** Picked first (§7.13) | runs: 1.13.0; the battle stage and raids next |
 | Haggle with traders | Yes | planned |
 | Names: things get their names from the guild's people, not from the player, once they've spent enough time with them | Yes, named by the people | planned |
 | What people want: now and then someone asks for something, and doing it (or not) matters | Maybe | to decide |
