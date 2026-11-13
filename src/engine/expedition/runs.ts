@@ -167,12 +167,12 @@ function plansFor(lead: RunLead): (FightPlan | undefined)[] {
 }
 
 /** Play a led run again from what it set out with, with every answer and order given so far. A fight under command that needs the next round throws a FightPause. */
-function replayLed(run: Run): SimulatedRun {
+function replayLed(run: Run, fights: (FightPlan | undefined)[] = plansFor(run.lead!)): SimulatedRun {
   const lead = run.lead!;
   const call = run.radio;
   const answer = call?.answer !== undefined && call.answer !== 'none' ? call.answer : undefined;
   return simulateRun(lead.start, run.plan, run.seed, run.departAt, {
-    fights: plansFor(lead),
+    fights,
     taken: lead.taken,
     ...(answer !== undefined ? { answer, answerWait: (call!.answeredAt ?? call!.at) - call!.at } : {}),
   });
@@ -264,6 +264,47 @@ export function fightNow(state: GameState, runId: string, now: number): FightVie
     throw e;
   }
   return undefined;
+}
+
+/**
+ * The fight a crew has stopped at, as it would stand for the first round's
+ * orders, before anyone has taken command: the stage seen from the card.
+ * Changes nothing. Undefined if there's no such fight, or the crew can't act in it.
+ */
+export function fightPreview(state: GameState, runId: string, now: number): FightView | undefined {
+  const run = state.runs.find((r) => r.id === runId);
+  const fight = run && ledFightNow(run, now);
+  if (!run || !fight) return undefined;
+  if (fight.took !== undefined) return fightNow(state, runId, now);
+  const plans = plansFor(run.lead!);
+  plans[run.lead!.fights.indexOf(fight)] = { rounds: [], live: true, delay: 0 };
+  try {
+    replayLed(run, plans);
+  } catch (e) {
+    if (e instanceof FightPause) return e.view;
+    throw e;
+  }
+  return undefined;
+}
+
+/**
+ * The last fight on this run that was under command, as it ended, for the
+ * screen after it. Undefined if there is none, or another is under way.
+ */
+export function lastFought(state: GameState, runId: string): FightView | undefined {
+  const run = state.runs.find((r) => r.id === runId);
+  if (!run?.lead) return undefined;
+  let index = -1;
+  run.lead.fights.forEach((f, k) => {
+    if (f.took !== undefined && f.ended !== undefined) index = k;
+  });
+  if (index < 0) return undefined;
+  try {
+    return replayLed(run).ends?.[index];
+  } catch (e) {
+    if (e instanceof FightPause) return undefined;
+    throw e;
+  }
 }
 
 /**

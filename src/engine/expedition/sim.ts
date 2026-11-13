@@ -102,6 +102,7 @@ import { resolveWounds } from './wounds.ts';
 import { rescueBeat, rescueNews } from './rescue.ts';
 import { vulturesBeat } from './vultures.ts';
 import { tryFork } from './radio.ts';
+import type { FightView } from './command.ts';
 import { campAt, campLeader, neighbours, onTurf, vultureBand, vulturesActive } from '../vultures.ts';
 
 type MidKind = Exclude<BeatKind, 'depart' | 'return'>;
@@ -436,6 +437,8 @@ export interface SimulatedRun {
   fork?: SimFork;
   /** On a led run, every fight it stopped and called home for (§7.13). */
   stops?: SimStop[];
+  /** Each commanded fight as it ended, by its place in `stops`. */
+  ends?: (FightView | undefined)[];
 }
 
 /** Replaying a run with the player's part in it. */
@@ -544,7 +547,7 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
     ...(opts.answer !== undefined ? { answer: opts.answer, answerWait: opts.answerWait ?? 0 } : {}),
   };
   // A led run stops at every fight and calls home (§7.13); it needs the radio.
-  if (plan.lead && sim.radio) sim.lead = { plans: opts.fights ?? [], stops: [] };
+  if (plan.lead && sim.radio) sim.lead = { plans: opts.fights ?? [], stops: [], ends: [] };
   // A rescue run carries the person who called for help, and what trouble they're in (§10.1).
   const call = state.rescue?.call;
   if (plan.job === 'rescue' && call && call.locationId === plan.locationId) sim.rescue = { person: structuredClone(call.person), trouble: call.trouble };
@@ -647,7 +650,7 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
     beats: sim.beats,
     nextId: shell.nextId,
     ...(sim.fork ? { fork: sim.fork } : {}),
-    ...(sim.lead ? { stops: sim.lead.stops } : {}),
+    ...(sim.lead ? { stops: sim.lead.stops, ends: sim.lead.ends } : {}),
     result: {
       outcome,
       crew: sim.members.map((m) => m.s),

@@ -10,7 +10,7 @@ import { maxHp } from '../stats.ts';
 import { visibleTraits } from '../traits.ts';
 import { getTrait } from '../content/index.ts';
 import type { LogLine, MoveId } from '../types.ts';
-import type { Enemy } from './combat.ts';
+import type { CombatEnd, Enemy } from './combat.ts';
 import { active, type Member, type Sim } from './context.ts';
 
 /** A move someone can make this round, and what it can be aimed at. */
@@ -31,6 +31,8 @@ export interface FightEnemyView {
   name: string;
   /** Its kind of enemy: raider, feral, hollow, scrapbot. */
   type: string;
+  /** Which enemy it is ('raider_gunner', 'rad_hound'...), for its drawing. */
+  kind: string;
   hp: number;
   maxHp: number;
   state: 'up' | 'dead' | 'fled';
@@ -38,7 +40,58 @@ export interface FightEnemyView {
   stunned: boolean;
   /** A nemesis or one of the Vultures' named people. */
   named: boolean;
+  /** A nemesis: an enemy with a name and a grudge (§7.7). */
+  nemesis: boolean;
+  /** One of the Vultures (§7.11). */
+  vulture: boolean;
 }
+
+/**
+ * One thing that happened in a commanded fight, for the battle stage to play:
+ * who did it (an ally's survivor id, or an enemy's place in the fight), to whom, and how it went.
+ */
+export interface FightAct {
+  round: number;
+  /** The line in `FightView.lines` that tells it; acts with no line of their own (an enemy's miss) point at the next one. */
+  line: number;
+  by: number | string;
+  at?: number | string;
+  kind: FightActKind;
+  /** Damage dealt, or HP healed. */
+  amount?: number;
+  /** A shot rather than a blow. */
+  shot?: boolean;
+  /** The target went down (a person) or reels (a stunned enemy). */
+  down?: boolean;
+  stun?: boolean;
+  /** For talk and withdraw: whether it worked. */
+  ok?: boolean;
+}
+
+export type FightActKind =
+  /** An attack that lands; `kill` when it finishes an enemy. */
+  | 'hit'
+  | 'miss'
+  | 'kill'
+  /** Patching someone up; `revive` gets someone down back on their feet. */
+  | 'heal'
+  | 'revive'
+  /** Intimidate, soothe, short out. */
+  | 'talk'
+  | 'cover'
+  | 'aim'
+  | 'draw_fire'
+  | 'guard'
+  | 'spot'
+  /** A person losing their nerve and running. */
+  | 'flee'
+  /** Enemies breaking, a nemesis getting away. */
+  | 'break'
+  | 'escape'
+  /** A stunned enemy losing its attack. */
+  | 'reel'
+  /** The crew trying to break away. */
+  | 'withdraw';
 
 export interface FightMemberView {
   id: string;
@@ -65,6 +118,10 @@ export interface FightView {
   ammo: number;
   /** The fight so far. */
   lines: LogLine[];
+  /** What happened in it, act by act, for the battle stage. */
+  acts: FightAct[];
+  /** How it ended, once it's over. */
+  over?: CombatEnd;
 }
 
 /** Thrown inside a replay when a fight under command needs the next round's orders. */
@@ -160,8 +217,8 @@ export function validOrder(sim: Sim, m: Member, enemies: readonly Enemy[], move:
   return choice;
 }
 
-/** The fight as it stands before `round`, for the fight screen. */
-export function fightView(sim: Sim, enemies: readonly Enemy[], round: number, fromLine: number): FightView {
+/** The fight as it stands before `round` (or after it, once it's over), for the fight screen. */
+export function fightView(sim: Sim, enemies: readonly Enemy[], round: number, fromLine: number, over?: CombatEnd): FightView {
   const names = enemyNames(enemies);
   const beat = sim.beats.at(-1);
   return {
@@ -172,11 +229,14 @@ export function fightView(sim: Sim, enemies: readonly Enemy[], round: number, fr
       index,
       name: names[index]!,
       type: e.def.type,
+      kind: e.def.id,
       hp: Math.max(0, e.hp),
       maxHp: e.maxHp,
       state: e.dead ? 'dead' : e.fled ? 'fled' : 'up',
       stunned: e.stunned === true,
       named: e.nemesis !== undefined || e.vulture !== undefined,
+      nemesis: e.nemesis !== undefined,
+      vulture: e.def.id.startsWith('vulture_'),
     })),
     crew: sim.members.map((m) => ({
       id: m.s.id,
@@ -190,5 +250,7 @@ export function fightView(sim: Sim, enemies: readonly Enemy[], round: number, fr
     meds: sim.meds,
     ammo: sim.ammo,
     lines: beat ? beat.lines.slice(fromLine) : [],
+    acts: (sim.fightActs?.acts ?? []).map((a) => ({ ...a, line: a.line - fromLine })),
+    ...(over ? { over } : {}),
   };
 }

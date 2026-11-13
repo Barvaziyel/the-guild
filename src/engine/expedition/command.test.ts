@@ -10,7 +10,7 @@ import { T0, openGame, testPlan } from '../test-utils.ts';
 import type { GameState, RoundOrders, Run, RunJob } from '../types.ts';
 import type { FightView } from './command.ts';
 import { validatePlan } from './plan.ts';
-import { commandRound, fightNow, ledFightNow, letThemFight, startRun, takeCommand } from './runs.ts';
+import { commandRound, fightNow, fightPreview, lastFought, ledFightNow, letThemFight, startRun, takeCommand } from './runs.ts';
 import { runStart, simulateRun } from './sim.ts';
 import { takenNames } from './stories.ts';
 
@@ -233,6 +233,98 @@ describe('moves', () => {
       if (run.beats[run.lead!.fights[0]!.fromBeat]!.lines.some((l) => /breaks and runs\./.test(l.text))) ran++;
     }
     assert.ok(ran >= 2);
+  });
+});
+
+describe('the battle stage', () => {
+  test('every act names who did it and to whom, points at a line, and the hits add up to what the enemies lost', () => {
+    let checked = 0;
+    for (let k = 0; k < 12; k++) {
+      const { state, run } = ledRun(`acts-${k}`);
+      const f = run.lead!.fights[0]!;
+      let now = f.at + 60_000;
+      let view = takeCommand(state, run.id, now);
+      let before: FightView | undefined = view;
+      while (view) {
+        const ids = new Set(view.crew.map((m) => m.id));
+        for (const a of view.acts) {
+          const side = (x: number | string) => (typeof x === 'number' ? x >= 0 && x < view!.enemies.length : ids.has(x));
+          assert.ok(side(a.by), `who: ${JSON.stringify(a)}`);
+          if (a.at !== undefined) assert.ok(side(a.at), `at whom: ${JSON.stringify(a)}`);
+          assert.ok(a.line >= 0 && a.line <= view.lines.length, `line: ${JSON.stringify(a)}`);
+          assert.ok(a.round >= 1 && a.round < view.round + 1);
+        }
+        if (before && before !== view) {
+          // What the crew did to each enemy since the last view is what it lost.
+          const fresh = view.acts.slice(before.acts.length);
+          for (const e of view.enemies) {
+            const dealt = fresh.filter((a) => a.at === e.index && (a.kind === 'hit' || a.kind === 'kill')).reduce((t, a) => t + a.amount!, 0);
+            const lost: number = before.enemies[e.index]!.hp - e.hp;
+            assert.equal(lost, Math.min(dealt, before.enemies[e.index]!.hp), `${e.name}: lost ${lost}, dealt ${dealt}`);
+          }
+          checked++;
+        }
+        before = view;
+        now += 20_000;
+        view = commandRound(state, run.id, orders(view), now);
+      }
+    }
+    assert.ok(checked >= 10, `rounds checked: ${checked}`);
+  });
+
+  test('the acts of a round carry the moves given: aiming, cover, a called shot that lands or misses', () => {
+    const { state, run } = ledRun('acts-moves', {
+      setup: (s) => {
+        s.survivors[0]!.equipment.weapon = createItem(s, 'hunting_rifle');
+      },
+    });
+    const f = run.lead!.fights[0]!;
+    const view = takeCommand(state, run.id, f.at + 1000)!;
+    const [a, b] = view.crew.filter((m) => m.moves.length > 0);
+    const target = view.enemies.find((e) => e.state === 'up')!.index;
+    const moves: RoundOrders['moves'] = {};
+    if (a) moves[a.id] = a.moves.some((c) => c.move === 'called_shot') ? { move: 'called_shot', target } : { move: 'aim' };
+    if (b) moves[b.id] = { move: 'cover' };
+    const next = commandRound(state, run.id, { moves }, f.at + 2000);
+    const acts = (next ?? lastFought(state, run.id)!).acts.slice(view.acts.length);
+    if (a) assert.ok(acts.some((x) => x.by === a.id && ['hit', 'miss', 'kill', 'aim'].includes(x.kind)), JSON.stringify(acts));
+    if (b) assert.ok(acts.some((x) => x.by === b.id && x.kind === 'cover'), JSON.stringify(acts));
+  });
+
+  test('after the last round, the fight as it ended: how it went, and every act', () => {
+    for (let k = 0; k < 6; k++) {
+      const { state, run } = ledRun(`ended-${k}`);
+      const views = command(state, run, run.lead!.fights[0]!.at + 1000);
+      const end = lastFought(state, run.id)!;
+      assert.ok(end, 'the end view');
+      assert.ok(['won', 'withdrew', 'stalemate', 'routed'].includes(end.over!), String(end.over));
+      const last = views.at(-1);
+      if (last) assert.ok(end.acts.length >= last.acts.length && end.lines.length >= last.lines.length);
+      if (end.over === 'won') assert.ok(end.enemies.every((e) => e.state !== 'up'));
+    }
+  });
+
+  test('a preview of a waiting fight changes nothing', () => {
+    const { state, run } = ledRun('preview');
+    const f = run.lead!.fights[0]!;
+    const saved = serialize(state);
+    const view = fightPreview(state, run.id, f.at + 1000);
+    assert.ok(view && view.enemies.length > 0 && view.crew.length === run.plan.crew.length);
+    assert.equal(serialize(state), saved);
+    assert.equal(fightPreview(state, run.id, f.at - 1000), undefined, 'not before the fight');
+    assert.equal(lastFought(state, run.id), undefined, 'no fight under command yet');
+    const taken = takeCommand(state, run.id, f.at + 1000);
+    if (taken) assert.deepEqual(taken.enemies, view.enemies);
+  });
+
+  test('enemies say which kind they are, and Vultures and nemeses are marked', () => {
+    const { state, run } = ledRun('kinds');
+    const view = takeCommand(state, run.id, run.lead!.fights[0]!.at + 1000)!;
+    for (const e of view.enemies) {
+      assert.ok(LOCATIONS.length > 0 && typeof e.kind === 'string' && e.kind.length > 0);
+      assert.equal(e.vulture, e.kind.startsWith('vulture_'));
+      assert.equal(e.named, e.nemesis || (e.vulture && e.named));
+    }
   });
 });
 
