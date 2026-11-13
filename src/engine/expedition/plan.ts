@@ -104,6 +104,9 @@ export function validatePlan(state: GameState, plan: RunPlan): string[] {
   if (plan.depth !== undefined && (plan.depth < 1 || plan.depth > 3 || !Number.isInteger(plan.depth))) problems.push('That level does not exist.');
   else if (!depthOpen(state, loc.id, depth)) problems.push(`${DEPTH_NAMES[depth - 1]} opens once ${DEPTH_NAMES[depth - 2]!.toLowerCase()} ${depth === 2 ? 'are' : 'is'} fully explored.`);
 
+  // Leading the fights means orders over the radio (§7.13).
+  if (plan.lead && (state.buildings.radio_tower ?? 0) < 1) problems.push('Leading the fights needs a Radio Tower.');
+
   if (plan.job === 'assault') {
     // Only where the Vultures have a camp, and the camp is in the outskirts (§7.11).
     if (!campAt(state, plan.locationId)) problems.push('The Vultures have no camp here.');

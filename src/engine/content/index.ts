@@ -23,6 +23,7 @@ export {
   type EventTarget,
 } from './events.ts';
 export { FORKS, type ForkDef, type ForkOrder, type ForkPick } from './forks.ts';
+export { MOVES, type MoveDef } from './moves.ts';
 export { EVOLUTIONS, type EvolutionRule, type RunTally, type NumericCounter } from './evolutions.ts';
 export { BUILDINGS, type BuildingDef, type BuildingLevel } from './buildings.ts';
 export { RECIPES, UPGRADES, type Recipe, type Upgrade } from './workshop.ts';

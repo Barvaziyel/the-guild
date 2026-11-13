@@ -36,6 +36,7 @@ import type {
   Nemesis,
   NemesisNews,
   RadioOrder,
+  RoundOrders,
   RescueTrouble,
   Resources,
   RunDeath,
@@ -57,6 +58,10 @@ export interface Member {
   fleeRolled: boolean;
   /** Went down and still needs a wound roll. */
   woundPending?: { cause: string; enemyType?: string; nemesisId?: string };
+  /** Patched up mid-fight after going down: a bonus to the wound roll (§7.13). */
+  woundBonus?: number;
+  /** Aimed last round: the next shot is better (§7.13). */
+  aimed?: boolean;
   /** Name of the nemesis this member killed on the run, for nicknames. */
   killedNemesis?: string;
   /** Weapon kills at departure, to notice milestones. */
@@ -132,6 +137,36 @@ export interface Sim {
   answer?: string;
   /** The fork this run came to (at most one). */
   fork?: SimFork;
+  /** In a replay for a radio answer: how long the crew waited before it came (ms). */
+  answerWait?: number;
+  /** The player leads the fights (§7.13): the orders given so far, and where the run stopped to call. */
+  lead?: SimLead;
+}
+
+/** A led run's fights (§7.13). */
+export interface SimLead {
+  /** What the player did at each fight so far, in order; none for a fight nobody took up, which waits in vain and is fought alone. */
+  plans: (FightPlan | undefined)[];
+  /** Every fight the run stopped and called home for, in order. */
+  stops: SimStop[];
+}
+
+/** The player's part in one fight. */
+export interface FightPlan {
+  rounds: RoundOrders[];
+  /** Under command right now: when the rounds run out, stop and wait for the next one. Otherwise the crew plays every round not given. */
+  live: boolean;
+  /** ms from the call to the end of the fight (when it was over, or sent in): the rest of the run is that much later. */
+  delay: number;
+}
+
+/** A fight the run stopped and called home for. */
+export interface SimStop {
+  /** ms after departure. */
+  at: number;
+  by: string;
+  against: string;
+  fromBeat: number;
 }
 
 /** A fork on a run (§7.12): what the crew found and asked, and when. */

@@ -10,8 +10,15 @@ export {
   estimateRisk,
   getEnemyTypeName,
   answerRadio,
+  commandRound,
+  fightNow,
+  ledFightNow,
+  letThemFight,
+  settleLed,
+  takeCommand,
   radioWaiting,
   settleRadio,
   type RiskEstimate,
   type RiskLabel,
 } from './runs.ts';
+export { attackKind, enemyNames, movesFor, type FightEnemyView, type FightMemberView, type FightView, type MoveChoice } from './command.ts';

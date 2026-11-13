@@ -18,6 +18,7 @@ export const TRAITS: readonly TraitDef[] = [
     opposite: 'cowardly',
     affinity: { loyal: 1, cowardly: -1 },
     hooks: {
+      moves: ['draw_fire'],
       neverFlees: true,
       attentionWeight: 1.5,
       checkMods: [{ stat: 'nerve', context: 'combat', mod: 2 }],
@@ -41,7 +42,7 @@ export const TRAITS: readonly TraitDef[] = [
     description: "Won't leave a friend behind. Tries to drag downed allies to safety.",
     sociability: 1,
     affinity: { loyal: 1, greedy: -1 },
-    hooks: { rescuesAllies: true, allyWoundBonus: 5 },
+    hooks: { moves: ['guard'], rescuesAllies: true, allyWoundBonus: 5 },
     startWeight: 6,
   },
   {
@@ -81,7 +82,7 @@ export const TRAITS: readonly TraitDef[] = [
     description: 'Quick to swing, quick to argue. Clashes with other hotheads.',
     opposite: 'calm',
     affinity: { hothead: -2, calm: 1 },
-    hooks: { argueChance: 0.2, lootArgueChance: 0.15, checkMods: [{ stat: 'brawn', context: 'combat', mod: 1 }] },
+    hooks: { moves: ['charge'], argueChance: 0.2, lootArgueChance: 0.15, checkMods: [{ stat: 'brawn', context: 'combat', mod: 1 }] },
     startWeight: 5,
   },
   {
@@ -141,6 +142,7 @@ export const TRAITS: readonly TraitDef[] = [
     kind: 'personality',
     description: 'Good with machines. Bonus with tech and against Scrapbots.',
     hooks: {
+      moves: ['short_out'],
       checkMods: [
         { stat: 'wits', context: 'tech', mod: 2 },
         { context: 'enemy:scrapbot', mod: 1 },
@@ -191,7 +193,7 @@ export const TRAITS: readonly TraitDef[] = [
     name: 'Animal Lover',
     kind: 'personality',
     description: 'Animals sense a friend. Ferals sometimes back off.',
-    hooks: { checkMods: [{ stat: 'nerve', context: 'enemy:feral', mod: 2 }], likesAnimals: true },
+    hooks: { moves: ['soothe'], checkMods: [{ stat: 'nerve', context: 'enemy:feral', mod: 2 }], likesAnimals: true },
     startWeight: 3,
   },
 
@@ -231,7 +233,7 @@ export const TRAITS: readonly TraitDef[] = [
     name: 'Dead-Eye',
     kind: 'earned',
     description: 'Fifteen ranged kills. Rarely misses.',
-    hooks: { checkMods: [{ stat: 'aim', context: 'combat', mod: 1 }] },
+    hooks: { moves: ['called_shot'], checkMods: [{ stat: 'aim', context: 'combat', mod: 1 }] },
   },
   {
     id: 'scav',
@@ -268,7 +270,7 @@ export const TRAITS: readonly TraitDef[] = [
     name: 'Beast-Friend',
     kind: 'earned',
     description: 'Ferals hesitate around them.',
-    hooks: { checkMods: [{ context: 'enemy:feral', mod: 2 }], likesAnimals: true },
+    hooks: { moves: ['soothe'], checkMods: [{ context: 'enemy:feral', mod: 2 }], likesAnimals: true },
   },
 
   // ------------------------------------------------------------ stress
@@ -331,7 +333,7 @@ export const TRAITS: readonly TraitDef[] = [
     name: 'Burn Scars',
     kind: 'scar',
     description: 'Burned and survived. People take them seriously.',
-    hooks: { checkMods: [{ stat: 'nerve', context: 'intimidate', mod: 2 }] },
+    hooks: { moves: ['intimidate'], checkMods: [{ stat: 'nerve', context: 'intimidate', mod: 2 }] },
   },
   {
     id: 'missing_fingers',
@@ -345,7 +347,7 @@ export const TRAITS: readonly TraitDef[] = [
     name: 'Scarred Face',
     kind: 'scar',
     description: 'A face that tells stories.',
-    hooks: { checkMods: [{ stat: 'nerve', context: 'intimidate', mod: 1 }] },
+    hooks: { moves: ['intimidate'], checkMods: [{ stat: 'nerve', context: 'intimidate', mod: 1 }] },
   },
 
   // ------------------------------------------------------------ conditions

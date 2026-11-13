@@ -85,8 +85,10 @@ import {
   startingRerolls,
   stress,
   type Member,
+  type FightPlan,
   type Sim,
   type SimFork,
+  type SimStop,
   type SimVultures,
   revealHook,
 } from './context.ts';
@@ -432,20 +434,28 @@ export interface SimulatedRun {
   nextId: number;
   /** The fork the run came to, if any (§7.12). */
   fork?: SimFork;
+  /** On a led run, every fight it stopped and called home for (§7.13). */
+  stops?: SimStop[];
+}
+
+/** Replaying a run with the player's part in it. */
+export interface SimOptions {
+  /** The order the guild gives at the fork (§7.12)... */
+  answer?: string;
+  /** ...and how long the crew waited for it (ms; 0 when missing). */
+  answerWait?: number;
+  /** On a led run, the player's part in each fight so far (§7.13); none for a fight nobody took up. */
+  fights?: (FightPlan | undefined)[];
+  /** Names already in use when the run set out; a replay from a run's start copy needs them, since the copy keeps only the crew. */
+  taken?: readonly string[];
 }
 
 /**
- * Simulate a run from start to finish. Does not change `state`: the crew is
- * cloned, and the outcome is returned for startRun/completeRun to apply.
- * `answer`: replay the run with the guild giving this order at the fork (§7.12).
+ * What a run reads of the guild, copied: the crew, how they get on with each
+ * other, the nemeses, and the rest of the guild without its history. A led
+ * run keeps this, and is replayed from it with the player's orders (§7.13).
  */
-export function simulateRun(state: GameState, plan: RunPlan, seed: string, departAt: number, answer?: string): SimulatedRun {
-  // Deeper levels are the same place, only more dangerous (§7.10).
-  const loc = atDepth(getLocation(plan.locationId), planDepth(plan));
-  const restStop = outpostNear(state, plan.locationId);
-  const rng = new Rng(`run:${seed}`);
-  const duration = runDuration(state, plan);
-
+export function runStart(state: GameState, plan: RunPlan): GameState {
   const crew = plan.crew.map((id) => {
     const s = state.survivors.find((x) => x.id === id);
     if (!s) throw new Error(`Unknown survivor: ${id}`);
@@ -459,7 +469,24 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
     }
   }
   const nemeses = structuredClone(state.nemeses ?? []);
-  const shell: GameState = { ...state, survivors: crew, memorial: [], relationships, stash: [], runs: [], reports: [], log: [], nemeses };
+  return { ...state, survivors: crew, memorial: [], relationships, stash: [], runs: [], reports: [], log: [], nemeses };
+}
+
+/**
+ * Simulate a run from start to finish. Does not change `state`: the crew is
+ * cloned, and the outcome is returned for startRun/completeRun to apply.
+ * `opts`: replay it with the player's answer at a fork (§7.12) or orders in its fights (§7.13).
+ * A fight under command that needs the next round's orders throws a FightPause.
+ */
+export function simulateRun(state: GameState, plan: RunPlan, seed: string, departAt: number, opts: SimOptions = {}): SimulatedRun {
+  // Deeper levels are the same place, only more dangerous (§7.10).
+  const loc = atDepth(getLocation(plan.locationId), planDepth(plan));
+  const restStop = outpostNear(state, plan.locationId);
+  const rng = new Rng(`run:${seed}`);
+  const duration = runDuration(state, plan);
+
+  const shell = runStart(state, plan);
+  const crew = shell.survivors;
 
   const sim: Sim = {
     state: shell,
@@ -499,10 +526,10 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
     beatCounts: {},
     events: [],
     exploreBonus: 0,
-    nemeses,
+    nemeses: shell.nemeses,
     nemesisNews: {},
     nemesisMet: false,
-    takenNames: takenNames(state),
+    takenNames: opts.taken ? new Set(opts.taken) : takenNames(state),
     rides: seating(state, plan).map(({ vehicleId, riders }) => {
       const v = structuredClone(state.vehicles.find((x) => x.id === vehicleId)!);
       return { v, def: getVehicleDef(v.defId), riders, wrecked: false };
@@ -514,8 +541,10 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
     ...simVultures(state, plan),
     delay: 0,
     radio: (state.buildings.radio_tower ?? 0) >= 1,
-    ...(answer !== undefined ? { answer } : {}),
+    ...(opts.answer !== undefined ? { answer: opts.answer, answerWait: opts.answerWait ?? 0 } : {}),
   };
+  // A led run stops at every fight and calls home (§7.13); it needs the radio.
+  if (plan.lead && sim.radio) sim.lead = { plans: opts.fights ?? [], stops: [] };
   // A rescue run carries the person who called for help, and what trouble they're in (§10.1).
   const call = state.rescue?.call;
   if (plan.job === 'rescue' && call && call.locationId === plan.locationId) sim.rescue = { person: structuredClone(call.person), trouble: call.trouble };
@@ -618,6 +647,7 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
     beats: sim.beats,
     nextId: shell.nextId,
     ...(sim.fork ? { fork: sim.fork } : {}),
+    ...(sim.lead ? { stops: sim.lead.stops } : {}),
     result: {
       outcome,
       crew: sim.members.map((m) => m.s),

@@ -1,10 +1,29 @@
 /**
- * Auto-resolved combat. See docs/DESIGN.md section 7.4.
+ * Combat. See docs/DESIGN.md section 7.4; fights the player commands, §7.13.
+ * A round without orders plays exactly as an automatic fight always has.
  */
 import { addChronicle } from '../chronicle.ts';
 import {
   AGGRESSIVE_ATTACK_BONUS,
+  AIM_DAMAGE,
+  AIM_TO_HIT,
+  CALLED_SHOT_TO_HIT,
+  CHARGE_BONUS,
+  COVER_DEFENSE,
+  DC,
+  DRAW_FIRE_DEFENSE,
   ENCOUNTER_BASE,
+  INTIMIDATE_DC,
+  LEAD_WAIT,
+  MEDS_HEAL,
+  MEDS_HEAL_SKILLED,
+  PATCH_WOUND_BONUS,
+  SHORT_OUT_DC,
+  SMASH_DAMAGE,
+  SMASH_TO_HIT,
+  SOOTHE_DC,
+  SPOT_TO_HIT,
+  SPRAY_TO_HIT,
   ENCOUNTER_CREW_MULT,
   ENCOUNTER_PER_DANGER,
   MAX_COMBAT_ROUNDS,
@@ -25,7 +44,9 @@ import { adjustRelationship } from '../relationships.ts';
 import { enemyContexts, situationalMods } from '../stats.ts';
 import { fullName } from '../text.ts';
 import { anyTraitHook, getTraitInstance, maxTraitHook, mulTraitHook } from '../traits.ts';
-import type { Nemesis, ResourceId, StatId } from '../types.ts';
+import { maxHp } from '../stats.ts';
+import { pronounForms } from '../text.ts';
+import type { MoveOrder, Nemesis, ResourceId, RoundOrders, StatId } from '../types.ts';
 import {
   absorbRads,
   active,
@@ -47,8 +68,11 @@ import {
   type Member,
   type Sim,
   dangerEdge,
+  startBeat,
   toughened,
+  type FightPlan,
 } from './context.ts';
+import { FightPause, enemyNames, fightView, validOrder } from './command.ts';
 import { afterFight, announceNemesis, enemyRef, grudgeBonus, maybeNemesisEscape, nemesisEnemy, nemesisJoins, nemesisKilled } from './stories.ts';
 
 export interface Enemy {
@@ -70,6 +94,8 @@ export interface Enemy {
   vulture?: { id: string; name: string };
   /** A nemesis gets one try per fight at slipping away. */
   escapeTried?: boolean;
+  /** Stunned: loses its next attack (§7.13). */
+  stunned?: boolean;
 }
 
 export function newEnemy(def: EnemyDef, danger = 1): Enemy {
@@ -149,9 +175,23 @@ interface AttackContext {
   ambushed: boolean;
   round: number;
   outOfAmmoSaid: Set<Member>;
+  /** The player gave this round's orders: every swing gets a line (§7.13). */
+  commanded: boolean;
+  /** Names that tell enemies apart, for those lines. */
+  names: string[];
+  enemies: readonly Enemy[];
 }
 
-function survivorAttack(sim: Sim, m: Member, target: Enemy, ctx: AttackContext): void {
+/** What a move adds to an attack (§7.13). */
+interface AttackMods {
+  toHit?: number;
+  damage?: number;
+  double?: boolean;
+  throughArmor?: boolean;
+  stun?: boolean;
+}
+
+function survivorAttack(sim: Sim, m: Member, target: Enemy, ctx: AttackContext, mods: AttackMods = {}): void {
   const weapon = m.s.equipment.weapon;
   const def = weapon ? itemDef(weapon) : undefined;
   let stat: StatId = 'brawn';
@@ -180,14 +220,26 @@ function survivorAttack(sim: Sim, m: Member, target: Enemy, ctx: AttackContext):
     }
   }
 
-  const extra = toHit + (sim.plan.approach === 'aggressive' ? AGGRESSIVE_ATTACK_BONUS : 0) + grudgeBonus(m, target);
+  // An aimed shot (§7.13) is better, and aiming is spent on the next shot.
+  const aimed = ranged && m.aimed === true;
+  if (ranged) m.aimed = false;
+  const extra = toHit + (sim.plan.approach === 'aggressive' ? AGGRESSIVE_ATTACK_BONUS : 0) + grudgeBonus(m, target) + (mods.toHit ?? 0) + (aimed ? AIM_TO_HIT : 0);
   const bonus = simBonus(sim, m, stat, ['combat', ...enemyContexts(m.s, target.def.type)], { extra });
   const roll = sim.rng.d10();
   practice(sim, m, stat, target.defense);
-  if (roll + bonus < target.defense) return;
+  const label = ctx.names[ctx.enemies.indexOf(target)] ?? target.def.name;
+  const hitVerb = ranged ? 'shoots' : 'hits';
+  if (roll + bonus < target.defense) {
+    if (ctx.commanded) say(sim, `${m.s.firstName} ${ranged ? 'shoots at' : 'swings at'} ${label} and misses.`);
+    return;
+  }
 
-  target.hp -= Math.max(1, damage - target.def.armor);
+  const raw = (damage + (mods.damage ?? 0) + (aimed ? AIM_DAMAGE : 0)) * (mods.double ? 2 : 1);
+  const dealt = Math.max(1, raw - (mods.throughArmor ? 0 : target.def.armor));
+  target.hp -= dealt;
   if (target.hp > 0) {
+    if (mods.stun) target.stunned = true;
+    if (ctx.commanded) say(sim, `${m.s.firstName} ${hitVerb} ${label} (-${dealt})${mods.stun ? ', and it reels' : ''}.`, { tone: 'good' });
     maybeNemesisEscape(sim, target);
     return;
   }
@@ -210,13 +262,15 @@ function survivorAttack(sim: Sim, m: Member, target: Enemy, ctx: AttackContext):
     return;
   }
   const verb = ranged ? 'drops' : 'takes down';
-  say(sim, `${m.s.firstName} ${verb} ${withArticle(target.def.name)} ${how}.`, { tone: 'good' });
+  say(sim, `${m.s.firstName} ${verb} ${ctx.commanded ? label : withArticle(target.def.name)} ${how}.`, { tone: 'good' });
 }
 
 // ---------------------------------------------------------------- enemy attacks
 
 interface FightState {
   enemies: Enemy[];
+  /** Names that tell enemies apart, for the lines of rounds under orders (§7.13). */
+  names: string[];
   /** Members who went down during this fight. */
   downedHere: Member[];
   fledHere: Member[];
@@ -236,18 +290,42 @@ function maybeFlee(sim: Sim, m: Member, fight: FightState): void {
   revealHook(sim, m, 'fleeChance');
 }
 
-function enemyRound(sim: Sim, fight: FightState): void {
+/** What the crew set up this round under orders (§7.13): who is in cover, drawing fire, charging or guarding, and the enemy spotted. */
+interface Tactics {
+  cover: Set<Member>;
+  drawFire: Set<Member>;
+  charging: Set<Member>;
+  /** Guarded ally → the one guarding them. */
+  guards: Map<Member, Member>;
+  spotted?: Enemy;
+  spotter?: Member;
+}
+
+function enemyRound(sim: Sim, fight: FightState, tactics?: Tactics): void {
   for (const enemy of living(fight.enemies)) {
+    // A stunned enemy loses this attack.
+    if (enemy.stunned) {
+      enemy.stunned = false;
+      continue;
+    }
     const targets = active(sim);
     if (targets.length === 0) return;
-    const target = sim.rng.weightedBy(targets, (m) => mulTraitHook(m.s, 'attentionWeight'));
+    // Without orders this is exactly the automatic fight: one weighted pick, then the roll.
+    let target = sim.rng.weightedBy(targets, (m) => mulTraitHook(m.s, 'attentionWeight') * (tactics?.drawFire.has(m) ? 20 : 1));
+    const guard = tactics?.guards.get(target);
+    if (guard && !guard.down && !guard.dead && !guard.fled) target = guard;
     const armor = target.s.equipment.armor ? armorValue(target.s.equipment.armor) : 0;
-    if (sim.rng.d10() + enemy.attack < SURVIVOR_DEFENSE + armor) continue;
+    const extra = tactics
+      ? (tactics.cover.has(target) ? COVER_DEFENSE : 0) + (tactics.drawFire.has(target) ? DRAW_FIRE_DEFENSE : 0) - (tactics.charging.has(target) ? CHARGE_BONUS : 0)
+      : 0;
+    if (sim.rng.d10() + enemy.attack < SURVIVOR_DEFENSE + armor + extra) continue;
 
     const damage = damageThrough(enemy.damage, armor);
     if (enemy.def.rads) absorbRads(target, enemy.def.rads);
     const wentDown = hurt(sim, target, damage, enemyRef(enemy), enemy.def.type, enemy.nemesis?.id);
-    say(sim, `${target.s.firstName} is ${enemy.def.hitVerb} ${enemyRef(enemy)} (-${damage} HP)${wentDown ? ' and goes down.' : '.'}`, { tone: 'bad' });
+    // Under orders, the player needs to know which one it was.
+    const who = tactics ? (fight.names[fight.enemies.indexOf(enemy)] ?? enemyRef(enemy)) : enemyRef(enemy);
+    say(sim, `${target.s.firstName} is ${enemy.def.hitVerb} ${who} (-${damage} HP)${wentDown ? ' and goes down.' : '.'}`, { tone: 'bad' });
     if (wentDown) {
       enemy.downed.push(target);
       fight.downedHere.push(target);
@@ -324,9 +402,161 @@ export interface FightResult {
   loot: Partial<Record<ResourceId, number>>;
 }
 
+// ---------------------------------------------------------------- commanded fights (§7.13)
+
+/**
+ * On a run the player leads, the crew stops at a fight and calls home. Returns
+ * the player's part in it, or undefined when they fight on their own (nobody
+ * came within the wait, or the run isn't led). The fight itself goes in a new
+ * beat, at the time it was fought.
+ */
+function callHome(sim: Sim, enemies: readonly Enemy[]): FightPlan | undefined {
+  const lead = sim.lead;
+  if (!lead) return undefined;
+  const caller = bestBy(standing(sim), (m) => simBonus(sim, m, 'nerve', []));
+  if (!caller) return undefined;
+  const plan = lead.plans[lead.stops.length];
+  const kind = sim.beats.at(-1)?.kind ?? 'combat';
+  say(sim, `${caller.s.firstName} gets on the radio to the Depot.`);
+  lead.stops.push({ at: sim.offset, by: caller.s.id, against: describeGroup(enemies), fromBeat: sim.beats.length });
+  const solo = sim.members.length === 1;
+  if (!plan) {
+    sim.delay += LEAD_WAIT;
+    sim.offset += LEAD_WAIT;
+    startBeat(sim, kind, 'No word from home');
+    say(sim, solo ? `Half an hour by the radio, and no word. ${caller.s.firstName} goes in alone.` : 'Half an hour by the radio, and no word. They go in on their own.', { tone: 'bad' });
+    return undefined;
+  }
+  // Under command the fight is played as the orders come in; once it's over, at the time it ended.
+  const wait = plan.live ? 0 : plan.delay;
+  sim.delay += wait;
+  sim.offset += wait;
+  startBeat(sim, kind, plan.rounds.length > 0 || plan.live ? 'Under orders' : 'Word from home');
+  say(sim, plan.rounds.length > 0 || plan.live ? 'Orders come over the radio.' : solo ? `Word from home: fight it out. ${caller.s.firstName} goes in.` : 'Word from home: fight it out.');
+  return plan;
+}
+
+/** The orders that set things up before anyone swings: cover, drawing fire, charging, guarding, spotting, aiming. */
+function prepareRound(sim: Sim, enemies: readonly Enemy[], orders: RoundOrders): Tactics {
+  const t: Tactics = { cover: new Set(), drawFire: new Set(), charging: new Set(), guards: new Map() };
+  for (const m of active(sim)) {
+    const order = orders.moves[m.s.id];
+    if (!order || !validOrder(sim, m, enemies, order.move, order.target)) continue;
+    if (order.move === 'cover') t.cover.add(m);
+    else if (order.move === 'draw_fire') t.drawFire.add(m);
+    else if (order.move === 'charge') t.charging.add(m);
+    else if (order.move === 'aim') m.aimed = true;
+    else if (order.move === 'guard') {
+      const ally = sim.members.find((o) => o.s.id === order.target);
+      if (ally) t.guards.set(ally, m);
+    } else if (order.move === 'spot') {
+      t.spotted = enemies[order.target as number];
+      t.spotter = m;
+    }
+  }
+  return t;
+}
+
+/** Use a med on someone mid-fight. Someone down gets back up, a little, with a better wound roll. */
+function patchUp(sim: Sim, medic: Member, ally: Member): void {
+  const result = check(sim, medic, 'wits', DC.easy, ['medicine']);
+  const heal = result.success ? MEDS_HEAL_SKILLED : MEDS_HEAL;
+  sim.meds -= 1;
+  const who = medic === ally ? `${medic.s.firstName} patches up ${pronounForms(medic.s.pronouns).their} own wounds` : `${medic.s.firstName} patches up ${ally.s.firstName}`;
+  if (ally.down) {
+    ally.down = false;
+    ally.s.hp = Math.max(1, Math.ceil(heal / 2));
+    ally.woundBonus = (ally.woundBonus ?? 0) + PATCH_WOUND_BONUS;
+    say(sim, `${medic.s.firstName} gets ${ally.s.firstName} back on ${pronounForms(ally.s.pronouns).their} feet (${ally.s.hp} HP).`, { check: result.info, tone: 'good' });
+    return;
+  }
+  const gained = Math.min(heal, maxHp(ally.s) - ally.s.hp);
+  ally.s.hp += gained;
+  say(sim, `${who} (+${gained} HP).`, { check: result.info, tone: 'good' });
+}
+
+/** A check that ends one enemy's part in the fight: staring a raider down, soothing a feral, shorting out a scrapbot. */
+function talkDown(sim: Sim, m: Member, target: Enemy, label: string, move: 'intimidate' | 'soothe' | 'short_out'): void {
+  const spec =
+    move === 'intimidate'
+      ? { stat: 'nerve' as const, dc: INTIMIDATE_DC, contexts: ['intimidate'], won: `${label} breaks and runs.`, lost: `${label} laughs at ${m.s.firstName}.` }
+      : move === 'soothe'
+        ? { stat: 'nerve' as const, dc: SOOTHE_DC, contexts: [], won: `${m.s.firstName} talks low and steady, and ${label} slinks off.`, lost: `${label} isn't having it.` }
+        : { stat: 'wits' as const, dc: SHORT_OUT_DC, contexts: ['tech'], won: `${m.s.firstName} gets a hand inside ${label}, and it shuts down.`, lost: `${m.s.firstName} can't get at ${label}'s wiring.` };
+  const result = check(sim, m, spec.stat, spec.dc + sim.loc.danger, [...spec.contexts, ...enemyContexts(m.s, target.def.type)]);
+  say(sim, result.success ? spec.won : spec.lost, { check: result.info, tone: result.success ? 'good' : 'bad' });
+  if (!result.success) return;
+  // A machine shut down is as good as destroyed: its parts are there for the taking.
+  if (move === 'short_out') target.dead = true;
+  else target.fled = true;
+}
+
+/** Carry out one person's order. Returns false if they can't, and should just fight as they would on their own. */
+function actOnOrder(sim: Sim, m: Member, order: MoveOrder, enemies: readonly Enemy[], ctx: AttackContext, t: Tactics): boolean {
+  const choice = validOrder(sim, m, enemies, order.move, order.target);
+  if (!choice) return false;
+  const foe = typeof order.target === 'number' ? enemies[order.target] : undefined;
+  const spot = foe && t.spotted === foe && t.spotter !== m ? SPOT_TO_HIT : 0;
+  switch (order.move) {
+    case 'attack':
+      survivorAttack(sim, m, foe!, ctx, { toHit: spot });
+      return true;
+    case 'called_shot':
+      survivorAttack(sim, m, foe!, ctx, { toHit: CALLED_SHOT_TO_HIT + spot, double: true });
+      return true;
+    case 'smash':
+      survivorAttack(sim, m, foe!, ctx, { toHit: SMASH_TO_HIT + spot, damage: SMASH_DAMAGE, throughArmor: true });
+      return true;
+    case 'stun':
+      survivorAttack(sim, m, foe!, ctx, { toHit: spot, stun: true });
+      return true;
+    case 'charge':
+      survivorAttack(sim, m, foe!, ctx, { toHit: CHARGE_BONUS + spot, damage: CHARGE_BONUS });
+      return true;
+    case 'spray': {
+      survivorAttack(sim, m, foe!, ctx, { toHit: SPRAY_TO_HIT + spot });
+      // The second shot goes to whoever else is closest: the next one still standing.
+      const next = living(enemies).find((e) => e !== foe);
+      if (next) survivorAttack(sim, m, next, ctx, { toHit: SPRAY_TO_HIT + (t.spotted === next && t.spotter !== m ? SPOT_TO_HIT : 0) });
+      return true;
+    }
+    case 'patch': {
+      const ally = sim.members.find((o) => o.s.id === order.target);
+      if (!ally) return false;
+      patchUp(sim, m, ally);
+      return true;
+    }
+    case 'intimidate':
+    case 'soothe':
+    case 'short_out':
+      talkDown(sim, m, foe!, ctx.names[order.target as number] ?? foe!.def.name, order.move);
+      return true;
+    case 'cover':
+      say(sim, `${m.s.firstName} keeps down behind cover.`);
+      return true;
+    case 'draw_fire':
+      say(sim, `${m.s.firstName} steps out and makes a lot of noise.`);
+      return true;
+    case 'guard': {
+      const ally = sim.members.find((o) => o.s.id === order.target);
+      say(sim, `${m.s.firstName} stands in front of ${ally?.s.firstName ?? 'a friend'}.`);
+      return true;
+    }
+    case 'spot':
+      say(sim, `${m.s.firstName} calls out where ${ctx.names[order.target as number] ?? 'it'} is.`);
+      return true;
+    case 'aim':
+      say(sim, `${m.s.firstName} takes careful aim.`);
+      return true;
+  }
+}
+
 export function fight(sim: Sim, enemies: Enemy[], start: FightStart): FightResult {
-  const state: FightState = { enemies, downedHere: [], fledHere: [] };
-  const attackCtx: AttackContext = { drop: false, ambushed: start.ambushed, round: 0, outOfAmmoSaid: new Set() };
+  const state: FightState = { enemies, names: enemyNames(enemies), downedHere: [], fledHere: [] };
+  // On a led run the crew stops here and calls home first (§7.13).
+  const plan = callHome(sim, enemies);
+  const fightFrom = sim.beats.at(-1)?.lines.length ?? 0;
+  const attackCtx: AttackContext = { drop: false, ambushed: start.ambushed, round: 0, outOfAmmoSaid: new Set(), commanded: false, names: enemyNames(enemies), enemies };
   const enemyType = enemies[0]!.def.type;
   sim.hadCombat = true;
 
@@ -344,18 +574,40 @@ export function fight(sim: Sim, enemies: Enemy[], start: FightStart): FightResul
 
   let end: CombatEnd | undefined;
   let blockedSaid = false;
+  const blocked = (blocker: { member: Member; enemy: EnemyDef }): void => {
+    if (blockedSaid) return;
+    blockedSaid = true;
+    const who = blocker.member.s.firstName;
+    const enemy = withArticle(blocker.enemy.name);
+    say(sim, sim.members.length === 1 ? `It is time to pull out, but ${who} will not leave while ${enemy} is still standing.` : `The crew wants out, but ${who} will not leave while ${enemy} is still standing.`, { tone: 'bad' });
+  };
+  // Orders are used one per round the crew acts in; an ambushed crew can't act in the first.
+  let given = 0;
 
   for (let round = 1; round <= MAX_COMBAT_ROUNDS && !end; round++) {
     attackCtx.round = round;
     attackCtx.drop = start.drop && round === 1;
+    const crewActs = !(start.ambushed && round === 1);
 
-    if (!(start.ambushed && round === 1)) {
+    let orders: RoundOrders | undefined;
+    if (plan && crewActs) {
+      orders = plan.rounds[given];
+      // Under command and out of orders: the fight waits for the next round's.
+      if (!orders && plan.live) throw new FightPause(fightView(sim, enemies, round, fightFrom));
+      if (orders) given++;
+    }
+    attackCtx.commanded = orders !== undefined;
+    const tactics = orders ? prepareRound(sim, enemies, orders) : undefined;
+
+    if (crewActs) {
       for (const m of active(sim)) {
         const targets = living(enemies);
         if (targets.length === 0) break;
+        const order = orders?.moves[m.s.id];
+        if (order && tactics && actOnOrder(sim, m, order, enemies, attackCtx, tactics)) continue;
         // People tend to finish what is already hurt.
         const target = sim.rng.weightedBy(targets, (e) => (e.hp < e.maxHp ? 3 : 1));
-        survivorAttack(sim, m, target, attackCtx);
+        survivorAttack(sim, m, target, attackCtx, tactics?.spotted === target && tactics.spotter !== m ? { toHit: SPOT_TO_HIT } : {});
       }
       if (living(enemies).length === 0 || (checkMorale(sim, state) && living(enemies).length === 0)) {
         end = 'won';
@@ -363,28 +615,24 @@ export function fight(sim: Sim, enemies: Enemy[], start: FightStart): FightResul
       }
     }
 
-    if (!(start.drop && round === 1)) enemyRound(sim, state);
+    if (!(start.drop && round === 1)) enemyRound(sim, state, tactics);
 
     if (active(sim).length === 0) {
       end = standing(sim).length === 0 ? 'routed' : 'withdrew';
       break;
     }
 
-    if (retreatWanted(sim)) {
+    // Under orders the crew pulls out when told to; on its own, when its standing orders say.
+    if (orders ? orders.pullOut === true : retreatWanted(sim)) {
       const blocker = retreatBlocker(sim, state);
-      if (blocker) {
-        if (!blockedSaid) {
-          blockedSaid = true;
-          const who = blocker.member.s.firstName;
-          const enemy = withArticle(blocker.enemy.name);
-          say(sim, sim.members.length === 1 ? `It is time to pull out, but ${who} will not leave while ${enemy} is still standing.` : `The crew wants out, but ${who} will not leave while ${enemy} is still standing.`, { tone: 'bad' });
-        }
-      } else {
+      if (blocker) blocked(blocker);
+      else {
         withdraw(sim, state);
         end = active(sim).length === 0 && standing(sim).length === 0 ? 'routed' : 'withdrew';
       }
     }
   }
+  for (const m of sim.members) m.aimed = false;
 
   if (!end) {
     end = 'stalemate';

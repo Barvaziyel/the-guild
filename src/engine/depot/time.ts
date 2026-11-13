@@ -2,7 +2,7 @@
  * Time passing: Depot days and returning crews, in the order they happen.
  */
 import { DAY_MS, MAX_CATCHUP_DAYS } from '../constants.ts';
-import { completeDueRuns, settleRadio } from '../expedition/runs.ts';
+import { completeDueRuns, settleLed, settleRadio } from '../expedition/runs.ts';
 import { dayAt, withRng } from '../game.ts';
 import type { GameState, GuildLogEntry, RunReport } from '../types.ts';
 import { emptySummary, playDepotDay, type DepotSummary } from './day.ts';
@@ -52,6 +52,8 @@ export function advanceTime(state: GameState, now: number): AdvanceResult {
 
   // Crews nobody answered on the radio have made the call themselves (§7.12).
   settleRadio(state, now);
+  // Fights on led runs whose time ran out are fought to the end on the crew's own (§7.13).
+  settleLed(state, now);
   for (let day = from; day <= today; day++) {
     result.reports.push(...completeDueRuns(state, dayStart(state, day)));
     withRng(state, (rng) => {

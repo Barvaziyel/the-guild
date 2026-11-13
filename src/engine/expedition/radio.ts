@@ -56,6 +56,10 @@ export function reachFork(sim: Sim, spec: ForkSpec): { order: string; picked: bo
   sim.fork = { forkId: spec.forkId, title: spec.title, by: spec.by.s.id, intro: spec.intro, ask: spec.ask, orders: spec.orders, at: sim.offset, called, fromBeat: sim.beats.length };
   const answer = sim.answer !== undefined && spec.orders.some((o) => o.id === sim.answer) ? sim.answer : undefined;
   if (answer !== undefined) {
+    // A replay for an answer given later on a led run (§7.13) waits as long as the crew did.
+    const waited = sim.answerWait ?? 0;
+    sim.delay += waited;
+    sim.offset += waited;
     startBeat(sim, spec.kind, 'Word from home');
     say(sim, `Word from home: ${labelOf(spec, answer)}.`);
     return { order: answer, picked: false };

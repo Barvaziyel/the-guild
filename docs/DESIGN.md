@@ -593,6 +593,45 @@ Without a Radio Tower the crew decides on the spot, the same way, and loses no t
 
 **Balance** (the simulated player, 36 guilds over 35 real days, never answering, so the worst case): runs come to a fork about one time in six. Ignored calls and the slower orders cost runs, 2% for a player who checks in often and 8% for a casual one, and 7–14% of the scrap found; tech, building levels, deaths and hunger are unchanged. The slow orders were shortened for this (shelter 60 → 40 minutes, going around 40 → 30, the door 50 → 45), and only a Cautious or Cowardly crew shelters from a storm unasked.
 
+### 7.13 Taking command of a fight (1.13.0 on runs; 2.0.0 with raids)
+
+From the plan (§15), Aviel's answers 2026-11-13: fights on runs (Hit their camp included) and raids on the Depot can be commanded; on a run you choose it in the planner, and at a fight the crew waits up to 30 minutes with a notice on the phone, then fights alone; each person gets their own move each round, and what they can do depends on who they are, what they carry and their traits; commanding does **a little better** than leaving them to it. Runs come first (1.13.0); raids follow, and the game is 2.0.0 when both are done.
+
+**Leading a run.** The planner has *I'll lead the fights* (needs a Radio Tower, since orders go over the radio). Every fight on that run stops and calls home:
+- a notice on the phone, and a card on the Depot and on the run: who they're up against;
+- *Take command* opens the fight; *Let them fight* sends them in on their own at once;
+- unanswered, they wait 30 minutes and then fight on their own, as on any run;
+- once you're in command, the fight has to be over by those 30 minutes; rounds you haven't given by then they fight on their own.
+The rest of the run goes on from the moment the fight ends, so a quick commander gets them home sooner.
+
+**How it stays decided.** A led run keeps a copy of what it set out with (the crew, and what the run reads of the guild). Each round you give is stored; the run is played again from that copy with your orders, up to the next round that needs you. Every replay is the same up to there because the dice are seeded. A fight you don't command plays exactly as before: the automatic fight is unchanged.
+
+**A round.** Each person standing picks a move; anyone you don't give one to attacks as they would on their own. Then the enemies act, then morale and the 6-round limit, as in §7.4. *Pull out* is an order for the whole crew: the withdrawal check of §7.4.
+
+**Moves.** Everyone can:
+- **attack** an enemy you pick: *Shoot* (a gun with ammo, or the crossbow), *Strike* (a melee weapon or an empty gun), or *Punch*;
+- **take cover**: no attack, and enemies are 3 less likely to hit them this round;
+- **patch up** someone (with a med from the pack): the Wits check of the meds between beats; someone down gets back up with half of that, and the roll for their wound gets +5;
+- **aim** (with a gun or the crossbow): no shot this round, and the next one is +3 to hit and +1 damage.
+
+Gear and traits add moves (a `moves` hook on traits and gear):
+
+| Move | From | What it does |
+|---|---|---|
+| Called shot | Hunting Rifle, Crossbow; Dead-Eye with any gun | −3 to hit, double damage |
+| Spray | Scattergun | two enemies at once, −2 to hit each, 2 ammo |
+| Smash | Sledge | −2 to hit, +2 damage, through any armor |
+| Stun | Shock Baton | a hit costs the enemy its next attack |
+| Charge | Hothead | +2 to hit and damage; enemies are 2 more likely to hit them this round |
+| Draw fire | Brave | the enemies go for them this round; 2 harder to hit |
+| Guard | Loyal, Riot Gear | attacks on the ally you pick go to them instead this round |
+| Spot | Binoculars | no attack; everyone else is +2 to hit the enemy you pick this round |
+| Intimidate | Burn Scars, Scarred Face | vs raiders and Vultures: Nerve against 10 + danger, and one of them (never a leader or a nemesis) breaks and runs |
+| Soothe | Animal Lover, Beast-Friend | vs a feral: Nerve against 9 + danger, and it slinks off |
+| Short out | Tinkerer, Multitool | vs a scrapbot: Wits against 9 + danger, and it shuts down |
+
+**Balance** (1,938 led runs at danger 2–4, each played twice from the same dice: every fight left to the crew, and every fight given to a simple commander who focuses the weakest enemy, patches up whoever is down, takes cover when badly hurt and uses intimidate, soothe and short out where they can): commanded fights are won 56% of the time against 49%, fewer people die (28 against 39 in 1,000 runs; deaths are rare, so this swings from one batch of runs to the next, and over 6,000 runs it was 30 against 38), and a run brings home a fifth more, mostly from the fights it wins. As many people go down either way. The +5 to the wound roll is what decides the deaths: with +10 they halved, with nothing they barely moved. Fights nobody commands play exactly as before (the same runs give the same logs, line for line).
+
 ## 8. Gear
 
 Every survivor has four slots: **Weapon · Armor · Tool · Trinket**
@@ -1005,7 +1044,7 @@ From the ideas in `claude/interactive-ideas.md`. The order isn't set yet.
 
 | Idea | What Aviel said | Status |
 |---|---|---|
-| Take command of a fight: turn-based fights, at least as an option (his ask from 2026-11-12) | Yes. **The game is 2.0.0 when this is done.** | planned |
+| Take command of a fight: turn-based fights, at least as an option (his ask from 2026-11-12) | Yes. **The game is 2.0.0 when this is done.** Picked first (§7.13) | runs: 1.13.0; raids next |
 | Haggle with traders | Yes | planned |
 | Names: things get their names from the guild's people, not from the player, once they've spent enough time with them | Yes, named by the people | planned |
 | What people want: now and then someone asks for something, and doing it (or not) matters | Maybe | to decide |

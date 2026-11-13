@@ -6,7 +6,7 @@
 import type { BuildingId, Quality, RelationshipLabel, ResourceId, Resources } from './types.ts';
 
 /** Save format version. Bump together with a migration in save.ts. */
-export const SAVE_VERSION = 19;
+export const SAVE_VERSION = 20;
 
 // ---------------------------------------------------------------- time
 
@@ -726,3 +726,34 @@ export const VULTURES_ENVOY_GAP: readonly [number, number] = [12, 20];
 export const RADIO_WAIT = 30 * 60_000;
 /** How often a travel, hazard or discovery beat becomes a fork, when one fits. */
 export const FORK_CHANCE = 0.2;
+
+// ---------------------------------------------------------------- commanded fights (§7.13)
+
+/** At a fight on a led run the crew waits this long for the player, then fights on its own; once in command, the fight has to be over by then. */
+export const LEAD_WAIT = RADIO_WAIT;
+/** Ids set aside at departure for whatever a led run's replays find (they all count from the start copy's counter). */
+export const LEAD_ID_BLOCK = 500;
+/** Take cover: enemies need this much more to hit them this round. */
+export const COVER_DEFENSE = 3;
+/** Aim: the next shot is this much more likely to hit, and does this much more damage. */
+export const AIM_TO_HIT = 3;
+export const AIM_DAMAGE = 1;
+/** Called shot: harder to hit, double damage. */
+export const CALLED_SHOT_TO_HIT = -3;
+/** Spray: two enemies at once, each a little harder to hit. */
+export const SPRAY_TO_HIT = -2;
+/** Smash: harder to land, more damage, through any armor. */
+export const SMASH_TO_HIT = -2;
+export const SMASH_DAMAGE = 2;
+/** Charge: this much more to hit and damage, and enemies get as much against them this round. */
+export const CHARGE_BONUS = 2;
+/** Draw fire: the enemies go for them, and need this much more to hit. */
+export const DRAW_FIRE_DEFENSE = 2;
+/** Spot: everyone else is this much more likely to hit the spotted enemy. */
+export const SPOT_TO_HIT = 2;
+/** Intimidate, Soothe, Short out: checks against this + danger. */
+export const INTIMIDATE_DC = 10;
+export const SOOTHE_DC = 9;
+export const SHORT_OUT_DC = 9;
+/** Patched up after going down: the wound roll gets this much. */
+export const PATCH_WOUND_BONUS = 5;

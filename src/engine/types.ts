@@ -52,6 +52,8 @@ export interface TraitHooks {
   crewStressRelief?: number;
   /** Will try to rescue downed allies (bigger effect for Bonded friends). */
   rescuesAllies?: boolean;
+  /** Moves this trait adds in a fight the player commands (§7.13). Hidden traits add none. */
+  moves?: MoveId[];
   /** Bonus to wound rolls of downed allies in the same crew. */
   allyWoundBonus?: number;
   /** Bonus to own wound rolls. */
@@ -155,6 +157,8 @@ export interface GearHooks {
   closeRange?: boolean;
   /** Free failed-check rerolls per run. */
   rerollFails?: number;
+  /** Moves this item adds in a fight the player commands (§7.13). */
+  moves?: MoveId[];
   checkMods?: CheckMod[];
 }
 
@@ -328,6 +332,71 @@ export interface RunPlan {
   vehicles?: string[];
   /** How far in: 1 the outskirts (missing means 1), 2 deeper in, 3 the heart of it (§7.10). */
   depth?: number;
+  /** The player leads the fights over the radio (§7.13). Needs a Radio Tower. */
+  lead?: boolean;
+}
+
+// ---------------------------------------------------------------- commanded fights (§7.13)
+
+/** A move in a fight the player commands. Everyone has the first four; gear and traits add the rest (`moves` hooks). */
+export type MoveId =
+  | 'attack'
+  | 'cover'
+  | 'patch'
+  | 'aim'
+  | 'called_shot'
+  | 'spray'
+  | 'smash'
+  | 'stun'
+  | 'charge'
+  | 'draw_fire'
+  | 'guard'
+  | 'spot'
+  | 'intimidate'
+  | 'soothe'
+  | 'short_out';
+
+/** One person's move for a round. `target`: an enemy's place in the fight (a number) or an ally's survivor id. */
+export interface MoveOrder {
+  move: MoveId;
+  target?: number | string;
+}
+
+/** The orders for one round, by survivor id. Anyone without one fights as they would on their own. */
+export interface RoundOrders {
+  moves: Record<string, MoveOrder>;
+  /** The whole crew tries to break away (the withdrawal check). */
+  pullOut?: boolean;
+}
+
+/** A fight on a run the player leads (§7.13). */
+export interface LedFight {
+  /** When the crew stopped and called home, and until when they wait (epoch ms). */
+  at: number;
+  until: number;
+  /** Survivor id of whoever called. */
+  by: string;
+  /** "three Raider Scavs", for the card and the notice. */
+  against: string;
+  /** Index of the beat the fight is played in; hidden from the log until it's over. */
+  fromBeat: number;
+  /** When the player took command, or sent them in on their own. */
+  took?: number;
+  /** The rounds given so far. */
+  rounds: RoundOrders[];
+  /** Sent in on their own (*Let them fight*), or the time ran out: the crew plays every round not given. */
+  auto?: boolean;
+  /** When it was over, under command; or when the wait ran out. Missing while it waits or is under way. */
+  ended?: number;
+}
+
+/** A run the player leads: what it set out with, and its fights so far. */
+export interface RunLead {
+  /** The copy of the game the run is played on, as it was at departure; replayed with the orders given. */
+  start: GameState;
+  /** Names already in use at departure (nemeses, nicknames, named weapons), so a replay names things the same way. */
+  taken: string[];
+  fights: LedFight[];
 }
 
 export type BeatKind = 'depart' | 'travel' | 'scavenge' | 'hazard' | 'combat' | 'social' | 'discovery' | 'rescue' | 'vultures' | 'return';
@@ -501,6 +570,8 @@ export interface Run {
   departed?: Record<string, DepartureMark>;
   /** The crew called home from a fork (§7.12). */
   radio?: RadioCall;
+  /** The player leads the fights (§7.13). */
+  lead?: RunLead;
 }
 
 /** An order the player can give over the radio. */
@@ -532,6 +603,8 @@ export interface RadioCall {
   branches?: Record<string, RadioBranch>;
   /** The order given; 'none' when nobody answered in time. Missing while they wait. */
   answer?: string;
+  /** When the order was given (epoch ms). */
+  answeredAt?: number;
 }
 
 /** One order's run from the fork on. */
@@ -548,6 +621,8 @@ export interface RunReport {
   plan: RunPlan;
   /** The radio call on the run, if there was one: what was asked, and the answer. */
   radio?: { title: string; by: string; answer: string; orders: RadioOrder[] };
+  /** A led run (§7.13): how many fights it stopped for, and how many the player commanded. */
+  lead?: { fights: number; commanded: number };
   departAt: number;
   returnAt: number;
   beats: Beat[];
