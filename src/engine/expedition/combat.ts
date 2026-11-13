@@ -189,6 +189,8 @@ interface AttackMods {
   double?: boolean;
   throughArmor?: boolean;
   stun?: boolean;
+  /** How the log says it, under command: "takes a called shot at" / "puts a called shot into". Only for a shot when `shot` is set. Text only. */
+  words?: { miss: string; hit: string; shot?: boolean };
 }
 
 function survivorAttack(sim: Sim, m: Member, target: Enemy, ctx: AttackContext, mods: AttackMods = {}): void {
@@ -228,9 +230,10 @@ function survivorAttack(sim: Sim, m: Member, target: Enemy, ctx: AttackContext, 
   const roll = sim.rng.d10();
   practice(sim, m, stat, target.defense);
   const label = ctx.names[ctx.enemies.indexOf(target)] ?? target.def.name;
-  const hitVerb = ranged ? 'shoots' : 'hits';
+  const words = mods.words && (mods.words.shot === undefined || mods.words.shot === ranged) ? mods.words : undefined;
+  const hitVerb = words?.hit ?? (ranged ? 'shoots' : 'hits');
   if (roll + bonus < target.defense) {
-    if (ctx.commanded) say(sim, `${m.s.firstName} ${ranged ? 'shoots at' : 'swings at'} ${label} and misses.`);
+    if (ctx.commanded) say(sim, `${m.s.firstName} ${words?.miss ?? (ranged ? 'shoots at' : 'swings at')} ${label} and misses.`);
     return;
   }
 
@@ -502,22 +505,22 @@ function actOnOrder(sim: Sim, m: Member, order: MoveOrder, enemies: readonly Ene
       survivorAttack(sim, m, foe!, ctx, { toHit: spot });
       return true;
     case 'called_shot':
-      survivorAttack(sim, m, foe!, ctx, { toHit: CALLED_SHOT_TO_HIT + spot, double: true });
+      survivorAttack(sim, m, foe!, ctx, { toHit: CALLED_SHOT_TO_HIT + spot, double: true, words: { miss: 'takes a called shot at', hit: 'puts a called shot into', shot: true } });
       return true;
     case 'smash':
-      survivorAttack(sim, m, foe!, ctx, { toHit: SMASH_TO_HIT + spot, damage: SMASH_DAMAGE, throughArmor: true });
+      survivorAttack(sim, m, foe!, ctx, { toHit: SMASH_TO_HIT + spot, damage: SMASH_DAMAGE, throughArmor: true, words: { miss: 'swings hard at', hit: 'smashes', shot: false } });
       return true;
     case 'stun':
-      survivorAttack(sim, m, foe!, ctx, { toHit: spot, stun: true });
+      survivorAttack(sim, m, foe!, ctx, { toHit: spot, stun: true, words: { miss: 'jabs at', hit: 'jolts', shot: false } });
       return true;
     case 'charge':
-      survivorAttack(sim, m, foe!, ctx, { toHit: CHARGE_BONUS + spot, damage: CHARGE_BONUS });
+      survivorAttack(sim, m, foe!, ctx, { toHit: CHARGE_BONUS + spot, damage: CHARGE_BONUS, words: { miss: 'charges at', hit: 'charges into' } });
       return true;
     case 'spray': {
-      survivorAttack(sim, m, foe!, ctx, { toHit: SPRAY_TO_HIT + spot });
+      survivorAttack(sim, m, foe!, ctx, { toHit: SPRAY_TO_HIT + spot, words: { miss: 'sprays at', hit: 'sprays', shot: true } });
       // The second shot goes to whoever else is closest: the next one still standing.
       const next = living(enemies).find((e) => e !== foe);
-      if (next) survivorAttack(sim, m, next, ctx, { toHit: SPRAY_TO_HIT + (t.spotted === next && t.spotter !== m ? SPOT_TO_HIT : 0) });
+      if (next) survivorAttack(sim, m, next, ctx, { toHit: SPRAY_TO_HIT + (t.spotted === next && t.spotter !== m ? SPOT_TO_HIT : 0), words: { miss: 'sprays at', hit: 'sprays', shot: true } });
       return true;
     }
     case 'patch': {

@@ -36,7 +36,9 @@ export type Route =
   | { screen: 'vultures' }
   | { screen: 'runs' }
   /** A crew that is out, or the report once they're back (same id). */
-  | { screen: 'run'; id: string };
+  | { screen: 'run'; id: string }
+  /** A fight on a led run, under the player's command (§7.13). */
+  | { screen: 'fight'; id: string };
 
 /** The screens in the tab bar. */
 export type TabScreen = 'depot' | 'roster' | 'reach' | 'runs' | 'settings';
@@ -78,6 +80,8 @@ export function parseRoute(hash: string): Route {
       return { screen: 'vultures' };
     case 'run':
       return a ? { screen: 'run', id: a } : { screen: 'runs' };
+    case 'fight':
+      return a ? { screen: 'fight', id: a } : { screen: 'runs' };
     case 's': {
       if (!a) return DEFAULT_ROUTE;
       const tab = SHEET_TABS.find((t) => t === b) ?? 'stats';
@@ -110,6 +114,8 @@ export function routeHash(route: Route): string {
       return `#/plan/${enc(route.locationId)}`;
     case 'run':
       return `#/run/${enc(route.id)}`;
+    case 'fight':
+      return `#/fight/${enc(route.id)}`;
     case 'survivor':
       return `#/s/${enc(route.id)}${route.tab === 'stats' ? '' : `/${route.tab}`}`;
   }
@@ -134,6 +140,7 @@ export function tabFor(route: Route): TabScreen {
       return 'reach';
     case 'runs':
     case 'run':
+    case 'fight':
       return 'runs';
     case 'settings':
       return 'settings';

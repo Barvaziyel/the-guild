@@ -178,9 +178,9 @@ describe('moves', () => {
       setup: (s) => {
         const [a, b, c] = s.survivors;
         a!.equipment.weapon = createItem(s, 'hunting_rifle');
-        a!.traits = [{ id: 'hothead', since: 0 }];
+        a!.traits = [{ id: 'hothead', gainedDay: 0 }];
         b!.equipment.armor = createItem(s, 'riot_gear');
-        b!.traits = [{ id: 'brave', since: 0, hidden: true }];
+        b!.traits = [{ id: 'brave', gainedDay: 0, hidden: true }];
         c!.equipment.weapon = createItem(s, 'sledge');
         c!.equipment.tool = createItem(s, 'binoculars');
       },
@@ -226,7 +226,7 @@ describe('moves', () => {
         job: 'scavenge',
         place: 'kessler_farm',
         setup: (s) => {
-          for (const x of s.survivors) x.traits = [{ id: 'burn_scars', since: 0 }];
+          for (const x of s.survivors) x.traits = [{ id: 'burn_scars', gainedDay: 0 }];
         },
       });
       command(state, run, run.lead!.fights[0]!.at + 1000);

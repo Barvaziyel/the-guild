@@ -5,6 +5,7 @@
 import { getLocation, radioWaiting, type GameState, type Run, type RunReport, type Survivor } from '../engine/index.ts';
 import type { Route } from './route.ts';
 import { formatDuration, type PlannedNotice } from './runs-view.ts';
+import { fightNoticeRun } from './fight-view.ts';
 
 export interface RadioCardView {
   runId: string;
@@ -101,7 +102,8 @@ export function radioNotices(state: GameState): PlannedNotice[] {
 
 /** Changes when calls come or are answered, so notices are planned again. */
 export function radioNoticeKey(state: GameState): string {
-  return state.runs.map((r) => (r.radio ? `${r.id}:${r.radio.answer ?? 'w'}` : '')).join(',');
+  // A led fight can move the call (§7.13), so its time is part of the key.
+  return state.runs.map((r) => (r.radio ? `${r.id}:${r.radio.at}:${r.radio.answer ?? 'w'}` : '')).join(',');
 }
 
 /** The run a tapped notice is about ("radio-r12" → "r12"), if it's a radio notice. */
@@ -125,6 +127,9 @@ export function radioReportLine(report: RunReport): string | undefined {
  * Depot for everything that waits there (decisions, calls for help, babies, birthdays).
  */
 export function noticeRoute(id: string): Route {
+  // A crew stopped at a fight opens the fight (§7.13).
+  const fight = fightNoticeRun(id);
+  if (fight) return { screen: 'fight', id: fight };
   const radio = radioNoticeRun(id);
   if (radio) return { screen: 'run', id: radio };
   if (/^(dilemma|rescue|baby|grown)-/.test(id)) return { screen: 'depot' };

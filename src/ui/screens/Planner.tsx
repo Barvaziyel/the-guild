@@ -38,6 +38,7 @@ import { jobChoices, withRescue } from '../rescue-view.ts';
 import { assaultChoice } from '../vultures-view.ts';
 import { toggleVehicle, vehicleChoices, vehicleNote } from '../vehicles-view.ts';
 import { clockTime } from '../time.ts';
+import { leadChoice } from '../fight-view.ts';
 
 export function Planner({ state, locationId }: { state: GameState; locationId: string }) {
   const loc = findLocation(locationId);
@@ -83,6 +84,7 @@ function PlannerForm({ state, locationId }: { state: GameState; locationId: stri
   const assault = assaultChoice(state, locationId);
   const jobs = jobChoices(state, locationId, assault ? [...JOBS, assault] : JOBS);
   const fromOutpost = outpostPlanNote(state, plan);
+  const lead = leadChoice(state);
   const toggle = (id: string): void => {
     const crew = toggleCrew(plan.crew, id, limit);
     change(ammoTouched ? { crew } : { crew, ammo: suggestedAmmo(state, crew) });
@@ -215,6 +217,25 @@ function PlannerForm({ state, locationId }: { state: GameState; locationId: stri
       <section className="panel">
         <ChoiceList legend="Approach" name="approach" choices={APPROACHES} value={plan.approach} onChange={(approach) => change({ approach })} />
         <ChoiceList legend="Pull out when" name="retreat" choices={RETREATS} value={plan.retreat} onChange={(retreat) => change({ retreat })} />
+        <label className="toggle lead-toggle" data-tour="lead">
+          <span className="toggle-text">
+            <span className="toggle-label">Lead the fights</span>
+            <span className="toggle-help">{lead.help}</span>
+          </span>
+          <input
+            type="checkbox"
+            role="switch"
+            checked={lead.can && plan.lead === true}
+            disabled={!lead.can}
+            onChange={(e) => {
+              const on = e.target.checked;
+              setPlan((p) => {
+                const { lead: _drop, ...rest } = p;
+                return on ? { ...rest, lead: true } : rest;
+              });
+            }}
+          />
+        </label>
         <label className="field select-field">
           Keep first when there&rsquo;s too much to carry
           <select

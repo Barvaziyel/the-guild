@@ -9,6 +9,8 @@ import { dilemmaNotices } from './dilemma-view.ts';
 import { rescueNotices } from './rescue-view.ts';
 import { familyNoticeKey, familyNotices } from './family-view.ts';
 import { anyoneCalling, radioNoticeKey, radioNotices, radioWakeTimes } from './radio-view.ts';
+import { anyoneFighting, fightNoticeKey, fightNotices, fightWakeTimes } from './fight-view.ts';
+import { Fight } from './screens/Fight.tsx';
 import { Building } from './screens/Building.tsx';
 import { Depot } from './screens/Depot.tsx';
 import { Gear } from './screens/Gear.tsx';
@@ -28,7 +30,7 @@ import { tourStep } from './tour.ts';
 import { resourceList } from './view.ts';
 
 /** Screens that have their own back bar instead of the guild header. */
-const DETAIL_SCREENS: Route['screen'][] = ['survivor', 'plan', 'run', 'building', 'recruits', 'gear', 'vultures'];
+const DETAIL_SCREENS: Route['screen'][] = ['survivor', 'plan', 'run', 'fight', 'building', 'recruits', 'gear', 'vultures'];
 
 export function App() {
   const snap = useSnapshot();
@@ -36,7 +38,7 @@ export function App() {
   const hash = useHash();
   const state = snap.status === 'ready' ? snap.state : null;
   // Wake for the next crew home, the next Depot day, or a crew calling in (or giving up on an answer), whichever comes first.
-  const wakeAt = state ? Math.min(nextDayAt(state, Date.now()), ...state.runs.map((r) => r.returnAt), ...radioWakeTimes(state, Date.now())) : undefined;
+  const wakeAt = state ? Math.min(nextDayAt(state, Date.now()), ...state.runs.map((r) => r.returnAt), ...radioWakeTimes(state, Date.now()), ...fightWakeTimes(state, Date.now())) : undefined;
   const now = useNow(30_000, wakeAt);
   const time = useTime(state, now, route);
   useNotices(state);
@@ -95,6 +97,9 @@ export function App() {
     case 'vultures':
       screen = <Vultures state={s} />;
       break;
+    case 'fight':
+      screen = <Fight key={route.id} state={s} id={route.id} />;
+      break;
   }
 
   const touring = tourStep(tour) !== undefined;
@@ -110,7 +115,7 @@ export function App() {
       <main className="screen">{screen}</main>
       {time.current && <ReturnToast state={s} reportId={time.current} more={time.more} onClose={time.dismiss} />}
       {touring && tour && <TourCard state={s} stepId={tour} />}
-      <TabBar current={tabFor(route)} unread={unreadCount(s)} deciding={s.dilemmas.active !== undefined} calling={anyoneCalling(s, now)} />
+      <TabBar current={tabFor(route)} unread={unreadCount(s)} deciding={s.dilemmas.active !== undefined} calling={anyoneCalling(s, now) || anyoneFighting(s, now)} />
     </div>
   );
 }
@@ -168,10 +173,11 @@ function useNotices(state: GameState | null): void {
         call ? `c${call.day}${call.runId ?? ''}` : `h${state.rescue.nextDay}@${state.buildings.radio_tower ?? 0}`,
         familyNoticeKey(state),
         radioNoticeKey(state),
+        fightNoticeKey(state),
       ].join(',')
     : '';
   useEffect(() => {
-    notifier.sync(notify && state ? [...noticesFor(state), ...dilemmaNotices(state), ...rescueNotices(state), ...familyNotices(state), ...radioNotices(state)] : []);
+    notifier.sync(notify && state ? [...noticesFor(state), ...dilemmaNotices(state), ...rescueNotices(state), ...familyNotices(state), ...radioNotices(state), ...fightNotices(state)] : []);
     // Re-sync only when the crews, their return times, or the decisions due change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, notify, notifier]);

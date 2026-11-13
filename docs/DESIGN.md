@@ -597,7 +597,7 @@ Without a Radio Tower the crew decides on the spot, the same way, and loses no t
 
 From the plan (§15), Aviel's answers 2026-11-13: fights on runs (Hit their camp included) and raids on the Depot can be commanded; on a run you choose it in the planner, and at a fight the crew waits up to 30 minutes with a notice on the phone, then fights alone; each person gets their own move each round, and what they can do depends on who they are, what they carry and their traits; commanding does **a little better** than leaving them to it. Runs come first (1.13.0); raids follow, and the game is 2.0.0 when both are done.
 
-**Leading a run.** The planner has *I'll lead the fights* (needs a Radio Tower, since orders go over the radio). Every fight on that run stops and calls home:
+**Leading a run.** The planner has *Lead the fights* (needs a Radio Tower, since orders go over the radio). Every fight on that run stops and calls home:
 - a notice on the phone, and a card on the Depot and on the run: who they're up against;
 - *Take command* opens the fight; *Let them fight* sends them in on their own at once;
 - unanswered, they wait 30 minutes and then fight on their own, as on any run;
