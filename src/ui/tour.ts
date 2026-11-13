@@ -215,7 +215,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     route: () => ({ screen: 'reach' }),
     target: 'map',
     text: () =>
-      'Runs are how the guild gets nearly everything. Scavenge for supplies, scout to explore and find new places, or hunt for food. Dangerous places pay better and hurt more.',
+      'Runs are how the guild gets nearly everything. Scavenge for supplies, scout to explore and find new places, or hunt for food. Each place mostly finds one or two things (tap it to see which), and dangerous places pay better and hurt more.',
   },
   {
     id: 'plan',
@@ -239,7 +239,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     route: () => ({ screen: 'runs' }),
     text: () => {
       const minutes = LOCATIONS.map((l) => l.durationMin);
-      return `Runs take real time, ${proseDuration(Math.min(...minutes))} to ${proseDuration(Math.max(...minutes))}, and crews come home even with the game closed. Their report tells you what happened out there, and who came back changed.`;
+      return `Runs take real time, ${proseDuration(Math.min(...minutes))} to ${proseDuration(Math.max(...minutes))}, and crews come home even with the game closed. Each person goes out once a game day. The report tells you what happened out there, and who came back changed.`;
     },
   },
   {

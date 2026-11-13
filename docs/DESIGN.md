@@ -292,7 +292,7 @@ The guild starts with 3 known locations (The Rail Yard, Maple Street, Kessler Fa
    - **Retreat:** when anyone is below half HP (Wounded), when anyone is Downed, or never. Whatever the order, the crew heads home after a fight in which someone went down.
    - **Loot priority:** the resource to keep when there's more than the crew can carry.
 
-**Coming home tired** (1.6.1): everyone back from a run is **Exhausted** until the next game day (−1 Grit, −1 Brawn), so sending the same crew straight back out costs something. The planner warns about it. Every run also costs stress for the road itself (§6, 1.7.1).
+**One run a game day** (1.10.1, Aviel). Back on the game day they set out, everyone is **Exhausted** and can't go out again until the next game day starts (at most 3 real hours). The planner says when: "Vic has been out today, and can go again at 18:00." A run that crosses into the next day leaves them free on return. *From 1.6.1 Exhausted was only −1 Grit and Brawn until the next day, which didn't stop anyone: a player who checked in every hour sent people out several times a game day and hauled about twice as much (measured: 522 runs and 4,860 scrap in 35 real days, against 314 and 2,570 at six check-ins). Now hourly play gets 324 runs, about the same as six check-ins.* Every run also costs stress for the road itself (§6, 1.7.1).
 
 The planner shows the duration, warnings (rivals or feuds in the crew, injuries, high stress, guns without ammo, tired from the last run) and a **simulated risk**. To get it, the engine quietly runs the same run with 50 different seeds and reports how often someone goes down or dies. The result is shown as Low, Moderate, High or Deadly.
 
@@ -406,7 +406,7 @@ The wounded can't be sent on runs until they heal. If an ally's help lifted the 
 - Loot comes as resource units and gear drops.
 - The crew can carry the sum of everyone's Carry. Anything beyond that is left behind.
 - Gear quality, from worst to best: **Rusty (−1) · Common · Solid (+1) · Prime (+2) · Relic (+2 and a unique perk)**.
-- **Danger pays** (1.6.1): every load a crew carries home is worth 25% more for each point of the place's danger above 1, so the Glow gives double. Deeper levels multiply it further (§7.10). The report says so. Loot per run with a fresh crew is about 5 at danger 1, 9–13 at danger 2, 13 at danger 3. For a seasoned crew (§7.5) it's 6–7 at danger 1, 12–17 at danger 2, 23–27 at danger 3, 26–28 at danger 4 and 19 at danger 5, where they turn back more often.
+- **Danger pays** (1.6.1): every find is 25% bigger for each point of danger above 1, so the Glow gives double; a level down counts as a point more (§7.10). Since 1.10.1 it's in each find ("Rosa turns up 5 scrap."), rounded to whole supplies with the odds kept, and a load in the packs holds as much more, so the carry limit counts the same loads. *Until 1.10.1 it was added to the haul at the end ("25% on top"), which Aviel found read like a bonus rather than what's there.* Loot per run with a fresh crew is about 5 at danger 1, 9–13 at danger 2, 13 at danger 3. For a seasoned crew (§7.5) it's 6–7 at danger 1, 12–17 at danger 2, 23–27 at danger 3, 26–28 at danger 4 and 19 at danger 5, where they turn back more often.
 - **Relics** (1.6.1) turn up in two ways, and can't be made:
   - at **the heart of a place** (§7.10), as a rare quality among found gear (weight 6, against about 100 for the others);
   - from a **nemesis** killed for good, which always leaves one: a weapon or armor it hoarded.
@@ -488,12 +488,13 @@ Each place has three levels: **the outskirts**, **deeper in** and **the heart of
 
 | Level | Danger | Takes | Loot | Chance of gear |
 |---|---|---|---|---|
-| The outskirts | as listed | as listed | ×1 | ×1 |
-| Deeper in | +1 | +25% | ×1.5 | ×1.5 |
-| The heart of it | +2 | +50% | ×2 | ×2 |
+| The outskirts | as listed | as listed | by danger | ×1 |
+| Deeper in | +1 | +25% | by danger | ×1.5 |
+| The heart of it | +2 | +50% | by danger | ×2 |
 
 - Danger past 5 is possible deep in the worst places.
-- Since 1.6.1 the extra danger also makes the enemies there hit harder (§7.4), loot is worth more for the place's own danger on top of the level (§7.6), and Relics turn up only at the heart.
+- Since 1.6.1 the extra danger also makes the enemies there hit harder (§7.4), and Relics turn up only at the heart.
+- **Loot follows the danger** (1.10.1, Aviel): a level's finds grow with its danger like any place's (§7.6), so deeper in the Rail Yard (danger 2) finds as much as Kessler Farm (danger 2). *From 1.6.1 to 1.10.0 each level down also multiplied loot by 1.5, on top of the place's own danger, so the deeper Rail Yard paid +50% and Kessler Farm +25%.* What a level still has over a place of the same danger: more gear, and Relics at the heart. A simulated player who goes deep brings home about 20% less scrap than before (2,050 against 2,570 in 35 real days); +35% a point of danger would put it back.
 - Measured in 1.6.1 with fresh crews of 4 (no gear) at the Drowned Mall: deaths 1 in 200 runs at the outskirts, 1 in 32 deeper in, 1 in 12 at the heart. Loot per run 14.8, 20.9 and 20.6 (crews turn back more at the heart); gear 0.27, 0.33, 0.30 a run. At Maple Street: deaths 1 in 600, 300 and 67, loot 7.1, 15.7 and 23.5. Deeper is for strong, well-equipped crews.
 - The news says when each level is fully explored, and the place's *About* tab lists the levels with their danger and progress. The planner offers only open levels.
 
@@ -768,7 +769,7 @@ With a Radio Tower, now and then someone calls for help from a known place; `res
    - Survivor sheets have a post picker; since 1.8.0 it lists the projects under way too.
 2. **Roster:** survivor cards showing portrait, name, status, HP and stress bars, and top traits. *Built (PR 5).*
 3. **Survivor sheet:** portrait wearing their gear, stats with practice bars, traits (tap for an explanation and how it was gained), relationships, gear slots and Chronicle. Three tabs: *Stats and gear*, *Bonds*, *Chronicle*. If a survivor has a hidden trait, the sheet says something about them hasn't shown yet, without naming it. *Built (PR 5).* Since 1.2.0: the nickname between first and last name (also on the roster and the Memorial Wall), named weapons with what they are, their kills and their story, and *Scores to settle* on the Bonds tab (nemeses that put them down).
-4. **Reach map:** locations with explored %, danger and radiation. Tap a location for details and to plan a run. *Built (PR 6):* (since 1.2.0, a place names the nemesis that haunts it, a *Known by name* list under the places gives every nemesis's record and story, and the planner warns when a nemesis haunts the place and who has a score to settle)
+4. **Reach map:** locations with explored %, danger and radiation, and since 1.10.1 what each mostly finds (everything at least half as common as its most common supply: "Mostly rations and scrap"), in the list and the place's facts. Tap a location for details and to plan a run. *Built (PR 6):* (since 1.2.0, a place names the nemesis that haunts it, a *Known by name* list under the places gives every nemesis's record and story, and the planner warns when a nemesis haunts the place and who has a score to settle)
    - The map is a page of the journal: ink roads on paper, markers numbered and colored by danger, a ring that fills as a place is explored, and a badge where a crew is out.
    - A question mark sits at the end of each road to somewhere not yet found. Tapping it says where to scout.
    - Below the map: the picked place's details, and a list of every known place.

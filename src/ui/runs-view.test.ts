@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { DAY_MS, LOCATIONS, MAX_CREW, amountOf, completeRun, startRun, type RiskEstimate } from '../engine/index.ts';
+import { DAY_MS, LOCATIONS, MAX_CREW, amountOf, completeRun, dayAt, dayStart, startRun, type RiskEstimate } from '../engine/index.ts';
+import { clockTime } from './time.ts';
 import { T0, openGame, testGame, testPlan } from '../engine/test-utils.ts';
 import { DEPOT_SPOT, MAP_SPOTS, mapLabel, reachMap } from './reach-map.ts';
 import {
@@ -76,6 +77,16 @@ describe('planning', () => {
     assert.equal(last.survivor.id, away.plan.crew[0]);
     assert.match(last.reason ?? '', /already out on a run/);
     assert.match(options[0]!.stats, /^Grit \d+, Brawn \d+, Aim \d+, Wits \d+, Nerve \d+$/);
+  });
+
+  test('someone back from a run today says when they can go again', () => {
+    const state = openGame();
+    const run = startRun(state, testPlan(state, 'rail_yard', {}, 1), T0);
+    completeRun(state, run.id, run.returnAt);
+    const s = state.survivors.find((x) => x.id === run.plan.crew[0])!;
+    const option = crewOptions(state).find((o) => o.survivor === s)!;
+    const at = clockTime(dayStart(state, dayAt(state, T0) + 1));
+    assert.equal(option.reason, `${s.firstName} has been out today, and can go again at ${at}.`);
   });
 
   test('ammo is suggested only for crews with guns', () => {

@@ -41,9 +41,11 @@ describe('balance: permadeath is rare', () => {
   const moderate = ['st_judes', 'water_plant', 'blackwater'].map((id) => simulate(id, N));
   const moderateDeaths = moderate.reduce((n, t) => n + t.deaths, 0) / (N * 3);
 
-  test('moderate danger, sensible orders: about one death per 30 to 50 runs', () => {
+  test('moderate danger, sensible orders: about one death per 20 to 50 runs', () => {
+    // About one in 24 since Balance A (1.6.1) made enemies tougher; these seeds read 27 until 1.10.1
+    // spent dice on rounding each find, and 25 since. Other seeds read 22 to 26 either way.
     const per = 1 / moderateDeaths;
-    assert.ok(per >= 25 && per <= 55, `one death per ${per.toFixed(1)} runs`);
+    assert.ok(per >= 20 && per <= 55, `one death per ${per.toFixed(1)} runs`);
   });
 
   test('injuries are far more common than deaths', () => {

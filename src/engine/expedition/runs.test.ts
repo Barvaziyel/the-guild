@@ -11,7 +11,9 @@ import { addChronicle } from '../chronicle.ts';
 import { assignPost, postedTo, trimPosts, workerSlots } from '../depot/buildings.ts';
 import { Rng } from '../rng.ts';
 import type { GameState, Run } from '../types.ts';
-import { hungryCrew, planWarnings, rationsNeeded, rationsPacked, runDuration, validatePlan } from './plan.ts';
+import { hungryCrew, planWarnings, rationsNeeded, rationsPacked, runDuration, unavailableReason, validatePlan } from './plan.ts';
+import { advanceTime, dayStart } from '../depot/time.ts';
+import { dayAt } from '../game.ts';
 import { completeDueRuns, completeRun, dueRuns, estimateRisk, markReportRead, startRun, visibleBeats } from './runs.ts';
 
 describe('planning', () => {
@@ -121,6 +123,33 @@ describe('run lifecycle', () => {
     assert.throws(() => startRun(state, plan, T0), /already out/);
   });
 
+  test('one run a game day: back on the day they set out, they rest until the next day starts', () => {
+    const state = openGame('one-a-day');
+    const plan = testPlan(state, 'rail_yard');
+    const run = startRun(state, plan, T0);
+    const day = dayAt(state, T0);
+    assert.equal(dayAt(state, run.returnAt), day, 'a short run is back the same day');
+    completeRun(state, run.id, run.returnAt);
+    const back = state.survivors.filter((s) => plan.crew.includes(s.id) && s.status === 'ready');
+    assert.ok(back.length > 0);
+    for (const s of back) {
+      assert.ok(hasTrait(s, 'exhausted'));
+      assert.equal(unavailableReason(s), 'is exhausted and needs rest');
+    }
+    assert.ok(validatePlan(state, plan).some((p) => /exhausted/.test(p)));
+    advanceTime(state, dayStart(state, day + 1));
+    for (const s of back) assert.equal(unavailableReason(s), undefined, 'free again the next day');
+
+    // Set out late in the day, back the next: they can go again straight away.
+    const late = openGame('one-a-day-late');
+    const latePlan = testPlan(late, 'rail_yard');
+    const leave = dayStart(late, dayAt(late, T0) + 1) - 60_000;
+    const lateRun = startRun(late, latePlan, leave);
+    assert.ok(dayAt(late, lateRun.returnAt) > dayAt(late, leave));
+    completeRun(late, lateRun.id, lateRun.returnAt);
+    for (const s of late.survivors.filter((x) => latePlan.crew.includes(x.id) && x.status === 'ready')) assert.ok(!hasTrait(s, 'exhausted'));
+  });
+
   test('the log is revealed as time passes', () => {
     const { run } = start();
     assert.equal(visibleBeats(run, T0).length, 1);
@@ -192,7 +221,7 @@ describe('run lifecycle', () => {
     for (let i = 0; i < 40; i++) {
       for (const s of state.survivors) {
         s.hp = 30;
-        s.traits = s.traits.filter((t) => t.id !== 'wounded' && t.id !== 'badly_wounded');
+        s.traits = s.traits.filter((t) => t.id !== 'wounded' && t.id !== 'badly_wounded' && t.id !== 'exhausted');
       }
       if (state.survivors.length < 3) break;
       const run = startRun(state, testPlan(state, 'checkpoint_bravo', { approach: 'sneaky' }), now);
@@ -214,7 +243,7 @@ describe('run lifecycle', () => {
     for (let i = 0; i < 30 && !locationState(state, 'drowned_mall').discovered; i++) {
       for (const s of state.survivors) {
         s.hp = 30;
-        s.traits = s.traits.filter((t) => t.id !== 'wounded' && t.id !== 'badly_wounded');
+        s.traits = s.traits.filter((t) => t.id !== 'wounded' && t.id !== 'badly_wounded' && t.id !== 'exhausted');
       }
       const run = startRun(state, { ...testPlan(state, 'maple_street'), job: 'scout', approach: 'sneaky', meds: 0, ammo: 0 }, now);
       now = run.returnAt;

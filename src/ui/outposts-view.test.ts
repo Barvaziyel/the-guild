@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { build, buildOutpost, findOutpost, station } from '../engine/index.ts';
+import { build, buildOutpost, findOutpost, getLocation, station } from '../engine/index.ts';
 import { openGame, testPlan } from '../engine/test-utils.ts';
 import type { GameState } from '../engine/index.ts';
 import { postCandidates } from './depot-view.ts';
 import {
+  mostlyFinds,
   depthChoices,
   depthRows,
   exploredShort,
@@ -142,5 +143,14 @@ describe('outposts on screen', () => {
     build(state, 'radio_tower', 1);
     buildOutpost(state, 'maple_street', 2);
     assert.equal(outpostPlanNote(state, plan), 'They set out from the outpost at Maple Street, which cuts the trip to half the time, and stop there to rest on the way home.');
+  });
+
+  test('what a place mostly gives up: everything at least half as common as the most', () => {
+    const at = (id: string): string => mostlyFinds(getLocation(id));
+    assert.equal(at('rail_yard'), 'scrap');
+    assert.equal(at('kessler_farm'), 'rations');
+    assert.equal(at('maple_street'), 'rations and scrap');
+    assert.equal(at('old_metro'), 'scrap');
+    assert.equal(at('radio_station'), 'tech and scrap');
   });
 });

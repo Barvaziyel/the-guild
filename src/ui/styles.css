@@ -1408,6 +1408,10 @@ li:nth-child(even) .pinned {
   border-radius: 4px;
 }
 
+.facts .facts-wide {
+  grid-column: 1 / -1;
+}
+
 .facts dt {
   font-size: 0.75rem;
   color: var(--bone-2);

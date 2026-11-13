@@ -526,8 +526,6 @@ export const OUTPOST_RAID_DC = 7;
 /** Deeper levels: +1 danger, this much longer, and this much likelier to turn up gear, per level down. */
 export const DEPTH_DURATION = 0.25;
 export const DEPTH_GEAR = 0.5;
-/** And this much more of every find, per level down. */
-export const DEPTH_LOOT = 0.5;
 export const DEPTHS = 3;
 
 // ---------------------------------------------------------------- decisions at the Depot (1.7.0)

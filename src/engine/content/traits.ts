@@ -391,11 +391,13 @@ export const TRAITS: readonly TraitDef[] = [
     durationDays: [2, 4],
   },
   {
+    // One run a game day (Aviel, 2026-11-13): back on the day they set out,
+    // they can't go again until the next Depot day.
     id: 'exhausted',
     name: 'Exhausted',
     kind: 'condition',
-    description: 'Needs a day off.',
-    statMods: { grit: -1, brawn: -1 },
+    description: 'Back from a run today. Can go out again tomorrow.',
+    blocksRuns: true,
     durationDays: [1, 1],
   },
   {
