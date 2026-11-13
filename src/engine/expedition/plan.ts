@@ -166,7 +166,6 @@ export function planWarnings(state: GameState, plan: RunPlan): string[] {
     if (s.hp < maxHp(s) / 2) warnings.push(`${s.firstName} is hurt (${s.hp}/${maxHp(s)} HP).`);
     if (s.stress >= STRESS_HIGH) warnings.push(`${s.firstName} is close to breaking (stress ${s.stress}).`);
     if (!s.equipment.weapon) warnings.push(`${s.firstName} has no weapon.`);
-    if (s.traits.some((t) => t.id === 'exhausted')) warnings.push(`${s.firstName} is tired from the last run (−1 Grit and Brawn until tomorrow).`);
   }
   const needAmmo = crew.some((s) => {
     const w = s.equipment.weapon;

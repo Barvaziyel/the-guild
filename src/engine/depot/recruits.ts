@@ -59,7 +59,7 @@ export function addWanderer(state: GameState, day: number, rng: Rng): Candidate 
 /** Why this candidate can't be taken in, or undefined if they can. */
 export function recruitProblem(state: GameState, candidateId: string): string | undefined {
   if (!state.depot.recruits.some((c) => c.survivor.id === candidateId)) return 'They have moved on.';
-  if (!hasFreeBunk(state)) return state.depot.familyBed ? `All ${bunksCap(state)} beds are taken or kept for a family. Improve the Bunks to make room.` : `All ${bunksCap(state)} beds are taken. Improve the Bunks to make room.`;
+  if (!hasFreeBunk(state)) return `All ${bunksCap(state)} beds are taken. Improve the Bunks to make room.`;
   return undefined;
 }
 

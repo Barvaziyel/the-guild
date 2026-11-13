@@ -13,7 +13,7 @@ import { arePartners, relationshipLabel } from '../relationships.ts';
 import { addPractice, effectiveStat, maxHp, statName } from '../stats.ts';
 import { addTrait, getTraitInstance, hasTrait, revealTrait } from '../traits.ts';
 import type { BeatKind, LogLine } from '../types.ts';
-import { addLoot, findGear, lootMult, pickResource, relate, resolveFight } from './beats.ts';
+import { addLoot, findGear, lootMult, pickResource, relate, resolveFight, richFind } from './beats.ts';
 import { buildEncounter, describeGroup } from './combat.ts';
 import { absorbRads, capitalize, check, fmt, hurt, say, simDay, standing, startBeat, stress, type Member, type Sim } from './context.ts';
 
@@ -122,7 +122,7 @@ function applyEffect(sim: Sim, event: EventDef, effect: EventEffect, roles: Cast
     case 'loot': {
       const res = effect.resource === 'any' ? pickResource(sim) : effect.resource;
       const base = rng.int(effect.amount[0], effect.amount[1]) + (effect.scales ? sim.loc.danger - 1 : 0);
-      const amount = Math.max(1, Math.round(base * lootMult(roles.a)));
+      const amount = richFind(sim, base * lootMult(roles.a));
       addLoot(sim, res, amount);
       say(sim, `${capitalize(String(amount))} ${res} for the packs.`, { tone: 'good' });
       break;

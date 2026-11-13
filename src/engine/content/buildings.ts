@@ -29,7 +29,7 @@ export const BUILDINGS: readonly BuildingDef[] = [
   {
     id: 'bunks',
     name: 'Bunks',
-    description: 'Cots in the old ticket hall. Every survivor needs one.',
+    description: "Cots in the old ticket hall. Everyone needs one, but partners share, and children sleep in their parents' bed until 6. Short of beds, someone sleeps on the floor and gets no rest.",
     startLevel: 1,
     levels: [
       { effect: 'Beds for 4.', cost: {} },

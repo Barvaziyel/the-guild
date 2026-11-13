@@ -215,7 +215,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     route: () => ({ screen: 'reach' }),
     target: 'map',
     text: () =>
-      'Runs are how the guild gets nearly everything. Scavenge for supplies, scout to explore and find new places, or hunt for food. Dangerous places pay better and hurt more.',
+      'Runs are how the guild gets nearly everything. Scavenge for supplies, scout to explore and find new places, or hunt for food. Each place mostly finds one or two things (tap it to see which), and dangerous places pay better and hurt more.',
   },
   {
     id: 'plan',
@@ -239,7 +239,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     route: () => ({ screen: 'runs' }),
     text: () => {
       const minutes = LOCATIONS.map((l) => l.durationMin);
-      return `Runs take real time, ${proseDuration(Math.min(...minutes))} to ${proseDuration(Math.max(...minutes))}, and crews come home even with the game closed. Their report tells you what happened out there, and who came back changed.`;
+      return `Runs take real time, ${proseDuration(Math.min(...minutes))} to ${proseDuration(Math.max(...minutes))}, and crews come home even with the game closed. Each person goes out once a game day. The report tells you what happened out there, and who came back changed.`;
     },
   },
   {
@@ -323,7 +323,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     text: (state) => {
       const { beds, cap } = homeCounts(state);
       const room = beds >= cap ? `all ${cap} beds are taken, so build the Bunks up first` : `${cap - beds} ${cap - beds === 1 ? 'bed is' : 'beds are'} free`;
-      return `Now and then someone answers the radio or turns up at the gate, but most new people come from out in the Reach: someone found on a run, or, with a Radio Tower, a call for help. Bring them home alive and they join, owing their rescuer a life. Taking someone in is free, but they need a bed: ${room}. Stray animals turn up at the gate too.`;
+      return `Some people answer the radio or turn up at the gate, but most come from the Reach: someone found on a run, or, with a Radio Tower, a call for help, who joins owing their rescuer a life. Taking someone in is free, but they need a bed (partners share one): ${room}. Short of beds, someone sleeps on the floor. Strays turn up at the gate too.`;
     },
   },
 

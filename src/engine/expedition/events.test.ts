@@ -185,7 +185,7 @@ describe('events in play', () => {
     for (let i = 0; i < 12; i++) {
       for (const s of state.survivors) {
         s.hp = 30;
-        s.traits = s.traits.filter((t) => t.id !== 'wounded' && t.id !== 'badly_wounded');
+        s.traits = s.traits.filter((t) => t.id !== 'wounded' && t.id !== 'badly_wounded' && t.id !== 'exhausted');
       }
       if (state.survivors.length < 3) break;
       const run = startRun(state, testPlan(state, 'maple_street', { job: 'scout', approach: 'sneaky' }), now);

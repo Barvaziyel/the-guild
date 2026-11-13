@@ -15,7 +15,6 @@ import {
   FOUND_VEHICLE_CONDITION,
   VEHICLE_AMBUSH_PENALTY,
   WRECK_FIND_WEIGHT,
-  DEPTH_LOOT,
   DEPTHS,
   LOOT_PER_DANGER,
   RELIC_HEART_WEIGHT,
@@ -108,12 +107,25 @@ export function addLoot(sim: Sim, res: ResourceId, amount: number): void {
 }
 
 /**
- * How much more every load is worth out of this place: +25% per point of the
- * place's danger above 1 (§7.6), and +50% per level down (§7.10). It applies
- * to what the crew carries home, after the carry limit.
+ * A find's size out of this place: what was found, made richer by the danger
+ * (§7.6), rounded to whole supplies so the expected amount is kept ("2.5" is
+ * 2 or 3, half the time each). At least 1.
+ */
+export function richFind(sim: Sim, amount: number): number {
+  const x = amount * richness(sim.plan);
+  const whole = Math.floor(x);
+  return Math.max(1, whole + (sim.rng.chance(x - whole) ? 1 : 0));
+}
+
+/**
+ * How much bigger every find is out of this place: +25% per point of danger
+ * above 1 (§7.6), wherever the danger comes from: the place, or how far in
+ * (each level down is +1 danger, §7.10). A load in the packs holds this much
+ * more too, so the carry limit counts the same loads.
  */
 export function richness(plan: { locationId: string; depth?: number }): number {
-  return (1 + LOOT_PER_DANGER * (getLocation(plan.locationId).danger - 1)) * (1 + DEPTH_LOOT * (planDepth(plan) - 1));
+  const danger = getLocation(plan.locationId).danger + planDepth(plan) - 1;
+  return 1 + LOOT_PER_DANGER * (danger - 1);
 }
 
 export function lootText(loot: Partial<Record<ResourceId, number>>): string {
@@ -133,7 +145,7 @@ export function travelBeat(sim: Sim): void {
   const crew = standing(sim);
   if (crew.length > 0 && sim.rng.chance(0.25)) {
     const finder = sim.rng.pick(crew);
-    addLoot(sim, 'scrap', sim.rng.int(1, 2));
+    addLoot(sim, 'scrap', richFind(sim, sim.rng.int(1, 2)));
     say(sim, flavor(sim, TRAVEL_FIND, { a: finder }));
   }
 }
@@ -155,13 +167,13 @@ export function scavengeBeat(sim: Sim): void {
     const res = pickResource(sim);
     // A near miss still turns up scraps.
     const units = result.success ? sim.rng.int(1, 2) + 2 * (sim.loc.danger - 1) + Math.floor(result.margin / 3) : 1;
-    const found = units * lootMult(m);
+    const found = richFind(sim, units * lootMult(m));
     addLoot(sim, res, found);
     if (result.success) {
       m.s.counters.scavenges += 1;
       m.tally.scavenges += 1;
     }
-    const amount = Math.max(1, Math.round(found));
+    const amount = found;
     say(
       sim,
       result.success ? `${m.s.firstName} turns up ${amount} ${res}.` : `${m.s.firstName} finds little: ${amount} ${res}.`,
@@ -344,8 +356,10 @@ export function combatBeat(sim: Sim): void {
 export function resolveFight(sim: Sim, enemies: Enemy[], start: FightStart): void {
   const result = fight(sim, enemies, start);
   if (result.end === 'won') {
-    const text = lootText(result.loot);
-    for (const res of RESOURCE_IDS) addLoot(sim, res, result.loot[res] ?? 0);
+    const taken: Partial<Record<ResourceId, number>> = {};
+    for (const res of RESOURCE_IDS) if ((result.loot[res] ?? 0) > 0) taken[res] = richFind(sim, result.loot[res]!);
+    const text = lootText(taken);
+    for (const res of RESOURCE_IDS) addLoot(sim, res, taken[res] ?? 0);
     const taker = sim.members.length === 1 ? sim.members[0]!.s.firstName : 'The crew';
     say(sim, text ? `The fight is over. ${taker} takes what is worth taking: ${text}.` : 'The fight is over.', { tone: 'good' });
   } else if (result.end === 'withdrew') {
@@ -451,7 +465,7 @@ export function discoveryBeat(sim: Sim): void {
   } else if (kind === 'stash') {
     startBeat(sim, 'discovery', 'Hidden Stash');
     const res = pickResource(sim);
-    const amount = Math.round((2 + sim.loc.danger + sim.rng.int(0, 2)) * lootMult(finder));
+    const amount = richFind(sim, (2 + sim.loc.danger + sim.rng.int(0, 2)) * lootMult(finder));
     addLoot(sim, res, amount);
     say(sim, `${flavor(sim, DISCOVERY_STASH, { a: finder })} ${capitalize(String(amount))} ${res}.`, { tone: 'good' });
     if (sim.rng.chance(0.35)) findGear(sim, finder);

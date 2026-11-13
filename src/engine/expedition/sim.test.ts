@@ -90,6 +90,17 @@ describe('simulateRun', () => {
     assert.equal(runs, LOCATIONS.length * 60);
   });
 
+  test('finds grow with danger, wherever it comes from: deeper in the Rail Yard is as rich as Kessler Farm', () => {
+    assert.equal(richness({ locationId: 'rail_yard' }), 1);
+    assert.equal(richness({ locationId: 'rail_yard', depth: 2 }), richness({ locationId: 'kessler_farm' }));
+    assert.equal(richness({ locationId: 'rail_yard', depth: 3 }), 1.5);
+    assert.equal(richness({ locationId: 'the_glow' }), 2);
+    // The bonus is in each find, not added at the end.
+    const state = openGame('rich');
+    const { beats } = simulateRun(state, testPlan(state, 'old_metro'), 'rich', 0);
+    assert.ok(!beats.some((b) => b.lines.some((l) => /on top/.test(l.text))));
+  });
+
   test('every survivor who comes home has one more run, and first runs are chronicled', () => {
     const state = openGame('runs');
     const { result } = simulateRun(state, testPlan(state, 'rail_yard'), 'first', 0);
@@ -204,6 +215,7 @@ describe('relationships on the road', () => {
   test('time together moves relationships, and rescues create a life debt', () => {
     let moved = 0;
     let debts = 0;
+    let gained = 0;
     // A large sample: rescues are rare, and a small one swings with any change to the dice.
     for (let i = 0; i < 1200; i++) {
       const state = openGame(`rel-${i % 6}`);
@@ -217,8 +229,9 @@ describe('relationships on the road', () => {
         if (rel.score !== before.score) moved++;
         if (rel.flags.some((f) => f.kind === 'owesLife')) {
           debts++;
-          // +30 for the rescue; a pair who grate on each other can lose some of it on the road, or arguing over shares.
-          assert.ok(rel.score >= before.score + 5, 'a rescue is a big deal');
+          // +30 for the rescue. A pair who grate on each other can lose some of it on the road, and a
+          // Greedy rescuer arguing over the shares on the way home can lose all of it, now and then.
+          gained += rel.score - before.score;
           const debtor = result.crew.find((s) => rel.flags.some((f) => f.kind === 'owesLife' && f.debtor === s.id))!;
           assert.ok(debtor.chronicle.some((c) => /Owes .* a life/.test(c.text)));
         }
@@ -226,6 +239,7 @@ describe('relationships on the road', () => {
     }
     assert.ok(moved > 2000, `relationships moved ${moved} times`);
     assert.ok(debts > 10, `life debts: ${debts}`);
+    assert.ok(gained / debts > 20, `a rescue is a big deal: ${(gained / debts).toFixed(1)} on average`);
   });
 
   test('feuding crews argue more than friendly ones', () => {

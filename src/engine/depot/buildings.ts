@@ -2,8 +2,9 @@
  * Building and staffing the Depot: levels, costs, beds and who works where.
  */
 import { addGuildLog } from '../chronicle.ts';
-import { BUILDING_UPKEEP, BUNKS_CAP, MAX_BUILDING_LEVEL, WORKER_SLOTS } from '../constants.ts';
+import { BUILDING_UPKEEP, BUNKS_CAP, MAX_BUILDING_LEVEL, SHARE_BED_AGE, WORKER_SLOTS } from '../constants.ts';
 import { BUILDINGS, getLocation, getProject, getTrait, type BuildingDef, type BuildingLevel } from '../content/index.ts';
+import { partnerOf } from '../relationships.ts';
 import { statName } from '../stats.ts';
 import type { BuildingId, BuildingPost, GameState, Post, ResourceId, Resources, StatId, Survivor } from '../types.ts';
 import { BUILDING_IDS, RESOURCE_IDS, STAT_IDS } from '../types.ts';
@@ -96,25 +97,32 @@ export function bunksCap(state: GameState): number {
   return BUNKS_CAP[Math.min(buildingLevel(state, 'bunks'), MAX_BUILDING_LEVEL)] ?? 0;
 }
 
-/** A bed for someone new to join: not the one kept for a family. */
+/** A bed for someone new to join. */
 export function hasFreeBunk(state: GameState): boolean {
-  return bedsTaken(state) + (state.depot.familyBed ? 1 : 0) < bunksCap(state);
-}
-
-/** A bed nobody sleeps in, the one kept for a family included: what a couple needs for a baby. */
-export function hasEmptyBed(state: GameState): boolean {
   return bedsTaken(state) < bunksCap(state);
 }
 
-/** Keep one bed free for a family, or let anyone new take it. */
-export function keepFamilyBed(state: GameState, on: boolean): void {
-  if (on) state.depot.familyBed = true;
-  else delete state.depot.familyBed;
+/**
+ * Beds the guild needs (§9.1): one each, but partners share one, and children
+ * under 6 sleep in a parent's bed. People out on runs or at an outpost keep
+ * theirs. More than the Bunks hold, and someone sleeps on the floor.
+ */
+export function bedsTaken(state: GameState): number {
+  const ids = new Set(state.survivors.map((s) => s.id));
+  let couples = 0;
+  for (const s of state.survivors) {
+    const p = partnerOf(state, s.id);
+    if (p && ids.has(p.id) && p.id > s.id) couples++;
+  }
+  const kids = (state.children ?? []).filter((c) => !sharesParentsBed(state, c)).length;
+  return state.survivors.length - couples + kids;
 }
 
-/** Beds taken: everyone in the guild, the children, and a bed kept for each baby on the way (§5.3). */
-export function bedsTaken(state: GameState): number {
-  return state.survivors.length + (state.children?.length ?? 0) + state.survivors.filter((s) => s.expecting).length;
+/** A child under 6 with a parent still in the guild sleeps in that parent's bed. */
+export function sharesParentsBed(state: GameState, child: Survivor): boolean {
+  if (child.age >= SHARE_BED_AGE || !child.parents) return false;
+  const { mother, father } = child.parents;
+  return state.survivors.some((s) => s.id === mother || s.id === father);
 }
 
 /** At the Depot today (not out on a run). */

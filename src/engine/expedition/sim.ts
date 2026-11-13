@@ -381,19 +381,20 @@ function packLoot(sim: Sim, outcome: RunOutcome): { loot: Resources; leftBehind:
     leftBehind += sim.items.length - capacity;
     sim.items = sim.items.slice(0, capacity);
   }
-  const room = capacity - sim.items.length;
+  // A load out of a richer place holds more (§7.6): the finds were made bigger, so the packs hold as many loads.
+  const rich = richness(sim.plan);
+  const room = Math.round((capacity - sim.items.length) * rich);
   const total = (): number => RESOURCE_IDS.reduce((sum, r) => sum + loot[r], 0);
+  let dropped = 0;
   while (total() > room) {
     // Drop from the biggest pile that isn't the priority.
     const droppable = RESOURCE_IDS.filter((r) => loot[r] > 0 && r !== sim.plan.lootPriority);
     const pool: readonly ResourceId[] = droppable.length > 0 ? droppable : RESOURCE_IDS.filter((r) => loot[r] > 0);
     const drop = pool.reduce((a, b) => (loot[b] > loot[a] ? b : a));
     loot[drop] -= 1;
-    leftBehind += 1;
+    dropped += 1;
   }
-  // Out of a dangerous place, or deep in one, every load is worth more (§7.6, §7.10).
-  const rich = richness(sim.plan);
-  if (rich > 1) for (const res of RESOURCE_IDS) loot[res] = Math.round(loot[res] * rich);
+  leftBehind += Math.ceil(dropped / rich);
   return { loot, leftBehind };
 }
 
@@ -567,8 +568,6 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
   if (outcome === 'completed' || outcome === 'turnedBack') {
     const summary = lootSummary(loot, sim.items.map(itemName));
     const solo = sim.members.length === 1 ? sim.members[0]!.s.firstName : undefined;
-    const rich = richness(plan);
-    if (rich > 1 && RESOURCE_IDS.some((r) => loot[r] > 0)) say(sim, `Loads from a place this dangerous are worth more: ${Math.round((rich - 1) * 100)}% on top.`);
     const loads = `${leftBehind} ${leftBehind === 1 ? 'load' : 'loads'}`;
     if (solo) {
       say(sim, summary ? `${solo} brings back: ${summary}.` : `${solo} brings back nothing but a sore back.`, summary ? { tone: 'good' } : {});

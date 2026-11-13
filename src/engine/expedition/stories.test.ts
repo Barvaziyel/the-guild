@@ -8,6 +8,7 @@ import { T0, openGame, testPlan } from '../test-utils.ts';
 import { Rng } from '../rng.ts';
 import type { GameState, Nemesis, Run, RunPlan } from '../types.ts';
 import { completeRun, startRun } from './runs.ts';
+import { roman } from './stories.ts';
 import { simulateRun } from './sim.ts';
 
 function nemesis(over: Partial<Nemesis> = {}): Nemesis {
@@ -215,6 +216,25 @@ describe('nicknames', () => {
     const rule = NICKNAMES.find((r) => r.names.includes(found.nickname!))!;
     assert.ok(rule);
     assert.ok(found.chronicle.some((c) => c.text.startsWith(`Earned a name: "${found.nickname}", for`)));
+  });
+
+  test('when every name and its II and III are taken, the next is IV, and the run still ends', () => {
+    assert.deepEqual([2, 3, 4, 9, 14, 40].map(roman), ['II', 'III', 'IV', 'IX', 'XIV', 'XL']);
+    const { found } = findRun(
+      'nick-iv',
+      (i) => {
+        const state = openGame(`nick-${i % 6}`);
+        for (const s of state.survivors) s.counters.rangedKills = s.counters.meleeKills = 11;
+        // The Memorial Wall already holds every name, twice over.
+        const dead = state.survivors[0]!;
+        for (const rule of NICKNAMES) {
+          for (const name of rule.names) for (const nick of [name, `${name} II`, `${name} III`]) state.memorial.push({ ...structuredClone(dead), id: `m-${nick}`, status: 'dead', nickname: nick });
+        }
+        return { state, plan: testPlan(state, 'maple_street') };
+      },
+      (_s, sim) => sim.result.crew.find((s) => s.nickname),
+    );
+    assert.match(found.nickname!, / IV$/);
   });
 
   test('a mark already passed earns nothing: a name is one roll, on the run that reaches it', () => {

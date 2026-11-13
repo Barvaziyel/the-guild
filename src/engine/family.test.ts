@@ -12,7 +12,8 @@ import {
   SAVE_VERSION,
   YEAR_DAYS,
 } from './constants.ts';
-import { bedsTaken, bunksCap, hasEmptyBed, hasFreeBunk, keepFamilyBed } from './depot/buildings.ts';
+import { bedsTaken, bunksCap, hasFreeBunk } from './depot/buildings.ts';
+import { emptySummary, playDepotDay } from './depot/day.ts';
 import { recruitProblem } from './depot/recruits.ts';
 import { gardenYield, guildUpkeep } from './depot/day.ts';
 import { advanceTime, dayStart } from './depot/time.ts';
@@ -124,39 +125,23 @@ describe('babies and children', () => {
     assert.ok(found > 30 && found < 75, `${found} in 5000 days`);
   });
 
-  test('no baby without a bed, a woman and a man, both at home', () => {
+  test('a baby needs a woman and a man, both at home, but not a free bed', () => {
     const { state, mother, father } = couple('none');
-    state.buildings.bunks = 1; // four beds, four people
-    for (let day = 2; day < 3000; day++) playFamilyDay(state, day, new Rng(`n${day}`));
-    assert.equal(mother.expecting, undefined, 'no bed');
-    state.buildings.bunks = 3;
     father.status = 'away';
-    for (let day = 3000; day < 6000; day++) playFamilyDay(state, day, new Rng(`m${day}`));
+    for (let day = 2; day < 3000; day++) playFamilyDay(state, day, new Rng(`m${day}`));
     assert.equal(mother.expecting, undefined, 'not with him away');
+    father.status = 'ready';
+    state.buildings.bunks = 1; // four beds, four people, and the couple shares one
+    while (hasFreeBunk(state)) state.survivors.push({ ...structuredClone(state.survivors[2]!), id: `x${state.survivors.length}` });
+    for (let day = 3000; day < 6000 && !mother.expecting; day++) playFamilyDay(state, day, new Rng(`n${day}`));
+    assert.ok(mother.expecting, 'a baby sleeps with its parents');
   });
 
-  test('a bed kept free for a family: nobody new takes it, and a couple can use it', () => {
-    const { state, mother } = couple('family-bed');
-    state.buildings.bunks = 2; // eight beds
-    while (state.survivors.length < 7) state.survivors.push(structuredClone({ ...state.survivors[2]!, id: `x${state.survivors.length}` }));
-    assert.ok(hasFreeBunk(state));
-    keepFamilyBed(state, true);
-    assert.ok(!hasFreeBunk(state), 'the last bed is kept');
-    assert.ok(hasEmptyBed(state));
-    state.depot.recruits.push({ survivor: { ...structuredClone(state.survivors[2]!), id: 'gate' }, expiresDay: 9 });
-    assert.equal(recruitProblem(state, 'gate'), 'All 8 beds are taken or kept for a family. Improve the Bunks to make room.');
-    let day = 2;
-    for (; day < 4000 && !mother.expecting; day++) playFamilyDay(state, day, new Rng(`f${day}`));
-    assert.ok(mother.expecting, 'the couple had a baby on the way in the kept bed');
-    keepFamilyBed(state, false);
-    assert.equal(state.depot.familyBed, undefined);
-  });
-
-  test('a pregnancy: a bed kept, home for the last stretch, then the birth', () => {
+  test('a pregnancy: home for the last stretch, then the birth', () => {
     const { state, mother, father } = couple('birth');
     const beds = bedsTaken(state);
     expecting(state, mother, father, 10);
-    assert.equal(bedsTaken(state), beds + 1, 'a bed is kept for the baby');
+    assert.equal(bedsTaken(state), beds);
     const due = 10 + PREGNANCY_DAYS;
     playFamilyDay(state, due - NEARLY_DUE_DAYS - 1, new Rng('a'));
     assert.equal(unavailableReason(mother), undefined);
@@ -172,7 +157,7 @@ describe('babies and children', () => {
     assert.deepEqual(child.parents, { mother: mother.id, father: father.id });
     assert.deepEqual(parentsOf(state, child), { mother, father });
     assert.deepEqual(childrenOf(state, mother.id), [child]);
-    assert.equal(bedsTaken(state), beds + 1);
+    assert.equal(bedsTaken(state), beds, 'the baby sleeps in their bed');
     assert.ok(mother.chronicle.some((c) => /^Had a (son|daughter), /.test(c.text)));
     assert.ok(father.chronicle.some((c) => /^Became a father: a (son|daughter), /.test(c.text)));
     assert.equal(child.chronicle[0]!.text, `Born at the Depot to ${mother.firstName} ${mother.lastName} and ${father.firstName} ${father.lastName}.`);
@@ -252,5 +237,48 @@ describe('babies and children', () => {
     assert.equal(loaded.version, SAVE_VERSION);
     assert.deepEqual(loaded.children, []);
     for (const s of loaded.survivors) assert.ok(s.nextBirthday! > loaded.depot.lastDay && s.nextBirthday! <= loaded.depot.lastDay + YEAR_DAYS);
+  });
+});
+
+describe('beds', () => {
+  test('partners share a bed, and a child sleeps in a parent\'s until 6', () => {
+    const { state, mother, father } = couple('beds');
+    const n = state.survivors.length;
+    assert.equal(bedsTaken(state), n - 1, 'the couple shares one');
+    expecting(state, mother, father, 1);
+    const child = birth(state, mother, 2, new Rng('b'));
+    assert.equal(bedsTaken(state), n - 1);
+    child.age = 5;
+    child.nextBirthday = 40;
+    playFamilyDay(state, 40, new Rng('six'));
+    assert.equal(child.age, 6);
+    assert.equal(bedsTaken(state), n, 'a bed of their own at 6');
+    assert.match(child.chronicle.at(-1)!.text, /^Turned 6, and moved to a bed of (his|her) own\.$/);
+    assert.match(state.log.at(-1)!.text, /is 6 now, and needs a bed of (his|her) own\.$/);
+    // A small child with no parent left in the guild needs a bed too.
+    child.age = 3;
+    state.survivors = state.survivors.filter((s) => s !== mother && s !== father);
+    assert.equal(bedsTaken(state), n - 2 + 1);
+  });
+
+  test('more people than beds: nobody new comes in, and someone at home sleeps on the floor', () => {
+    const state = testGame('floor');
+    state.buildings.bunks = 1;
+    const extra = { ...structuredClone(state.survivors[0]!), id: 'x9', stress: 10 };
+    state.survivors.push(extra);
+    for (const s of state.survivors) s.stress = 10;
+    state.depot.recruits.push({ survivor: { ...structuredClone(state.survivors[1]!), id: 'gate' }, expiresDay: 9 });
+    assert.equal(recruitProblem(state, 'gate'), 'All 4 beds are taken. Improve the Bunks to make room.');
+    const summary = emptySummary();
+    playDepotDay(state, 2, new Rng('night'), summary);
+    assert.equal(summary.floorNights, 1);
+    assert.ok(state.depot.crowded);
+    assert.ok(state.log.some((e) => e.text === 'There are more people than beds. Until the Bunks are improved, someone sleeps on the floor each night.'));
+    const tired = state.survivors.filter((s) => s.stress > 10);
+    assert.equal(tired.length, 1, 'one person slept on the floor and got no rest');
+    state.buildings.bunks = 2;
+    playDepotDay(state, 3, new Rng('bed'), summary);
+    assert.equal(state.depot.crowded, undefined);
+    assert.equal(state.log.at(-1)!.text, 'Everyone has a bed again.');
   });
 });

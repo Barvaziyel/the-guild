@@ -19,7 +19,7 @@ import { Yard } from '../components/Yard.tsx';
 import { activeRuns, backIn, joinNames, runCrewNames } from '../runs-view.ts';
 import { outpostRows } from '../outposts-view.ts';
 import { projectNote } from '../projects-view.ts';
-import { buildingRows, depotNews, foodWarning, homeCounts, summaryLines, type BuildingRow } from '../depot-view.ts';
+import { bedsLine, buildingRows, depotNews, foodWarning, homeCounts, summaryLines, type BuildingRow } from '../depot-view.ts';
 import { stashLine } from '../gear-view.ts';
 import { vehiclesLine } from '../vehicles-view.ts';
 import { callCard } from '../rescue-view.ts';
@@ -46,7 +46,7 @@ export function Depot({ state, now, tab, away, onDismissAway }: Props) {
         </h2>
         <p className="screen-sub">
           {counts.home} at home{counts.out > 0 ? `, ${counts.out} out` : ''}
-          {counts.outposts > 0 ? `, ${counts.outposts} at ${state.outposts.length === 1 ? 'the outpost' : 'outposts'}` : ''}. {counts.beds} of {counts.cap} beds taken.
+          {counts.outposts > 0 ? `, ${counts.outposts} at ${state.outposts.length === 1 ? 'the outpost' : 'outposts'}` : ''}. {bedsLine(state)}
           {state.depot.hungry ? ' The rations have run out.' : ''}
         </p>
       </div>

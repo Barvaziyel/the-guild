@@ -93,10 +93,21 @@ export function withDepth(plan: RunPlan, depth: number): RunPlan {
 
 // ---------------------------------------------------------------- outposts
 
-/** "mostly scrap and tech": the two things a place gives up most. */
+/**
+ * What a place mostly gives up: "scrap", "rations and scrap", "rations, ammo
+ * and scrap". Everything at least half as common as the most common thing.
+ */
+export function mostlyFinds(def: LocationDef): string {
+  const top = Math.max(...RESOURCE_IDS.map((r) => def.loot[r]));
+  if (top <= 0) return '';
+  const main = [...RESOURCE_IDS].filter((r) => def.loot[r] * 2 >= top).sort((a, b) => def.loot[b] - def.loot[a]);
+  return joinNames(main.map((r) => RESOURCE_NAMES[r].toLowerCase()));
+}
+
+/** ", mostly scrap and tech", or nothing for a place with no supplies. */
 function mostly(def: LocationDef): string {
-  const top = [...RESOURCE_IDS].filter((r) => def.loot[r] > 0).sort((a, b) => def.loot[b] - def.loot[a]);
-  return top.length === 0 ? '' : `, mostly ${joinNames(top.slice(0, 2).map((r) => RESOURCE_NAMES[r].toLowerCase()))}`;
+  const finds = mostlyFinds(def);
+  return finds ? `, mostly ${finds}` : '';
 }
 
 /** Places whose runs start from an outpost here: the place itself and its neighbours, as far as the guild knows them. */

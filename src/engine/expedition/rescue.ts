@@ -9,7 +9,7 @@ import { DC, RESCUE_LOST_STRESS, RESCUE_STASH } from '../constants.ts';
 import { maxHp } from '../stats.ts';
 import { fill, fullName } from '../text.ts';
 import type { RescueNews, RunOutcome } from '../types.ts';
-import { addLoot, pickResource, resolveFight } from './beats.ts';
+import { addLoot, pickResource, resolveFight, richFind } from './beats.ts';
 import { buildEncounter, describeGroup } from './combat.ts';
 import { alive, bestBy, check, hurt, say, simBonus, simDay, standing, startBeat, stress, type Member, type Sim } from './context.ts';
 
@@ -26,7 +26,7 @@ function saved(sim: Sim, by: Member, share: number): void {
   say(sim, fill(`${r.person.firstName} is out, and alive. {They} can walk, just about.`, r.person), { tone: 'good' });
   // Whatever they had put by comes home too, whether or not there's a bed for them.
   const res = pickResource(sim);
-  const amount = sim.rng.int(RESCUE_STASH[0], RESCUE_STASH[1]) + sim.loc.danger;
+  const amount = richFind(sim, sim.rng.int(RESCUE_STASH[0], RESCUE_STASH[1]) + sim.loc.danger);
   addLoot(sim, res, amount);
   say(sim, fill(`On the way out, {they} shows them where {they} hid {their} stash: ${amount} ${res}.`, r.person), { tone: 'good' });
 }

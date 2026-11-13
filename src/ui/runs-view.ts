@@ -9,8 +9,10 @@ import {
   STAT_IDS,
   checkText,
   dayAt,
+  dayStart,
   effectiveStat,
   getGear,
+  getTrait,
   getVehicleDef,
   getLocation,
   itemName,
@@ -37,6 +39,7 @@ import {
   rationsNeeded,
   rationsPacked,
 } from '../engine/index.ts';
+import { clockTime } from './time.ts';
 import { RESOURCE_NAMES } from './view.ts';
 
 // ---------------------------------------------------------------- words and times
@@ -120,11 +123,20 @@ export interface CrewOption {
 export function crewOptions(state: GameState): CrewOption[] {
   return state.survivors
     .map((s) => {
-      const reason = unavailableReason(s);
+      const reason = restingReason(state, s) ?? (unavailableReason(s) ? `${s.firstName} ${unavailableReason(s)}.` : undefined);
       const stats = STAT_IDS.map((id) => `${statName(id)} ${effectiveStat(s, id)}`).join(', ');
-      return reason ? { survivor: s, reason: `${s.firstName} ${reason}.`, stats } : { survivor: s, stats };
+      return reason ? { survivor: s, reason, stats } : { survivor: s, stats };
     })
     .sort((a, b) => Number(a.reason !== undefined) - Number(b.reason !== undefined) || a.survivor.firstName.localeCompare(b.survivor.firstName));
+}
+
+/** One run a game day: "Vic has been out today, and can go again at 18:00." */
+export function restingReason(state: GameState, s: Survivor): string | undefined {
+  if (s.status !== 'ready' || s.outpost !== undefined) return undefined;
+  const tired = s.traits.find((t) => t.id === 'exhausted');
+  if (!tired || tired.expiresDay === undefined) return undefined;
+  if (s.traits.some((t) => t.id !== 'exhausted' && getTrait(t.id).blocksRuns)) return undefined;
+  return `${s.firstName} has been out today, and can go again at ${clockTime(dayStart(state, tired.expiresDay))}.`;
 }
 
 /** Does anyone in this crew carry a gun that needs ammo? */

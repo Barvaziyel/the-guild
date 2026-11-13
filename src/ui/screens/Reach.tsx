@@ -16,7 +16,7 @@ import {
 import { Portrait } from '../components/Portrait.tsx';
 import { ReachMapSvg } from '../components/ReachMapSvg.tsx';
 import { navigate, useAction } from '../hooks.ts';
-import { depthRows, exploredShort, outpostView } from '../outposts-view.ts';
+import { depthRows, exploredShort, mostlyFinds, outpostView } from '../outposts-view.ts';
 import { PLACE_TABS, type PlaceTab } from '../route.ts';
 import { callCard } from '../rescue-view.ts';
 import { dangerText, formatDuration, joinNames, locationView, placeNote, radiationText, runCrewNames } from '../runs-view.ts';
@@ -67,6 +67,7 @@ export function Reach({ state, selected, tab = 'about' }: { state: GameState; se
                       <span className="place-facts">
                         {dangerText(loc.danger)}, {radiationText(loc.radiation).toLowerCase()}, {formatDuration(loc.durationMin * 60_000)}
                       </span>
+                      {mostlyFinds(loc) && <span className="place-facts">Mostly {mostlyFinds(loc)}</span>}
                     </span>
                     <span className="place-explored">{here.explored >= 100 && deepestOpen(state, loc.id) > 1 ? exploredShort(state, loc.id) : `${here.explored}%`}</span>
                   </button>
@@ -192,6 +193,12 @@ function About({ state, id }: { state: GameState; id: string }) {
           <dt>Explored</dt>
           <dd>{v.explored}%</dd>
         </div>
+        {mostlyFinds(loc) && (
+          <div className="facts-wide">
+            <dt>Mostly finds</dt>
+            <dd>{mostlyFinds(loc).replace(/^./, (c) => c.toUpperCase())}</dd>
+          </div>
+        )}
       </dl>
       {deeper && (
         <div className="levels" data-tour="levels">
