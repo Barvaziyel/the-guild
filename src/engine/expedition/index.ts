@@ -11,6 +11,8 @@ export {
   getEnemyTypeName,
   answerRadio,
   commandRound,
+  fightPreview,
+  lastFought,
   fightNow,
   ledFightNow,
   letThemFight,
@@ -21,4 +23,4 @@ export {
   type RiskEstimate,
   type RiskLabel,
 } from './runs.ts';
-export { attackKind, enemyNames, movesFor, type FightEnemyView, type FightMemberView, type FightView, type MoveChoice } from './command.ts';
+export { attackKind, enemyNames, movesFor, type FightAct, type FightActKind, type FightEnemyView, type FightMemberView, type FightView, type MoveChoice } from './command.ts';

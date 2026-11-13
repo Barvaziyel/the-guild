@@ -15,6 +15,7 @@ import {
   ENEMY_TOUGH_FROM,
   ENEMY_TOUGH_HP,
 } from '../constants.ts';
+import type { FightAct, FightView } from './command.ts';
 import { getTrait, type LocationDef, type RunTally, type VehicleDef } from '../content/index.ts';
 import { dayAt } from '../game.ts';
 import { mulGearHook, sumGearHook } from '../gear.ts';
@@ -141,6 +142,8 @@ export interface Sim {
   answerWait?: number;
   /** The player leads the fights (§7.13): the orders given so far, and where the run stopped to call. */
   lead?: SimLead;
+  /** The acts of the commanded fight being played, for the battle stage (§7.13); unset in any other fight. */
+  fightActs?: { round: number; acts: FightAct[] };
 }
 
 /** A led run's fights (§7.13). */
@@ -149,6 +152,8 @@ export interface SimLead {
   plans: (FightPlan | undefined)[];
   /** Every fight the run stopped and called home for, in order. */
   stops: SimStop[];
+  /** Each commanded fight as it ended, by its place in `stops`. */
+  ends: (FightView | undefined)[];
 }
 
 /** The player's part in one fight. */
