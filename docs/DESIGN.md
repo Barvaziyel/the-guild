@@ -583,13 +583,15 @@ Without a Radio Tower the crew decides on the spot, the same way, and loses no t
 
 | Fork | Where | Orders | Unasked |
 |---|---|---|---|
-| A sealed door | buildings, danger 2+ | Open it (50 min, a hard Wits check: supplies, maybe gear) · Leave it | Tinkerer, Curious, Greedy or an aggressive crew open it |
-| Raiders on the road | raider places, danger 2+ | Go around (40 min, Grit) · Go through them (a fight, the crew strikes first) · Sneak past (hard Wits: their ammo, or a fight caught out) | Hothead or aggressive: through; sneaky: sneak; else around |
+| A sealed door | buildings, danger 2+ | Open it (45 min, a hard Wits check: supplies, maybe gear) · Leave it | Tinkerer, Curious, Greedy or an aggressive crew open it |
+| Raiders on the road | raider places, danger 2+ | Go around (30 min, Grit) · Go through them (a fight, the crew strikes first) · Sneak past (hard Wits: their ammo, or a fight caught out) | Hothead or aggressive: through; sneaky: sneak; else around |
 | Someone on the road | danger 1–3 | Bring them along (3 in 5 join the guild; otherwise they slip off with some meds) · Send them on | Generous: bring them |
 | A hot roof | places with radiation | Go up (Grit: supplies, and rads) · Leave it | Greedy or aggressive: up |
-| A storm | anywhere | Shelter (60 min, eases stress) · Push on (Grit, or hurt and strained) | Cautious, or orders to pull out when wounded: shelter |
+| A storm | anywhere | Shelter (40 min, eases stress) · Push on (Grit, or hurt and strained) | Cautious or Cowardly: shelter |
 | The Vultures, wary | their turf | Slip past (Wits, or a fight) · Talk them down (Nerve, or the toll) · Pay the toll · Fight | Sneaky: slip; aggressive: fight; else talk |
 | The Vultures, at war | their turf | Slip past (Wits, or caught out) · Hit them first · Turn for home | Sneaky: slip; aggressive or never pulling out: hit them; else home |
+
+**Balance** (the simulated player, 36 guilds over 35 real days, never answering, so the worst case): runs come to a fork about one time in six. Ignored calls and the slower orders cost runs, 2% for a player who checks in often and 8% for a casual one, and 7–14% of the scrap found; tech, building levels, deaths and hunger are unchanged. The slow orders were shortened for this (shelter 60 → 40 minutes, going around 40 → 30, the door 50 → 45), and only a Cautious or Cowardly crew shelters from a storm unasked.
 
 ## 8. Gear
 

@@ -61,7 +61,7 @@ export const FORKS: readonly ForkDef[] = [
       {
         id: 'open',
         label: 'Open it',
-        minutes: 50,
+        minutes: 45,
         check: { stat: 'wits', dc: 'hard', danger: true, contexts: ['tech'] },
         success: {
           text: 'The last seal gives with a hiss of old air. Shelves, and nobody has touched them.',
@@ -105,7 +105,7 @@ export const FORKS: readonly ForkDef[] = [
       {
         id: 'around',
         label: 'Go around',
-        minutes: 40,
+        minutes: 30,
         check: { stat: 'grit', dc: 'normal', crew: true },
         success: { text: 'The long way, through backyards and over fences. Sore feet, and nobody saw them.', effects: [{ type: 'stress', who: 'all', amount: 3 }] },
         failure: {
@@ -219,12 +219,12 @@ export const FORKS: readonly ForkDef[] = [
     weight: 8,
     a: { best: 'wits' },
     intro: 'The sky to the west goes the color of a bruise. Dust first, then the rain that burns.',
-    ask: "Storm's coming in, a bad one. We can hole up and sit it out, an hour maybe. Or we push on and get wet.",
+    ask: "Storm's coming in, a bad one. We can hole up and sit it out, the best part of an hour. Or we push on and get wet.",
     orders: [
       {
         id: 'shelter',
         label: 'Shelter and wait',
-        minutes: 60,
+        minutes: 40,
         success: { text: 'They sit it out in a basement, playing cards by torchlight. Nobody minds the rest.', effects: [{ type: 'stress', who: 'all', amount: -6 }] },
       },
       {
@@ -243,7 +243,7 @@ export const FORKS: readonly ForkDef[] = [
     ],
     picks: [
       { trait: 'cautious', order: 'shelter' },
-      { retreat: 'wounded', order: 'shelter' },
+      { trait: 'cowardly', order: 'shelter' },
       { order: 'push' },
     ],
   },

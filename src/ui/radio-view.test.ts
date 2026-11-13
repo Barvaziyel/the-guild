@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import { Rng, answerRadio, completeRun, startRun, type GameState, type Run } from '../engine/index.ts';
 import { T0, openGame, testPlan } from '../engine/test-utils.ts';
-import { anyoneCalling, noticeRoute, radioCard, radioCards, radioNoticeKey, radioNoticeRun, radioNotices, radioReportLine, radioWakeTimes, titleInLine } from './radio-view.ts';
+import { answeredLine, anyoneCalling, noticeRoute, radioCard, radioCards, radioNoticeKey, radioNoticeRun, radioNotices, radioReportLine, radioWakeTimes, titleInLine } from './radio-view.ts';
 
 /** A guild with a Radio Tower and a crew out that will call home. */
 function calling(seed: string): { state: GameState; run: Run } {
@@ -74,5 +74,6 @@ describe('a crew on the radio', () => {
   test('titles read right inside a sentence', () => {
     assert.equal(titleInLine('A sealed door'), 'a sealed door');
     assert.equal(titleInLine('The Vultures'), 'the Vultures');
+    assert.equal(answeredLine('Flint', 'Leave it'), 'You told Flint: leave it. \u201cUnderstood.\u201d');
   });
 });

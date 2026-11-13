@@ -1,43 +1,52 @@
 import { useState } from 'react';
-import { answerRadio } from '../../engine/index.ts';
+import { answerRadio, type GameState } from '../../engine/index.ts';
 import { navigate, useAction } from '../hooks.ts';
-import type { RadioCardView } from '../radio-view.ts';
+import { answeredLine, radioCard, radioCards, type RadioCardView } from '../radio-view.ts';
 import { Portrait } from './Portrait.tsx';
 
 /**
- * A crew on the radio from a fork (§7.12): what they found, what they ask,
- * and the orders. Answered, the run goes on from now the way the order says.
+ * Crews on the radio (§7.12): every one waiting now, or just the one on this
+ * run. Once answered a call stops waiting, so what was said is kept here, not
+ * in the card.
  */
-export function RadioCard({ card, showRun = true }: { card: RadioCardView; showRun?: boolean }) {
-  const { act, error } = useAction();
-  const [said, setSaid] = useState<string | null>(null);
-
-  if (said) {
-    return (
-      <section className="panel radio-call is-done" role="status" aria-label={`${card.callerName} on the radio`}>
-        <p className="radio-said">
-          You told {card.callerName}: {said.charAt(0).toLowerCase() + said.slice(1)}. &ldquo;Understood.&rdquo;
-        </p>
-        <div className="radio-done-actions">
-          {showRun && (
-            <button type="button" className="btn" onClick={() => navigate({ screen: 'run', id: card.runId })}>
-              Follow the run
+export function RadioCalls({ state, now, runId }: { state: GameState; now: number; runId?: string }) {
+  const [said, setSaid] = useState<{ runId: string; text: string }[]>([]);
+  const run = runId === undefined ? undefined : state.runs.find((r) => r.id === runId);
+  const live = runId === undefined ? radioCards(state, now) : run ? [radioCard(state, run, now)].filter((c): c is RadioCardView => c !== undefined) : [];
+  const showRun = runId === undefined;
+  return (
+    <>
+      {said.map((s) => (
+        <section key={s.runId} className="panel radio-call is-done" role="status">
+          <p className="radio-said">{s.text}</p>
+          <div className="radio-done-actions">
+            {showRun && state.runs.some((r) => r.id === s.runId) && (
+              <button type="button" className="btn" onClick={() => navigate({ screen: 'run', id: s.runId })}>
+                Follow the run
+              </button>
+            )}
+            <button type="button" className="btn btn-quiet" onClick={() => setSaid((list) => list.filter((x) => x !== s))}>
+              Done
             </button>
-          )}
-          <button type="button" className="btn btn-quiet" onClick={() => setSaid(null)}>
-            Done
-          </button>
-        </div>
-      </section>
-    );
-  }
+          </div>
+        </section>
+      ))}
+      {live.map((card) => (
+        <RadioCard key={card.runId} card={card} showRun={showRun} onAnswered={(label) => setSaid((list) => [...list, { runId: card.runId, text: answeredLine(card.callerName, label) }])} />
+      ))}
+    </>
+  );
+}
 
+/** One crew on the radio: what they found, what they ask, and the orders. Answered, the run goes on from now. */
+function RadioCard({ card, showRun, onAnswered }: { card: RadioCardView; showRun: boolean; onAnswered: (label: string) => void }) {
+  const { act, error } = useAction();
   const answer = (id: string, label: string): void => {
-    if (act((s) => answerRadio(s, card.runId, id, Date.now()))) setSaid(label);
+    if (act((s) => answerRadio(s, card.runId, id, Date.now()))) onAnswered(label);
   };
 
   return (
-    <section className="panel radio-call" aria-labelledby={`radio-${card.runId}`} data-tour="radio">
+    <section className="panel radio-call" aria-labelledby={`radio-${card.runId}`}>
       <p className="dilemma-kicker">On the radio from {card.place}</p>
       <h3 id={`radio-${card.runId}`} className="dilemma-title">
         {card.title}

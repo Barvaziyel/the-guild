@@ -11,7 +11,7 @@ import {
   type Survivor,
 } from '../../engine/index.ts';
 import { BeatLog } from '../components/BeatLog.tsx';
-import { RadioCard } from '../components/RadioCard.tsx';
+import { RadioCalls } from '../components/RadioCard.tsx';
 import { radioCard, radioReportLine } from '../radio-view.ts';
 import { Portrait } from '../components/Portrait.tsx';
 import { skipToReturn } from '../dev.ts';
@@ -131,7 +131,7 @@ function ActiveRun({ state, run }: { state: GameState; run: Run }) {
           </button>
         )}
       </header>
-      {call && <RadioCard card={call} showRun={false} />}
+      <RadioCalls state={state} now={now} runId={run.id} />
       <section className="panel" aria-labelledby="log-title">
         <h3 id="log-title" className="panel-title">
           So far

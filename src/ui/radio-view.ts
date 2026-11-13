@@ -36,6 +36,11 @@ function minutesLeft(ms: number): string {
   return m === 1 ? 'one more minute' : `${m} more minutes`;
 }
 
+/** What the guild said, once it's said: "You told Flint: leave it. “Understood.”" */
+export function answeredLine(who: string, label: string): string {
+  return `You told ${who}: ${titleInLine(label)}. \u201cUnderstood.\u201d`;
+}
+
 /** A crew on the radio, waiting for the guild's answer. */
 export function radioCard(state: GameState, run: Run, now: number): RadioCardView | undefined {
   const call = radioWaiting(run, now);
