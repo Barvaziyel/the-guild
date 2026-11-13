@@ -132,13 +132,14 @@ describe('the fight screen', () => {
     maxRounds: 8,
     place: 'Kessler Farm',
     enemies: [
-      { index: 0, name: 'Raider Scav 1', type: 'raider', hp: 4, maxHp: 10, state: 'up', stunned: false, named: false },
-      { index: 1, name: 'Raider Scav 2', type: 'raider', hp: 0, maxHp: 10, state: 'dead', stunned: false, named: false },
+      { index: 0, name: 'Raider Scav 1', type: 'raider', kind: 'raider_scav', hp: 4, maxHp: 10, state: 'up', stunned: false, named: false, nemesis: false, vulture: false },
+      { index: 1, name: 'Raider Scav 2', type: 'raider', kind: 'raider_scav', hp: 0, maxHp: 10, state: 'dead', stunned: false, named: false, nemesis: false, vulture: false },
     ],
     crew: [member('a'), member('b', { state: 'down', hp: 0, moves: [] })],
     meds: 1,
     ammo: 12,
     lines: [],
+    acts: [],
   };
 
   test('labels picks with their target, and "On their own" without one', () => {

@@ -1,6 +1,8 @@
 import { useMemo, useRef, useState } from 'react';
-import { commandRound, fightNow, getLocation, ledFightNow, letThemFight, takeCommand, type FightMemberView, type FightView, type GameState, type MoveId, type Run } from '../../engine/index.ts';
+import { commandRound, fightNow, fightPreview, getLocation, lastFought, ledFightNow, letThemFight, takeCommand, type FightMemberView, type FightView, type GameState, type MoveId, type Run } from '../../engine/index.ts';
+import { stageHint, tapOnStage } from '../battle-view.ts';
 import { Meter } from '../components/Bars.tsx';
+import { BattleStage } from '../components/BattleStage.tsx';
 import { BeatLog } from '../components/BeatLog.tsx';
 import { Portrait } from '../components/Portrait.tsx';
 import { fightCard, fightEnd, livePicks, memberState, needsTarget, pickLabel, roundOrders, targetName, type Picks } from '../fight-view.ts';
@@ -13,9 +15,9 @@ export function Fight({ state, id }: { state: GameState; id: string }) {
   const now = useNow(15_000, fight ? (fight.took === undefined ? fight.at : fight.until) : undefined);
   const live = run ? ledFightNow(run, now) : undefined;
   const view = useMemo(() => (run && live?.took !== undefined ? fightNow(state, run.id, now) : undefined), [state, run, live, now]);
-  // How much of the fight the player had seen, so its end can show what came after.
-  const shown = useRef(0);
-  if (view) shown.current = view.lines.length;
+  // The fight as the player last saw it, so its end can play what came after.
+  const lastSeen = useRef<FightView | undefined>(undefined);
+  if (view) lastSeen.current = view;
 
   return (
     <article className="sheet fight-screen">
@@ -27,26 +29,32 @@ export function Fight({ state, id }: { state: GameState; id: string }) {
       {!run ? (
         <p className="empty">That crew is back. Their report is on the Runs tab.</p>
       ) : view ? (
-        <Command state={state} runId={run.id} view={view} until={live!.until} now={now} />
+        <Command state={state} run={run} view={view} until={live!.until} now={now} />
       ) : live ? (
         <NotYet state={state} runId={run.id} now={now} />
       ) : (
-        <Over run={run} shown={shown.current} />
+        <Over state={state} run={run} seen={lastSeen.current} />
       )}
     </article>
   );
 }
 
-function Over({ run, shown }: { run: Run; shown: number }) {
+function Over({ state, run, seen }: { state: GameState; run: Run; seen: FightView | undefined }) {
   const place = getLocation(run.plan.locationId).name;
   const led = [...(run.lead?.fights ?? [])].reverse().find((f) => f.took !== undefined && f.ended !== undefined);
-  const lines = led ? fightEnd(run.beats[led.fromBeat]?.lines ?? [], shown) : [];
+  const end = useMemo(() => (led ? lastFought(state, run.id) : undefined), [state, run.id, led]);
+  // The last round plays out on the stage when the player watched the round before it.
+  const before = seen && end && seen.enemies.length === end.enemies.length && seen.acts.length <= end.acts.length ? seen : undefined;
+  const [told, setTold] = useState<number | undefined>(undefined);
+  const all = end?.lines ?? (led ? (run.beats[led.fromBeat]?.lines ?? []) : []);
+  const lines = !led ? [] : told === undefined ? fightEnd(all, before?.lines.length ?? 0) : all.slice(before?.lines.length ?? 0, told);
   const more = (run.lead?.fights ?? []).some((f) => f.ended === undefined);
   const solo = run.plan.crew.length === 1;
   const who = solo ? (run.result.crew[0]?.firstName ?? 'They') : 'The crew';
   return (
     <section className="panel">
       <h2 className="plan-title">{led ? 'The fight is over' : 'No fight right now'}</h2>
+      {end && <BattleStage state={state} run={run} view={end} before={before} onLine={setTold} caption={OVER[end.over ?? 'won']} />}
       {lines.length > 0 && (
         <ul className="fight-lines fight-end">
           {lines.map((l, k) => (
@@ -69,14 +77,24 @@ function Over({ run, shown }: { run: Run; shown: number }) {
   );
 }
 
+const OVER: Record<NonNullable<FightView['over']>, string> = {
+  won: 'Won.',
+  withdrew: 'They got away.',
+  stalemate: 'Both sides pulled back.',
+  routed: 'They were beaten.',
+};
+
 function NotYet({ state, runId, now }: { state: GameState; runId: string; now: number }) {
   const { act, error } = useAction();
   const run = state.runs.find((r) => r.id === runId)!;
   const card = fightCard(state, run, now)!;
+  // What they're up against, before anyone takes command; it changes nothing.
+  const preview = useMemo(() => fightPreview(state, runId, now), [state, runId, now]);
   return (
     <section className="panel fight-call">
       <p className="dilemma-kicker">A fight at {card.place}</p>
       <h2 className="dilemma-title">Against {card.against}</h2>
+      {preview && <BattleStage state={state} run={run} view={preview} />}
       <p>{card.wait}</p>
       <div className="btn-row">
         <button type="button" className="btn btn-primary" onClick={() => act((s) => void takeCommand(s, runId, Date.now()))}>
@@ -91,7 +109,8 @@ function NotYet({ state, runId, now }: { state: GameState; runId: string; now: n
   );
 }
 
-function Command({ state, runId, view, until, now }: { state: GameState; runId: string; view: FightView; until: number; now: number }) {
+function Command({ state, run, view, until, now }: { state: GameState; run: Run; view: FightView; until: number; now: number }) {
+  const runId = run.id;
   const { act, error } = useAction();
   const [picks, setPicks] = useState<Picks>({});
   const [pullOut, setPullOut] = useState(false);
@@ -99,8 +118,10 @@ function Command({ state, runId, view, until, now }: { state: GameState; runId: 
   const [open, setOpen] = useState<string | undefined>(standing[0]?.id);
   // What the last round brought: the lines since the fight was last shown.
   const seen = useRef<{ round: number; lines: number }>({ round: view.round, lines: view.lines.length });
-  const lastRound = seen.current.round < view.round ? view.lines.slice(seen.current.lines) : [];
-  if (seen.current.round !== view.round && lastRound.length === 0) seen.current = { round: view.round, lines: view.lines.length };
+  // While the stage plays the round, its lines come in step with it.
+  const [told, setTold] = useState<number | undefined>(undefined);
+  const lastRound = seen.current.round < view.round ? view.lines.slice(seen.current.lines, told ?? view.lines.length) : [];
+  if (seen.current.round !== view.round && view.lines.length <= seen.current.lines) seen.current = { round: view.round, lines: view.lines.length };
   const current = livePicks(view, picks);
   const minutes = Math.max(1, Math.ceil((until - now) / 60_000));
 
@@ -116,6 +137,16 @@ function Command({ state, runId, view, until, now }: { state: GameState; runId: 
       const after = standing.slice(standing.indexOf(m) + 1).find((o) => current[o.id] === undefined);
       setOpen(after?.id);
     }
+  };
+
+  // A tap on the stage: an enemy is the open person's target, one of the crew opens their orders.
+  const tapStage = (key: string): void => {
+    const next = tapOnStage(view, { picks, ...(open ? { open } : {}) }, key);
+    if (next.picks !== picks) {
+      const m = view.crew.find((c) => c.id === open)!;
+      const p = next.picks[m.id]!;
+      pick(m, p.move, p.target);
+    } else if (next.open !== open) setOpen(next.open);
   };
 
   const give = (): void => {
@@ -140,25 +171,7 @@ function Command({ state, runId, view, until, now }: { state: GameState; runId: 
         </p>
       </header>
 
-      <section className="panel" aria-labelledby="foes-title">
-        <h3 id="foes-title" className="panel-title">
-          Against
-        </h3>
-        <ul className="fight-foes">
-          {view.enemies.map((e) => (
-            <li key={e.index} className={`fight-foe is-${e.state}`}>
-              {e.state === 'up' ? (
-                <Meter label={e.name} value={e.hp} max={e.maxHp} reading={e.stunned ? `${e.hp} / ${e.maxHp}, reeling` : `${e.hp} / ${e.maxHp}`} kind="hp" />
-              ) : (
-                <span className="fight-gone">
-                  <span>{e.name}</span>
-                  <span>{e.state === 'dead' ? 'Down' : 'Ran off'}</span>
-                </span>
-              )}
-            </li>
-          ))}
-        </ul>
-      </section>
+      <BattleStage state={state} run={run} view={view} orders={{ picks, ...(open ? { open } : {}) }} onTap={tapStage} onLine={setTold} caption={stageHint(view, open, picks)} />
 
       {lastRound.length > 0 && (
         <section className="panel" aria-labelledby="last-title">

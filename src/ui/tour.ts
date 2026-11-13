@@ -262,7 +262,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     },
     target: 'lead',
     text: () =>
-      `With a Radio Tower you can lead a crew's fights. Switch on Lead the fights, and at every fight they call home and wait up to ${Math.round(LEAD_WAIT / 60_000)} minutes. Then it's yours, round by round: a move for each person, from what their gear and traits let them do. Nobody answers? They fight on their own, as always.`,
+      `With a Radio Tower you can lead a crew's fights. Switch on Lead the fights, and at every fight they call home and wait up to ${Math.round(LEAD_WAIT / 60_000)} minutes. Then it's yours, round by round, on the battle stage: a move for each person, from what their gear and traits let them do, and a tap on the enemy they go after. Nobody answers? They fight on their own, as always.`,
   },
   {
     id: 'vehicles',
