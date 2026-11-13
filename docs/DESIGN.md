@@ -1001,7 +1001,7 @@ Planned 2026-11-11, in this order, all on Opus:
 
 ### Picked next (Aviel, 2026-11-13)
 
-From the ideas in `claude/interactive-ideas.md`. The order isn't set yet.
+From the ideas in `claude/interactive-ideas.md`, and Aviel's own additions. The order isn't set yet.
 
 | Idea | What Aviel said | Status |
 |---|---|---|
@@ -1011,6 +1011,8 @@ From the ideas in `claude/interactive-ideas.md`. The order isn't set yet.
 | What people want: now and then someone asks for something, and doing it (or not) matters | Maybe | to decide |
 | Long expeditions beyond the Reach | Possible | to decide |
 | Prisoners | Fine as built in the Vultures (§7.11) | **done** (1.11.0) |
+| Rations spoil after some time (Balance C had left spoilage out) | His addition, 2026-11-13 | planned |
+| An energy plant: solar while the sun is up, gas at night or in winter, powering some things | His idea, 2026-11-13: "Need to think" | to think about |
 
 Not picked: choosing the rooms before a scavenge, raids you see coming, feasts and gatherings, talking to people in the yard.
 
@@ -1057,5 +1059,6 @@ Decided 2026-11-13:
 - One run a game day for each person; deeper levels find more inside each find, by danger only (1.10.1).
 - The Vultures are rivals you can deal with, with named people, and they compete for places, people, outposts and traders; their meetings on runs become radio calls (1.11.0, then 18b).
 - Picked from the interactive ideas: taking command of a fight (2.0.0 when done), haggling with traders, and names given by the guild's people rather than the player; maybe what people want; possibly long expeditions; prisoners stay as built. The order isn't set (§15).
+- Rations should spoil after some time (planned). An energy plant that runs on solar by day and gas at night or in winter, and powers some things, is an idea Aviel is still thinking about; winter would need seasons, which are on the later list (§15).
 
 No open questions right now.
