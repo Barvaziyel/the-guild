@@ -10,6 +10,7 @@ import {
   LOCATIONS,
   MAX_CATCHUP_DAYS,
   MAX_CREW,
+  RADIO_WAIT,
   dailyUpkeep,
   gardenYield,
   knownLocations,
@@ -243,6 +244,14 @@ export const TOUR_STEPS: readonly TourStep[] = [
     },
   },
   {
+    id: 'radio',
+    part: 'runs',
+    title: 'On the radio',
+    route: () => ({ screen: 'runs' }),
+    text: () =>
+      `Now and then a crew comes to a fork: a sealed door, raiders on the road, the Vultures. With a Radio Tower they call home, and you get a notice and a card with their options. They wait ${Math.round(RADIO_WAIT / 60_000)} minutes for your answer, then decide by their orders. Without a tower they decide on the spot.`,
+  },
+  {
     id: 'vehicles',
     part: 'runs',
     title: 'Vehicles',
@@ -361,7 +370,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     title: 'Notices',
     route: () => ({ screen: 'settings' }),
     target: 'notices',
-    text: () => 'Turn this on to get a notice when a crew is due home, or when something needs deciding.',
+    text: () => 'Turn this on to get a notice when a crew is due home or calls on the radio, or when something needs deciding.',
   },
   {
     id: 'done',

@@ -11,6 +11,8 @@ import {
   type Survivor,
 } from '../../engine/index.ts';
 import { BeatLog } from '../components/BeatLog.tsx';
+import { RadioCard } from '../components/RadioCard.tsx';
+import { radioCard, radioReportLine } from '../radio-view.ts';
 import { Portrait } from '../components/Portrait.tsx';
 import { skipToReturn } from '../dev.ts';
 import { goBack, navigate, useNow, usePrefs, useServices } from '../hooks.ts';
@@ -90,6 +92,7 @@ function ActiveRun({ state, run }: { state: GameState; run: Run }) {
   const loc = getLocation(run.plan.locationId);
   const beats = visibleBeats(run, now);
   const left = run.returnAt - now;
+  const call = radioCard(state, run, now);
   const crew = run.plan.crew.map((cid) => ({
     id: cid,
     name: run.result.crew.find((c) => c.id === cid)?.firstName ?? cid,
@@ -108,7 +111,7 @@ function ActiveRun({ state, run }: { state: GameState; run: Run }) {
             {formatCountdown(left)}
           </span>
           <span className="countdown-text">
-            {left > 0 ? `until they're due back, at ${clockTime(run.returnAt)}` : 'They should be at the gate now.'}
+            {left <= 0 ? 'They should be at the gate now.' : call ? `until they're due back, at ${clockTime(run.returnAt)}, if nobody answers sooner` : `until they're due back, at ${clockTime(run.returnAt)}`}
           </span>
           <span className="run-track" aria-hidden="true">
             <span className="run-fill" style={{ width: `${Math.round(runProgress(run, now) * 100)}%` }} />
@@ -128,6 +131,7 @@ function ActiveRun({ state, run }: { state: GameState; run: Run }) {
           </button>
         )}
       </header>
+      {call && <RadioCard card={call} showRun={false} />}
       <section className="panel" aria-labelledby="log-title">
         <h3 id="log-title" className="panel-title">
           So far
@@ -190,6 +194,7 @@ function Report({ state, report }: { state: GameState; report: RunReport }) {
           </p>
         )}
         <p>{loot.length > 0 ? `Brought home ${loot.join(', ')}.` : 'Brought nothing home.'}</p>
+        {radioReportLine(report) && <p className="summary-radio">{radioReportLine(report)}</p>}
         {vultureReportLines(state, s).map((line) => (
           <p key={line} className="summary-found">
             {line}{' '}

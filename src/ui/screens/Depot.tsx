@@ -11,6 +11,8 @@ import {
   type GameState,
 } from '../../engine/index.ts';
 import { DilemmaCard } from '../components/DilemmaCard.tsx';
+import { RadioCard } from '../components/RadioCard.tsx';
+import { radioCards } from '../radio-view.ts';
 import { Projects } from '../components/Projects.tsx';
 import { Portrait } from '../components/Portrait.tsx';
 import { navigate, useAction } from '../hooks.ts';
@@ -96,6 +98,9 @@ function Today({ state, now, away, onDismissAway }: Omit<Props, 'tab'>) {
 
   return (
     <>
+      {radioCards(state, now).map((card) => (
+        <RadioCard key={card.runId} card={card} />
+      ))}
       <DilemmaCard state={state} now={now} />
       <CallForHelp state={state} now={now} />
       {away && away.days > 0 && <AwayNote state={state} summary={away} onDismiss={onDismissAway} />}

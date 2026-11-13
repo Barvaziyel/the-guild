@@ -8,6 +8,7 @@ import { joinNames, noticesFor, reportFirstNames, unreadCount } from './runs-vie
 import { dilemmaNotices } from './dilemma-view.ts';
 import { rescueNotices } from './rescue-view.ts';
 import { familyNoticeKey, familyNotices } from './family-view.ts';
+import { anyoneCalling, radioNoticeKey, radioNotices, radioWakeTimes } from './radio-view.ts';
 import { Building } from './screens/Building.tsx';
 import { Depot } from './screens/Depot.tsx';
 import { Gear } from './screens/Gear.tsx';
@@ -34,8 +35,8 @@ export function App() {
   const route = useRoute();
   const hash = useHash();
   const state = snap.status === 'ready' ? snap.state : null;
-  // Wake for the next crew home or the next Depot day, whichever comes first.
-  const wakeAt = state ? Math.min(nextDayAt(state, Date.now()), ...state.runs.map((r) => r.returnAt)) : undefined;
+  // Wake for the next crew home, the next Depot day, or a crew calling in (or giving up on an answer), whichever comes first.
+  const wakeAt = state ? Math.min(nextDayAt(state, Date.now()), ...state.runs.map((r) => r.returnAt), ...radioWakeTimes(state, Date.now())) : undefined;
   const now = useNow(30_000, wakeAt);
   const time = useTime(state, now, route);
   useNotices(state);
@@ -109,7 +110,7 @@ export function App() {
       <main className="screen">{screen}</main>
       {time.current && <ReturnToast state={s} reportId={time.current} more={time.more} onClose={time.dismiss} />}
       {touring && tour && <TourCard state={s} stepId={tour} />}
-      <TabBar current={tabFor(route)} unread={unreadCount(s)} deciding={s.dilemmas.active !== undefined} />
+      <TabBar current={tabFor(route)} unread={unreadCount(s)} deciding={s.dilemmas.active !== undefined} calling={anyoneCalling(s, now)} />
     </div>
   );
 }
@@ -166,10 +167,11 @@ function useNotices(state: GameState | null): void {
         d ? `d${d.day}` : `n${state.dilemmas.nextDay}`,
         call ? `c${call.day}${call.runId ?? ''}` : `h${state.rescue.nextDay}@${state.buildings.radio_tower ?? 0}`,
         familyNoticeKey(state),
+        radioNoticeKey(state),
       ].join(',')
     : '';
   useEffect(() => {
-    notifier.sync(notify && state ? [...noticesFor(state), ...dilemmaNotices(state), ...rescueNotices(state), ...familyNotices(state)] : []);
+    notifier.sync(notify && state ? [...noticesFor(state), ...dilemmaNotices(state), ...rescueNotices(state), ...familyNotices(state), ...radioNotices(state)] : []);
     // Re-sync only when the crews, their return times, or the decisions due change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, notify, notifier]);
@@ -230,7 +232,7 @@ const TABS: { screen: TabScreen; label: string }[] = [
   { screen: 'settings', label: 'Settings' },
 ];
 
-function TabBar({ current, unread, deciding }: { current: TabScreen; unread: number; deciding: boolean }) {
+function TabBar({ current, unread, deciding, calling }: { current: TabScreen; unread: number; deciding: boolean; calling: boolean }) {
   return (
     <nav className="tabbar" aria-label="Screens">
       {TABS.map((t) => (
@@ -242,7 +244,12 @@ function TabBar({ current, unread, deciding }: { current: TabScreen; unread: num
           onClick={() => navigate({ screen: t.screen }, { replace: true })}
         >
           {t.label}
-          {t.screen === 'runs' && unread > 0 && (
+          {t.screen === 'runs' && calling && (
+            <span className="badge" aria-label=", a crew on the radio">
+              !
+            </span>
+          )}
+          {t.screen === 'runs' && !calling && unread > 0 && (
             <span className="badge" aria-label={`${unread} new`}>
               {unread}
             </span>

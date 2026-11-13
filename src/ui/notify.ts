@@ -17,7 +17,8 @@ export interface Notifier {
 }
 
 export function webNotifier(): Notifier {
-  const timers = new Map<string, number>();
+  // By notice id: the timer, and the time it was set for.
+  const timers = new Map<string, { timer: number; at: number }>();
   const supported = typeof window !== 'undefined' && 'Notification' in window;
 
   const fire = (n: PlannedNotice): void => {
@@ -39,10 +40,11 @@ export function webNotifier(): Notifier {
       return (await Notification.requestPermission()) === 'granted';
     },
     sync(notices) {
-      const wanted = new Set(notices.map((n) => n.id));
-      for (const [id, timer] of timers) {
-        if (!wanted.has(id)) {
-          window.clearTimeout(timer);
+      const wanted = new Map(notices.map((n) => [n.id, n]));
+      for (const [id, t] of timers) {
+        // Gone, or moved (a crew answered on the radio comes back at another time).
+        if (wanted.get(id)?.at !== t.at) {
+          window.clearTimeout(t.timer);
           timers.delete(id);
         }
       }
@@ -50,7 +52,7 @@ export function webNotifier(): Notifier {
         if (timers.has(n.id)) continue;
         // Browsers cap timers at about 24.8 days; runs are hours at most.
         const delay = Math.min(Math.max(0, n.at - Date.now()), 2 ** 31 - 1);
-        timers.set(n.id, window.setTimeout(() => fire(n), delay));
+        timers.set(n.id, { timer: window.setTimeout(() => fire(n), delay), at: n.at });
       }
     },
   };
