@@ -1,13 +1,11 @@
 import { useMemo, useRef, useState } from 'react';
 import { commandRound, fightNow, fightPreview, getLocation, lastFought, ledFightNow, letThemFight, takeCommand, type FightMemberView, type FightView, type GameState, type MoveId, type RoundOrders, type Run } from '../../engine/index.ts';
-import { stageHint, tapOnStage } from '../battle-view.ts';
+import { tapOnStage } from '../battle-view.ts';
 import { Meter } from '../components/Bars.tsx';
 import { BattleStage } from '../components/BattleStage.tsx';
-import { BeatLog } from '../components/BeatLog.tsx';
-import { Portrait } from '../components/Portrait.tsx';
-import { fightCard, fightEnd, jobPanel, livePicks, memberState, needsTarget, nerveLine, pickLabel, rankHelp, roundOrders, targetName, theirMoves, whatTheyAre, withRanks, type Picks, type Ranks } from '../fight-view.ts';
+import { Sheet } from '../components/Sheet.tsx';
+import { crewChips, fightCard, fightEnd, fightStatus, jobPanel, livePicks, needsTarget, nerveLine, orderHint, roundOrders, targetName, theirMoves, tickerLines, whatTheyAre, withRanks, type Picks, type Ranks } from '../fight-view.ts';
 import { goBack, navigate, useAction, useNow } from '../hooks.ts';
-import { formatDuration } from '../runs-view.ts';
 
 /** A fight on a led run, under the player's command (§7.13). */
 export function Fight({ state, id }: { state: GameState; id: string }) {
@@ -127,8 +125,11 @@ function NotYet({ state, runId, now }: { state: GameState; runId: string; now: n
 
 /**
  * Giving orders in a fight under command (§7.13), on a run or at the gate
- * (§9.8): the stage, the last round, a row of moves for each person, and the
- * buttons. `give` sends a round's orders; `letThem` has them finish it alone.
+ * (§9.8), all on one screen (2.6.0; Aviel: scrolling up and down with things
+ * opening and closing was clunky): the stage, a line of what just happened,
+ * the crew, the open person's moves, and the orders button. The whole log and
+ * what they are wait in sheets. `give` sends a round's orders; `letThem` has
+ * them finish it alone.
  */
 export function Command({
   state,
@@ -157,6 +158,7 @@ export function Command({
   const { act, error } = useAction();
   const [picks, setPicks] = useState<Picks>({});
   const [pullOut, setPullOut] = useState(false);
+  const [sheet, setSheet] = useState<'log' | 'them' | undefined>(undefined);
   // Where the player has put people this round (2.3.0); the fight as they'd have it is what everything below shows.
   const [ranks, setRanks] = useState<Ranks>({});
   const view = useMemo(() => withRanks(fight, ranks), [fight, ranks]);
@@ -170,17 +172,19 @@ export function Command({
   if (seen.current.round !== view.round && view.lines.length <= seen.current.lines) seen.current = { round: view.round, lines: view.lines.length };
   const current = livePicks(view, picks);
   const job = jobPanel(view, current);
+  const chips = crewChips(view, picks);
+  const m = view.crew.find((c) => c.id === open && c.moves.length > 0);
 
-  const pick = (m: FightMemberView, move: MoveId | undefined, target?: number | string): void => {
+  const pick = (who: FightMemberView, move: MoveId | undefined, target?: number | string): void => {
     setPicks((p) => {
       const next = { ...p };
-      if (move === undefined) delete next[m.id];
-      else next[m.id] = { move, ...(target !== undefined ? { target } : {}) };
+      if (move === undefined) delete next[who.id];
+      else next[who.id] = { move, ...(target !== undefined ? { target } : {}) };
       return next;
     });
     // Picked in full: on to the next person who hasn't been given anything.
-    if (move === undefined || !needsTarget(m, move) || target !== undefined) {
-      const after = standing.slice(standing.indexOf(m) + 1).find((o) => current[o.id] === undefined);
+    if (move === undefined || !needsTarget(who, move) || target !== undefined) {
+      const after = standing.slice(standing.indexOf(who) + 1).find((o) => current[o.id] === undefined);
       setOpen(after?.id);
     }
   };
@@ -189,9 +193,9 @@ export function Command({
   const tapStage = (key: string): void => {
     const next = tapOnStage(view, { picks, ...(open ? { open } : {}) }, key);
     if (next.picks !== picks) {
-      const m = view.crew.find((c) => c.id === open)!;
-      const p = next.picks[m.id]!;
-      pick(m, p.move, p.target);
+      const who = view.crew.find((c) => c.id === open)!;
+      const p = next.picks[who.id]!;
+      pick(who, p.move, p.target);
     } else if (next.open !== open) setOpen(next.open);
   };
 
@@ -209,56 +213,143 @@ export function Command({
     }
   };
 
+  // The open person's move still waiting for a target: their targets take the place of their moves.
+  const raw = m ? picks[m.id] : undefined;
+  const choice = m && raw ? m.moves.find((c) => c.move === raw.move) : undefined;
+  const choosing = m && choice && choice.target !== 'none' && current[m.id] === undefined ? choice : undefined;
+
   return (
-    <>
-      <header className="sheet-head fight-head">
-        <p className="place-biome">Under your command</p>
-        <h2 className="plan-title">{title}</h2>
-        <p className="fight-sub">
-          Round {view.round} of {view.maxRounds}. {formatDuration(Math.max(60_000, until - now))} left to finish it.
-        </p>
-        <p className="fight-sub">
-          {view.meds === 1 ? '1 med' : `${view.meds} meds`} and {view.ammo} ammo {stores}.
-        </p>
+    <div className="fight-one">
+      <header className="fight-top">
+        <h2 className="fight-title">{title}</h2>
+        <p className="fight-status">{fightStatus(view, until, now, stores)}</p>
       </header>
 
       <div ref={stageRef} className="stage-anchor">
-        <BattleStage state={state} place={place} seed={seed} view={view} orders={{ picks, ...(open ? { open } : {}) }} onTap={tapStage} onLine={setTold} caption={stageHint(view, open, picks)} />
+        <BattleStage state={state} place={place} seed={seed} view={view} orders={{ picks, ...(open ? { open } : {}) }} onTap={tapStage} onLine={setTold} />
       </div>
 
-      {lastRound.length > 0 && (
-        <section className="panel" aria-labelledby="last-title">
-          <h3 id="last-title" className="panel-title">
-            Last round
-          </h3>
-          <ul className="fight-lines">
-            {lastRound.map((l, k) => (
-              <li key={k} className={l.tone ? `is-${l.tone}` : undefined}>
-                {l.text}
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {job && (
-        <section className={`panel fight-job is-${job.state}`} aria-labelledby="job-title">
-          <h3 id="job-title" className="panel-title">
-            {job.title}
-          </h3>
-          {job.state === 'open' && <Meter label="Work done" value={job.progress} max={job.needed} reading={`${job.progress} of ${job.needed}`} kind="practice" />}
-          {job.lines.map((line) => (
-            <p key={line} className="fight-job-line">
-              {line}
-            </p>
+      <div className="fight-ticker">
+        <ul className="fight-ticker-lines" aria-live="polite">
+          {tickerLines(view, lastRound).map((l, k) => (
+            <li key={k} className={l.tone ? `is-${l.tone}` : undefined}>
+              {l.text}
+            </li>
           ))}
-        </section>
-      )}
+        </ul>
+        <div className="fight-ticker-more">
+          <button type="button" className="btn btn-small" onClick={() => setSheet('log')}>
+            Log
+          </button>
+          <button type="button" className="btn btn-small" onClick={() => setSheet('them')}>
+            Them
+          </button>
+        </div>
+      </div>
 
-      <section className="panel their-moves" aria-labelledby="their-title">
-        <h3 id="their-title" className="panel-title">
-          Their moves
-        </h3>
+      <div className="fight-crewbar" role="group" aria-label="The crew: tap one to give their orders">
+        {chips.map((c) => (
+          <button
+            key={c.id}
+            type="button"
+            className={`crew-chip${open === c.id ? ' is-open' : ''}${c.canAct ? '' : ' is-out'}`}
+            disabled={!c.canAct}
+            aria-pressed={open === c.id}
+            onClick={() => setOpen(c.id)}
+          >
+            <span className="crew-chip-name">{c.name}</span>
+            <span className={`crew-chip-pick${c.own ? ' is-own' : ''}${c.pending ? ' is-pending' : ''}`}>{c.label}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="fight-orders">
+        {m ? (
+          <>
+            {m.perch ? (
+              <p className="fight-perch">{m.name} is up on the tower: out of reach of blows, shooting from there.</p>
+            ) : (
+              <div className="fight-rank" role="group" aria-label={`Where ${m.name} stands`}>
+                {(['front', 'back'] as const).map((r) => (
+                  <button key={r} type="button" className={`seg-option${m.rank === r ? ' is-on' : ''}`} aria-pressed={m.rank === r} onClick={() => setRanks((x) => ({ ...x, [m.id]: r }))}>
+                    {r === 'front' ? 'In front' : 'At the back'}
+                  </button>
+                ))}
+              </div>
+            )}
+            {choosing ? (
+              <div className="fight-grid" role="group" aria-label={`${choosing.name}: who`}>
+                {choosing.targets.map((t) => (
+                  <button key={String(t)} type="button" className="chip chip-target" onClick={() => pick(m, choosing.move, t)}>
+                    {targetName(view, t)}
+                  </button>
+                ))}
+                <button type="button" className="chip chip-back" onClick={() => pick(m, undefined)}>
+                  Back to moves
+                </button>
+              </div>
+            ) : (
+              <div className="fight-grid" role="group" aria-label={`${m.name}'s move`}>
+                {m.moves.map((c) => (
+                  <button
+                    key={c.move}
+                    type="button"
+                    className={`chip${raw?.move === c.move ? ' is-on' : ''}`}
+                    aria-pressed={raw?.move === c.move}
+                    onClick={() => pick(m, c.move, c.target === 'none' ? undefined : c.targets.length === 1 ? c.targets[0] : undefined)}
+                  >
+                    {c.name}
+                  </button>
+                ))}
+                <button type="button" className={`chip${raw ? '' : ' is-on'}`} aria-pressed={!raw} onClick={() => pick(m, undefined)}>
+                  On their own
+                </button>
+              </div>
+            )}
+            <p className="fight-hint">{orderHint(view, m, picks, ranks[m.id] !== undefined && ranks[m.id] !== fight.crew.find((c) => c.id === m.id)?.rank)}</p>
+          </>
+        ) : (
+          <p className="fight-hint">{standing.length > 0 ? 'Everyone has orders. Tap someone to change theirs, or give the orders.' : 'Nobody can take orders this round.'}</p>
+        )}
+      </div>
+
+      <div className="fight-dock">
+        <button type="button" className={`btn fight-pullout${pullOut ? ' is-on' : ''}`} aria-pressed={pullOut} title="After this round the whole crew tries to break away." onClick={() => setPullOut(!pullOut)}>
+          {pullOut ? 'Pulling out' : 'Pull out'}
+        </button>
+        <button type="button" className="btn" onClick={() => act((s) => letThem(s))}>
+          Let them finish
+        </button>
+        <button type="button" className="btn btn-primary" onClick={give}>
+          Give the orders
+        </button>
+      </div>
+      {error && <p className="field-error fight-error">{error}</p>}
+
+      <Sheet open={sheet === 'log'} title="The fight so far" onClose={() => setSheet(undefined)}>
+        <ul className="fight-lines">
+          {view.lines.map((l, k) => (
+            <li key={k} className={l.tone ? `is-${l.tone}` : undefined}>
+              {l.text}
+            </li>
+          ))}
+        </ul>
+      </Sheet>
+      <Sheet open={sheet === 'them'} title="Them" onClose={() => setSheet(undefined)}>
+        {job && (
+          <section className={`fight-job is-${job.state}`} aria-labelledby="job-title">
+            <h4 id="job-title" className="their-kinds-title">
+              {job.title}
+            </h4>
+            {job.state === 'open' && <Meter label="Work done" value={job.progress} max={job.needed} reading={`${job.progress} of ${job.needed}`} kind="practice" />}
+            {job.lines.map((line) => (
+              <p key={line} className="fight-job-line">
+                {line}
+              </p>
+            ))}
+          </section>
+        )}
+        <h4 className="their-kinds-title">Their moves</h4>
         <ul className="fight-lines">
           {theirMoves(view).map((line) => (
             <li key={line}>{line}</li>
@@ -275,106 +366,7 @@ export function Command({
             </ul>
           </>
         )}
-      </section>
-
-      <section className="panel" aria-labelledby="orders-title">
-        <h3 id="orders-title" className="panel-title">
-          Orders
-        </h3>
-        <ul className="fight-crew">
-          {view.crew.map((m) => {
-            const survivor = state.survivors.find((s) => s.id === m.id);
-            const chosen = current[m.id];
-            // A move picked and its target not yet: kept, so the targets show.
-            const raw = picks[m.id];
-            const canAct = m.moves.length > 0;
-            const isOpen = canAct && open === m.id;
-            const choice = raw ? m.moves.find((c) => c.move === raw.move) : undefined;
-            return (
-              <li key={m.id} className={`fight-member${isOpen ? ' is-open' : ''}${canAct ? '' : ' is-out'}`}>
-                <button type="button" className="fight-member-row" disabled={!canAct} aria-expanded={isOpen} onClick={() => setOpen(isOpen ? undefined : m.id)}>
-                  {survivor && <Portrait survivor={survivor} size={44} decorative />}
-                  <span className="fight-member-text">
-                    <span className="fight-member-name">{m.name}</span>
-                    {m.state === 'up' ? <Meter label={memberState(m)} value={m.hp} max={m.maxHp} reading={m.aimed ? 'Aiming' : ''} kind="hp" /> : <span className="fight-member-state">{memberState(m)}</span>}
-                    {canAct && <span className={`fight-pick${chosen ? '' : ' is-own'}`}>{!chosen && choice ? `${choice.name}: who?` : pickLabel(view, m, chosen)}</span>}
-                  </span>
-                </button>
-                {isOpen && (
-                  <div className="fight-picker">
-                    {!m.perch && (
-                      <>
-                        <div className="fight-rank" role="group" aria-label={`Where ${m.name} stands`}>
-                          {(['front', 'back'] as const).map((r) => (
-                            <button key={r} type="button" className={`chip${m.rank === r ? ' is-on' : ''}`} aria-pressed={m.rank === r} onClick={() => setRanks((x) => ({ ...x, [m.id]: r }))}>
-                              {r === 'front' ? 'In front' : 'At the back'}
-                            </button>
-                          ))}
-                        </div>
-                        <p className="fight-detail">{rankHelp(m, m.rank)}</p>
-                      </>
-                    )}
-                    <div className="fight-chips" role="group" aria-label={`${m.name}'s move`}>
-                      {m.moves.map((c) => (
-                        <button
-                          key={c.move}
-                          type="button"
-                          className={`chip${raw?.move === c.move ? ' is-on' : ''}`}
-                          aria-pressed={raw?.move === c.move}
-                          onClick={() => pick(m, c.move, c.target === 'none' ? undefined : c.targets.length === 1 ? c.targets[0] : undefined)}
-                        >
-                          {c.name}
-                        </button>
-                      ))}
-                      <button type="button" className={`chip${raw ? '' : ' is-on'}`} aria-pressed={!raw} onClick={() => pick(m, undefined)}>
-                        On their own
-                      </button>
-                    </div>
-                    {choice && <p className="fight-detail">{choice.detail}</p>}
-                    {choice && choice.target !== 'none' && (
-                      <div className="fight-chips" role="group" aria-label={`${choice.name}: who`}>
-                        {choice.targets.map((t) => (
-                          <button
-                            key={String(t)}
-                            type="button"
-                            className={`chip chip-target${raw?.target === t ? ' is-on' : ''}`}
-                            aria-pressed={raw?.target === t}
-                            onClick={() => pick(m, choice.move, t)}
-                          >
-                            {targetName(view, t)}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-        <label className="toggle fight-pull">
-          <span className="toggle-text">
-            <span className="toggle-label">Pull out</span>
-            <span className="toggle-help">After this round the whole crew tries to break away.</span>
-          </span>
-          <input type="checkbox" role="switch" checked={pullOut} onChange={(e) => setPullOut(e.target.checked)} />
-        </label>
-        <div className="fight-actions">
-          <button type="button" className="btn btn-primary" onClick={give}>
-            Give the orders
-          </button>
-          <button type="button" className="btn btn-quiet" onClick={() => act((s) => letThem(s))}>
-            Let them finish it
-          </button>
-        </div>
-        <p className="panel-help">Anyone you don&rsquo;t give an order to fights as they would on their own.</p>
-        {error && <p className="field-error">{error}</p>}
-      </section>
-
-      <details className="panel fight-log">
-        <summary>Everything so far</summary>
-        <BeatLog beats={[{ kind: 'combat', title: 'The fight', at: 0, lines: view.lines }]} names={Object.fromEntries(view.crew.map((m) => [m.id, m.name]))} more={false} />
-      </details>
-    </>
+      </Sheet>
+    </div>
   );
 }

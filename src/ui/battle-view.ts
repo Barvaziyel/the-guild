@@ -305,15 +305,3 @@ export function roundFrames(before: FightView, after: FightView): StageFrame[] {
 /** How long each act of a round is shown, in ms. */
 export const FRAME_MS = 720;
 
-/** The line under the stage between rounds: what a tap does now. */
-export function stageHint(view: FightView, open: string | undefined, picks: Picks = {}): string {
-  const m = open ? view.crew.find((c) => c.id === open) : undefined;
-  if (!m) return 'Tap one of the crew to give their orders.';
-  const pick = picks[m.id];
-  const choice = pick ? m.moves.find((c) => c.move === pick.move) : undefined;
-  if (choice?.target === 'ally') return `Tap who ${m.name} should help.`;
-  if (choice?.target === 'none') return `${m.name}: ${choice.name.toLowerCase()}. Tap someone else to give their orders.`;
-  // Nothing in reach (a blade at the back, a drone overhead): say so rather than offer a tap that does nothing.
-  if (!m.moves.some((c) => c.target === 'enemy' && c.targets.length > 0)) return `${m.name} can’t reach any of them from ${m.rank === 'back' ? 'the back' : 'here'}. Pick a move below.`;
-  return `Tap an enemy for ${m.name} to go after.`;
-}
