@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useState } from 'react';
-import { advanceTime, dayAt, dueRuns, getLocation, nextDayAt, type AdvanceResult, type DepotSummary, type GameState } from '../engine/index.ts';
+import { advanceTime, dayAt, dueRuns, getLocation, nextDayAt, searchDue, type AdvanceResult, type DepotSummary, type GameState } from '../engine/index.ts';
 import { mergeSummaries } from './depot-view.ts';
 import { TourCard } from './components/TourCard.tsx';
 import { navigate, savedScroll, useHash, useNow, usePrefs, useRoute, useServices, useSnapshot } from './hooks.ts';
@@ -12,6 +12,7 @@ import { anyoneCalling, radioNoticeKey, radioNotices, radioWakeTimes } from './r
 import { raidAlert, raidNoticeKey, raidNotices, raidWakeTimes } from './raid-view.ts';
 import { Raid } from './screens/Raid.tsx';
 import { anyoneFighting, fightNoticeKey, fightNotices, fightWakeTimes } from './fight-view.ts';
+import { cornerNoticeKey, cornerNotices, cornerWakeTimes } from './corners-view.ts';
 import { Fight } from './screens/Fight.tsx';
 import { Building } from './screens/Building.tsx';
 import { Depot } from './screens/Depot.tsx';
@@ -41,7 +42,7 @@ export function App() {
   const hash = useHash();
   const state = snap.status === 'ready' ? snap.state : null;
   // Wake for the next crew home, the next Depot day, or a crew calling in (or giving up on an answer), whichever comes first.
-  const wakeAt = state ? Math.min(nextDayAt(state, Date.now()), ...state.runs.map((r) => r.returnAt), ...radioWakeTimes(state, Date.now()), ...fightWakeTimes(state, Date.now()), ...raidWakeTimes(state, Date.now())) : undefined;
+  const wakeAt = state ? Math.min(nextDayAt(state, Date.now()), ...state.runs.map((r) => r.returnAt), ...radioWakeTimes(state, Date.now()), ...fightWakeTimes(state, Date.now()), ...raidWakeTimes(state, Date.now()), ...cornerWakeTimes(state)) : undefined;
   const now = useNow(30_000, wakeAt);
   const time = useTime(state, now, route);
   useNotices(state);
@@ -136,7 +137,7 @@ function useTime(state: GameState | null, now: number, route: Route) {
   const { store } = useServices();
   const [pending, setPending] = useState<string[]>([]);
   const [away, setAway] = useState<DepotSummary | null>(null);
-  const behind = state ? dueRuns(state, now).length > 0 || dayAt(state, now) > state.depot.lastDay : false;
+  const behind = state ? dueRuns(state, now).length > 0 || dayAt(state, now) > state.depot.lastDay || searchDue(state, now) : false;
 
   useEffect(() => {
     if (!behind) return;
@@ -181,10 +182,11 @@ function useNotices(state: GameState | null): void {
         radioNoticeKey(state),
         fightNoticeKey(state),
         raidNoticeKey(state),
+        cornerNoticeKey(state),
       ].join(',')
     : '';
   useEffect(() => {
-    notifier.sync(notify && state ? [...noticesFor(state), ...dilemmaNotices(state), ...rescueNotices(state), ...familyNotices(state), ...radioNotices(state), ...fightNotices(state), ...raidNotices(state)] : []);
+    notifier.sync(notify && state ? [...noticesFor(state), ...dilemmaNotices(state), ...rescueNotices(state), ...familyNotices(state), ...radioNotices(state), ...fightNotices(state), ...raidNotices(state), ...cornerNotices(state)] : []);
     // Re-sync only when the crews, their return times, or the decisions due change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, notify, notifier]);

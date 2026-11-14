@@ -743,6 +743,37 @@ export interface Stray {
   expiresDay: number;
 }
 
+/** The Depot's own corners (§9.9, 2.7.0). */
+export interface CornerState {
+  /** Corner ids, in the order they were searched. */
+  searched: string[];
+  /** The one search under way (one at a time). */
+  search?: CornerSearch;
+  /** The last search's outcome, for its card, until the player has seen it. */
+  last?: CornerResult;
+}
+
+export interface CornerSearch {
+  cornerId: string;
+  /** Who is searching. */
+  by: string;
+  start: number;
+  /** When it's done, in epoch ms. */
+  until: number;
+}
+
+export interface CornerResult {
+  cornerId: string;
+  by: string;
+  at: number;
+  text: string;
+  /** What came into the stores (or went out). */
+  supplies?: Partial<Resources>;
+  /** Names of the gear found, now in the stash. */
+  gear?: string[];
+  seen?: boolean;
+}
+
 /** Someone calling for help over the radio (§10.1). */
 export interface RescueCall {
   id: string;
@@ -1073,6 +1104,8 @@ export interface GameState {
   vultures: VulturesState;
   /** People raids left behind, held at the Depot (§9.8). */
   captives: Captive[];
+  /** The Depot's own corners (§9.9): which have been searched, and the search under way. */
+  corners: CornerState;
   log: GuildLogEntry[];
   settings: {
     mercyMode: boolean;

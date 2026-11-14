@@ -914,6 +914,29 @@ Aviel's answers, 2026-11-13: raiders come; with a Watchtower a roll may see them
 - **Captives** (2.1.0). After a won fight against raiders or the Vultures, one is left behind alive 30% of the time, held at the Depot (`state.captives`, the Roster's *Captives* panel). They eat a ration every other day and slip out 2% of days. **Question** them once: the best Nerve at the Depot (intimidate counts) against 12, and they tell of a cache (8–16 scrap, 4–10 rations, 3–8 ammo). **Ask them to join**: 25%, needs a bed; a no is final. **Let them go**: the Vultures warm to it (+5). Their own may come back for them (*one of theirs back*).
 - **Not picked:** a trail back to their camp.
 
+### 9.9 The Depot's corners (2.7.0)
+
+Aviel's new game had nothing to do but send a run and wait out the one-run-a-game-day rule (§15). Of the ideas for the first hours he picked this one, and a first-week story (§9.10). The old depot itself has corners nobody has been through, and someone at home can search them. The corners are data in `content/corners.ts`; `corners.ts` plays them.
+
+- **The corners:**
+
+  | Corner | Minutes | Helps | Opens | Found (passing the check / not) |
+  |---|---|---|---|---|
+  | The ticket office | 5 | Wits | – | a route map with a place marked, and the keys / the keys |
+  | The signal box | 10 | Wits | – | 5 tech from an old field radio (what Radio Tower 1 needs) / 5 scrap, 2 tech |
+  | The water tower | 10 | Grit | – | a new place on the map and 6 ammo / the place, and a fall (3 HP) |
+  | The locked freight car | 15 | Brawn | – | a dog, kept by whoever found it, and 4 scrap / the dog, sore arms (+3 stress) |
+  | The coal bunker | 15 | Brawn | – | 10 ammo, 4 scrap / 4 ammo, 4 scrap, +3 stress |
+  | The stationmaster's house | 15 | Nerve | – | a stranger living there joins (or waits at the gate for a bed) / a pack: 2 meds, 4 rations |
+  | The cellar | 15 | Nerve | the ticket office's keys | 10 rations, 3 meds / 5 rations, 1 med, bitten (2 HP, +6 stress) |
+  | The engine shed | 20 | Wits | the signal box | a Multitool and 8 scrap / 12 scrap |
+
+  The check is d10 + the stat against 8 to 10. A dog moves on if the guild already has one.
+- **Searching:** one search at a time, by anyone at home who can work. Someone back from a run who's tired from it can go (§7.2). While searching they can't set out on a run or move to an outpost. The search ends when its time is up, through `advanceTime` like a crew coming home. Whoever searched gets a Chronicle line ("Searched the signal box at the Depot.") and the news gets the story. If they're gone before it ends, the corner waits for someone else.
+- **On screen:** under the yard on the Depot's Yard tab. It shows how many have been searched, the search under way, and the corners still to search: each with its time and the stat that helps, or why it's shut. Tapping one opens a sheet with what it is and who could go, the best at it first. When a search ends, a card says what turned up, with a line for the stores ("Ammo +6.") and any gear, until *Done*. There's a notice when it ends, and a line in the bell. Once every corner is searched, the panel goes.
+- Old saves get the corners too, none searched (save 24).
+- Tour: a step, *The Depot's corners*, after *The yard*.
+
 ## 10. Recruitment
 
 - **Where new people come from** (Aviel, 2026-11-12: fewer turning up at random, more from rescues and events). Most come from out in the Reach.
@@ -1144,7 +1167,7 @@ From the ideas in `claude/interactive-ideas.md`, and Aviel's own additions. The 
 | Strategy in fights, 3: goals besides fighting, where someone spends rounds on a job instead of fighting: hold the door, grab and go, get someone out, fix or open something | Aviel, 2026-11-14 | **done** (2.5.0) |
 | An energy plant: solar while the sun is up, gas at night or in winter, powering some things | His idea, 2026-11-13: "Need to think" | to think about |
 | A view of each outpost, like the yard: the place drawn with its outpost and the people who live there | His addition, 2026-11-14 | planned |
-| More to do at the start, to hook a new player. His new game (2026-11-14): equip the starting gear, upgrade the Garden, send a 10-minute run, then wait about 2.5 hours before that crew can go out again (one run a game day, §7.2). How to fix it isn't decided | His addition, 2026-11-14: "Not sure how to do that though" | to look into |
+| More to do at the start, to hook a new player. His new game (2026-11-14): equip the starting gear, upgrade the Garden, send a 10-minute run, then wait about 2.5 hours before that crew can go out again (one run a game day, §7.2). Ideas offered: fresh legs for the first runs, the Depot's own corners, things coming to you early, a first-week story, scouting trips | His addition, 2026-11-14: "Not sure how to do that though"; at 23:34 he picked the Depot's corners and a first-week story | corners **done** (2.7.0, §9.9); first-week story planned (§9.10) |
 
 Not picked: choosing the rooms before a scavenge, raids you see coming, feasts and gatherings, talking to people in the yard.
 

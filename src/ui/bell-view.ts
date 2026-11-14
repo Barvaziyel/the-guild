@@ -6,6 +6,7 @@ import { STRESS_MAX, atDepot, getLocation, type GameState } from '../engine/inde
 import { strayRows } from './animals-view.ts';
 import { foodWarning } from './depot-view.ts';
 import { dilemmaCard } from './dilemma-view.ts';
+import { resultCard } from './corners-view.ts';
 import { fightCards } from './fight-view.ts';
 import { radioCards } from './radio-view.ts';
 import { raidCard } from './raid-view.ts';
@@ -52,6 +53,10 @@ export function bellItems(state: GameState, now: number): BellItem[] {
   if (recruits > 0) out.push({ id: 'recruits', group: 'gate', text: recruits === 1 ? 'Someone at the gate wants to join.' : `${recruits} at the gate want to join.`, to: { screen: 'recruits' } });
   for (const s of strayRows(state, now)) out.push({ id: `stray-${s.id}`, group: 'gate', text: `${s.title} at the gate.`, to: today });
   if (state.depot.offers.length > 0) out.push({ id: 'trader', group: 'gate', text: 'A trader at the gate.', to: today });
+
+  // A search of the Depot's corners done, its finds not looked at yet (§9.9).
+  const found = resultCard(state);
+  if (found) out.push({ id: 'corner', group: 'back', text: `${found.title}: ${found.who.replace(/ searched it\.$/, ' is done searching')}.`, to: { screen: 'depot' } });
 
   // Crews back with a report not read yet.
   for (const r of state.reports.filter((x) => !x.read)) {

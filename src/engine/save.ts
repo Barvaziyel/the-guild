@@ -176,6 +176,11 @@ const MIGRATIONS: Record<number, (save: Record<string, unknown>) => void> = {
     const state = save as unknown as GameState;
     state.depot.pantry = state.resources.rations > 0 ? [{ day: state.depot.lastDay, n: state.resources.rations }] : [];
   },
+  23: (save) => {
+    // The Depot's corners (2.7.0): none searched yet, in an old guild too.
+    const state = save as unknown as GameState;
+    state.corners ??= { searched: [] };
+  },
 };
 
 export function serialize(state: GameState): string {

@@ -2,6 +2,7 @@
  * Planning a run: how long it takes, what it costs, and whether it's allowed.
  */
 import { raidAtGate } from '../depot/raids.ts';
+import { searchReason } from '../corners.ts';
 import { laidUp } from '../depot/buildings.ts';
 import { DAY_MS, DEPTH_DURATION, HUNGER_STRESS, OUTPOST_SHORTCUT, RAID_FULL_FENCE, SNEAKY_DURATION_MULT, STRESS_HIGH } from '../constants.ts';
 import { depthOpen, DEPTH_NAMES, locationState, planDepth } from '../locations.ts';
@@ -138,7 +139,7 @@ export function validatePlan(state: GameState, plan: RunPlan): string[] {
       problems.push(`Unknown survivor: ${id}`);
       continue;
     }
-    const reason = unavailableReason(s);
+    const reason = unavailableReason(s) ?? searchReason(state, s.id);
     if (reason) problems.push(`${fullName(s)} ${reason}.`);
   }
   if (problems.length > 0) return problems;

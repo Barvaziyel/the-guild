@@ -5,6 +5,7 @@
 import {
   amountOf,
   dueBack,
+  searchReason,
   MAX_CREW,
   RESOURCE_IDS,
   STAT_IDS,
@@ -126,7 +127,8 @@ export interface CrewOption {
 export function crewOptions(state: GameState): CrewOption[] {
   return state.survivors
     .map((s) => {
-      const reason = restingReason(state, s) ?? (unavailableReason(s) ? `${s.firstName} ${unavailableReason(s)}.` : undefined);
+      const why = unavailableReason(s) ?? searchReason(state, s.id);
+      const reason = restingReason(state, s) ?? (why ? `${s.firstName} ${why}.` : undefined);
       const stats = STAT_IDS.map((id) => `${statName(id)} ${effectiveStat(s, id)}`).join(', ');
       return reason ? { survivor: s, reason, stats } : { survivor: s, stats };
     })
