@@ -164,7 +164,8 @@ describe('named weapons', () => {
         }
         return { state, plan: testPlan(state, 'drowned_mall', { approach: 'aggressive' }) };
       },
-      (_s, sim) => sim.result.crew.find((s) => s.equipment.weapon?.name),
+      // A run that ends on the 25th kill, for the line that says so (with more, it says how many).
+      (_s, sim) => sim.result.crew.find((s) => s.equipment.weapon?.name && s.equipment.weapon.kills === NAMED_GEAR_KILLS),
     );
     const w = found.equipment.weapon!;
     assert.ok(WEAPON_NAMES.melee.includes(w.name!));

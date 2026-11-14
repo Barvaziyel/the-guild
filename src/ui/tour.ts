@@ -273,7 +273,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     },
     target: 'lead',
     text: () =>
-      `You lead a crew's fights: at every fight they call home and wait up to ${Math.round(LEAD_WAIT / 60_000)} minutes (switch it off in the orders to let them fight on their own). Then it's yours, round by round, on the battle stage: a move for each person, from what their gear and traits let them do, and a tap on the enemy they go after. Nobody answers? They fight on their own, as always.`,
+      `You lead a crew's fights: they call home and wait up to ${Math.round(LEAD_WAIT / 60_000)} minutes (switch it off here to let them fight alone). On the stage you see what each enemy means to do and whom it's after. Give each person a move and a target. Blades reach only the front rank, shots anyone (drones too); send someone back to keep them out of reach of blows. Nobody answers? They fight on their own.`,
   },
   {
     id: 'vehicles',

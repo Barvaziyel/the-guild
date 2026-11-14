@@ -364,9 +364,17 @@ export interface MoveOrder {
   target?: number | string;
 }
 
+/**
+ * Where someone stands in a fight (§7.4, 2.3.0). Blows reach only the front rank
+ * while anyone stands there; shots reach both. Those who can shoot start at the back.
+ */
+export type Rank = 'front' | 'back';
+
 /** The orders for one round, by survivor id. Anyone without one fights as they would on their own. */
 export interface RoundOrders {
   moves: Record<string, MoveOrder>;
+  /** Where people stand this round, by survivor id; anyone not named stays where they were (2.3.0). */
+  ranks?: Record<string, Rank>;
   /** The whole crew tries to break away (the withdrawal check). */
   pullOut?: boolean;
 }

@@ -14,6 +14,7 @@ import {
   type LogLine,
   type MoveId,
   type MoveOrder,
+  type Rank,
   type RoundOrders,
   type Run,
   type RunReport,
@@ -175,9 +176,79 @@ export function livePicks(view: FightView, picks: Picks): Picks {
   return out;
 }
 
-/** The orders the screen sends. */
-export function roundOrders(view: FightView, picks: Picks, pullOut: boolean): RoundOrders {
-  return { moves: livePicks(view, picks), ...(pullOut ? { pullOut: true } : {}) };
+/** Where the player has put people this round, by survivor id (2.3.0). */
+export type Ranks = Record<string, Rank>;
+
+/**
+ * The fight as the orders being given would have it: everyone the player moved
+ * stands where they were put, with what they can do from there. Every other
+ * label and pick works from this.
+ */
+export function withRanks(view: FightView, ranks: Ranks): FightView {
+  if (Object.keys(ranks).length === 0) return view;
+  return {
+    ...view,
+    crew: view.crew.map((m) => {
+      const rank = ranks[m.id];
+      return rank && rank !== m.rank && m.moves.length > 0 && !m.perch ? { ...m, rank, moves: m.byRank[rank] } : m;
+    }),
+  };
+}
+
+/** The orders the screen sends: picks that still fit (with `view` already showing the ranks picked), and who moved. */
+export function roundOrders(view: FightView, picks: Picks, pullOut: boolean, ranks: Ranks = {}, before: FightView = view): RoundOrders {
+  const moved: Ranks = {};
+  for (const m of view.crew) {
+    const was = before.crew.find((o) => o.id === m.id)?.rank;
+    if (ranks[m.id] && ranks[m.id] !== was && !m.perch) moved[m.id] = ranks[m.id]!;
+  }
+  return { moves: livePicks(view, picks), ...(Object.keys(moved).length > 0 ? { ranks: moved } : {}), ...(pullOut ? { pullOut: true } : {}) };
+}
+
+/** What standing in front or at the back means for this person, in a line (2.3.0). */
+export function rankHelp(m: FightMemberView, rank: Rank): string {
+  const shoots = m.byRank.back.some((c) => c.move === 'attack' && c.name === 'Shoot');
+  if (rank === 'front') return shoots ? 'In front: in reach of every blow, and can shoot anything.' : 'In front: can reach their front rank, and in reach of every blow.';
+  return shoots ? 'At the back: blows can’t reach them while anyone stands in front. They can still shoot anything.' : 'At the back: blows can’t reach them while anyone stands in front, but they can’t reach anything to hit.';
+}
+
+/**
+ * Whether an enemy can still reach who it meant to go for, with the crew where
+ * the player has put them (2.3.0): a blow can't reach the back while anyone of
+ * the crew stands in front. When it can't, it turns to someone who is.
+ */
+export function canStillReach(view: FightView, e: FightView['enemies'][number], id: string): boolean {
+  if (e.rank !== 'front') return true;
+  const target = view.crew.find((m) => m.id === id);
+  if (!target || target.rank === 'front' || target.perch) return true;
+  return !view.crew.some((m) => m.state === 'up' && !m.perch && m.rank === 'front');
+}
+
+/** "Brute: a big hit at Silas (up to 10).", one line for each enemy still in it: what they mean to do this round (2.3.0). */
+export function theirMoves(view: FightView): string[] {
+  const out: string[] = [];
+  for (const e of view.enemies) {
+    if (e.state !== 'up') continue;
+    const who = view.crew.find((m) => m.id === e.intent?.at)?.name;
+    const shoots = e.rank !== 'front';
+    let what: string;
+    if (e.stunned) what = 'stunned, and loses its turn';
+    else if (e.intent?.kind === 'run') what = 'looking for a way out: it runs at the end of the round';
+    else if (who && e.intent?.at && !canStillReach(view, e, e.intent.at)) what = `${e.intent.kind === 'heavy' ? 'winding up a big hit' : 'going'} for ${who}, who is out of reach at the back now: it turns to someone in front`;
+    else if (e.intent?.kind === 'heavy' && who) what = `${shoots ? 'taking careful aim at' : 'winding up a big hit at'} ${who} (up to ${e.damage * 2})`;
+    else if (who) what = `${shoots ? 'shooting at' : 'going for'} ${who}`;
+    else what = 'can’t reach anyone';
+    out.push(`${e.name}: ${what}.`);
+  }
+  return out;
+}
+
+/** Their nerve, in words (2.3.0): how close they are to breaking, or that they won't. */
+export function nerveLine(view: FightView): string {
+  if (view.nerve === undefined) return 'They won’t break: this lot fights to the end.';
+  const n = view.nerve;
+  const how = n >= 75 ? 'holding' : n >= 40 ? 'shaken' : n > 0 ? 'close to breaking' : 'broken';
+  return `Their nerve: ${n} of 100, ${how}. Kills, big hits and dropping their leader wear it down; each of yours that goes down gives them heart.`;
 }
 
 /** How a commanded fight ended: the lines after what the player saw, or its last few when that's unknown. */

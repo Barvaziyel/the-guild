@@ -37,6 +37,7 @@ import type {
   Nemesis,
   NemesisNews,
   RadioOrder,
+  Rank,
   RoundOrders,
   RescueTrouble,
   Resources,
@@ -65,6 +66,8 @@ export interface Member {
   perch?: boolean;
   /** Aimed last round: the next shot is better (§7.13). */
   aimed?: boolean;
+  /** Where they stand in the current fight (§7.4, 2.3.0). */
+  rank?: Rank;
   /** Name of the nemesis this member killed on the run, for nicknames. */
   killedNemesis?: string;
   /** Weapon kills at departure, to notice milestones. */

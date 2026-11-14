@@ -259,6 +259,105 @@ describe('orders whose target is gone', () => {
   });
 });
 
+describe('their moves, ranks and nerve (2.3.0)', () => {
+  /** A led fight against `kinds` (any of them), taken command of, with everyone given `gear`. */
+  function against(seed: string, place: string, kinds: string[], gear: (s: GameState, i: number) => void): { state: GameState; run: Run; view: FightView; at: number } {
+    for (let i = 0; i < 80; i++) {
+      const { state, run } = ledRun(`${seed}-${i}`, { place, job: 'hunt', setup: (s) => s.survivors.forEach((x, k) => gear(s, k)) });
+      const fight = run.lead!.fights[0]!;
+      const view = takeCommand(state, run.id, fight.at + 60_000);
+      if (view && view.enemies.some((e) => kinds.includes(e.kind))) return { state, run, view, at: fight.at + 90_000 };
+    }
+    throw new Error(`no fight against ${kinds.join(', ')}`);
+  }
+  const machete = (s: GameState, k: number): void => {
+    s.survivors[k]!.equipment.weapon = createItem(s, 'machete');
+  };
+
+  test('each of them shows what it means to do before the orders, and does it', () => {
+    let checked = 0;
+    for (let n = 0; n < 6; n++) {
+      const { state, run, view, at } = against(`intent-${n}`, 'kessler_farm', ['rad_hound', 'raider_scav'], machete);
+      const up = view.enemies.filter((e) => e.state === 'up' && !e.stunned);
+      assert.ok(up.every((e) => e.intent !== undefined), 'every one standing has a move');
+      // Everyone keeps their head down, so nothing changes who they go for. Round after round (a crew that got the drop goes first).
+      let before: FightView | undefined = view;
+      for (let r = 0; before && r < 3; r++) {
+        const moves = Object.fromEntries(before.crew.filter((m) => m.moves.length > 0).map((m) => [m.id, { move: 'cover' as const }]));
+        const next = commandRound(state, run.id, { moves }, at + r * 10_000);
+        const after = next ?? lastFought(state, run.id)!;
+        for (const a of after.acts.slice(before.acts.length)) {
+          if (typeof a.by !== 'number' || (a.kind !== 'hit' && a.kind !== 'miss')) continue;
+          const meant: FightView['enemies'][number]['intent'] = before.enemies[a.by]!.intent;
+          if (meant?.kind === 'run' || !meant?.at) continue;
+          // Someone who went down earlier in the round is out of reach: it turns to someone else.
+          const down = after.acts.slice(before.acts.length, after.acts.indexOf(a)).some((x) => x.at === meant.at && x.down);
+          if (down) continue;
+          assert.equal(a.at, meant.at, `${before.enemies[a.by]!.name} went for who it said`);
+          checked++;
+        }
+        before = next;
+      }
+    }
+    assert.ok(checked > 5, `checked ${checked} blows`);
+  });
+
+  test('blows reach only their front rank; a gunner at the back is for shots, until the front falls', () => {
+    const { view } = against('ranks', 'drowned_mall', ['raider_gunner'], (s, k) => {
+      s.survivors[k]!.equipment.weapon = createItem(s, k === 0 ? 'hunting_rifle' : 'machete');
+      s.resources.ammo = 30;
+    });
+    const gunner = view.enemies.find((e) => e.kind === 'raider_gunner' && e.state === 'up')!;
+    assert.equal(gunner.rank, 'back');
+    const front = view.enemies.some((e) => e.rank === 'front' && e.state === 'up');
+    const [shooter, ...others] = view.crew.filter((m) => m.moves.length > 0);
+    assert.ok(shooter!.moves.find((c) => c.move === 'attack')!.targets.includes(gunner.index), 'a shot reaches it');
+    for (const m of others) assert.equal(m.moves.find((c) => c.move === 'attack')?.targets.includes(gunner.index) ?? false, !front, `${m.name}'s blow`);
+    // From the back, a blow reaches nothing; a shot still does.
+    assert.equal(others[0]!.byRank.back.find((c) => c.move === 'attack'), undefined);
+    assert.ok(shooter!.byRank.back.find((c) => c.move === 'attack')!.targets.includes(gunner.index));
+  });
+
+  test('someone sent to the back is out of reach of blows while anyone stands in front', () => {
+    let checked = 0;
+    for (let n = 0; n < 6; n++) {
+      const { state, run, view, at } = against(`back-${n}`, 'maple_street', ['rad_hound', 'raider_scav'], machete);
+      const crew = view.crew.filter((m) => m.moves.length > 0);
+      if (crew.length < 2) continue;
+      const back = crew[0]!;
+      const after = commandRound(state, run.id, { moves: Object.fromEntries(crew.map((m) => [m.id, { move: 'cover' as const }])), ranks: { [back.id]: 'back' } }, at) ?? lastFought(state, run.id)!;
+      for (const a of after.acts.slice(view.acts.length)) if (typeof a.by === 'number' && (a.kind === 'hit' || a.kind === 'miss')) {
+        assert.notEqual(a.at, back.id, 'nothing that bites or slashes reaches the back');
+        checked++;
+      }
+      if (after.crew.find((m) => m.id === back.id)?.state === 'up' && !after.over) assert.equal(after.crew.find((m) => m.id === back.id)!.rank, 'back', 'and stays there');
+    }
+    assert.ok(checked > 3);
+  });
+
+  test('a crew with nobody who can shoot can’t fight drones: it pulls out, and leaves things behind', () => {
+    let found = 0;
+    for (let i = 0; i < 400 && found < 3; i++) {
+      const state = openGame(`drones-${i % 7}`);
+      for (const s of state.survivors) s.equipment.weapon = createItem(state, 'machete');
+      const sim = simulateRun(state, testPlan(state, 'rail_yard', { job: 'scavenge' }), `d${i}`, T0);
+      const lines = sim.beats.flatMap((b) => b.lines.map((l) => l.text));
+      const reached = lines.findIndex((t) => t.startsWith('Nobody can reach'));
+      if (reached < 0) continue;
+      found++;
+      assert.match(lines[reached]!, /^Nobody can reach (a|two|three|four) Scrap Drones?\. (The crew|\w+) pulls out under fire/);
+    }
+    assert.ok(found > 0, 'met drones with only blades');
+  });
+
+  test('a group that can break shows its nerve, and breaks as before once more than half are dead', () => {
+    const { view } = against('nerve', 'maple_street', ['raider_scav'], machete);
+    assert.equal(view.nerve, 100);
+    const hollows = against('fearless', 'maple_street', ['hollow'], machete).view;
+    if (hollows.enemies.every((e) => e.type === 'hollow')) assert.equal(hollows.nerve, undefined, 'hollows never break');
+  });
+});
+
 describe('the battle stage', () => {
   test('every act names who did it and to whom, points at a line, and the hits add up to what the enemies lost', () => {
     let checked = 0;

@@ -36,6 +36,10 @@ export interface StageFighter {
   aimed?: boolean;
   /** A lookout on the Watchtower in a raid (§9.8): drawn up on its deck. */
   perch?: boolean;
+  /** Where they stand (2.3.0): the back rank stands behind the front; flyers with the back. */
+  rank?: 'front' | 'back' | 'air';
+  /** An enemy's move this round (2.3.0): a hit or a big hit at someone (their key), or a run for it. */
+  intent?: { kind: 'strike' | 'heavy' | 'run'; at?: string };
 }
 
 /** One act being played: who does it, to whom, and what pops up. */
@@ -64,6 +68,8 @@ export interface StageModel {
   targets: string[];
   picked?: string;
   effect?: StageEffect;
+  /** Their nerve, 0–100, when they can break (2.3.0). */
+  nerve?: number;
 }
 
 interface Slot {
@@ -79,10 +85,15 @@ function stageGap(n: number): number {
   return n <= 3 ? 58 : n <= 5 ? 54 : n <= 6 ? 48 : 36;
 }
 
+/** How big everyone on a side of `n` is drawn. */
+function stageScale(n: number): number {
+  return n <= 3 ? 1.45 : n <= 5 ? 1.25 : n <= 6 ? 1.12 : 0.98;
+}
+
 /** Where everyone on one side stands: one rank for up to three, two ranks for more, smaller as they crowd. */
 export function stageSlots(n: number, side: 'crew' | 'enemy'): Slot[] {
   const front = n <= 3 ? n : Math.ceil(n / 2);
-  const scale = n <= 3 ? 1.45 : n <= 5 ? 1.25 : n <= 6 ? 1.12 : 0.98;
+  const scale = stageScale(n);
   const gap = stageGap(n);
   const out: Slot[] = [];
   for (let i = 0; i < front; i++) out.push({ x: 150 - i * gap, y: 222, scale, rank: 0 });
@@ -90,7 +101,71 @@ export function stageSlots(n: number, side: 'crew' | 'enemy'): Slot[] {
   return side === 'crew' ? out : out.map((s) => ({ ...s, x: STAGE_W - s.x }));
 }
 
+/**
+ * Where everyone on a side stands by their rank (2.3.0): the front rank in
+ * front, the back rank (and flyers) behind it. A side all in one rank stands
+ * as it always has.
+ */
+export function rankedSlots(fighters: readonly StageFighter[], side: 'crew' | 'enemy'): Slot[] {
+  const behind = fighters.map((f) => f.rank === 'back' || f.rank === 'air');
+  const nBack = behind.filter(Boolean).length;
+  if (nBack === 0 || nBack === fighters.length) return stageSlots(fighters.length, side);
+  const n = fighters.length;
+  const scale = stageScale(n);
+  const gap = stageGap(n);
+  let i = 0;
+  let j = 0;
+  const out = behind.map((b): Slot => (b ? { x: 150 - gap / 2 - j++ * gap, y: 194, scale: scale * 0.9, rank: 1 } : { x: 150 - i++ * gap, y: 222, scale, rank: 0 }));
+  return side === 'crew' ? out : out.map((s) => ({ ...s, x: STAGE_W - s.x }));
+}
+
 const n1 = (v: number): string => String(Math.round(v * 10) / 10);
+
+/** An enemy's move this round, as a small badge (2.3.0): a hit, a big hit, or running. */
+function intentBadge(kind: 'strike' | 'heavy' | 'run', cx: number, cy: number): string {
+  if (kind === 'heavy') {
+    return (
+      circle(cx, cy, 7, '#b5432f', `stroke="${BONE}" stroke-width="1"`) +
+      rect(cx - 1.1, cy - 4.4, 2.2, 5.4, BONE, 'stroke="none"') +
+      circle(cx, cy + 3.2, 1.2, BONE, 'stroke="none"')
+    );
+  }
+  if (kind === 'run') {
+    return circle(cx, cy, 6, '#1d1915', `stroke="${BONE}" stroke-width="0.9"`) + pathEl(`M ${n1(cx - 3)} ${n1(cy)} H ${n1(cx + 3)} M ${n1(cx + 0.6)} ${n1(cy - 2.6)} L ${n1(cx + 3.2)} ${n1(cy)} L ${n1(cx + 0.6)} ${n1(cy + 2.6)}`, 'none', `stroke="${BONE}" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"`);
+  }
+  // A hit coming at the crew: an arrowhead pointing their way.
+  return circle(cx, cy, 6, '#1d1915', `stroke="${BONE}" stroke-width="0.9"`) + pathEl(`M ${n1(cx + 1.8)} ${n1(cy - 3)} L ${n1(cx - 1.8)} ${n1(cy)} L ${n1(cx + 1.8)} ${n1(cy + 3)}`, 'none', `stroke="#e08a5a" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"`);
+}
+
+/** Marks over one of the crew for the blows coming at them this round (2.3.0): a small notch for each hit, a bigger red one for a big hit. */
+function threatMarks(heavy: number, strikes: number, cx: number, y: number): string {
+  const marks = [...Array<'heavy'>(heavy).fill('heavy'), ...Array<'strike'>(strikes).fill('strike')].slice(0, 4);
+  const w = (k: 'heavy' | 'strike'): number => (k === 'heavy' ? 9 : 6);
+  const total = marks.reduce((a, k) => a + w(k), 0) + (marks.length - 1) * 2;
+  let x = cx - total / 2;
+  let out = '';
+  for (const k of marks) {
+    const h = k === 'heavy' ? 8 : 5.5;
+    out += poly([[x, y - h], [x + w(k), y - h], [x + w(k) / 2, y]], k === 'heavy' ? '#b5432f' : '#e08a5a', `stroke="${BONE}" stroke-width="0.8"`);
+    x += w(k) + 2;
+  }
+  return out;
+}
+
+/** The nerve of their side (2.3.0), in the top corner. */
+function nerveMeter(nerve: number): string {
+  const x = STAGE_W - 120;
+  const share = Math.max(0, Math.min(1, nerve / 100));
+  const color = share > 0.6 ? '#c9b98f' : share > 0.3 ? '#b8892a' : '#b5432f';
+  return (
+    `<g class="bt-nerve" aria-label="Their nerve, ${Math.round(nerve)} of 100">` +
+    `<rect x="${x}" y="5" width="114" height="17" rx="3" fill="#1d1915" fill-opacity="0.82"/>` +
+    `<text x="${x + 6}" y="16.5" class="bt-hp">Their nerve</text>` +
+    `<rect x="${x + 62}" y="9.5" width="46" height="8" rx="2" fill="#2b2420" stroke="${BONE}" stroke-width="0.7"/>` +
+    (share > 0 ? `<rect x="${x + 62.8}" y="10.3" width="${n1(44.4 * share)}" height="6.4" rx="1.4" fill="${color}"/>` : '') +
+    '</g>'
+  );
+}
 
 /** The drawing of one fighter facing right, before it's turned around or laid down. */
 function body(f: StageFighter): { svg: string; scale: number; height: number; muzzle: [number, number] } {
@@ -199,6 +274,20 @@ function overhead(f: StageFighter, slot: Slot, height: number, room: number, mod
   lines.forEach((text, k) => {
     out += `<text x="${n1(lx)}" y="${n1(ly + k * 10)}" class="${cls}" text-anchor="middle">${escapeAttr(text)}</text>`;
   });
+  // An enemy's move this round, over its bar in front or over its name behind (2.3.0).
+  const intent = f.side === 'enemy' && f.state === 'up' && !f.stunned ? f.intent : undefined;
+  const badgeY = slot.rank === 0 ? top - 9 : ly - 16;
+  if (intent) out += intentBadge(intent.kind, slot.x, badgeY);
+  // Blows coming at one of the crew this round.
+  let threatened = false;
+  if (f.side === 'crew' && f.state === 'up') {
+    const coming = model.enemies.filter((e) => e.state === 'up' && !e.stunned && e.intent?.at === f.key && e.intent.kind !== 'run');
+    const heavy = coming.filter((e) => e.intent!.kind === 'heavy').length;
+    if (coming.length > 0) {
+      threatened = true;
+      out += threatMarks(heavy, coming.length - heavy, slot.x, slot.rank === 0 ? top - 3 : ly - 11);
+    }
+  }
   // Marks by the name: a Vulture's feather, a nemesis's red notch.
   const mx = lx - lw / 2 - 5;
   if (f.vulture) out += poly([[mx - 2, ly + 1], [mx + 2, ly - 10], [mx + 3, ly - 1]], '#1d1b1a', `stroke="${BONE}" stroke-width="0.7"`);
@@ -213,8 +302,9 @@ function overhead(f: StageFighter, slot: Slot, height: number, room: number, mod
     const cy = top + HP_BAR_H / 2;
     out += circle(cx, cy, 4, 'none', `stroke="${BONE}" stroke-width="1"`) + line(cx - 6, cy, cx + 6, cy, 0.9, BONE) + line(cx, cy - 6, cx, cy + 6, 0.9, BONE);
   }
-  // The picked target gets a marker over it.
-  const above = slot.rank === 0 ? top - 4 : ly - 12;
+  // The picked target gets a marker over it, above any badge or marks.
+  const lifted = intent !== undefined || threatened ? 13 : 0;
+  const above = (slot.rank === 0 ? top - 4 : ly - 12) - lifted;
   if (model.picked === f.key) out += poly([[slot.x - 6, above - 10], [slot.x + 6, above - 10], [slot.x, above - 2]], '#d0703c', `stroke="${BONE}" stroke-width="1"`);
   return out;
 }
@@ -262,10 +352,10 @@ export function stageSvg(model: StageModel): string {
   // Lookouts stand on the Watchtower's deck; everyone else in the ranks.
   const ground = model.crew.filter((f) => !f.perch);
   const deck = model.crew.filter((f) => f.perch);
-  const groundSlots = stageSlots(ground.length, 'crew');
+  const groundSlots = rankedSlots(ground, 'crew');
   const deckSlots = deck.map((_, k): Slot => ({ x: TOWER_DECK.x0 + 16 + k * 24, y: TOWER_DECK.y, scale: 0.9, rank: 1 }));
   const crewSlots = model.crew.map((f) => (f.perch ? deckSlots[deck.indexOf(f)]! : groundSlots[ground.indexOf(f)]!));
-  const enemySlots = stageSlots(model.enemies.length, 'enemy');
+  const enemySlots = rankedSlots(model.enemies, 'enemy');
   // Nobody stands, or lies, half off the edge of the stage.
   const inside = (f: StageFighter, slot: Slot): Slot => {
     const b = body(f);
@@ -302,6 +392,7 @@ export function stageSvg(model: StageModel): string {
     `<rect x="0" y="${HORIZON}" width="${STAGE_W}" height="${STAGE_H - HORIZON}" fill="#1d1915" opacity="0.08"/>` +
     figures +
     marks +
+    (model.nerve !== undefined ? nerveMeter(model.nerve) : '') +
     effectLayer(model, spots) +
     '</svg>'
   );

@@ -17,9 +17,13 @@ import {
   livePicks,
   memberState,
   needsTarget,
+  nerveLine,
   pickLabel,
+  rankHelp,
   roundOrders,
   targetName,
+  theirMoves,
+  withRanks,
 } from './fight-view.ts';
 import { noticeRoute } from './radio-view.ts';
 
@@ -109,6 +113,11 @@ describe('a crew at a fight', () => {
 });
 
 describe('the fight screen', () => {
+  const SHOOTER: FightMemberView['moves'] = [
+    { move: 'attack', name: 'Shoot', detail: '', target: 'enemy', targets: [0] },
+    { move: 'cover', name: 'Take cover', detail: '', target: 'none', targets: [] },
+    { move: 'patch', name: 'Patch up', detail: '', target: 'ally', targets: ['b'] },
+  ];
   const member = (id: string, extra: Partial<FightMemberView> = {}): FightMemberView => ({
     id,
     name: id === 'a' ? 'Mara' : 'Kai',
@@ -116,11 +125,9 @@ describe('the fight screen', () => {
     maxHp: 20,
     state: 'up',
     aimed: false,
-    moves: [
-      { move: 'attack', name: 'Shoot', detail: '', target: 'enemy', targets: [0] },
-      { move: 'cover', name: 'Take cover', detail: '', target: 'none', targets: [] },
-      { move: 'patch', name: 'Patch up', detail: '', target: 'ally', targets: ['b'] },
-    ],
+    moves: SHOOTER,
+    rank: 'front',
+    byRank: { front: SHOOTER, back: SHOOTER },
     ...extra,
   });
   const view: FightView = {
@@ -128,8 +135,8 @@ describe('the fight screen', () => {
     maxRounds: 8,
     place: 'Kessler Farm',
     enemies: [
-      { index: 0, name: 'Raider Scav 1', type: 'raider', kind: 'raider_scav', hp: 4, maxHp: 10, state: 'up', stunned: false, named: false, nemesis: false, vulture: false },
-      { index: 1, name: 'Raider Scav 2', type: 'raider', kind: 'raider_scav', hp: 0, maxHp: 10, state: 'dead', stunned: false, named: false, nemesis: false, vulture: false },
+      { index: 0, name: 'Raider Scav 1', type: 'raider', kind: 'raider_scav', hp: 4, maxHp: 10, state: 'up', stunned: false, named: false, nemesis: false, vulture: false, rank: 'front', damage: 3, leader: false, fearless: false },
+      { index: 1, name: 'Raider Scav 2', type: 'raider', kind: 'raider_scav', hp: 0, maxHp: 10, state: 'dead', stunned: false, named: false, nemesis: false, vulture: false, rank: 'front', damage: 3, leader: false, fearless: false },
     ],
     crew: [member('a'), member('b', { state: 'down', hp: 0, moves: [] })],
     meds: 1,
@@ -178,5 +185,83 @@ describe('the fight screen', () => {
     assert.equal(memberState(view.crew[1]!), 'Down');
     assert.equal(memberState({ ...view.crew[0]!, state: 'fled' }), 'Ran');
     assert.equal(memberState({ ...view.crew[0]!, state: 'dead' }), 'Dead');
+  });
+});
+
+describe('their moves, and where people stand (2.3.0)', () => {
+  const STRIKE: FightMemberView['moves'] = [
+    { move: 'attack', name: 'Strike', detail: '', target: 'enemy', targets: [0] },
+    { move: 'cover', name: 'Take cover', detail: '', target: 'none', targets: [] },
+  ];
+  const BACK: FightMemberView['moves'] = [{ move: 'cover', name: 'Take cover', detail: '', target: 'none', targets: [] }];
+  const enemy = (index: number, extra: Partial<FightView['enemies'][number]> = {}): FightView['enemies'][number] => ({
+    index,
+    name: `Raider Scav ${index + 1}`,
+    type: 'raider',
+    kind: 'raider_scav',
+    hp: 7,
+    maxHp: 7,
+    state: 'up',
+    stunned: false,
+    named: false,
+    nemesis: false,
+    vulture: false,
+    rank: 'front',
+    damage: 3,
+    leader: false,
+    fearless: false,
+    ...extra,
+  });
+  const view: FightView = {
+    round: 1,
+    maxRounds: 6,
+    place: 'Maple Street',
+    enemies: [
+      enemy(0, { name: 'Raider Brute', kind: 'raider_brute', damage: 5, intent: { kind: 'heavy', at: 'a' } }),
+      enemy(1, { intent: { kind: 'strike', at: 'b' } }),
+      enemy(2, { name: 'Raider Gunner', rank: 'back', intent: { kind: 'strike', at: 'a' } }),
+      enemy(3, { hp: 2, intent: { kind: 'run' } }),
+      enemy(4, { stunned: true }),
+      enemy(5, { state: 'dead', hp: 0 }),
+    ],
+    crew: [
+      { id: 'a', name: 'Mara', hp: 9, maxHp: 18, state: 'up', aimed: false, moves: STRIKE, rank: 'front', byRank: { front: STRIKE, back: BACK } },
+      { id: 'b', name: 'Kai', hp: 16, maxHp: 16, state: 'up', aimed: false, moves: STRIKE, rank: 'front', byRank: { front: STRIKE, back: BACK } },
+    ],
+    meds: 0,
+    ammo: 0,
+    lines: [],
+    acts: [],
+    nerve: 64,
+  };
+
+  test('what each of them means to do, in a line', () => {
+    assert.deepEqual(theirMoves(view), [
+      'Raider Brute: winding up a big hit at Mara (up to 10).',
+      'Raider Scav 2: going for Kai.',
+      'Raider Gunner: shooting at Mara.',
+      'Raider Scav 4: looking for a way out: it runs at the end of the round.',
+      'Raider Scav 5: stunned, and loses its turn.',
+    ]);
+    assert.match(nerveLine(view), /^Their nerve: 64 of 100, shaken\./);
+    assert.match(nerveLine({ ...view, nerve: undefined }), /won’t break/);
+  });
+
+  test('moving someone to the back shows what they can do from there, and the orders say they moved', () => {
+    const moved = withRanks(view, { a: 'back' });
+    const mara = moved.crew.find((m) => m.id === 'a')!;
+    assert.equal(mara.rank, 'back');
+    assert.deepEqual(mara.moves, BACK, 'a blade reaches nothing from the back');
+    assert.equal(withRanks(view, {}), view);
+    const orders = roundOrders(moved, { a: { move: 'cover' }, b: { move: 'attack', target: 0 } }, false, { a: 'back', b: 'front' }, view);
+    assert.deepEqual(orders.ranks, { a: 'back' }, 'only who moved');
+    // A strike picked before the move no longer fits.
+    assert.deepEqual(roundOrders(moved, { a: { move: 'attack', target: 0 } }, false, { a: 'back' }, view).moves, {});
+    assert.match(rankHelp(mara, 'back'), /can’t reach anything to hit/);
+    // The brute and the gunner had Mara in mind: the brute's blade can't reach her at the back now; the gunner's shot still can.
+    const lines = theirMoves(moved);
+    assert.equal(lines[0], 'Raider Brute: winding up a big hit for Mara, who is out of reach at the back now: it turns to someone in front.');
+    assert.equal(lines[2], 'Raider Gunner: shooting at Mara.');
+    assert.match(rankHelp(mara, 'front'), /in reach of every blow/);
   });
 });

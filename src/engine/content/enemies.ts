@@ -31,6 +31,14 @@ export interface EnemyDef {
   backsOff?: 'intimidate' | 'calm';
   /** Radiation dealt with each hit. */
   rads?: number;
+  /** Fights from a distance (§7.4, 2.3.0): stands in the back rank, out of melee reach while anyone stands in front, and can hit anyone. */
+  ranged?: boolean;
+  /** Flies (§7.4, 2.3.0): never in melee reach, and hits anyone. Only shots bring it down. */
+  flies?: boolean;
+  /** Chance each round of winding up a big hit (double damage) instead of a normal one, shown before the crew acts (§7.4, 2.3.0). */
+  heavy?: number;
+  /** Leads the group: when it falls, the rest lose much of their nerve (§7.4, 2.3.0). */
+  leader?: boolean;
   /** "{name} is {hitVerb} a Rad-hound." */
   hitVerb: string;
   /** Resources dropped when killed: [min, max]. */
@@ -72,6 +80,7 @@ export const ENEMIES: readonly EnemyDef[] = [
     threat: 5,
     morale: 'breaks',
     backsOff: 'calm',
+    heavy: 0.2,
     hitVerb: 'mauled by',
     loot: { rations: [2, 3] },
   },
@@ -110,6 +119,7 @@ export const ENEMIES: readonly EnemyDef[] = [
     threat: 4,
     morale: 'breaks',
     backsOff: 'intimidate',
+    ranged: true,
     hitVerb: 'shot by',
     loot: { ammo: [1, 3], scrap: [0, 1] },
   },
@@ -128,6 +138,7 @@ export const ENEMIES: readonly EnemyDef[] = [
     threat: 5,
     morale: 'breaks',
     backsOff: 'intimidate',
+    heavy: 0.35,
     hitVerb: 'smashed by',
     loot: { scrap: [1, 3], rations: [0, 2] },
   },
@@ -146,6 +157,8 @@ export const ENEMIES: readonly EnemyDef[] = [
     threat: 8,
     morale: 'breaks',
     backsOff: 'intimidate',
+    heavy: 0.3,
+    leader: true,
     hitVerb: 'mauled by',
     loot: { scrap: [2, 4], ammo: [0, 2] },
   },
@@ -185,6 +198,7 @@ export const ENEMIES: readonly EnemyDef[] = [
     threat: 4,
     morale: 'breaks',
     backsOff: 'intimidate',
+    ranged: true,
     hitVerb: 'shot by',
     loot: { ammo: [1, 4], scrap: [0, 2] },
   },
@@ -203,6 +217,8 @@ export const ENEMIES: readonly EnemyDef[] = [
     stealth: 9,
     threat: 7,
     morale: 'fearless',
+    heavy: 0.25,
+    leader: true,
     hitVerb: 'struck by',
     loot: { scrap: [2, 5], tech: [0, 2] },
   },
@@ -260,6 +276,7 @@ export const ENEMIES: readonly EnemyDef[] = [
     threat: 8,
     morale: 'fearless',
     rads: 15,
+    heavy: 0.35,
     hitVerb: 'crushed by',
     loot: { tech: [0, 2], scrap: [1, 2] },
   },
@@ -271,14 +288,15 @@ export const ENEMIES: readonly EnemyDef[] = [
     name: 'Scrap Drone',
     plural: 'Scrap Drones',
     description: 'A patched-up security drone, still guarding something long gone.',
-    hp: 5,
+    hp: 3,
     attack: 4,
     damage: 3,
     defense: 11,
-    armor: 1,
+    armor: 0,
     stealth: 9,
     threat: 3,
     morale: 'fearless',
+    flies: true,
     hitVerb: 'zapped by',
     loot: { tech: [0, 1], scrap: [1, 2] },
   },
@@ -296,6 +314,7 @@ export const ENEMIES: readonly EnemyDef[] = [
     stealth: 7,
     threat: 6,
     morale: 'fearless',
+    ranged: true,
     hitVerb: 'shot by',
     loot: { tech: [1, 2], scrap: [2, 4], ammo: [0, 2] },
   },

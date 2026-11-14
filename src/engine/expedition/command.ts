@@ -9,9 +9,10 @@ import { gearHooks, itemDef } from '../gear.ts';
 import { maxHp } from '../stats.ts';
 import { visibleTraits } from '../traits.ts';
 import { getTrait } from '../content/index.ts';
-import type { LogLine, MoveId } from '../types.ts';
+import type { LogLine, MoveId, Rank } from '../types.ts';
 import type { CombatEnd, Enemy } from './combat.ts';
 import { active, type Member, type Sim } from './context.ts';
+import { enemyRank, reaches, type EnemyRank } from './reach.ts';
 
 /** A move someone can make this round, and what it can be aimed at. */
 export interface MoveChoice {
@@ -44,6 +45,16 @@ export interface FightEnemyView {
   nemesis: boolean;
   /** One of the Vultures (§7.11). */
   vulture: boolean;
+  /** Where it stands (2.3.0): in front, at the back (it shoots), or in the air (it flies). */
+  rank: EnemyRank;
+  /** What it means to do this round, chosen before the crew acts (2.3.0): a hit or a big hit at someone (a survivor id), or a run for it. */
+  intent?: { kind: 'strike' | 'heavy' | 'run'; at?: string };
+  /** What one of its hits does, before armor; a big hit does twice that. */
+  damage: number;
+  /** It leads them: its fall shakes the rest. */
+  leader: boolean;
+  /** It never breaks and runs. */
+  fearless: boolean;
 }
 
 /**
@@ -101,8 +112,12 @@ export interface FightMemberView {
   state: 'up' | 'down' | 'dead' | 'fled';
   /** Aimed last round: the next shot is better. */
   aimed: boolean;
-  /** Empty for anyone who can't act. */
+  /** Empty for anyone who can't act. What they can do where they stand now. */
   moves: MoveChoice[];
+  /** Where they stand (2.3.0). */
+  rank: Rank;
+  /** What they could do from either rank, for an order that moves them. */
+  byRank: Record<Rank, MoveChoice[]>;
   /** A lookout shooting from the Watchtower in a raid (§9.8). */
   perch?: boolean;
 }
@@ -126,6 +141,8 @@ export interface FightView {
   dog?: string;
   /** How it ended, once it's over. */
   over?: CombatEnd;
+  /** Their nerve, 0–100, when any of them can break (2.3.0): at 0 they run. */
+  nerve?: number;
 }
 
 /** Thrown inside a replay when a fight under command needs the next round's orders. */
@@ -173,13 +190,27 @@ export function attackKind(sim: Sim, m: Member): 'shoot' | 'strike' | 'punch' {
 
 const ATTACK_NAMES = { shoot: 'Shoot', strike: 'Strike', punch: 'Punch' } as const;
 
-/** Everything this person can do this round, with what each move can be aimed at. */
-export function movesFor(sim: Sim, m: Member, enemies: readonly Enemy[]): MoveChoice[] {
+/**
+ * Where someone stands when a fight starts (2.3.0): everyone in front, so the
+ * blows spread as they always have. A lookout on the Watchtower counts as the back.
+ * Sending someone back is the commander's call: safe from blows, but whoever is
+ * left in front takes them all.
+ */
+export function defaultRank(_sim: Sim, m: Member): Rank {
+  return m.perch ? 'back' : 'front';
+}
+
+/** Everything this person can do this round from where they stand (or from `rank`), with what each move can be aimed at. */
+export function movesFor(sim: Sim, m: Member, enemies: readonly Enemy[], rank: Rank = m.rank ?? 'front'): MoveChoice[] {
   if (m.down || m.dead || m.fled) return [];
   const foes = living(enemies);
-  const foeIds = foes.map((e) => enemies.indexOf(e));
   const kind = attackKind(sim, m);
   const gun = kind === 'shoot';
+  // Blows reach only what's close (2.3.0); shots, anything.
+  const from: Rank = m.perch ? 'back' : rank;
+  const reachable = (shot: boolean): number[] => foes.filter((e) => reaches(shot, from, e, enemies)).map((e) => enemies.indexOf(e));
+  const foeIds = reachable(gun);
+  const anyFoe = foes.map((e) => enemies.indexOf(e));
   const granted = grantedMoves(m);
   const out: MoveChoice[] = [];
   const add = (move: MoveId, targets: (number | string)[] = [], name?: string): void => {
@@ -193,7 +224,7 @@ export function movesFor(sim: Sim, m: Member, enemies: readonly Enemy[]): MoveCh
   // A lookout on the Watchtower (§9.8) can only shoot, aim and point things out from up there.
   const PERCHED: readonly MoveId[] = ['attack', 'aim', 'called_shot', 'spray', 'spot'];
   if (m.perch && kind === 'shoot') {
-    return movesFor(sim, { ...m, perch: false }, enemies).filter((c) => PERCHED.includes(c.move));
+    return movesFor(sim, { ...m, perch: false }, enemies, 'back').filter((c) => PERCHED.includes(c.move));
   }
   add('attack', foeIds, ATTACK_NAMES[kind]);
   add('cover');
@@ -205,16 +236,17 @@ export function movesFor(sim: Sim, m: Member, enemies: readonly Enemy[]): MoveCh
   if (granted.has('called_shot') && gun) add('called_shot', foeIds);
   const weapon = m.s.equipment.weapon ? itemDef(m.s.equipment.weapon) : undefined;
   if (granted.has('spray') && gun && foes.length >= 2 && (!weapon?.usesAmmo || sim.ammo >= 2)) add('spray', foeIds);
-  if (granted.has('smash') && weapon?.weaponType === 'melee') add('smash', foeIds);
-  if (granted.has('stun') && weapon?.weaponType === 'melee') add('stun', foeIds);
+  if (granted.has('smash') && weapon?.weaponType === 'melee') add('smash', reachable(false));
+  if (granted.has('stun') && weapon?.weaponType === 'melee') add('stun', reachable(false));
   if (granted.has('charge')) add('charge', foeIds);
   if (granted.has('draw_fire')) add('draw_fire');
   const others = active(sim).filter((o) => o !== m);
   if (granted.has('guard')) add('guard', others.map((o) => o.s.id));
-  if (granted.has('spot') && others.length > 0) add('spot', foeIds);
+  if (granted.has('spot') && others.length > 0) add('spot', anyFoe);
   if (granted.has('intimidate')) add('intimidate', ofType('raider', true));
   if (granted.has('soothe')) add('soothe', ofType('feral'));
-  if (granted.has('short_out')) add('short_out', ofType('scrapbot'));
+  // Shorting a machine out takes a hand inside it: only what's in reach.
+  if (granted.has('short_out')) add('short_out', ofType('scrapbot').filter((i) => reaches(false, from, enemies[i]!, enemies)));
   return out;
 }
 
@@ -226,8 +258,8 @@ export function validOrder(sim: Sim, m: Member, enemies: readonly Enemy[], move:
   return choice;
 }
 
-/** The fight as it stands before `round` (or after it, once it's over), for the fight screen. */
-export function fightView(sim: Sim, enemies: readonly Enemy[], round: number, fromLine: number, over?: CombatEnd): FightView {
+/** The fight as it stands before `round` (or after it, once it's over), for the fight screen. `nerve`: theirs, when any of them can break. */
+export function fightView(sim: Sim, enemies: readonly Enemy[], round: number, fromLine: number, over?: CombatEnd, nerve?: number): FightView {
   const names = enemyNames(enemies);
   const beat = sim.beats.at(-1);
   return {
@@ -246,6 +278,11 @@ export function fightView(sim: Sim, enemies: readonly Enemy[], round: number, fr
       named: e.nemesis !== undefined || e.vulture !== undefined,
       nemesis: e.nemesis !== undefined,
       vulture: e.def.id.startsWith('vulture_'),
+      rank: enemyRank(e),
+      damage: e.damage,
+      ...(e.intent && !over && !e.dead && !e.fled ? { intent: { kind: e.intent.kind, ...(e.intent.at ? { at: e.intent.at.s.id } : {}) } } : {}),
+      leader: e.def.leader === true,
+      fearless: e.def.morale === 'fearless' || e.nemesis !== undefined,
     })),
     crew: sim.members.map((m) => ({
       id: m.s.id,
@@ -255,6 +292,8 @@ export function fightView(sim: Sim, enemies: readonly Enemy[], round: number, fr
       state: m.dead ? 'dead' : m.down ? 'down' : m.fled ? 'fled' : 'up',
       aimed: m.aimed === true,
       moves: movesFor(sim, m, enemies),
+      rank: m.rank ?? 'front',
+      byRank: { front: movesFor(sim, m, enemies, 'front'), back: movesFor(sim, m, enemies, 'back') },
       ...(m.perch ? { perch: true } : {}),
     })),
     ...(sim.gate?.dog ? { dog: sim.gate.dog } : {}),
@@ -263,5 +302,6 @@ export function fightView(sim: Sim, enemies: readonly Enemy[], round: number, fr
     lines: beat ? beat.lines.slice(fromLine) : [],
     acts: (sim.fightActs?.acts ?? []).map((a) => ({ ...a, line: a.line - fromLine })),
     ...(over ? { over } : {}),
+    ...(nerve !== undefined ? { nerve: Math.max(0, Math.round(nerve)) } : {}),
   };
 }

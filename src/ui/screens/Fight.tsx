@@ -5,7 +5,7 @@ import { Meter } from '../components/Bars.tsx';
 import { BattleStage } from '../components/BattleStage.tsx';
 import { BeatLog } from '../components/BeatLog.tsx';
 import { Portrait } from '../components/Portrait.tsx';
-import { fightCard, fightEnd, livePicks, memberState, needsTarget, pickLabel, roundOrders, targetName, type Picks } from '../fight-view.ts';
+import { fightCard, fightEnd, livePicks, memberState, needsTarget, nerveLine, pickLabel, rankHelp, roundOrders, targetName, theirMoves, withRanks, type Picks, type Ranks } from '../fight-view.ts';
 import { goBack, navigate, useAction, useNow } from '../hooks.ts';
 import { formatDuration } from '../runs-view.ts';
 
@@ -127,7 +127,7 @@ function NotYet({ state, runId, now }: { state: GameState; runId: string; now: n
  */
 export function Command({
   state,
-  view,
+  view: fight,
   until,
   now,
   place,
@@ -152,6 +152,9 @@ export function Command({
   const { act, error } = useAction();
   const [picks, setPicks] = useState<Picks>({});
   const [pullOut, setPullOut] = useState(false);
+  // Where the player has put people this round (2.3.0); the fight as they'd have it is what everything below shows.
+  const [ranks, setRanks] = useState<Ranks>({});
+  const view = useMemo(() => withRanks(fight, ranks), [fight, ranks]);
   const standing = view.crew.filter((m) => m.moves.length > 0);
   const [open, setOpen] = useState<string | undefined>(standing[0]?.id);
   // What the last round brought: the lines since the fight was last shown.
@@ -189,10 +192,11 @@ export function Command({
   // The stage, to bring back into view when the orders go out: the round plays there.
   const stageRef = useRef<HTMLDivElement>(null);
   const give = (): void => {
-    const orders = roundOrders(view, picks, pullOut);
+    const orders = roundOrders(view, picks, pullOut, ranks, fight);
     seen.current = { round: view.round, lines: view.lines.length };
     if (act((s) => send(s, orders))) {
       setPullOut(false);
+      setRanks({});
       setOpen(standing[0]?.id);
       const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       stageRef.current?.scrollIntoView({ behavior: still ? 'auto' : 'smooth', block: 'start' });
@@ -231,6 +235,18 @@ export function Command({
         </section>
       )}
 
+      <section className="panel their-moves" aria-labelledby="their-title">
+        <h3 id="their-title" className="panel-title">
+          Their moves
+        </h3>
+        <ul className="fight-lines">
+          {theirMoves(view).map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+        <p className="panel-help">{nerveLine(view)}</p>
+      </section>
+
       <section className="panel" aria-labelledby="orders-title">
         <h3 id="orders-title" className="panel-title">
           Orders
@@ -256,6 +272,18 @@ export function Command({
                 </button>
                 {isOpen && (
                   <div className="fight-picker">
+                    {!m.perch && (
+                      <>
+                        <div className="fight-rank" role="group" aria-label={`Where ${m.name} stands`}>
+                          {(['front', 'back'] as const).map((r) => (
+                            <button key={r} type="button" className={`chip${m.rank === r ? ' is-on' : ''}`} aria-pressed={m.rank === r} onClick={() => setRanks((x) => ({ ...x, [m.id]: r }))}>
+                              {r === 'front' ? 'In front' : 'At the back'}
+                            </button>
+                          ))}
+                        </div>
+                        <p className="fight-detail">{rankHelp(m, m.rank)}</p>
+                      </>
+                    )}
                     <div className="fight-chips" role="group" aria-label={`${m.name}'s move`}>
                       {m.moves.map((c) => (
                         <button

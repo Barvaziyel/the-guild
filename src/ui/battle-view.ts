@@ -5,7 +5,7 @@
  */
 import type { FightAct, FightView, GameState, MoveId } from '../engine/index.ts';
 import type { StageEffect, StageFighter, StageModel } from '../scene/index.ts';
-import { needsTarget, type Picks } from './fight-view.ts';
+import { canStillReach, needsTarget, type Picks } from './fight-view.ts';
 import { figureLook } from './yard-view.ts';
 
 type Shown = StageFighter['state'];
@@ -111,7 +111,7 @@ export function stageModel(state: GameState, at: StageAt, view: FightView, order
       ...(s ? { look: figureLook(s) } : {}),
       ...(s?.equipment.weapon ? { weapon: s.equipment.weapon.defId } : {}),
       aimed: frame ? false : m.aimed,
-      ...(m.perch ? { perch: true } : {}),
+      ...(m.perch ? { perch: true } : { rank: m.rank }),
     };
   });
   // The guild's dog at the gate: it fights, but nobody can hurt it.
@@ -134,6 +134,9 @@ export function stageModel(state: GameState, at: StageAt, view: FightView, order
       nemesis: e.nemesis,
       vulture: e.vulture,
       stunned: frame?.stunned[key] ?? e.stunned,
+      rank: e.rank,
+      // Their moves for the round about to be given (not while the last one plays), aimed at whoever they can still reach.
+      ...(!frame && e.intent ? { intent: { kind: e.intent.kind, ...(e.intent.at && canStillReach(view, e, e.intent.at) ? { at: crewKey(e.intent.at) } : {}) } } : {}),
     };
   });
   const { targets, picked } = frame ? { targets: [], picked: undefined } : stageTargets(view, orders);
@@ -145,6 +148,7 @@ export function stageModel(state: GameState, at: StageAt, view: FightView, order
     targets,
     ...(picked ? { picked } : {}),
     ...(frame ? { effect: frame.effect } : {}),
+    ...(view.nerve !== undefined ? { nerve: view.nerve } : {}),
   };
 }
 
@@ -274,5 +278,7 @@ export function stageHint(view: FightView, open: string | undefined, picks: Pick
   const choice = pick ? m.moves.find((c) => c.move === pick.move) : undefined;
   if (choice?.target === 'ally') return `Tap who ${m.name} should help.`;
   if (choice?.target === 'none') return `${m.name}: ${choice.name.toLowerCase()}. Tap someone else to give their orders.`;
+  // Nothing in reach (a blade at the back, a drone overhead): say so rather than offer a tap that does nothing.
+  if (!m.moves.some((c) => c.target === 'enemy' && c.targets.length > 0)) return `${m.name} can’t reach any of them from ${m.rank === 'back' ? 'the back' : 'here'}. Pick a move below.`;
   return `Tap an enemy for ${m.name} to go after.`;
 }
