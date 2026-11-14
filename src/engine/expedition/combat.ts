@@ -37,6 +37,7 @@ import {
   SURVIVOR_DEFENSE,
   UNARMED_DAMAGE, TOWER_TO_HIT, WALL_COVER, RAID_SHORE_COVER, RAID_MARKED_WEIGHT, RAID_WORKSHOP_TO_HIT, DOG_TO_HIT, DOG_DAMAGE,
   BIG_HIT,
+  PACK_TO_HIT_MAX,
   HEAVY_HIT_MULT,
   HEAVY_TO_HIT,
   NERVE_BIG_HIT,
@@ -53,9 +54,9 @@ import { ENEMIES_BREAK, FLEE_LINES, STALEMATE_LINES, WITHDRAW_FAIL, WITHDRAW_SUC
 import { armorValue, itemDef, itemName, qualityMod, weaponDamage } from '../gear.ts';
 import { adjustRelationship } from '../relationships.ts';
 import { enemyContexts, situationalMods } from '../stats.ts';
+import { maxHp } from '../stats.ts';
 import { fullName } from '../text.ts';
 import { anyTraitHook, getTraitInstance, maxTraitHook, mulTraitHook } from '../traits.ts';
-import { maxHp } from '../stats.ts';
 import { pronounForms } from '../text.ts';
 import type { MoveOrder, Nemesis, ResourceId, RoundOrders, StatId } from '../types.ts';
 import {
@@ -110,6 +111,10 @@ export interface Enemy {
   stunned?: boolean;
   /** What it means to do this round, chosen before the crew acts (§7.4, 2.3.0). */
   intent?: EnemyIntent;
+  /** On the ground, for one that gets back up (2.4.0): the round it went down, and who put it there. */
+  down?: { round: number; by: Member; ranged: boolean };
+  /** Got back up once already: the next time it drops, it stays down. */
+  rose?: boolean;
 }
 
 /** What an enemy means to do this round (§7.4, 2.3.0): a hit or a big hit at someone, or a run for it. Shown to a commander before the orders. */
@@ -147,7 +152,10 @@ export function damageThrough(damage: number, armor: number): number {
 
 export type CombatEnd = 'won' | 'withdrew' | 'stalemate' | 'routed';
 
-const living = (enemies: readonly Enemy[]): Enemy[] => enemies.filter((e) => !e.dead && !e.fled);
+const living = (enemies: readonly Enemy[]): Enemy[] => enemies.filter((e) => !e.dead && !e.fled && !e.down);
+
+/** On the ground and getting back up unless someone finishes it (2.4.0). */
+const fallen = (enemies: readonly Enemy[]): Enemy[] => enemies.filter((e) => e.down !== undefined && !e.dead);
 
 // ---------------------------------------------------------------- building encounters
 
@@ -302,9 +310,25 @@ function survivorAttack(sim: Sim, m: Member, target: Enemy, ctx: AttackContext, 
     if (target.fled) act(sim, { by: at, kind: 'escape' }, true);
     return;
   }
+  // One that gets back up (a hollow) drops the first time instead (2.4.0).
+  if (target.def.rises && !target.rose && !target.nemesis) {
+    target.hp = 0;
+    target.down = { round: ctx.round, by: m, ranged };
+    target.stunned = false;
+    act(sim, { by: m.s.id, at, kind: 'hit', amount: dealt, shot: ranged, down: true });
+    say(sim, `${m.s.firstName} ${ranged ? 'drops' : 'knocks down'} ${ctx.commanded ? label : withArticle(target.def.name)}. It's still moving.`, { tone: 'good' });
+    return;
+  }
   act(sim, { by: m.s.id, at, kind: 'kill', amount: dealt, shot: ranged });
+  creditKill(sim, m, target, ctx, ranged, ranged ? 'drops' : 'takes down');
+}
 
+/** One of them dead for good: the kill goes to `m` (counters, the weapon's tally, a nemesis's end) and a line says so. */
+function creditKill(sim: Sim, m: Member, target: Enemy, ctx: AttackContext, ranged: boolean, verb: string, say_ = true): void {
+  const weapon = m.s.equipment.weapon;
+  const label = ctx.names[ctx.enemies.indexOf(target)] ?? target.def.name;
   target.dead = true;
+  target.down = undefined;
   fell(ctx.morale, target);
   const c = m.s.counters;
   c.kills += 1;
@@ -322,8 +346,33 @@ function survivorAttack(sim: Sim, m: Member, target: Enemy, ctx: AttackContext, 
     nemesisKilled(sim, m, target, how);
     return;
   }
-  const verb = ranged ? 'drops' : 'takes down';
-  say(sim, `${m.s.firstName} ${verb} ${ctx.commanded ? label : withArticle(target.def.name)} ${how}.`, { tone: 'good' });
+  if (say_) say(sim, `${m.s.firstName} ${verb} ${ctx.commanded ? label : withArticle(target.def.name)} ${how}.`, { tone: 'good' });
+}
+
+/** A blow at one on the ground (2.4.0): it can't miss, and it stays down. */
+function finishOff(sim: Sim, m: Member, target: Enemy, ctx: AttackContext): void {
+  const ranged = attackKind(sim, m) === 'shoot';
+  if (ranged && m.s.equipment.weapon && itemDef(m.s.equipment.weapon).usesAmmo) sim.ammo = Math.max(0, sim.ammo - 1);
+  act(sim, { by: m.s.id, at: ctx.enemies.indexOf(target), kind: 'finish', shot: ranged });
+  creditKill(sim, m, target, ctx, ranged, ranged ? 'puts a last shot into' : 'finishes');
+}
+
+/** Those on the ground since an earlier round get back up, with half their HP (2.4.0). */
+function riseAgain(sim: Sim, fight: FightState, round: number, commanded: boolean): void {
+  for (const e of fallen(fight.enemies)) {
+    if (e.down!.round >= round) continue;
+    e.down = undefined;
+    e.rose = true;
+    e.hp = Math.ceil(e.maxHp / 2);
+    act(sim, { by: fight.enemies.indexOf(e), kind: 'rise', amount: e.hp });
+    const label = commanded ? (fight.names[fight.enemies.indexOf(e)] ?? enemyRef(e)) : enemyRef(e);
+    say(sim, `${label.charAt(0).toUpperCase()}${label.slice(1)} drags itself back up.`, { tone: 'bad' });
+  }
+}
+
+/** When the fight is over, whatever is still on the ground stays there: the kill goes to whoever dropped it. */
+function settleFallen(sim: Sim, enemies: readonly Enemy[], ctx: AttackContext): void {
+  for (const e of fallen(enemies)) creditKill(sim, e.down!.by, e, ctx, e.down!.ranged, '', false);
 }
 
 // ---------------------------------------------------------------- enemy attacks
@@ -382,9 +431,9 @@ function attention(sim: Sim, enemy: Enemy, m: Member): number {
  * one up, or (hurt, with their nerve going) a run for it.
  */
 function chooseIntents(sim: Sim, fight: FightState): void {
+  for (const enemy of fight.enemies) enemy.intent = undefined;
   for (const enemy of fight.enemies) {
-    enemy.intent = undefined;
-    if (enemy.dead || enemy.fled || enemy.stunned) continue;
+    if (enemy.dead || enemy.fled || enemy.down || enemy.stunned) continue;
     const morale = fight.morale;
     const canRun = enemy.def.morale === 'breaks' && !enemy.nemesis && !enemy.def.leader;
     if (canRun && morale && morale.nerve < RUN_NERVE && enemy.hp * 2 <= enemy.maxHp && sim.rng.chance(RUN_CHANCE)) {
@@ -393,10 +442,19 @@ function chooseIntents(sim: Sim, fight: FightState): void {
     }
     const targets = reachableBy(sim, enemy);
     if (targets.length === 0) continue;
-    const at = sim.rng.weightedBy(targets, (m) => attention(sim, enemy, m));
+    // A pack goes for one of the crew together (2.4.0).
+    const packmate = enemy.def.pack ? fight.enemies.find((o) => o !== enemy && o.def.pack && o.intent?.kind === 'strike' && o.intent.at && targets.includes(o.intent.at)) : undefined;
+    const at = packmate?.intent?.at ?? sim.rng.weightedBy(targets, (m) => attention(sim, enemy, m));
     const heavy = enemy.def.heavy !== undefined && sim.rng.chance(enemy.def.heavy);
     enemy.intent = { kind: heavy ? 'heavy' : 'strike', at };
   }
+}
+
+/** How much a pack helps one of its own hit someone this round: +1 for each other one going for them, up to +2 (2.4.0). */
+function packBonus(enemy: Enemy, target: Member, enemies: readonly Enemy[]): number {
+  if (!enemy.def.pack) return 0;
+  const others = living(enemies).filter((o) => o !== enemy && o.def.pack && !o.stunned && o.intent?.kind !== 'run' && o.intent?.at === target).length;
+  return Math.min(PACK_TO_HIT_MAX, others);
 }
 
 function enemyRound(sim: Sim, fight: FightState, tactics: Tactics, commanded: boolean): void {
@@ -438,7 +496,7 @@ function enemyRound(sim: Sim, fight: FightState, tactics: Tactics, commanded: bo
       (sim.gate?.shored ? RAID_SHORE_COVER : 0);
     const shot = /shot|zapped/.test(enemy.def.hitVerb);
     const heavy = intent?.kind === 'heavy';
-    if (sim.rng.d10() + enemy.attack + (heavy ? HEAVY_TO_HIT : 0) < SURVIVOR_DEFENSE + armor + extra) {
+    if (sim.rng.d10() + enemy.attack + (heavy ? HEAVY_TO_HIT : 0) + packBonus(enemy, target, fight.enemies) < SURVIVOR_DEFENSE + armor + extra) {
       act(sim, { by: fight.enemies.indexOf(enemy), at: target.s.id, kind: 'miss', shot });
       if (commanded && intent?.kind === 'heavy') say(sim, `${capitalize(label)}'s big hit misses ${target.s.firstName}.`);
       continue;
@@ -695,6 +753,9 @@ function actOnOrder(sim: Sim, m: Member, given: MoveOrder, enemies: readonly Ene
     case 'attack':
       survivorAttack(sim, m, foe!, ctx, { toHit: spot });
       return true;
+    case 'finish':
+      finishOff(sim, m, foe!, ctx);
+      return true;
     case 'called_shot':
       survivorAttack(sim, m, foe!, ctx, { toHit: CALLED_SHOT_TO_HIT + spot, double: true, words: { miss: 'takes a called shot at', hit: 'puts a called shot into', shot: true } });
       return true;
@@ -750,10 +811,25 @@ function actOnOrder(sim: Sim, m: Member, given: MoveOrder, enemies: readonly Ene
   }
 }
 
-/** A big hit coming at them would put them down (2.3.0): what someone on their own takes cover from. */
-function bigHitWouldDrop(m: Member, enemies: readonly Enemy[]): boolean {
+/**
+ * The blows coming at them this round would put them down, if they all landed
+ * (2.3.0 for a big hit; 2.4.0 for a pack or a crowd): what someone on their own
+ * takes cover from. A single ordinary hit isn't worth ducking.
+ */
+function blowsWouldDrop(m: Member, enemies: readonly Enemy[]): boolean {
   const armor = m.s.equipment.armor ? armorValue(m.s.equipment.armor) : 0;
-  return living(enemies).some((e) => e.intent?.kind === 'heavy' && e.intent.at === m && !e.stunned && damageThrough(e.damage * HEAVY_HIT_MULT, armor) >= m.s.hp);
+  const coming = living(enemies).filter((e) => e.intent?.at === m && e.intent.kind !== 'run' && !e.stunned);
+  if (coming.length < 2 && !coming.some((e) => e.intent!.kind === 'heavy')) return false;
+  return coming.reduce((sum, e) => sum + damageThrough(e.damage * (e.intent!.kind === 'heavy' ? HEAVY_HIT_MULT : 1), armor), 0) >= m.s.hp;
+}
+
+/** What one of their ordinary blows does before armor, for choosing what's worth hitting. */
+function attackDamage(sim: Sim, m: Member): number {
+  const w = m.s.equipment.weapon;
+  if (!w) return UNARMED_DAMAGE;
+  const def = itemDef(w);
+  if (def.weaponType === 'ranged' && def.usesAmmo && sim.ammo <= 0) return UNARMED_DAMAGE;
+  return Math.max(1, weaponDamage(w));
 }
 
 /** Nobody still in the fight can reach any of them: what's left flies, and nobody can shoot (2.3.0). */
@@ -839,25 +915,36 @@ export function fight(sim: Sim, enemies: Enemy[], start: FightStart): FightResul
     const tactics = orders ? prepareRound(sim, enemies, orders) : noTactics();
 
     if (crewActs) {
+      // Those on the ground someone is already finishing this round.
+      const finishing = new Set<Enemy>();
       for (const m of active(sim)) {
         if (living(enemies).length === 0) break;
         const order = orders?.moves[m.s.id];
         if (order && actOnOrder(sim, m, order, enemies, attackCtx, tactics)) continue;
-        // On their own, someone a big hit would put down keeps their head down.
-        if (bigHitWouldDrop(m, enemies)) {
+        const shot = attackKind(sim, m) === 'shoot';
+        const from = m.perch ? 'back' : (m.rank ?? 'front');
+        // On their own, one on the ground in reach gets finished before it's back up (2.4.0).
+        const ground = fallen(enemies).find((e) => !finishing.has(e) && reaches(shot, from, e, enemies));
+        if (ground) {
+          finishing.add(ground);
+          finishOff(sim, m, ground, attackCtx);
+          continue;
+        }
+        // Someone the blows coming at them would put down keeps their head down.
+        if (blowsWouldDrop(m, enemies)) {
           tactics.cover.add(m);
           if (attackCtx.commanded) say(sim, `${m.s.firstName} sees it coming and keeps down.`);
           continue;
         }
-        // On their own: something in reach, the hurt first and whatever is winding up a big hit next.
-        const shot = attackKind(sim, m) === 'shoot';
-        const targets = living(enemies).filter((e) => reaches(shot, m.perch ? 'back' : (m.rank ?? 'front'), e, enemies));
+        // On their own: something in reach they can hurt, the hurt first and whatever is winding up a big hit next.
+        const targets = living(enemies).filter((e) => reaches(shot, from, e, enemies));
         if (targets.length === 0) {
           // Nothing in reach (2.3.0): they keep their head down.
           tactics.cover.add(m);
           continue;
         }
-        const target = sim.rng.weightedBy(targets, (e) => (e.hp < e.maxHp ? 3 : 1) * (e.intent?.kind === 'heavy' ? 2 : 1));
+        const blow = attackDamage(sim, m);
+        const target = sim.rng.weightedBy(targets, (e) => (e.hp < e.maxHp ? 3 : 1) * (e.intent?.kind === 'heavy' ? 2 : 1) * Math.max(1, blow - e.def.armor) / blow);
         survivorAttack(sim, m, target, attackCtx, tactics.spotted === target && tactics.spotter !== m ? { toHit: SPOT_TO_HIT } : {});
       }
       if (sim.gate?.dog) dogBite(sim, enemies, attackCtx);
@@ -868,6 +955,7 @@ export function fight(sim: Sim, enemies: Enemy[], start: FightStart): FightResul
     }
 
     if (!(start.drop && round === 1)) enemyRound(sim, state, tactics, attackCtx.commanded);
+    riseAgain(sim, state, round, attackCtx.commanded);
 
     if (active(sim).length === 0) {
       end = standing(sim).length === 0 ? 'routed' : 'withdrew';
@@ -921,6 +1009,7 @@ export function fight(sim: Sim, enemies: Enemy[], start: FightStart): FightResul
     say(sim, `${listNames(state.fledHere.map((m) => m.s.firstName))} ${state.fledHere.length === 1 ? 'creeps' : 'creep'} back once it is over. Nobody says anything.`);
   }
 
+  settleFallen(sim, enemies, attackCtx);
   afterFight(sim, enemies);
   for (const e of enemies) e.intent = undefined;
   // A commanded fight as it ended, for the screen that shows how it went.

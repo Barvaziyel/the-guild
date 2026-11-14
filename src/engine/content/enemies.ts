@@ -39,6 +39,10 @@ export interface EnemyDef {
   heavy?: number;
   /** Leads the group: when it falls, the rest lose much of their nerve (§7.4, 2.3.0). */
   leader?: boolean;
+  /** Drops instead of dying the first time, and gets back up at the end of the next round with half its HP unless someone finishes it (§7.4, 2.4.0). */
+  rises?: boolean;
+  /** Hunts as a pack (§7.4, 2.4.0): they all go for the same one of the crew, +1 to hit for each other one on them (up to +2). */
+  pack?: boolean;
   /** "{name} is {hitVerb} a Rad-hound." */
   hitVerb: string;
   /** Resources dropped when killed: [min, max]. */
@@ -55,13 +59,14 @@ export const ENEMIES: readonly EnemyDef[] = [
     description: 'Hairless, half-blind pack hunters. Fast and always hungry.',
     hp: 5,
     attack: 3,
-    damage: 3,
+    damage: 2,
     defense: 9,
     armor: 0,
     stealth: 10,
     threat: 2,
     morale: 'breaks',
     backsOff: 'calm',
+    pack: true,
     hitVerb: 'bitten by',
     loot: { rations: [0, 1] },
   },
@@ -129,11 +134,11 @@ export const ENEMIES: readonly EnemyDef[] = [
     name: 'Raider Brute',
     plural: 'Raider Brutes',
     description: 'Wears a car door and swings an engine block on a chain.',
-    hp: 14,
+    hp: 12,
     attack: 4,
     damage: 5,
     defense: 9,
-    armor: 1,
+    armor: 3,
     stealth: 6,
     threat: 5,
     morale: 'breaks',
@@ -239,6 +244,7 @@ export const ENEMIES: readonly EnemyDef[] = [
     threat: 2,
     morale: 'fearless',
     rads: 4,
+    rises: true,
     hitVerb: 'clawed by',
     loot: { scrap: [0, 1] },
   },
@@ -257,6 +263,7 @@ export const ENEMIES: readonly EnemyDef[] = [
     threat: 4,
     morale: 'fearless',
     rads: 10,
+    rises: true,
     hitVerb: 'burned by',
     loot: { tech: [0, 1], scrap: [0, 1] },
   },

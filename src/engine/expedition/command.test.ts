@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import { LEAD_WAIT } from '../constants.ts';
-import { LOCATIONS } from '../content/index.ts';
+import { ENEMIES, GEAR, LOCATIONS } from '../content/index.ts';
 import { advanceTime } from '../depot/time.ts';
 import { createItem } from '../gear.ts';
 import { Rng } from '../rng.ts';
@@ -34,21 +34,50 @@ function ledRun(seed: string, opts: { job?: RunJob; place?: string; setup?: (s: 
   throw new Error('no led run came to a fight');
 }
 
-/** A simple commander: get the downed up, cover the badly hurt, everyone else at the weakest enemy. */
+/**
+ * A plain commander that reads their moves (2.3.0, 2.4.0): get the downed up,
+ * finish anything on the ground, duck blows that would put someone down, talk
+ * where a move allows, and otherwise go for whatever is winding up a big hit,
+ * then the weakest thing they can actually hurt.
+ */
 function orders(v: FightView): RoundOrders {
   const up = v.enemies.filter((e) => e.state === 'up');
-  const weakest = up.reduce((a, b) => (b.hp < a.hp ? b : a), up[0]!);
   const moves: RoundOrders['moves'] = {};
   const downed = v.crew.find((o) => o.state === 'down');
   for (const m of v.crew) {
     if (m.moves.length === 0) continue;
     const has = (id: string) => m.moves.find((c) => c.move === id);
-    if (downed && has('patch')?.targets.includes(downed.id)) moves[m.id] = { move: 'patch', target: downed.id };
-    else if (m.hp < m.maxHp * 0.35) moves[m.id] = { move: 'cover' };
-    else {
-      const talk = (['intimidate', 'soothe', 'short_out'] as const).map(has).find((c) => c && c.targets.length > 0);
-      moves[m.id] = talk ? { move: talk.move, target: talk.targets[0]! } : { move: 'attack', target: weakest.index };
+    const finish = has('finish');
+    if (finish) {
+      moves[m.id] = { move: 'finish', target: finish.targets[0]! };
+      continue;
     }
+    if (downed && has('patch')?.targets.includes(downed.id)) {
+      moves[m.id] = { move: 'patch', target: downed.id };
+      continue;
+    }
+    const coming = up.filter((e) => e.intent?.at === m.id && !e.stunned && e.intent.kind !== 'run');
+    const blows = coming.reduce((sum, e) => sum + e.damage * (e.intent!.kind === 'heavy' ? 2 : 1), 0);
+    if ((coming.length > 1 || coming.some((e) => e.intent!.kind === 'heavy')) && blows >= m.hp && has('cover')) {
+      moves[m.id] = { move: 'cover' };
+      continue;
+    }
+    const talk = (['intimidate', 'soothe', 'short_out'] as const).map(has).find((c) => c && c.targets.length > 0);
+    if (talk) {
+      moves[m.id] = { move: talk.move, target: talk.targets[0]! };
+      continue;
+    }
+    const attack = has('attack');
+    if (!attack) {
+      if (has('cover')) moves[m.id] = { move: 'cover' };
+      continue;
+    }
+    const reach = up.filter((e) => attack.targets.includes(e.index));
+    const winding = reach.find((e) => e.intent?.kind === 'heavy' && !e.stunned);
+    const soft = reach.filter((e) => e.armor < 2);
+    const pool = soft.length > 0 ? soft : reach;
+    const target = winding ?? pool.reduce((a, b) => (b.hp < a.hp ? b : a), pool[0]!);
+    moves[m.id] = { move: 'attack', target: target.index };
   }
   return { moves };
 }
@@ -355,6 +384,82 @@ describe('their moves, ranks and nerve (2.3.0)', () => {
     assert.equal(view.nerve, 100);
     const hollows = against('fearless', 'maple_street', ['hollow'], machete).view;
     if (hollows.enemies.every((e) => e.type === 'hollow')) assert.equal(hollows.nerve, undefined, 'hollows never break');
+  });
+});
+
+describe('enemies that need different answers (2.4.0)', () => {
+  /** A led fight against `kinds`, taken command of, with everyone given a machete. */
+  function against(seed: string, place: string, kinds: string[]): { state: GameState; run: Run; view: FightView; at: number } {
+    for (let i = 0; i < 120; i++) {
+      const { state, run } = ledRun(`${seed}-${i}`, { place, job: 'hunt', setup: (s) => s.survivors.forEach((x) => (x.equipment.weapon = createItem(s, 'machete'))) });
+      const fight = run.lead!.fights[0]!;
+      const view = takeCommand(state, run.id, fight.at + 60_000);
+      if (view && view.enemies.filter((e) => kinds.includes(e.kind)).length >= 2) return { state, run, view, at: fight.at + 90_000 };
+    }
+    throw new Error(`no fight against ${kinds.join(', ')}`);
+  }
+  const everyone = (v: FightView, move: (m: FightView['crew'][number]) => RoundOrders['moves'][string] | undefined): RoundOrders => ({
+    moves: Object.fromEntries(v.crew.filter((m) => m.moves.length > 0).flatMap((m) => {
+      const o = move(m);
+      return o ? [[m.id, o]] : [];
+    })),
+  });
+
+  test('a hollow that drops gets back up a round later with half its HP, unless someone finishes it', () => {
+    let rose = 0;
+    let finished = 0;
+    for (let n = 0; n < 12 && (rose < 2 || finished < 2); n++) {
+      const { state, run, view: first, at } = against(`rise-${n}`, 'old_metro', ['hollow']);
+      let view: FightView | undefined = first;
+      const finishIt = n % 2 === 0;
+      for (let r = 0; view && r < 6; r++) {
+        const down = view.enemies.find((e) => e.state === 'down');
+        if (down) {
+          // Everyone else keeps down; one finishes it, or nobody does.
+          const killer = view.crew.find((m) => m.moves.some((c) => c.move === 'finish' && c.targets.includes(down.index)));
+          const next = commandRound(state, run.id, everyone(view, (m) => (finishIt && m === killer ? { move: 'finish', target: down.index } : { move: 'cover' })), at + r * 10_000);
+          const after = next ?? lastFought(state, run.id)!;
+          const it = after.enemies[down.index]!;
+          if (finishIt && killer) {
+            assert.equal(it.state, 'dead', 'finished');
+            finished++;
+          } else if (!killer || !finishIt) {
+            if (after.over && it.state !== 'up') break;
+            assert.equal(it.state, 'up', 'back on its feet');
+            assert.equal(it.hp, Math.ceil(it.maxHp / 2));
+            assert.equal(it.rises, false, 'only once');
+            rose++;
+          }
+          break;
+        }
+        // Everyone at the hollow with the least HP, until one drops.
+        const hollows = view.enemies.filter((e) => e.kind === 'hollow' && e.state === 'up');
+        const weakest = hollows.reduce((a, b) => (b.hp < a.hp ? b : a), hollows[0]!);
+        if (!weakest) break;
+        view = commandRound(state, run.id, everyone(view, (m) => (m.moves.find((c) => c.move === 'attack')?.targets.includes(weakest.index) ? { move: 'attack', target: weakest.index } : { move: 'cover' })), at + r * 10_000);
+      }
+    }
+    assert.ok(rose > 0, `rose ${rose}`);
+    assert.ok(finished > 0, `finished ${finished}`);
+  });
+
+  test('a pack goes for the same one of the crew', () => {
+    let packs = 0;
+    for (let n = 0; n < 8; n++) {
+      const { view } = against(`pack-${n}`, 'maple_street', ['rad_hound']);
+      const hounds = view.enemies.filter((e) => e.pack && e.state === 'up' && !e.stunned && e.intent?.kind === 'strike');
+      if (hounds.length < 2) continue;
+      assert.equal(new Set(hounds.map((h) => h.intent!.at)).size, 1, 'one target for the whole pack');
+      packs++;
+    }
+    assert.ok(packs > 2, `packs seen ${packs}`);
+  });
+
+  test('a brute is armored: a blade barely scratches it', () => {
+    const brute = ENEMIES.find((e) => e.id === 'raider_brute')!;
+    assert.equal(brute.armor, 3);
+    const machete = GEAR.find((g) => g.id === 'machete')!;
+    assert.equal(Math.max(1, machete.damage! - brute.armor), 1);
   });
 });
 

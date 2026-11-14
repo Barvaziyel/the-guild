@@ -14,7 +14,7 @@ export function enemyRank(e: Enemy): EnemyRank {
   return e.def.flies ? 'air' : e.def.ranged ? 'back' : 'front';
 }
 
-const up = (e: Enemy): boolean => !e.dead && !e.fled;
+const up = (e: Enemy): boolean => !e.dead && !e.fled && !e.down;
 
 /** Whether one of the crew reaches this enemy: with a shot, anything; with a blow from the front, its front rank (or its back, once nobody stands in front), never a flyer. */
 export function reaches(shot: boolean, from: Rank, e: Enemy, enemies: readonly Enemy[]): boolean {

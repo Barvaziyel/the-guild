@@ -5,7 +5,7 @@ import { Meter } from '../components/Bars.tsx';
 import { BattleStage } from '../components/BattleStage.tsx';
 import { BeatLog } from '../components/BeatLog.tsx';
 import { Portrait } from '../components/Portrait.tsx';
-import { fightCard, fightEnd, livePicks, memberState, needsTarget, nerveLine, pickLabel, rankHelp, roundOrders, targetName, theirMoves, withRanks, type Picks, type Ranks } from '../fight-view.ts';
+import { fightCard, fightEnd, livePicks, memberState, needsTarget, nerveLine, pickLabel, rankHelp, roundOrders, targetName, theirMoves, whatTheyAre, withRanks, type Picks, type Ranks } from '../fight-view.ts';
 import { goBack, navigate, useAction, useNow } from '../hooks.ts';
 import { formatDuration } from '../runs-view.ts';
 
@@ -245,6 +245,16 @@ export function Command({
           ))}
         </ul>
         <p className="panel-help">{nerveLine(view)}</p>
+        {whatTheyAre(view).length > 0 && (
+          <>
+            <h4 className="their-kinds-title">What they are</h4>
+            <ul className="fight-lines their-kinds">
+              {whatTheyAre(view).map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+          </>
+        )}
       </section>
 
       <section className="panel" aria-labelledby="orders-title">

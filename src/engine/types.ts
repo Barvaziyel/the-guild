@@ -343,6 +343,8 @@ export interface RunPlan {
 /** A move in a fight the player commands. Everyone has the first four; gear and traits add the rest (`moves` hooks). */
 export type MoveId =
   | 'attack'
+  /** A blow at an enemy on the ground that would get back up (2.4.0): it can't miss. */
+  | 'finish'
   | 'cover'
   | 'patch'
   | 'aim'
