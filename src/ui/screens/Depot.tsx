@@ -19,6 +19,7 @@ import { Portrait } from '../components/Portrait.tsx';
 import { navigate, useAction } from '../hooks.ts';
 import { DEPOT_TABS, type DepotTab } from '../route.ts';
 import { Yard } from '../components/Yard.tsx';
+import { Corners } from '../components/Corners.tsx';
 import { activeRuns, backIn, joinNames, runCrewNames } from '../runs-view.ts';
 import { outpostRows } from '../outposts-view.ts';
 import { projectNote } from '../projects-view.ts';
@@ -83,6 +84,7 @@ export function Depot({ state, now, tab, away, onDismissAway }: Props) {
           <>
             {away && away.days > 0 && <AwayNote state={state} summary={away} onDismiss={onDismissAway} />}
             <Yard state={state} now={now} />
+            <Corners state={state} now={now} />
           </>
         )}
         {tab === 'buildings' && <Buildings state={state} />}

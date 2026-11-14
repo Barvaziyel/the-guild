@@ -4536,3 +4536,92 @@ p.is-bad {
     animation: none;
   }
 }
+
+/* ---------------------------------------------------------------- the Depot's corners (2.7.0) */
+
+.corners-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.corners-count {
+  color: var(--bone-2);
+  font-size: var(--step--1);
+}
+
+.corner-result {
+  margin: 0 0 0.875rem;
+  padding: 0.75rem 0.875rem;
+  border-left: 4px solid var(--sage);
+  background: var(--steel-2);
+}
+
+.corner-result p + p {
+  margin-top: 0.375rem;
+}
+
+.corner-result .btn {
+  margin-top: 0.625rem;
+}
+
+.corner-result-title {
+  font-family: var(--stencil);
+  font-size: var(--step-1);
+  font-weight: 700;
+}
+
+.corner-result-who {
+  color: var(--bone-2);
+  font-size: var(--step--1);
+}
+
+.corner-list {
+  display: grid;
+  gap: 0.375rem;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.corner-row {
+  display: grid;
+  gap: 0.125rem;
+  width: 100%;
+  min-height: 44px;
+  padding: 0.5rem 0.75rem;
+  border: 1.5px solid var(--line);
+  border-radius: 6px;
+  background: var(--steel-2);
+  color: var(--bone);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.corner-row:disabled {
+  cursor: default;
+}
+
+.corner-row.is-locked,
+.corner-row.is-open:disabled {
+  opacity: 0.6;
+}
+
+.corner-row.is-searching {
+  border-color: var(--ochre);
+}
+
+.corner-name {
+  font-weight: 700;
+}
+
+.corner-meta {
+  color: var(--bone-2);
+  font-size: var(--step--1);
+}
+
+.corners-done {
+  margin-top: 0.625rem;
+}

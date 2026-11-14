@@ -185,6 +185,15 @@ export const TOUR_STEPS: readonly TourStep[] = [
       "The Yard shows the Depot as it is right now: who's at work, who's by the fire, who's resting, and who's at the gate. It darkens with the evening. Tap anyone or anything to see what it is.",
   },
   {
+    id: 'corners',
+    part: 'people',
+    title: 'The Depot’s corners',
+    route: () => ({ screen: 'depot' }),
+    target: 'corners',
+    text: () =>
+      'Nobody has been through the old depot yet. Under the yard, pick a corner and send someone who’s home to search it: a few minutes each, one at a time, and each holds something. Someone just back from a run can go too.',
+  },
+  {
     id: 'stats',
     part: 'people',
     title: 'Getting better',

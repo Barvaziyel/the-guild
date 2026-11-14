@@ -6,6 +6,7 @@
  * comes calling, and raiders hit it now and then.
  */
 import { addChronicle, addGuildLog } from './chronicle.ts';
+import { searchReason } from './corners.ts';
 import {
   BONDED_RELIEF,
   COWORKER_DRIFT_CHANCE,
@@ -111,6 +112,7 @@ export function stationProblem(state: GameState, survivorId: string, locationId:
   if (s.status === 'away') return `${s.firstName} is out on a run.`;
   if (s.status !== 'ready') return `${s.firstName} can't go.`;
   if (laidUp(s)) return `${s.firstName} is resting until healed.`;
+  if (searchReason(state, s.id)) return `${s.firstName} ${searchReason(state, s.id)}.`;
   if (outpostStaff(state, locationId).length >= OUTPOST_STAFF) return `The outpost has room for ${OUTPOST_STAFF}.`;
   return undefined;
 }
