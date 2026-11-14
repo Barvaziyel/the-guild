@@ -1088,7 +1088,7 @@ From the ideas in `claude/interactive-ideas.md`, and Aviel's own additions. The 
 
 | Idea | What Aviel said | Status |
 |---|---|---|
-| Take command of a fight: turn-based fights, at least as an option (his ask from 2026-11-12) | Yes. **The game is 2.0.0 when this is done.** Picked first (§7.13) | runs: 1.13.0; the battle stage: 1.14.0; raids at the gate, getting ready, talking first and two bands: 2.0.0; raids that differ, what they want, spoils and captives, outposts like the gate: 2.1.0 (§9.8) |
+| Take command of a fight: turn-based fights, at least as an option (his ask from 2026-11-12) | Yes. **The game is 2.0.0 when this is done.** Picked first (§7.13) | **done**: runs 1.13.0; the battle stage 1.14.0; raids at the gate, getting ready, talking first and two bands 2.0.0; raids that differ, what they want, spoils and captives, outposts like the gate 2.1.0 (§9.8) |
 | Haggle with traders | Yes | planned |
 | Names: things get their names from the guild's people, not from the player, once they've spent enough time with them | Yes, named by the people | planned |
 | What people want: now and then someone asks for something, and doing it (or not) matters | Maybe | to decide |
@@ -1096,6 +1096,7 @@ From the ideas in `claude/interactive-ideas.md`, and Aviel's own additions. The 
 | Prisoners | Fine as built in the Vultures (§7.11) | **done** (1.11.0) |
 | Rations spoil after some time (Balance C had left spoilage out) | His addition, 2026-11-13 | planned |
 | An energy plant: solar while the sun is up, gas at night or in winter, powering some things | His idea, 2026-11-13: "Need to think" | to think about |
+| A view of each outpost, like the yard: the place drawn with its outpost and the people who live there | His addition, 2026-11-14 | planned |
 
 Not picked: choosing the rooms before a scavenge, raids you see coming, feasts and gatherings, talking to people in the yard.
 
