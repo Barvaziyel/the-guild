@@ -164,6 +164,26 @@ describe('decisions at the Depot: in the game', () => {
     assert.ok(def.unanswered.some((o) => told(def, o.text).test(line.text)), line.text);
   });
 
+  test('the answer says what came into the stores or went out (2.5.1)', () => {
+    // Aviel: "What shells?" The light on the hill's ammo is now named, and the card shows the number.
+    const def = getDilemma('light_on_the_hill');
+    let paid = 0;
+    for (let i = 0; i < 40 && paid === 0; i++) {
+      const state = guildFor(def, `hill-${i}`);
+      startDilemma(state, 3, new Rng(`hill${i}`), def.id);
+      const ammo = state.resources.ammo;
+      const result = decideDilemma(state, 1, dayStart(state, 3) + 1000);
+      if (state.resources.ammo === ammo) {
+        assert.equal(result.supplies, undefined);
+        continue;
+      }
+      assert.deepEqual(result.supplies, { ammo: state.resources.ammo - ammo });
+      assert.match(result.text, /ammo/);
+      paid++;
+    }
+    assert.ok(paid > 0);
+  });
+
   test('a decision about someone who is gone is dropped', () => {
     const state = openGame('gone');
     advanceTime(state, dayStart(state, DILEMMA_FIRST_DAY) + 1);

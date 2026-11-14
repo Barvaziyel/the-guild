@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import {
   amountOf,
   dayAt,
+  dueBack,
   getLocation,
   ledFightNow,
   markReportRead,
@@ -94,7 +95,9 @@ function ActiveRun({ state, run }: { state: GameState; run: Run }) {
   const { devTools } = usePrefs();
   const loc = getLocation(run.plan.locationId);
   const beats = visibleBeats(run, now);
-  const left = run.returnAt - now;
+  // Told as if any call or fight still ahead is answered at once; once the crew is at one, its wait counts.
+  const back = dueBack(run, now);
+  const left = back - now;
   const call = radioCard(state, run, now) ?? (ledFightNow(run, now) ? true : undefined);
   const crew = run.plan.crew.map((cid) => ({
     id: cid,
@@ -114,7 +117,7 @@ function ActiveRun({ state, run }: { state: GameState; run: Run }) {
             {formatCountdown(left)}
           </span>
           <span className="countdown-text">
-            {left <= 0 ? 'They should be at the gate now.' : call ? `until they're due back, at ${clockTime(run.returnAt)}, if nobody answers sooner` : `until they're due back, at ${clockTime(run.returnAt)}`}
+            {left <= 0 ? 'They should be at the gate now.' : call ? `until they're due back, at ${clockTime(back)}, if nobody answers sooner` : `until they're due back, at ${clockTime(back)}`}
           </span>
           <span className="run-track" aria-hidden="true">
             <span className="run-fill" style={{ width: `${Math.round(runProgress(run, now) * 100)}%` }} />

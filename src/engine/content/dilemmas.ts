@@ -411,7 +411,7 @@ export const DILEMMAS: readonly DilemmaDef[] = [
         outcomes: [
           {
             test: { close: true },
-            text: 'They go together and come back laughing, with a crate of shells the old camp left behind.',
+            text: 'They go together. The light was a lantern at an empty camp, and whoever lit it left a crate of ammo behind. They come back laughing.',
             effects: [
               { kind: 'supplies', change: { ammo: 8 } },
               { kind: 'bond', amount: 8 },
@@ -419,7 +419,7 @@ export const DILEMMAS: readonly DilemmaDef[] = [
           },
           {
             test: { stat: 'aim', who: 'b', dc: 11 },
-            text: 'Something was waiting up there. {b.first} saw it first. They come back shaken, with the shells they went for.',
+            text: 'The light was a lantern at an empty camp, and something was waiting by it in the dark. {b.first} saw it first and drove it off. They come back shaken, with a box of ammo from the camp.',
             effects: [
               { kind: 'supplies', change: { ammo: 6 } },
               { kind: 'stress', who: 'both', amount: 6 },

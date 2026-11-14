@@ -243,6 +243,21 @@ function storeReplay(state: GameState, run: Run, sim: SimulatedRun): void {
   state.nextId = Math.max(state.nextId, sim.nextId);
 }
 
+/**
+ * When the crew is due back as the player is told it (2.5.1): the run's return
+ * without the half hour by the radio for each call and fight still ahead. The
+ * run itself keeps the wait (nobody may answer), so `returnAt` is when they
+ * really come home; but counted ahead of time it made a 10-minute run read 40
+ * minutes, and gave away that a fight was coming. Once the crew is at the call
+ * or the fight, the wait counts.
+ */
+export function dueBack(run: Run, now: number): number {
+  let at = run.returnAt;
+  for (const f of run.lead?.fights ?? []) if (f.at > now && f.took === undefined && f.ended === undefined) at -= LEAD_WAIT;
+  if (run.radio && run.radio.answer === undefined && run.radio.at > now) at -= RADIO_WAIT;
+  return Math.max(run.departAt, at);
+}
+
 /** The fight on a led run that waits for the player, or is under command, at `now`. */
 export function ledFightNow(run: Run, now: number): LedFight | undefined {
   return run.lead?.fights.find((f) => f.ended === undefined && now >= f.at && now < f.until);

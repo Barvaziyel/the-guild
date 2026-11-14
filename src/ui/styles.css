@@ -2820,6 +2820,13 @@ li:nth-child(even) .pinned {
   font-weight: 700;
 }
 
+/* What came into the stores or went out (2.5.1). */
+.dilemma-supplies {
+  margin-top: 0.5rem;
+  color: var(--bone-2);
+  font-weight: 700;
+}
+
 .dilemma-choices {
   display: grid;
   gap: 0.5rem;

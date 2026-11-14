@@ -4,6 +4,7 @@
  */
 import {
   ADULT_AGE,
+  dueBack,
   CHILD_HELP_AGE,
   getAnimal,
   keeperOf,
@@ -181,10 +182,10 @@ export function buildingCaption(state: GameState, id: BuildingId): string {
  * Who's out, so an empty yard makes sense: "Rhea and Cal are out at Maple
  * Street, back at 9:40 PM." and "Ava lives at the outpost at the Rail Yard."
  */
-export function awayLines(state: GameState): string[] {
+export function awayLines(state: GameState, now = 0): string[] {
   const runs = state.runs.map((run: Run) => {
     const names = run.plan.crew.map((id) => state.survivors.find((s) => s.id === id)?.firstName).filter((n): n is string => n !== undefined);
-    return `${joinNames(names)} ${names.length === 1 ? 'is' : 'are'} out at ${getLocation(run.plan.locationId).name}, back at ${clockTime(run.returnAt)}.`;
+    return `${joinNames(names)} ${names.length === 1 ? 'is' : 'are'} out at ${getLocation(run.plan.locationId).name}, back at ${clockTime(dueBack(run, now))}.`;
   });
   const outposts = state.outposts.flatMap((o) => {
     const names = state.survivors.filter((s) => s.outpost === o.locationId).map((s) => s.firstName);

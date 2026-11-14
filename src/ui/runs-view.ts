@@ -4,6 +4,7 @@
  */
 import {
   amountOf,
+  dueBack,
   MAX_CREW,
   RESOURCE_IDS,
   STAT_IDS,
@@ -70,9 +71,9 @@ export function formatCountdown(ms: number): string {
   return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
 }
 
-/** "back in 12 min", or "due back now" once the time has passed. */
+/** "back in 12 min", or "due back now" once the time has passed. Counts a call or fight ahead as answered at once (`dueBack`). */
 export function backIn(run: Run, now: number): string {
-  const left = run.returnAt - now;
+  const left = dueBack(run, now) - now;
   return left <= 0 ? 'due back now' : `back in ${formatDuration(Math.max(left, 60_000))}`;
 }
 
@@ -246,9 +247,9 @@ export function runCrewNames(run: Run): string[] {
   return run.result.crew.map((s) => s.firstName);
 }
 
-/** 0 at departure, 1 when due back. */
+/** 0 at departure, 1 when due back (`dueBack`). */
 export function runProgress(run: Run, now: number): number {
-  const span = run.returnAt - run.departAt;
+  const span = dueBack(run, now) - run.departAt;
   return span <= 0 ? 1 : Math.max(0, Math.min(1, (now - run.departAt) / span));
 }
 

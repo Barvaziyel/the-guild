@@ -22,7 +22,7 @@ import type { Rng } from './rng.ts';
 import { addPractice, changeStress, effectiveStat, maxHp, rollCheck } from './stats.ts';
 import { fillRoles } from './text.ts';
 import { addTrait, hasTrait } from './traits.ts';
-import type { ActiveDilemma, GameState, Resources, Survivor, VultureMember } from './types.ts';
+import type { ActiveDilemma, GameState, ResourceId, Resources, Survivor, VultureMember } from './types.ts';
 import { RESOURCE_IDS } from './types.ts';
 
 /** What a decision came to: shown to the player and written in the news. */
@@ -31,6 +31,8 @@ export interface DilemmaResult {
   /** The answer chosen, filled in; undefined when nobody answered. */
   choice?: string;
   text: string;
+  /** What came into the stores or went out of them (2.5.1), so the story's "a crate of ammo" has a number. */
+  supplies?: Partial<Record<ResourceId, number>>;
 }
 
 // ---------------------------------------------------------------- who it's about
@@ -196,6 +198,7 @@ function resolve(state: GameState, outcomes: readonly DilemmaOutcome[], label: s
   const roles = dilemmaRoles(state, d)!;
   const outcome = outcomes.find((o) => !o.test || passes(state, o.test, roles, rng)) ?? outcomes[outcomes.length - 1]!;
   let text = fillRoles(outcome.text, roles);
+  const before = { ...state.resources };
   for (const effect of outcome.effects) {
     if (effect.kind === 'reveal') {
       text = text.replace('{place}', reveal(state, rng) ?? 'somewhere');
@@ -213,7 +216,9 @@ function resolve(state: GameState, outcomes: readonly DilemmaOutcome[], label: s
   addGuildLog(state, day, `${def.title}: ${text}`, ['decision', def.id]);
   delete state.dilemmas.active;
   state.dilemmas.nextDay = day + rng.int(DILEMMA_GAP[0], DILEMMA_GAP[1]);
-  return { title: def.title, ...(choice ? { choice } : {}), text };
+  const supplies: Partial<Record<ResourceId, number>> = {};
+  for (const r of RESOURCE_IDS) if (state.resources[r] !== before[r]) supplies[r] = state.resources[r] - before[r];
+  return { title: def.title, ...(choice ? { choice } : {}), text, ...(Object.keys(supplies).length > 0 ? { supplies } : {}) };
 }
 
 function passes(state: GameState, test: DilemmaTest, roles: Record<string, Survivor>, rng: Rng): boolean {
