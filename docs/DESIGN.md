@@ -1097,6 +1097,7 @@ From the ideas in `claude/interactive-ideas.md`, and Aviel's own additions. The 
 | Rations spoil after some time (Balance C had left spoilage out) | His addition, 2026-11-13 | planned |
 | An energy plant: solar while the sun is up, gas at night or in winter, powering some things | His idea, 2026-11-13: "Need to think" | to think about |
 | A view of each outpost, like the yard: the place drawn with its outpost and the people who live there | His addition, 2026-11-14 | planned |
+| More to do at the start, to hook a new player. His new game (2026-11-14): equip the starting gear, upgrade the Garden, send a 10-minute run, then wait about 2.5 hours before that crew can go out again (one run a game day, §7.2). How to fix it isn't decided | His addition, 2026-11-14: "Not sure how to do that though" | to look into |
 
 Not picked: choosing the rooms before a scavenge, raids you see coming, feasts and gatherings, talking to people in the yard.
 
