@@ -334,7 +334,7 @@ export interface RunPlan {
   vehicles?: string[];
   /** How far in: 1 the outskirts (missing means 1), 2 deeper in, 3 the heart of it (§7.10). */
   depth?: number;
-  /** The player leads the fights over the radio (§7.13). Needs a Radio Tower. */
+  /** The player leads the fights over the radio (§7.13). Any crew can be led (2.2.0; before, it needed a Radio Tower). */
   lead?: boolean;
 }
 

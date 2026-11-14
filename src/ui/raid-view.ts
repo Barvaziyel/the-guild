@@ -205,6 +205,7 @@ function recallRow(state: GameState, r: Run, arrive: number, now: number): Recal
     inTime,
   };
   if (r.recalled !== undefined || inTime) return row;
+  if ((state.buildings.radio_tower ?? 0) < 1) return { ...row, note: 'No way to call them home: that takes a Radio Tower.' };
   if (!r.home && !r.lead) {
     row.note = (state.buildings.radio_tower ?? 0) >= 1 ? 'Out of reach: they set out before there was a way to call them.' : 'No way to call them home: that takes a Radio Tower.';
     return row;

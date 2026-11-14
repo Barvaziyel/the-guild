@@ -474,7 +474,8 @@ export function hideStores(state: GameState, now: number): void {
 export function recallPreview(state: GameState, runId: string, now: number): { returnAt: number; inTime: boolean } | undefined {
   const raid = raidSeen(state, now);
   const run = state.runs.find((r) => r.id === runId);
-  if (!raid || !run) return undefined;
+  // Calling a crew home takes the Radio Tower, even one that set out to be led (any crew can be led since 2.2.0).
+  if (!raid || !run || (state.buildings.radio_tower ?? 0) < 1) return undefined;
   const sim = recallReplay(run, now);
   if (!sim || sim.returnAt >= run.returnAt) return undefined;
   // Crews home at the moment the raiders arrive are home to defend.
@@ -486,6 +487,7 @@ export function recallCrew(state: GameState, runId: string, now: number): void {
   if (!raidSeen(state, now)) throw new Error('No raiders are on the road.');
   const run = state.runs.find((r) => r.id === runId);
   if (!run) throw new Error('No such run.');
+  if ((state.buildings.radio_tower ?? 0) < 1) throw new Error('Calling a crew home takes a Radio Tower.');
   const sim = recallReplay(run, now);
   if (!sim || sim.returnAt >= run.returnAt) throw new Error('They can’t be called home now.');
   storeRecall(state, run, sim, now);

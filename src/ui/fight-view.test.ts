@@ -38,13 +38,9 @@ function fighting(seed: string): { state: GameState; run: Run } {
 }
 
 describe('the planner switch', () => {
-  test('needs a Radio Tower, and says how long they wait', () => {
+  test('is there from the start, and says how long they wait', () => {
     const state = openGame('switch');
     state.buildings.radio_tower = 0;
-    const off = leadChoice(state);
-    assert.equal(off.can, false);
-    assert.match(off.help, /Radio Tower/);
-    state.buildings.radio_tower = 1;
     const on = leadChoice(state);
     assert.equal(on.can, true);
     assert.match(on.help, /up to 30 min for your orders/);

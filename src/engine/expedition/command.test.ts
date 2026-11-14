@@ -78,11 +78,9 @@ describe('the start copy', () => {
     }
   });
 
-  test('leading the fights needs a Radio Tower', () => {
+  test('any crew can be led, with or without a Radio Tower', () => {
     const state = openGame('no-radio');
     state.buildings.radio_tower = 0;
-    assert.ok(validatePlan(state, { ...testPlan(state), lead: true }).some((p) => /Radio Tower/.test(p)));
-    state.buildings.radio_tower = 1;
     assert.deepEqual(validatePlan(state, { ...testPlan(state), lead: true }), []);
   });
 });

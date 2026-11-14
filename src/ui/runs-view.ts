@@ -164,8 +164,8 @@ export function defaultPlan(state: GameState, locationId: string): RunPlan {
     ammo: 0,
     approach: 'balanced',
     retreat: 'downed',
-    // With a Radio Tower the player leads the fights unless they say otherwise (Aviel, 2.2.0).
-    ...((state.buildings.radio_tower ?? 0) >= 1 ? { lead: true } : {}),
+    // The player leads the fights unless they say otherwise (Aviel, 2.2.0).
+    lead: true,
   };
 }
 
