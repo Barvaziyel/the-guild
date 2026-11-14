@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { decideDilemma, type DilemmaResult, type GameState } from '../../engine/index.ts';
-import { dilemmaCard } from '../dilemma-view.ts';
+import { dilemmaCard, suppliesLine } from '../dilemma-view.ts';
 import { navigate, useAction, useKeepInView } from '../hooks.ts';
 import { Portrait } from './Portrait.tsx';
 
@@ -20,6 +20,7 @@ export function DilemmaCard({ state, now }: { state: GameState; now: number }) {
         </h3>
         {result.choice && <p className="dilemma-chosen">{result.choice}</p>}
         <p className="dilemma-text">{result.text}</p>
+        {suppliesLine(result.supplies) && <p className="dilemma-supplies">{suppliesLine(result.supplies)}</p>}
         <button type="button" className="btn" onClick={() => setResult(null)}>
           Done
         </button>

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { DAY_MS, LOCATIONS, MAX_CREW, amountOf, completeRun, dayAt, dayStart, startRun, type RiskEstimate } from '../engine/index.ts';
+import { DAY_MS, LEAD_WAIT, LOCATIONS, MAX_CREW, Rng, amountOf, completeRun, dayAt, dayStart, startRun, type RiskEstimate } from '../engine/index.ts';
 import { clockTime } from './time.ts';
 import { T0, openGame, testGame, testPlan } from '../engine/test-utils.ts';
 import { DEPOT_SPOT, MAP_SPOTS, mapLabel, reachMap } from './reach-map.ts';
@@ -111,6 +111,19 @@ describe('crews out and reports', () => {
     assert.equal(runOfSurvivor(state, state.survivors[3]!.id), undefined);
     assert.match(backIn(run, T0), /^back in \d+ min$/);
     assert.equal(backIn(run, run.returnAt), 'due back now');
+
+    // A led crew with a fight ahead (2.5.1): told as if it's answered at once; Aviel saw a 10-minute run read 40.
+    for (let i = 0; i < 200; i++) {
+      const s = openGame(`rail-${i % 5}`);
+      s.rng = new Rng(`rail-${i}`).getState();
+      const led = startRun(s, { ...testPlan(s, 'rail_yard', {}, 4), lead: true }, T0);
+      if (!led.lead?.fights.length) continue;
+      assert.equal(backIn(led, T0), `back in ${formatDuration(led.returnAt - LEAD_WAIT - T0)}`);
+      assert.ok(led.returnAt - LEAD_WAIT - T0 <= 15 * 60_000, 'a Rail Yard run, a quarter of an hour at most');
+      const f = led.lead.fights[0]!;
+      assert.equal(backIn(led, f.at), `back in ${formatDuration(led.returnAt - f.at)}`, 'at the fight, the wait counts');
+      break;
+    }
 
     assert.equal(noticeNumber('r12'), noticeNumber('r12'));
     assert.notEqual(noticeNumber('r12'), noticeNumber('r13'));

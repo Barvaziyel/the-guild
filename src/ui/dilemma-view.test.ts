@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import { DILEMMA_DAYS, Rng, dayStart, decideDilemma, getDilemma, startDilemma } from '../engine/index.ts';
 import { testGame } from '../engine/test-utils.ts';
-import { dilemmaCard, dilemmaDeadline, dilemmaNotices } from './dilemma-view.ts';
+import { dilemmaCard, dilemmaDeadline, dilemmaNotices, suppliesLine } from './dilemma-view.ts';
 
 describe('decisions on screen', () => {
   test('the card fills in the people, the four answers and when it has to be decided', () => {
@@ -45,5 +45,14 @@ describe('decisions on screen', () => {
     assert.match(due[0]!.body, /^A good coat: unless you choose/);
     decideDilemma(state, 0, dayStart(state, 3) + 1000);
     assert.equal(dilemmaNotices(state)[0]!.id, `dilemma-${state.dilemmas.nextDay}`);
+  });
+});
+
+describe('what an answer put in the stores (2.5.1)', () => {
+  test('a line of what changed, gains and losses, or nothing', () => {
+    assert.equal(suppliesLine(undefined), undefined);
+    assert.equal(suppliesLine({}), undefined);
+    assert.equal(suppliesLine({ ammo: 6 }), 'Ammo +6.');
+    assert.equal(suppliesLine({ tech: 2, rations: -6 }), 'Rations −6, Tech +2.');
   });
 });

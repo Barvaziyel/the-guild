@@ -14,6 +14,7 @@ export {
   fightPreview,
   lastFought,
   fightNow,
+  dueBack,
   ledFightNow,
   letThemFight,
   settleLed,

@@ -10,7 +10,7 @@ import { T0, openGame, testPlan } from '../test-utils.ts';
 import type { GameState, RoundOrders, Run, RunJob } from '../types.ts';
 import type { FightView } from './command.ts';
 import { validatePlan } from './plan.ts';
-import { commandRound, fightNow, fightPreview, lastFought, ledFightNow, letThemFight, startRun, takeCommand } from './runs.ts';
+import { commandRound, dueBack, fightNow, fightPreview, lastFought, ledFightNow, letThemFight, startRun, takeCommand } from './runs.ts';
 import { runStart, simulateRun } from './sim.ts';
 import { takenNames } from './stories.ts';
 
@@ -136,6 +136,20 @@ describe('a led run', () => {
     }
     assert.equal(ledFightNow(run, run.lead!.fights[0]!.at - 1), undefined);
     assert.equal(ledFightNow(run, run.lead!.fights[0]!.at), run.lead!.fights[0]);
+  });
+
+  test('the time they’re due back counts a fight still ahead as answered at once, and the wait once they’re at it (2.5.1)', () => {
+    const { state, run } = ledRun('due');
+    const fights = run.lead!.fights;
+    const first = fights[0]!;
+    // Aviel: a 10-minute Rail Yard run read 40 minutes, the half hour by the radio counted before the fight came.
+    assert.equal(dueBack(run, run.departAt), run.returnAt - fights.length * LEAD_WAIT);
+    assert.equal(dueBack(run, first.at - 1), run.returnAt - fights.length * LEAD_WAIT);
+    assert.equal(dueBack(run, first.at), run.returnAt - (fights.length - 1) * LEAD_WAIT, 'at the fight, its wait counts');
+    // Answered at once, they're back when they were said to be.
+    const told = dueBack(run, run.departAt);
+    letThemFight(state, run.id, first.at);
+    assert.equal(dueBack(run, first.at), told);
   });
 
   test('in command: round by round, then the run goes on from the moment it ended', () => {

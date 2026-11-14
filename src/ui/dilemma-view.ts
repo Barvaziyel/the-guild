@@ -3,10 +3,11 @@
  * with its four answers, its deadline, and the notices around it. Plain
  * TypeScript so it can be tested in Node.
  */
-import { DAY_MS, dayStart, dilemmaRoles, fillRoles, getDilemma, type GameState, type Survivor } from '../engine/index.ts';
+import { DAY_MS, RESOURCE_IDS, dayStart, dilemmaRoles, fillRoles, getDilemma, type GameState, type ResourceId, type Survivor } from '../engine/index.ts';
 import type { PlannedNotice } from './runs-view.ts';
 import { joinNames } from './runs-view.ts';
 import { clockTime } from './time.ts';
+import { RESOURCE_NAMES } from './view.ts';
 
 export interface DilemmaCard {
   title: string;
@@ -19,6 +20,12 @@ export interface DilemmaCard {
   deadline: string;
   /** "After that, Dex and Wren will settle it themselves." */
   otherwise: string;
+}
+
+/** What a decision put in the stores or took out (2.5.1): "Ammo +6." or "Rations −6, Tech +2." Undefined when nothing changed. */
+export function suppliesLine(supplies: Partial<Record<ResourceId, number>> | undefined): string | undefined {
+  const parts = RESOURCE_IDS.filter((r) => supplies?.[r]).map((r) => `${RESOURCE_NAMES[r]} ${supplies![r]! > 0 ? '+' : '−'}${Math.abs(supplies![r]!)}`);
+  return parts.length > 0 ? `${parts.join(', ')}.` : undefined;
 }
 
 /** When the people involved settle it themselves, in epoch ms. */

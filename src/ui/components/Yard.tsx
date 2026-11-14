@@ -62,7 +62,7 @@ export function Yard({ state, now }: { state: GameState; now: number }) {
     pick(e.target);
   };
 
-  const away = awayLines(state);
+  const away = awayLines(state, now);
   return (
     <section aria-label="The yard">
       <div ref={box} className="yard-scene" data-tour="yard" onClick={(e: MouseEvent) => pick(e.target)} onKeyDown={onKey} dangerouslySetInnerHTML={{ __html: svg }} />
