@@ -16,6 +16,7 @@ import {
   ENEMY_TOUGH_HP,
 } from '../constants.ts';
 import type { FightAct, FightView } from './command.ts';
+import type { FightGoal } from './goals.ts';
 import { getTrait, type LocationDef, type RunTally, type VehicleDef } from '../content/index.ts';
 import { dayAt } from '../game.ts';
 import { mulGearHook, sumGearHook } from '../gear.ts';
@@ -154,6 +155,8 @@ export interface Sim {
   gate?: { tower: number; wall: boolean; shored?: boolean; dog?: string; machines?: number; marked?: string };
   /** The acts of the commanded fight being played, for the battle stage (§7.13); unset in any other fight. */
   fightActs?: { round: number; acts: FightAct[] };
+  /** The job the fight being played came with (2.5.0), if any. */
+  goal?: FightGoal;
 }
 
 /** A led run's fights (§7.13). */

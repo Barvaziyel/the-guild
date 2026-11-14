@@ -100,7 +100,7 @@ describe('a round on the stage', () => {
     assert.equal(m.crew.length, view.crew.length);
     assert.ok(m.crew.every((f) => f.look !== undefined));
     assert.equal(m.giving, crewKey(view.crew[0]!.id));
-    assert.deepEqual(m.enemies.map((e) => e.kind), view.enemies.map((e) => e.kind));
+    assert.deepEqual(m.enemies.map((e) => e.kind), view.enemies.filter((e) => e.state !== 'waiting').map((e) => e.kind));
     assert.ok(m.targets.length > 0);
   });
 
@@ -131,5 +131,43 @@ describe('a round on the stage', () => {
 
   test('nothing to play when the fight hasn’t moved on', () => {
     assert.deepEqual(roundFrames(VIEW, VIEW), []);
+  });
+});
+
+describe('a job on the stage (2.5.0)', () => {
+  const goal: NonNullable<FightView['goal']> = { id: 'hold_door', title: 'Hold the door', move: 'Hold the door', intro: 'More of them are coming through a side door.', detail: '', progress: 0, needed: 3, state: 'open', doneLine: 'The door is shut and wedged. No more get through.', lostLine: 'Another one comes through the door.' };
+  const third = { ...VIEW.enemies[0]!, index: 2, name: 'Raider Scav 3', hp: 10, state: 'waiting' as const };
+  const before: FightView = { ...VIEW, enemies: [...VIEW.enemies, third], goal, lines: [{ text: 'a' }] };
+  const after: FightView = {
+    ...before,
+    round: 3,
+    enemies: [...VIEW.enemies, { ...third, state: 'up' }],
+    goal: { ...goal, progress: 1 },
+    lines: [{ text: 'a' }, { text: 'Mara puts a shoulder to the door. (1 of 3)' }, { text: 'Another one comes through the door.' }],
+    acts: [
+      { round: 2, line: 1, by: 'a', kind: 'job', amount: 1 },
+      { round: 2, line: 2, by: 2, kind: 'arrive' },
+    ],
+  };
+  const at = { place: 'kessler_farm', seed: 'job' };
+
+  test('one behind the door isn’t on the stage until it comes through', () => {
+    assert.deepEqual(stageModel(openGame('job'), at, before, { picks: {} }).enemies.map((e) => e.key), [enemyKey(0), enemyKey(1)]);
+    const frames = roundFrames(before, after);
+    assert.equal(frames.length, 2);
+    assert.equal(frames[0]!.state[enemyKey(2)], 'waiting');
+    assert.equal(frames[1]!.state[enemyKey(2)], 'up');
+    assert.equal(frames[1]!.effect.pop, 'Comes through');
+    assert.equal(stageModel(openGame('job'), at, after, { picks: {} }, frames[1]).enemies.length, 3);
+  });
+
+  test('the job’s plate counts the work as the round plays, and says how it ended', () => {
+    const frames = roundFrames(before, after);
+    assert.equal(frames[0]!.effect.pop, 'Hold the door');
+    const shown = stageModel(openGame('job'), at, after, { picks: {} }, frames[0]);
+    assert.deepEqual(shown.job, { title: 'Hold the door', needed: 3, progress: 1, state: 'open' });
+    const done = stageModel(openGame('job'), at, { ...after, goal: { ...goal, progress: 3, state: 'done' } }, { picks: {} });
+    assert.equal(done.job!.state, 'done');
+    assert.equal(stageModel(openGame('job'), at, VIEW, { picks: {} }).job, undefined);
   });
 });

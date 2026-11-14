@@ -95,6 +95,19 @@ describe('the battle stage', () => {
     assertWellFormed(stageSvg({ place: 'checkpoint_bravo', crew: crew(8), enemies: foes(['raider_scav', 'raider_scav', 'raider_gunner', 'raider_brute', 'rad_hound', 'hollow']), targets: [] }));
   });
 
+  test('a job shows in the top left beside their nerve: a pip for each turn of work, then how it ended (2.5.0)', () => {
+    const base = { place: 'kessler_farm', crew: crew(3), enemies: foes(['raider_scav', 'raider_scav']), targets: [], nerve: 70 };
+    const open = stageSvg({ ...base, job: { title: 'Grab their stash', progress: 1, needed: 2, state: 'open' } });
+    assertWellFormed(open);
+    assert.match(open, /aria-label="Grab their stash, 1 of 2"/);
+    assert.equal((open.match(/<circle cx="[\d.]+" cy="13.5"/g) ?? []).length, 2);
+    const lost = stageSvg({ ...base, job: { title: 'Grab their stash', progress: 1, needed: 2, state: 'lost' } });
+    assert.match(lost, /Grab their stash: lost/);
+    // It fits left of the nerve meter.
+    const w = Number(/<g class="bt-job"[^>]*><rect x="6" y="5" width="(\d+)"/.exec(open)![1]);
+    assert.ok(6 + w < STAGE_W - 120, `width ${w}`);
+  });
+
   test('long names break onto two lines; a number stays with its name', () => {
     assert.deepEqual(labelLines('Gunner', 52), ['Gunner']);
     assert.deepEqual(labelLines('Glowing Hollow', 52), ['Glowing', 'Hollow']);

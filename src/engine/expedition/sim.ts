@@ -562,7 +562,8 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
     ...(opts.answer !== undefined ? { answer: opts.answer, answerWait: opts.answerWait ?? 0 } : {}),
   };
   // A led run stops at every fight and calls home (§7.13); it needs the radio.
-  if (plan.lead && sim.radio) sim.lead = { plans: opts.fights ?? [], stops: [], ends: [] };
+  // Any crew can be led (2.2.0); the Radio Tower is for forks and calling a crew home.
+  if (plan.lead) sim.lead = { plans: opts.fights ?? [], stops: [], ends: [] };
   // A rescue run carries the person who called for help, and what trouble they're in (§10.1).
   const call = state.rescue?.call;
   if (plan.job === 'rescue' && call && call.locationId === plan.locationId) sim.rescue = { person: structuredClone(call.person), trouble: call.trouble };

@@ -12,6 +12,7 @@ import {
   fightNotices,
   fightWakeTimes,
   hpShare,
+  jobPanel,
   leadChoice,
   leadReportLine,
   livePicks,
@@ -292,5 +293,44 @@ describe('their moves, and where people stand (2.3.0)', () => {
     assert.equal(lines[0], 'Raider Brute: winding up a big hit for Mara, who is out of reach at the back now: it turns to someone in front.');
     assert.equal(lines[2], 'Raider Gunner: shooting at Mara.');
     assert.match(rankHelp(mara, 'front'), /in reach of every blow/);
+  });
+});
+
+describe('the job a fight came with (2.5.0)', () => {
+  const member = (id: string, name: string): FightMemberView => {
+    const moves: FightMemberView['moves'] = [
+      { move: 'attack', name: 'Strike', detail: '', target: 'enemy', targets: [0] },
+      { move: 'job', name: 'Haul the crate', detail: 'No attack.', target: 'none', targets: [] },
+    ];
+    return { id, name, hp: 10, maxHp: 20, state: 'up', aimed: false, moves, rank: 'front', byRank: { front: moves, back: moves } };
+  };
+  const scav = { index: 0, name: 'Raider Scav 1', type: 'raider', kind: 'raider_scav', hp: 4, maxHp: 10, state: 'up' as const, stunned: false, named: false, nemesis: false, vulture: false, rank: 'front' as const, damage: 3, armor: 0, rises: false, pack: false, heavy: false, leader: false, fearless: false };
+  const goal: NonNullable<FightView['goal']> = { id: 'grab_and_go', title: 'Grab their stash', move: 'Haul the crate', intro: 'Their stash is right there, and they mean to get it away.', detail: '', progress: 1, needed: 2, deadline: 3, state: 'open', doneLine: 'The crate is clear, and it’s ours.', lostLine: 'They get their stash away.' };
+  const view: FightView = { round: 2, maxRounds: 6, place: 'Kessler Farm', enemies: [scav], crew: [member('a', 'Mara'), member('b', 'Kai')], meds: 0, ammo: 0, lines: [], acts: [], goal };
+
+  test('none without one', () => {
+    assert.equal(jobPanel({ ...view, goal: undefined } as FightView), undefined);
+  });
+
+  test('what it is, how long is left, and who is on it', () => {
+    const open = jobPanel(view)!;
+    assert.equal(open.title, 'Grab their stash');
+    assert.deepEqual([open.progress, open.needed, open.state], [1, 2, 'open']);
+    assert.deepEqual(open.lines, [goal.intro, 'It has to be done by the end of round 3: this round and the next.', 'Give someone Haul the crate, or one of those left to fight on their own may take it.']);
+    assert.equal(jobPanel({ ...view, round: 3 })!.lines[1], 'It has to be done this round, or it’s lost.');
+    assert.equal(jobPanel(view, { a: { move: 'job' } })!.lines.at(-1), 'Mara is on it this round.');
+    assert.equal(jobPanel(view, { a: { move: 'job' }, b: { move: 'job' } })!.lines.at(-1), 'Mara and Kai are on it this round.');
+  });
+
+  test('a door says how many are still behind it', () => {
+    const door: FightView = { ...view, enemies: [scav, { ...scav, index: 1, state: 'waiting' }, { ...scav, index: 2, state: 'waiting' }], goal: { ...goal, id: 'hold_door', title: 'Hold the door', move: 'Hold the door', deadline: undefined } as NonNullable<FightView['goal']> };
+    delete door.goal!.deadline;
+    assert.equal(jobPanel(door)!.lines[1], 'Two more behind the door. Each round nobody holds it, one comes through.');
+    assert.deepEqual(whatTheyAre(door), whatTheyAre({ ...door, enemies: [scav] }), 'one behind the door adds nothing');
+  });
+
+  test('done or lost, it says so', () => {
+    assert.deepEqual(jobPanel({ ...view, goal: { ...goal, progress: 2, state: 'done' } })!.lines, [goal.doneLine]);
+    assert.deepEqual(jobPanel({ ...view, goal: { ...goal, state: 'lost' } })!.lines, [goal.lostLine]);
   });
 });

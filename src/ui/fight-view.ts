@@ -258,7 +258,7 @@ export function whatTheyAre(view: FightView): string[] {
   const out: string[] = [];
   const seen = new Set<string>();
   for (const e of view.enemies) {
-    if (e.state === 'dead' || e.state === 'fled' || seen.has(e.kind)) continue;
+    if (e.state === 'dead' || e.state === 'fled' || e.state === 'waiting' || seen.has(e.kind)) continue;
     seen.add(e.kind);
     const kind = kindName(e);
     if (e.armor >= 2) out.push(`${kind}: armored, so ${e.armor} comes off every hit. Smash goes through armor, a called shot doubles the damage first, and big guns hit hardest.`);
@@ -276,6 +276,42 @@ export function whatTheyAre(view: FightView): string[] {
 function kindName(e: FightView['enemies'][number]): string {
   return e.named ? e.name : e.name.replace(/ \d+$/, '');
 }
+
+/** The job a fight came with, for its panel on the fight screen (2.5.0). */
+export interface JobPanel {
+  title: string;
+  /** How it stands, in a line or two. */
+  lines: string[];
+  progress: number;
+  needed: number;
+  state: 'open' | 'done' | 'lost';
+}
+
+/**
+ * The fight's job (2.5.0): what it is, how far along, how long is left, and
+ * who is on it this round with the orders picked so far.
+ */
+export function jobPanel(view: FightView, picks: Picks = {}): JobPanel | undefined {
+  const g = view.goal;
+  if (!g) return undefined;
+  const base = { title: g.title, progress: g.progress, needed: g.needed, state: g.state };
+  if (g.state === 'done') return { ...base, lines: [g.doneLine] };
+  if (g.state === 'lost') return { ...base, lines: [g.lostLine] };
+  const lines = [g.intro];
+  const door = view.enemies.filter((e) => e.state === 'waiting').length;
+  if (door > 0) lines.push(`${door === 1 ? 'One more' : `${numberWord(door)} more`} behind the door. Each round nobody holds it, one comes through.`);
+  if (g.deadline !== undefined) {
+    const left = g.deadline - view.round + 1;
+    lines.push(left <= 1 ? `It has to be done this round, or it’s lost.` : `It has to be done by the end of round ${g.deadline}: this round and ${left === 2 ? 'the next' : `${left - 1} more`}.`);
+  }
+  const on = view.crew.filter((m) => picks[m.id]?.move === 'job').map((m) => m.name);
+  lines.push(on.length > 0 ? `${listWords(on)} ${on.length === 1 ? 'is' : 'are'} on it this round.` : `Give someone ${g.move}, or one of those left to fight on their own may take it.`);
+  return { ...base, lines };
+}
+
+const NUMBER_WORDS = ['no', 'one', 'two', 'three', 'four', 'five'];
+const numberWord = (n: number): string => (NUMBER_WORDS[n] ?? String(n)).replace(/^\w/, (c) => c.toUpperCase());
+const listWords = (names: string[]): string => (names.length <= 1 ? (names[0] ?? '') : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`);
 
 /** Their nerve, in words (2.3.0): how close they are to breaking, or that they won't. */
 export function nerveLine(view: FightView): string {

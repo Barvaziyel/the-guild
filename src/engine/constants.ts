@@ -837,6 +837,14 @@ export const RUN_NERVE = 40;
 export const RUN_CHANCE = 0.5;
 /** A pack (2.4.0): +1 to hit for each other one going for the same person, up to this. */
 export const PACK_TO_HIT_MAX = 2;
+/** How often a fight on a run comes with a job (2.5.0): hold the door, grab their stash, get someone out, open a cage. */
+export const GOAL_CHANCE = 0.25;
+/** How many more come through a door nobody holds. */
+export const DOOR_REINFORCEMENTS = 2;
+/** A stranger got out comes home to join this often; the rest give what they carry and go their own way. */
+export const GOAL_RESCUE_JOINS = 0.5;
+/** What they give instead: meds. */
+export const GOAL_RESCUE_MEDS: [number, number] = [1, 2];
 /** A crew that can't reach what's left (drones, and nobody who can shoot) pulls out and leaves this share of what it found. */
 export const UNREACHABLE_DROP = 1 / 3;
 /** Intimidate, Soothe, Short out: checks against this + danger. */

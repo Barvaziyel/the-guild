@@ -86,6 +86,7 @@ import {
 } from './context.ts';
 import { FightPause, attackKind, defaultRank, enemyNames, fightView, movesFor, validOrder, type FightAct } from './command.ts';
 import { enemyReaches, reaches } from './reach.ts';
+import { goalRoundEnds, goalView, goalWorker, rollGoal, settleGoal, workGoal } from './goals.ts';
 import { afterFight, announceNemesis, enemyRef, grudgeBonus, maybeNemesisEscape, nemesisEnemy, nemesisJoins, nemesisKilled } from './stories.ts';
 
 export interface Enemy {
@@ -115,6 +116,8 @@ export interface Enemy {
   down?: { round: number; by: Member; ranged: boolean };
   /** Got back up once already: the next time it drops, it stays down. */
   rose?: boolean;
+  /** Behind a door nobody has held yet (2.5.0): not in the fight until it comes through. */
+  waiting?: boolean;
 }
 
 /** What an enemy means to do this round (§7.4, 2.3.0): a hit or a big hit at someone, or a run for it. Shown to a commander before the orders. */
@@ -152,7 +155,7 @@ export function damageThrough(damage: number, armor: number): number {
 
 export type CombatEnd = 'won' | 'withdrew' | 'stalemate' | 'routed';
 
-const living = (enemies: readonly Enemy[]): Enemy[] => enemies.filter((e) => !e.dead && !e.fled && !e.down);
+const living = (enemies: readonly Enemy[]): Enemy[] => enemies.filter((e) => !e.dead && !e.fled && !e.down && !e.waiting);
 
 /** On the ground and getting back up unless someone finishes it (2.4.0). */
 const fallen = (enemies: readonly Enemy[]): Enemy[] => enemies.filter((e) => e.down !== undefined && !e.dead);
@@ -202,7 +205,9 @@ export function buildEncounter(sim: Sim, type?: string): Enemy[] {
 }
 
 /** "three Rad-hounds", "a Raider Gunner and two Raider Scavs", "Old Notch and a Rad-hound". */
-export function describeGroup(enemies: readonly Enemy[]): string {
+export function describeGroup(all: readonly Enemy[]): string {
+  // Those still behind a door (2.5.0) aren't part of it yet.
+  const enemies = all.filter((e) => !e.waiting);
   const parts: string[] = enemies.filter((e) => e.nemesis || e.vulture).map((e) => e.nemesis?.name ?? e.vulture!.name);
   const counts = new Map<EnemyDef, number>();
   for (const e of enemies) if (!e.nemesis && !e.vulture) counts.set(e.def, (counts.get(e.def) ?? 0) + 1);
@@ -756,6 +761,9 @@ function actOnOrder(sim: Sim, m: Member, given: MoveOrder, enemies: readonly Ene
     case 'finish':
       finishOff(sim, m, foe!, ctx);
       return true;
+    case 'job':
+      act(sim, { by: m.s.id, kind: 'job', amount: workGoal(sim, m, sim.goal!) });
+      return true;
     case 'called_shot':
       survivorAttack(sim, m, foe!, ctx, { toHit: CALLED_SHOT_TO_HIT + spot, double: true, words: { miss: 'takes a called shot at', hit: 'puts a called shot into', shot: true } });
       return true;
@@ -856,9 +864,13 @@ function outOfReach(sim: Sim, enemies: readonly Enemy[]): void {
 }
 
 export function fight(sim: Sim, enemies: Enemy[], start: FightStart): FightResult {
+  // Some fights come with a job (2.5.0); a door brings more of them, waiting behind it.
+  const goal = rollGoal(sim, enemies);
+  sim.goal = goal;
+  const present = enemies.filter((e) => !e.waiting).length;
   // A group that can break has nerve (2.3.0): with nothing else, they break once more than half are dead, as before.
   const breakers = enemies.some((e) => e.def.morale === 'breaks' && !e.nemesis);
-  const morale: Morale | undefined = breakers ? { nerve: NERVE_FULL, perDeath: Math.ceil(NERVE_FULL / (Math.floor(enemies.length / 2) + 1)) } : undefined;
+  const morale: Morale | undefined = breakers ? { nerve: NERVE_FULL, perDeath: Math.ceil(NERVE_FULL / (Math.floor(present / 2) + 1)) } : undefined;
   const state: FightState = { enemies, names: enemyNames(enemies), downedHere: [], fledHere: [], ...(morale ? { morale } : {}) };
   // On a led run the crew stops here and calls home first (§7.13).
   const plan = callHome(sim, enemies);
@@ -908,7 +920,7 @@ export function fight(sim: Sim, enemies: Enemy[], start: FightStart): FightResul
     if (plan && crewActs) {
       orders = plan.rounds[given];
       // Under command and out of orders: the fight waits for the next round's.
-      if (!orders && plan.live) throw new FightPause(fightView(sim, enemies, round, fightFrom, undefined, morale?.nerve));
+      if (!orders && plan.live) throw new FightPause(fightView(sim, enemies, round, fightFrom, undefined, morale?.nerve, goal && goalView(goal)));
       if (orders) given++;
     }
     attackCtx.commanded = orders !== undefined;
@@ -917,10 +929,18 @@ export function fight(sim: Sim, enemies: Enemy[], start: FightStart): FightResul
     if (crewActs) {
       // Those on the ground someone is already finishing this round.
       const finishing = new Set<Enemy>();
+      // Who of those on their own takes the job this round (2.5.0), unless the player put someone on it.
+      // Not someone the blows coming at them would put down: they keep their head down instead.
+      const onIt = orders !== undefined && Object.values(orders.moves).some((o) => o.move === 'job');
+      const worker = goal && !onIt ? goalWorker(sim, goal, round, active(sim).filter((m) => !orders?.moves[m.s.id] && !blowsWouldDrop(m, enemies)), (m) => attackDamage(sim, m)) : undefined;
       for (const m of active(sim)) {
         if (living(enemies).length === 0) break;
         const order = orders?.moves[m.s.id];
         if (order && actOnOrder(sim, m, order, enemies, attackCtx, tactics)) continue;
+        if (m === worker && goal?.state === 'open') {
+          act(sim, { by: m.s.id, kind: 'job', amount: workGoal(sim, m, goal) });
+          continue;
+        }
         const shot = attackKind(sim, m) === 'shoot';
         const from = m.perch ? 'back' : (m.rank ?? 'front');
         // On their own, one on the ground in reach gets finished before it's back up (2.4.0).
@@ -956,6 +976,8 @@ export function fight(sim: Sim, enemies: Enemy[], start: FightStart): FightResul
 
     if (!(start.drop && round === 1)) enemyRound(sim, state, tactics, attackCtx.commanded);
     riseAgain(sim, state, round, attackCtx.commanded);
+    // Through a door nobody held comes another one; a job past its time is lost (2.5.0).
+    if (goal) for (const e of goalRoundEnds(sim, goal, round, enemies)) act(sim, { by: enemies.indexOf(e), kind: 'arrive' });
 
     if (active(sim).length === 0) {
       end = standing(sim).length === 0 ? 'routed' : 'withdrew';
@@ -1010,10 +1032,12 @@ export function fight(sim: Sim, enemies: Enemy[], start: FightStart): FightResul
   }
 
   settleFallen(sim, enemies, attackCtx);
+  if (goal) settleGoal(sim, goal, end === 'won');
+  sim.goal = undefined;
   afterFight(sim, enemies);
   for (const e of enemies) e.intent = undefined;
   // A commanded fight as it ended, for the screen that shows how it went.
-  if (plan && sim.lead) sim.lead.ends[sim.lead.stops.length - 1] = fightView(sim, enemies, attackCtx.round, fightFrom, end, morale?.nerve);
+  if (plan && sim.lead) sim.lead.ends[sim.lead.stops.length - 1] = fightView(sim, enemies, attackCtx.round, fightFrom, end, morale?.nerve, goal && goalView(goal));
   sim.fightActs = undefined;
 
   const loot: Partial<Record<ResourceId, number>> = {};

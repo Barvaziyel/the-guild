@@ -19,6 +19,8 @@ export interface StageFrame {
   hp: Record<string, number>;
   state: Record<string, Shown>;
   stunned: Record<string, boolean>;
+  /** The fight's job as the act leaves it (2.5.0). */
+  job?: { progress: number; state: 'open' | 'done' | 'lost' };
 }
 
 /** What the stage needs to know about the orders being given. */
@@ -119,7 +121,7 @@ export function stageModel(state: GameState, at: StageAt, view: FightView, order
   });
   // The guild's dog at the gate: it fights, but nobody can hurt it.
   if (view.dog) crew.push({ key: crewKey('dog'), side: 'crew', label: view.dog, title: `${view.dog}, the dog`, hp: 0, maxHp: 0, state: 'up', kind: 'dog' });
-  const enemies: StageFighter[] = view.enemies.map((e) => {
+  const enemies: StageFighter[] = view.enemies.map((e): StageFighter => {
     const key = enemyKey(e.index);
     const hp = frame?.hp[key] ?? e.hp;
     const shown = frame?.state[key] ?? e.state;
@@ -143,7 +145,7 @@ export function stageModel(state: GameState, at: StageAt, view: FightView, order
       // Their moves for the round about to be given (not while the last one plays), aimed at whoever they can still reach.
       ...(!frame && e.intent ? { intent: { kind: e.intent.kind, ...(e.intent.at && canStillReach(view, e, e.intent.at) ? { at: crewKey(e.intent.at) } : {}) } } : {}),
     };
-  });
+  }).filter((f) => f.state !== 'waiting');
   const { targets, picked } = frame ? { targets: [], picked: undefined } : stageTargets(view, orders);
   return {
     place: at.place,
@@ -154,6 +156,7 @@ export function stageModel(state: GameState, at: StageAt, view: FightView, order
     ...(picked ? { picked } : {}),
     ...(frame ? { effect: frame.effect } : {}),
     ...(view.nerve !== undefined ? { nerve: view.nerve } : {}),
+    ...(view.goal ? { job: { title: view.goal.title, needed: view.goal.needed, ...(frame?.job ?? { progress: view.goal.progress, state: view.goal.state }) } } : {}),
   };
 }
 
@@ -193,6 +196,10 @@ function effectOf(a: FightAct, after: FightView): StageEffect {
       return { ...base, motion: a.shot ? 'shoot' : 'lunge', reaction: 'hit', pop: 'Finished', tone: 'hit' };
     case 'rise':
       return { by, motion: 'none', reaction: 'none', pop: 'Gets up', tone: 'hurt' };
+    case 'arrive':
+      return { by, motion: 'none', reaction: 'none', pop: 'Comes through', tone: 'hurt' };
+    case 'job':
+      return { by, motion: 'act', reaction: 'none', pop: after.goal?.move ?? 'On the job', tone: 'plain' };
     case 'withdraw':
       return { by, motion: 'act', reaction: 'none', pop: a.ok ? 'Pulling out' : 'Cut off', tone: a.ok ? 'plain' : 'hurt', ...(a.ok ? { leaving: after.crew.filter((m) => m.state === 'up').map((m) => crewKey(m.id)) } : {}) };
     case 'flee':
@@ -231,6 +238,8 @@ export function roundFrames(before: FightView, after: FightView): StageFrame[] {
     return after.crew.find((m) => crewKey(m.id) === key)?.state;
   };
   const frames: StageFrame[] = [];
+  // The job's work as the round goes (2.5.0); a job lost at the end of the round shows lost with the last act.
+  let job = before.goal ? { progress: before.goal.progress, state: before.goal.state } : undefined;
   for (const a of after.acts.slice(before.acts.length)) {
     const by = keyFor(a.by);
     const at = a.at !== undefined ? keyFor(a.at) : undefined;
@@ -252,6 +261,15 @@ export function roundFrames(before: FightView, after: FightView): StageFrame[] {
       case 'rise':
         hp[by] = a.amount ?? 1;
         state[by] = 'up';
+        break;
+      case 'arrive':
+        state[by] = 'up';
+        break;
+      case 'job':
+        if (job && before.goal) {
+          const progress = Math.min(before.goal.needed, job.progress + (a.amount ?? 1));
+          job = { progress, state: progress >= before.goal.needed ? 'done' : job.state };
+        }
         break;
       case 'heal':
         if (at) hp[at] = Math.min(max[at] ?? 0, (hp[at] ?? 0) + (a.amount ?? 0));
@@ -276,8 +294,11 @@ export function roundFrames(before: FightView, after: FightView): StageFrame[] {
       default:
         break;
     }
-    frames.push({ round: a.round, line: a.line, effect: effectOf(a, after), hp: { ...hp }, state: { ...state }, stunned: { ...stunned } });
+    frames.push({ round: a.round, line: a.line, effect: effectOf(a, after), hp: { ...hp }, state: { ...state }, stunned: { ...stunned }, ...(job ? { job } : {}) });
   }
+  // How the job stands once the round is over: done, or lost at the end of it.
+  const last = frames.at(-1);
+  if (last && after.goal) last.job = { progress: after.goal.progress, state: after.goal.state };
   return frames;
 }
 

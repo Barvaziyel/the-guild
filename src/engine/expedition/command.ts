@@ -13,6 +13,7 @@ import type { LogLine, MoveId, Rank } from '../types.ts';
 import type { CombatEnd, Enemy } from './combat.ts';
 import { active, type Member, type Sim } from './context.ts';
 import { enemyRank, reaches, type EnemyRank } from './reach.ts';
+import type { GoalView } from './goals.ts';
 
 /** A move someone can make this round, and what it can be aimed at. */
 export interface MoveChoice {
@@ -36,8 +37,8 @@ export interface FightEnemyView {
   kind: string;
   hp: number;
   maxHp: number;
-  /** `down`: on the ground, and back up at the end of the round unless someone finishes it (2.4.0). */
-  state: 'up' | 'down' | 'dead' | 'fled';
+  /** `down`: on the ground, and back up at the end of the round unless someone finishes it (2.4.0). `waiting`: behind a door, not in it yet (2.5.0). */
+  state: 'up' | 'down' | 'dead' | 'fled' | 'waiting';
   /** Loses its next attack. */
   stunned: boolean;
   /** A nemesis or one of the Vultures' named people. */
@@ -115,7 +116,11 @@ export type FightActKind =
   /** A blow at one on the ground, so it stays down (2.4.0). */
   | 'finish'
   /** One on the ground getting back up (2.4.0): `amount` is its HP. */
-  | 'rise';
+  | 'rise'
+  /** A turn on the fight's job (2.5.0): `amount` is the work done. */
+  | 'job'
+  /** One more of them through a door nobody held (2.5.0). */
+  | 'arrive';
 
 export interface FightMemberView {
   id: string;
@@ -156,6 +161,8 @@ export interface FightView {
   over?: CombatEnd;
   /** Their nerve, 0–100, when any of them can break (2.3.0): at 0 they run. */
   nerve?: number;
+  /** The job the fight came with, if any (2.5.0). */
+  goal?: GoalView;
 }
 
 /** Thrown inside a replay when a fight under command needs the next round's orders. */
@@ -167,7 +174,7 @@ export class FightPause extends Error {
   }
 }
 
-const living = (enemies: readonly Enemy[]): Enemy[] => enemies.filter((e) => !e.dead && !e.fled && !e.down);
+const living = (enemies: readonly Enemy[]): Enemy[] => enemies.filter((e) => !e.dead && !e.fled && !e.down && !e.waiting);
 
 /** Names to tell enemies apart: "Raider Scav 1", "Raider Scav 2", "Old Notch". */
 export function enemyNames(enemies: readonly Enemy[]): string[] {
@@ -226,10 +233,10 @@ export function movesFor(sim: Sim, m: Member, enemies: readonly Enemy[], rank: R
   const anyFoe = foes.map((e) => enemies.indexOf(e));
   const granted = grantedMoves(m);
   const out: MoveChoice[] = [];
-  const add = (move: MoveId, targets: (number | string)[] = [], name?: string): void => {
+  const add = (move: MoveId, targets: (number | string)[] = [], name?: string, detail?: string): void => {
     const def = MOVES[move];
     if (def.target !== 'none' && targets.length === 0) return;
-    out.push({ move, name: name ?? def.name, detail: def.detail, target: def.target, targets });
+    out.push({ move, name: name ?? def.name, detail: detail ?? def.detail, target: def.target, targets });
   };
   // One on the ground that would get back up (2.4.0): anyone who can reach it can finish it.
   add(
@@ -245,6 +252,8 @@ export function movesFor(sim: Sim, m: Member, enemies: readonly Enemy[], rank: R
     return movesFor(sim, { ...m, perch: false }, enemies, 'back').filter((c) => PERCHED.includes(c.move));
   }
   add('attack', foeIds, ATTACK_NAMES[kind]);
+  // The job the fight came with (2.5.0), for anyone on the ground.
+  if (sim.goal?.state === 'open') add('job', [], sim.goal.def.move, sim.goal.def.detail);
   add('cover');
   if (sim.meds > 0) {
     const hurt = sim.members.filter((o) => !o.dead && !o.fled && (o.down || o.s.hp < maxHp(o.s))).map((o) => o.s.id);
@@ -277,7 +286,7 @@ export function validOrder(sim: Sim, m: Member, enemies: readonly Enemy[], move:
 }
 
 /** The fight as it stands before `round` (or after it, once it's over), for the fight screen. `nerve`: theirs, when any of them can break. */
-export function fightView(sim: Sim, enemies: readonly Enemy[], round: number, fromLine: number, over?: CombatEnd, nerve?: number): FightView {
+export function fightView(sim: Sim, enemies: readonly Enemy[], round: number, fromLine: number, over?: CombatEnd, nerve?: number, goal?: GoalView): FightView {
   const names = enemyNames(enemies);
   const beat = sim.beats.at(-1);
   return {
@@ -291,7 +300,7 @@ export function fightView(sim: Sim, enemies: readonly Enemy[], round: number, fr
       kind: e.def.id,
       hp: Math.max(0, e.hp),
       maxHp: e.maxHp,
-      state: e.dead ? 'dead' : e.fled ? 'fled' : e.down ? 'down' : 'up',
+      state: e.dead ? 'dead' : e.fled ? 'fled' : e.down ? 'down' : e.waiting ? 'waiting' : 'up',
       stunned: e.stunned === true,
       named: e.nemesis !== undefined || e.vulture !== undefined,
       nemesis: e.nemesis !== undefined,
@@ -325,5 +334,6 @@ export function fightView(sim: Sim, enemies: readonly Enemy[], round: number, fr
     acts: (sim.fightActs?.acts ?? []).map((a) => ({ ...a, line: a.line - fromLine })),
     ...(over ? { over } : {}),
     ...(nerve !== undefined ? { nerve: Math.max(0, Math.round(nerve)) } : {}),
+    ...(goal ? { goal } : {}),
   };
 }

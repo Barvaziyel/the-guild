@@ -107,7 +107,7 @@ export const CALM_FAIL = [
 export const ENEMIES_BREAK = [
   'The rest lose their nerve and run.',
   'What is left of them breaks and scatters.',
-  'That is enough for the others. They bolt.',
+  'That is enough for the rest of them. They bolt.',
 ] as const;
 
 export const FLEE_LINES: CrewLines = {

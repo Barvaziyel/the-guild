@@ -5,7 +5,7 @@ import { Meter } from '../components/Bars.tsx';
 import { BattleStage } from '../components/BattleStage.tsx';
 import { BeatLog } from '../components/BeatLog.tsx';
 import { Portrait } from '../components/Portrait.tsx';
-import { fightCard, fightEnd, livePicks, memberState, needsTarget, nerveLine, pickLabel, rankHelp, roundOrders, targetName, theirMoves, whatTheyAre, withRanks, type Picks, type Ranks } from '../fight-view.ts';
+import { fightCard, fightEnd, jobPanel, livePicks, memberState, needsTarget, nerveLine, pickLabel, rankHelp, roundOrders, targetName, theirMoves, whatTheyAre, withRanks, type Picks, type Ranks } from '../fight-view.ts';
 import { goBack, navigate, useAction, useNow } from '../hooks.ts';
 import { formatDuration } from '../runs-view.ts';
 
@@ -106,6 +106,11 @@ function NotYet({ state, runId, now }: { state: GameState; runId: string; now: n
       <p className="dilemma-kicker">A fight at {card.place}</p>
       <h2 className="dilemma-title">Against {card.against}</h2>
       {preview && <BattleStage state={state} place={run.plan.locationId} seed={run.id} view={preview} />}
+      {preview?.goal && (
+        <p>
+          {preview.goal.intro} A job besides the fight: {preview.goal.title.toLowerCase()}.
+        </p>
+      )}
       <p>{card.wait}</p>
       <div className="btn-row">
         <button type="button" className="btn btn-primary" onClick={() => act((s) => void takeCommand(s, runId, Date.now()))}>
@@ -164,6 +169,7 @@ export function Command({
   const lastRound = seen.current.round < view.round ? view.lines.slice(seen.current.lines, told ?? view.lines.length) : [];
   if (seen.current.round !== view.round && view.lines.length <= seen.current.lines) seen.current = { round: view.round, lines: view.lines.length };
   const current = livePicks(view, picks);
+  const job = jobPanel(view, current);
 
   const pick = (m: FightMemberView, move: MoveId | undefined, target?: number | string): void => {
     setPicks((p) => {
@@ -232,6 +238,20 @@ export function Command({
               </li>
             ))}
           </ul>
+        </section>
+      )}
+
+      {job && (
+        <section className={`panel fight-job is-${job.state}`} aria-labelledby="job-title">
+          <h3 id="job-title" className="panel-title">
+            {job.title}
+          </h3>
+          {job.state === 'open' && <Meter label="Work done" value={job.progress} max={job.needed} reading={`${job.progress} of ${job.needed}`} kind="practice" />}
+          {job.lines.map((line) => (
+            <p key={line} className="fight-job-line">
+              {line}
+            </p>
+          ))}
         </section>
       )}
 

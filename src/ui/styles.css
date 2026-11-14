@@ -4312,3 +4312,27 @@ p.is-bad {
   color: var(--bone-2);
   font-size: 0.9375rem;
 }
+
+/* The job a fight came with (2.5.0): a strip on the left in ochre while it's open, sage done, blood lost. */
+.fight-job {
+  border-left: 4px solid var(--ochre);
+}
+.fight-job.is-done {
+  border-left-color: var(--sage);
+}
+.fight-job.is-lost {
+  border-left-color: var(--blood);
+}
+.fight-job .meter {
+  margin: 0.25rem 0 0.5rem;
+}
+.fight-job-line {
+  margin: 0.375rem 0 0;
+  color: var(--bone-2);
+}
+.fight-job-line:first-of-type {
+  color: var(--bone);
+}
+.battle .bt-job-lost {
+  fill: var(--blood-hi);
+}

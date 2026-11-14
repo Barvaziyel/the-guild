@@ -345,6 +345,8 @@ export type MoveId =
   | 'attack'
   /** A blow at an enemy on the ground that would get back up (2.4.0): it can't miss. */
   | 'finish'
+  /** Working the job the fight came with (2.5.0): hold the door, haul the crate... */
+  | 'job'
   | 'cover'
   | 'patch'
   | 'aim'
