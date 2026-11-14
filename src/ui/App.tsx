@@ -29,6 +29,7 @@ import { RunView } from './screens/RunView.tsx';
 import { Settings } from './screens/Settings.tsx';
 import { SurvivorSheet } from './screens/SurvivorSheet.tsx';
 import { tourStep } from './tour.ts';
+import { Bell } from './components/Bell.tsx';
 import { resourceList } from './view.ts';
 
 /** Screens that have their own back bar instead of the guild header. */
@@ -58,7 +59,7 @@ export function App() {
   let screen;
   switch (route.screen) {
     case 'depot':
-      screen = <Depot state={s} now={now} tab={route.tab ?? 'today'} away={time.away} onDismissAway={time.dismissAway} />;
+      screen = <Depot state={s} now={now} tab={route.tab ?? 'yard'} away={time.away} onDismissAway={time.dismissAway} />;
       break;
     case 'building':
       screen = <Building key={route.id} state={s} id={route.id} />;
@@ -88,7 +89,7 @@ export function App() {
       screen = <Reach state={s} {...(route.id ? { selected: route.id } : {})} {...(route.tab ? { tab: route.tab } : {})} />;
       break;
     case 'plan':
-      screen = <Planner key={route.locationId} state={s} locationId={route.locationId} />;
+      screen = <Planner key={route.locationId} state={s} locationId={route.locationId} step={route.step ?? 'crew'} />;
       break;
     case 'runs':
       screen = <Runs state={s} />;
@@ -111,7 +112,7 @@ export function App() {
 
   return (
     <div className={touring ? 'app is-touring' : 'app'}>
-      {!DETAIL_SCREENS.includes(route.screen) && <TopBar state={s} day={day} />}
+      {!DETAIL_SCREENS.includes(route.screen) && <TopBar state={s} day={day} now={now} />}
       {snap.saveError && (
         <p className="banner" role="alert">
           {snap.saveError} Your progress is kept until you close the game. Export the save from Settings to be safe.
@@ -189,7 +190,16 @@ function useNotices(state: GameState | null): void {
   }, [key, notify, notifier]);
 }
 
+/** How long a "crew is back" toast stays. */
+const TOAST_MS = 9000;
+
 function ReturnToast({ state, reportId, more, onClose }: { state: GameState; reportId: string; more: number; onClose: () => void }) {
+  // The bell keeps the report, so the toast steps aside by itself rather than sitting over the screen.
+  useEffect(() => {
+    const t = window.setTimeout(onClose, TOAST_MS);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reportId]);
   const report = state.reports.find((r) => r.id === reportId);
   if (!report) return null;
   const names = Object.values(reportFirstNames(report));
@@ -218,12 +228,15 @@ function ReturnToast({ state, reportId, more, onClose }: { state: GameState; rep
   );
 }
 
-function TopBar({ state, day }: { state: GameState; day: number }) {
+function TopBar({ state, day, now }: { state: GameState; day: number; now: number }) {
   return (
     <header className="topbar">
       <div className="topbar-title">
         <h1 className="guild-name">{state.guildName}</h1>
-        <span className="day">Day {day}</span>
+        <div className="topbar-right">
+          <span className="day">Day {day}</span>
+          <Bell state={state} now={now} />
+        </div>
       </div>
       <ul className="resources" aria-label="Supplies at the Depot" data-tour="resources">
         {resourceList(state).map((r) => (

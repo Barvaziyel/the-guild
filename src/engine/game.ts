@@ -110,7 +110,7 @@ export function newGame(opts: NewGameOptions): GameState {
     resources: { ...STARTING_RESOURCES },
     locations: initialLocations(),
     buildings: initialBuildings(),
-    depot: { lastDay: 1, recruits: [], offers: [], strays: [] },
+    depot: { lastDay: 1, recruits: [], offers: [], strays: [], pantry: [] },
     runs: [],
     reports: [],
     eventsSeen: {},

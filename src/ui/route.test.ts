@@ -24,6 +24,8 @@ describe('routes', () => {
       { screen: 'survivor', id: 's3', tab: 'stats' },
       { screen: 'survivor', id: 's3', tab: 'bonds' },
       { screen: 'survivor', id: 's12', tab: 'story' },
+      { screen: 'depot', tab: 'today' },
+      { screen: 'plan', locationId: 'rail_yard', step: 'orders' },
     ];
     for (const r of routes) assert.deepEqual(parseRoute(routeHash(r)), r);
   });
@@ -31,7 +33,7 @@ describe('routes', () => {
   test('anything unknown or incomplete lands somewhere sensible', () => {
     assert.deepEqual(parseRoute(''), { screen: 'depot' });
     assert.deepEqual(parseRoute('#/nowhere'), { screen: 'depot' });
-    assert.deepEqual(parseRoute('#/depot/today'), { screen: 'depot' });
+    assert.deepEqual(parseRoute('#/depot/yard'), { screen: 'depot' }, 'the yard is the Depot’s default');
     assert.deepEqual(parseRoute('#/depot/attic'), { screen: 'depot' });
     assert.deepEqual(parseRoute('#/s/'), { screen: 'depot' });
     assert.deepEqual(parseRoute('#/b'), { screen: 'depot' });

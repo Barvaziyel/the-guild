@@ -117,6 +117,7 @@ describe('projects: starting and crews', () => {
     workOff(state, 1);
     assert.equal(projectUnderWay(state), undefined);
     assert.equal(projectCrew(state, 'the_line').length, 3, 'the crew waits on the Line between stages');
+    rich(state); // the rations from the start have long gone off
     startStage(state, 'the_wall', 40);
     assert.deepEqual(
       projectCrew(state, 'the_wall').map((s) => s.id),
@@ -147,6 +148,7 @@ describe('projects: work', () => {
     assert.equal(state.projects.the_wall!.work, undefined);
     let at = day + 1;
     for (let stage = 2; stage <= 3; stage++) {
+      rich(state); // the rations from the start have long gone off
       startStage(state, 'the_wall', at);
       at = workOff(state, at);
     }
@@ -214,6 +216,7 @@ describe('projects: what they do', () => {
     for (const s of state.survivors.slice(0, 3)) joinProject(state, s.id, 'the_relay');
     let day = workOff(state, 1);
     for (let i = 0; i < 2; i++) {
+      rich(state);
       startStage(state, 'the_relay', day);
       day = workOff(state, day);
     }

@@ -6,7 +6,7 @@
 import type { BuildingId, Quality, RelationshipLabel, ResourceId, Resources } from './types.ts';
 
 /** Save format version. Bump together with a migration in save.ts. */
-export const SAVE_VERSION = 22;
+export const SAVE_VERSION = 23;
 
 // ---------------------------------------------------------------- time
 
@@ -760,6 +760,9 @@ export const DOG_TO_HIT = 3;
 export const DOG_DAMAGE = [2, 3] as const;
 /** The Infirmary is right there: a defender who goes down gets this on the wound roll, and nobody dies at the gate. */
 export const RAID_WOUND_BONUS = 10;
+/** Rations spoil (§9.1, Aviel): kept more than this many game days, this share of them goes off each day. */
+export const RATION_KEEP_DAYS = 10;
+export const RATION_SPOIL_SHARE = 0.5;
 /** Getting ready (§9.8): shoring up the fence takes this, and raiders need this much more to hit the defenders behind it (on top of the Wall). */
 export const RAID_SHORE_COST = { scrap: 20 } as const;
 export const RAID_SHORE_COVER = 2;

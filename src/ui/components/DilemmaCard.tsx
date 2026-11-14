@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { decideDilemma, type DilemmaResult, type GameState } from '../../engine/index.ts';
 import { dilemmaCard } from '../dilemma-view.ts';
-import { navigate, useAction } from '../hooks.ts';
+import { navigate, useAction, useKeepInView } from '../hooks.ts';
 import { Portrait } from './Portrait.tsx';
 
 /** A decision waiting at the Depot (§9.5): what's going on, who it's about, and four answers. Then what came of it. */
@@ -9,10 +9,12 @@ export function DilemmaCard({ state, now }: { state: GameState; now: number }) {
   const { act, error } = useAction();
   const [result, setResult] = useState<DilemmaResult | null>(null);
   const card = dilemmaCard(state, now);
+  // Answered, the card turns into a short one: bring it back into view.
+  const ref = useKeepInView<HTMLElement>(result);
 
   if (result) {
     return (
-      <section className="panel dilemma is-done" aria-labelledby="dilemma-title" role="status">
+      <section ref={ref} className="panel dilemma is-done" aria-labelledby="dilemma-title" role="status">
         <h3 id="dilemma-title" className="dilemma-title">
           {result.title}
         </h3>
@@ -32,7 +34,7 @@ export function DilemmaCard({ state, now }: { state: GameState; now: number }) {
   };
 
   return (
-    <section className="panel dilemma" aria-labelledby="dilemma-title" data-tour="dilemma">
+    <section ref={ref} className="panel dilemma" aria-labelledby="dilemma-title" data-tour="dilemma">
       <p className="dilemma-kicker">Something to decide</p>
       <h3 id="dilemma-title" className="dilemma-title">
         {card.title}

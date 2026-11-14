@@ -22,7 +22,7 @@ import { Yard } from '../components/Yard.tsx';
 import { activeRuns, backIn, joinNames, runCrewNames } from '../runs-view.ts';
 import { outpostRows } from '../outposts-view.ts';
 import { projectNote } from '../projects-view.ts';
-import { vulturesSummary } from '../vultures-view.ts';
+import { vulturesShort } from '../vultures-view.ts';
 import { bedsLine, buildingRows, depotNews, foodWarning, homeCounts, summaryLines, type BuildingRow } from '../depot-view.ts';
 import { stashLine } from '../gear-view.ts';
 import { vehiclesLine } from '../vehicles-view.ts';
@@ -37,7 +37,7 @@ interface Props {
   onDismissAway: () => void;
 }
 
-const TAB_LABELS: Record<DepotTab, string> = { today: 'Today', yard: 'Yard', buildings: 'Buildings', projects: 'Projects', news: 'News' };
+const TAB_LABELS: Record<DepotTab, string> = { yard: 'Yard', today: 'Today', buildings: 'Buildings', projects: 'Projects', news: 'News' };
 
 export function Depot({ state, now, tab, away, onDismissAway }: Props) {
   const counts = homeCounts(state);
@@ -54,8 +54,8 @@ export function Depot({ state, now, tab, away, onDismissAway }: Props) {
           {state.depot.hungry ? ' The rations have run out.' : ''}
         </p>
         {state.vultures.arrived && (
-          <button type="button" className="link vulture-standing" onClick={() => navigate({ screen: 'vultures' })}>
-            The Vultures: {vulturesSummary(state)}
+          <button type="button" className="head-link vulture-standing" onClick={() => navigate({ screen: 'vultures' })}>
+            {vulturesShort(state)} <span aria-hidden="true">&rsaquo;</span>
           </button>
         )}
       </div>
@@ -70,7 +70,7 @@ export function Depot({ state, now, tab, away, onDismissAway }: Props) {
             aria-selected={t === tab}
             aria-controls="depot-panel"
             className="sheet-tab"
-            onClick={() => navigate(t === 'today' ? { screen: 'depot' } : { screen: 'depot', tab: t }, { replace: true })}
+            onClick={() => navigate(t === 'yard' ? { screen: 'depot' } : { screen: 'depot', tab: t }, { replace: true, keepScroll: true })}
           >
             {TAB_LABELS[t]}
           </button>
@@ -79,7 +79,12 @@ export function Depot({ state, now, tab, away, onDismissAway }: Props) {
 
       <div id="depot-panel" role="tabpanel" aria-labelledby={`depot-tab-${tab}`}>
         {tab === 'today' && <Today state={state} now={now} away={away} onDismissAway={onDismissAway} />}
-        {tab === 'yard' && <Yard state={state} now={now} />}
+        {tab === 'yard' && (
+          <>
+            {away && away.days > 0 && <AwayNote state={state} summary={away} onDismiss={onDismissAway} />}
+            <Yard state={state} now={now} />
+          </>
+        )}
         {tab === 'buildings' && <Buildings state={state} />}
         {tab === 'projects' && <Projects state={state} />}
         {tab === 'news' && <News state={state} limit={60} />}
@@ -179,8 +184,6 @@ function Today({ state, now, away, onDismissAway }: Omit<Props, 'tab'>) {
           {state.vehicles.length === 0 ? 'About vehicles' : 'See the vehicles'}
         </button>
       </div>
-
-      <News state={state} limit={3} more />
     </>
   );
 }
@@ -350,14 +353,12 @@ function Offers({ state }: { state: GameState }) {
 }
 
 /** The latest Depot news; `more` adds a way to the News tab. */
-function News({ state, limit, more = false }: { state: GameState; limit: number; more?: boolean }) {
+function News({ state, limit }: { state: GameState; limit: number }) {
   const news = depotNews(state, limit);
-  if (news.length === 0) {
-    return more ? null : <p className="empty">Nothing has happened at the Depot yet.</p>;
-  }
+  if (news.length === 0) return <p className="empty">Nothing has happened at the Depot yet.</p>;
   return (
     <div className="panel">
-      <h3 className="panel-title">{more ? 'Latest news' : 'Depot news'}</h3>
+      <h3 className="panel-title">Depot news</h3>
       <ul className="news">
         {news.map((n, i) => (
           <li key={i}>
@@ -365,11 +366,6 @@ function News({ state, limit, more = false }: { state: GameState; limit: number;
           </li>
         ))}
       </ul>
-      {more && (
-        <button type="button" className="btn btn-small btn-quiet" onClick={() => navigate({ screen: 'depot', tab: 'news' }, { replace: true })}>
-          All the news
-        </button>
-      )}
     </div>
   );
 }

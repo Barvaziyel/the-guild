@@ -223,6 +223,12 @@ export function vulturesSummary(state: GameState): string {
   return `${BAND_NAMES[vultureBand(state)]}. ${strengthWord(v.strength)}, with ${v.camps.length === 1 ? 'one camp' : `${v.camps.length} camps`}.`;
 }
 
+/** One line for the Depot's header: where things stand with them (2.2.0: the full summary is on their screen). */
+export function vulturesShort(state: GameState): string {
+  if (state.vultures.camps.length === 0) return 'The Vultures: driven out';
+  return `The Vultures: ${BAND_NAMES[vultureBand(state)].toLowerCase()}`;
+}
+
 /** A place's line: their camp here, or their turf. */
 export function vulturePlaceLine(state: GameState, locationId: string): string | undefined {
   const camp = campAt(state, locationId);

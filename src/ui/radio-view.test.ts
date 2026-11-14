@@ -68,7 +68,7 @@ describe('a crew on the radio', () => {
   test('a tapped notice opens what it is about', () => {
     assert.deepEqual(noticeRoute('r12'), { screen: 'run', id: 'r12' });
     assert.deepEqual(noticeRoute('radio-r12'), { screen: 'run', id: 'r12' });
-    for (const id of ['dilemma-40', 'dilemma-due-40', 'rescue-41', 'rescue-due-41', 'baby-s3-120', 'grown-c2']) assert.deepEqual(noticeRoute(id), { screen: 'depot' }, id);
+    for (const id of ['dilemma-40', 'dilemma-due-40', 'rescue-41', 'rescue-due-41', 'baby-s3-120', 'grown-c2']) assert.deepEqual(noticeRoute(id), { screen: 'depot', tab: 'today' }, id);
   });
 
   test('titles read right inside a sentence', () => {

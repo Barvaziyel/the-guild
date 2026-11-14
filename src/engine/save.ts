@@ -171,6 +171,11 @@ const MIGRATIONS: Record<number, (save: Record<string, unknown>) => void> = {
     const state = save as unknown as GameState;
     state.captives ??= [];
   },
+  22: (save) => {
+    // Rations spoil (2.2.0): what's in the stores counts as come in today.
+    const state = save as unknown as GameState;
+    state.depot.pantry = state.resources.rations > 0 ? [{ day: state.depot.lastDay, n: state.resources.rations }] : [];
+  },
 };
 
 export function serialize(state: GameState): string {

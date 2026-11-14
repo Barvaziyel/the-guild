@@ -82,6 +82,8 @@ export interface Choice<T extends string> {
   id: T;
   name: string;
   description: string;
+  /** A shorter name for a row of buttons, when the name is long. */
+  short?: string;
 }
 
 export const JOBS: readonly Choice<RunJob>[] = [
@@ -97,8 +99,8 @@ export const APPROACHES: readonly Choice<Approach>[] = [
 ];
 
 export const RETREATS: readonly Choice<RetreatOrder>[] = [
-  { id: 'wounded', name: 'Someone is hurt', description: 'Pull out once anyone drops below half health.' },
-  { id: 'downed', name: 'Someone goes down', description: 'Pull out once anyone is knocked down.' },
+  { id: 'wounded', name: 'Someone is hurt', short: 'Hurt', description: 'Pull out once anyone drops below half health.' },
+  { id: 'downed', name: 'Someone goes down', short: 'Down', description: 'Pull out once anyone is knocked down.' },
   { id: 'never', name: 'Never', description: 'Fight to the end. Brave, and sometimes fatal.' },
 ];
 
@@ -162,7 +164,16 @@ export function defaultPlan(state: GameState, locationId: string): RunPlan {
     ammo: 0,
     approach: 'balanced',
     retreat: 'downed',
+    // The player leads the fights unless they say otherwise (Aviel, 2.2.0).
+    lead: true,
   };
+}
+
+/** "Briar, Gray and Silas", for the Orders step. */
+export function crewLine(state: GameState, crew: readonly string[]): string {
+  const names = crew.map((id) => state.survivors.find((s) => s.id === id)?.firstName ?? '?');
+  if (names.length === 0) return 'Nobody yet';
+  return names.length === 1 ? names[0]! : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`;
 }
 
 /** Toggle someone in or out of the crew, never past the limit (4 on foot, or the vehicles' seats). */
@@ -357,6 +368,17 @@ export function reportItems(state: GameState): ReportItem[] {
   }));
 }
 
+/** How many reports the Runs screen shows before "older reports". */
+export const REPORTS_SHOWN = 6;
+
+/** The newest reports, and any unread, up front; the rest wait behind a button (2.2.0: the list grew long). */
+export function splitReports<T extends { report: { read?: boolean } }>(items: readonly T[], shown = REPORTS_SHOWN): { recent: T[]; older: T[] } {
+  const recent: T[] = [];
+  const older: T[] = [];
+  items.forEach((item, i) => (i < shown || !item.report.read ? recent : older).push(item));
+  return { recent, older };
+}
+
 export function unreadCount(state: GameState): number {
   return state.reports.filter((r) => !r.read).length;
 }
@@ -395,7 +417,7 @@ export function rationsNote(state: GameState, plan: RunPlan): string {
   if (plan.crew.length === 0) return 'Rations are packed for each person automatically.';
   const need = rationsNeeded(state, plan);
   const packed = rationsPacked(state, plan);
-  if (packed >= need) return `${amountOf('rations', need)} packed automatically, of ${state.resources.rations} at the Depot.`;
+  if (packed >= need) return `${amountOf('rations', need)} packed.`;
   if (packed === 0) return 'No rations at the Depot. The crew can still go, hungry.';
   return `Only ${packed} of the ${need} rations the crew needs: all the Depot has.`;
 }

@@ -110,7 +110,6 @@ export function validatePlan(state: GameState, plan: RunPlan): string[] {
   if (raidAtGate(state) && !raidAtGate(state)!.outpost) problems.push('Raiders are at the gate. Nobody goes out until it\u2019s over.');
 
   // Leading the fights means orders over the radio (§7.13).
-  if (plan.lead && (state.buildings.radio_tower ?? 0) < 1) problems.push('Leading the fights needs a Radio Tower.');
 
   if (plan.job === 'assault') {
     // Only where the Vultures have a camp, and the camp is in the outskirts (§7.11).

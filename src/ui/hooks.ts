@@ -1,5 +1,5 @@
 /** React glue: the game store, preferences, the clock and hash navigation. */
-import { createContext, useContext, useEffect, useState, useSyncExternalStore } from 'react';
+import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type RefObject } from 'react';
 import type { GameState } from '../engine/index.ts';
 import type { Notifier } from './notify.ts';
 import type { Prefs, PrefsStore } from './prefs.ts';
@@ -102,15 +102,21 @@ export function savedScroll(hash: string): number {
   return scrollPositions.get(hash) ?? 0;
 }
 
-/** Go to a screen. `replace` swaps the current history entry (tabs) instead of adding one (drilling in). */
-export function navigate(route: Route, opts: { replace?: boolean } = {}): void {
+/**
+ * Go to a screen. `replace` swaps the current history entry (tabs) instead of
+ * adding one (drilling in). `keepScroll`: a tab within the screen, so the page
+ * stays where it is rather than jumping to the top (or to where that tab was
+ * last left).
+ */
+export function navigate(route: Route, opts: { replace?: boolean; keepScroll?: boolean } = {}): void {
   const hash = routeHash(route);
   if (hash === window.location.hash) return;
   rememberScroll();
+  if (opts.keepScroll) scrollPositions.set(hash, window.scrollY);
   if (opts.replace) {
     window.history.replaceState({ depth: depth() }, '', hash);
   } else {
-    scrollPositions.delete(hash);
+    if (!opts.keepScroll) scrollPositions.delete(hash);
     window.history.pushState({ depth: depth() + 1 }, '', hash);
   }
   window.dispatchEvent(new Event(NAVIGATE_EVENT));
@@ -139,4 +145,44 @@ export function useHash(): string {
 
 export function useRoute(): Route {
   return parseRoute(useHash());
+}
+
+// ---------------------------------------------------------------- keeping things in view
+
+/** Smooth unless the phone asks for less motion. */
+export function scrollBehavior(): ScrollBehavior {
+  return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+}
+
+/**
+ * Keep an element in view when `key` changes under the reader: a card that
+ * shrinks once answered (a decision, a call on the radio) shouldn't leave them
+ * scrolled past it, looking at something else.
+ */
+export function useKeepInView<T extends HTMLElement>(key: unknown): RefObject<T | null> {
+  const ref = useRef<T | null>(null);
+  const first = useRef(true);
+  useLayoutEffect(() => {
+    if (first.current) {
+      first.current = false;
+      return;
+    }
+    const el = ref.current;
+    if (!el) return;
+    const top = el.getBoundingClientRect().top;
+    if (top < 0 || top > window.innerHeight * 0.75) el.scrollIntoView({ block: 'start', behavior: scrollBehavior() });
+  }, [key]);
+  return ref;
+}
+
+/** Back to the top when `key` changes: a screen that turns into another (raiders on the road, then at the gate, then the fight). */
+export function useTopOnChange(key: unknown): void {
+  const first = useRef(true);
+  useLayoutEffect(() => {
+    if (first.current) {
+      first.current = false;
+      return;
+    }
+    if (window.scrollY > 0) window.scrollTo({ top: 0, behavior: scrollBehavior() });
+  }, [key]);
 }

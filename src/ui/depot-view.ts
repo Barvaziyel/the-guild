@@ -26,6 +26,8 @@ import {
   effectiveStat,
   firepitRelief,
   gardenYield,
+  rationsGoingOff,
+  RATION_KEEP_DAYS,
   guildUpkeep,
   getGear,
   getProject,
@@ -75,7 +77,7 @@ export function buildingStatus(state: GameState, id: BuildingId): string {
     case 'bunks':
       return bedsLine(state);
     case 'garden':
-      return `Grows about ${oneDecimal(gardenYield(state))} rations a day. The guild at home${state.outposts.length > 0 ? ' and at the outposts' : ''} eats ${dailyUpkeep(state)}.`;
+      return `Grows about ${oneDecimal(gardenYield(state))} rations a day. The guild at home${state.outposts.length > 0 ? ' and at the outposts' : ''} eats ${dailyUpkeep(state)}. ${spoilLine(state)}`;
     case 'firepit':
       return `Everyone at home sheds about ${Math.round(REST_RELIEF + firepitRelief(state))} stress a day.`;
     case 'infirmary':
@@ -315,6 +317,8 @@ export function mergeSummaries(a: DepotSummary, b: DepotSummary): DepotSummary {
     outposts: addResources(a.outposts, b.outposts),
     upkeep: addResources(a.upkeep ?? {}, b.upkeep ?? {}),
     unpaid: [...new Set([...(a.unpaid ?? []), ...(b.unpaid ?? [])])],
+    floorNights: (a.floorNights ?? 0) + (b.floorNights ?? 0),
+    spoiled: (a.spoiled ?? 0) + (b.spoiled ?? 0),
   };
 }
 
@@ -329,6 +333,7 @@ export function summaryLines(s: DepotSummary, state?: GameState): string[] {
   if (s.days === 0) return [];
   const out = [`${s.days === 1 ? 'A day' : `${s.days} days`} passed at the Depot.`];
   out.push(`The Garden grew ${s.grown} rations and the guild ate ${s.eaten}.`);
+  if ((s.spoiled ?? 0) > 0) out.push(`${s.spoiled} ${s.spoiled === 1 ? 'ration' : 'rations'} kept too long went off.`);
   if (s.hungryDays > 0) out.push(`The guild went hungry for ${s.hungryDays === 1 ? 'a day' : `${s.hungryDays} days`}.`);
   if (s.ammoMade > 0) out.push(`The Workshop made ${s.ammoMade} ammo.`);
   if (s.healed > 0) out.push(`Rest healed ${s.healed} health${s.cured > 0 ? `, and the Infirmary treated ${s.cured === 1 ? 'one patient' : `${s.cured} patients`}` : ''}.`);
@@ -394,6 +399,16 @@ export function foodWarning(state: GameState): string | undefined {
   const days = Math.floor(stored / (eat - grow));
   if (days > FOOD_WARNING_DAYS) return undefined;
   return `Food is running short. The guild eats ${eat} rations a day and the Garden grows about ${oneDecimal(grow)}, so what's stored lasts about ${days === 0 ? 'a day' : `${days} more ${days === 1 ? 'day' : 'days'}`}. ${FOOD_FIXES}`;
+}
+
+/**
+ * How the rations keep (§9.1): "Rations keep 10 days; after that, half of
+ * what's left goes off each day. 40 are past that now." Shown on the Garden.
+ */
+export function spoilLine(state: GameState): string {
+  const off = rationsGoingOff(state, state.depot.lastDay);
+  const now = off.now > 0 ? ` ${off.now} ${off.now === 1 ? 'is' : 'are'} past that now.` : off.soon > 0 ? ` ${off.soon} will be by tomorrow.` : '';
+  return `Rations keep ${RATION_KEEP_DAYS} days; after that, half of what's left goes off each day.${now}`;
 }
 
 /** Warn this many days before the stores run out. */

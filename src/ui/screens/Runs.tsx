@@ -1,6 +1,7 @@
+import { useState } from 'react';
 import { getLocation, ledFightNow, radioWaiting, type GameState } from '../../engine/index.ts';
 import { navigate, useNow } from '../hooks.ts';
-import { activeRuns, backIn, joinNames, latestBeat, reportItems, runCrewNames, runProgress, unreadCount } from '../runs-view.ts';
+import { activeRuns, backIn, joinNames, latestBeat, reportItems, runCrewNames, runProgress, splitReports, unreadCount, type ReportItem } from '../runs-view.ts';
 
 export function Runs({ state }: { state: GameState }) {
   // Its own clock, so a crew that just left already shows their first beat.
@@ -8,6 +9,8 @@ export function Runs({ state }: { state: GameState }) {
   const out = activeRuns(state);
   const reports = reportItems(state);
   const unread = unreadCount(state);
+  const [all, setAll] = useState(false);
+  const { recent, older } = splitReports(reports);
 
   return (
     <section aria-labelledby="runs-title">
@@ -64,23 +67,36 @@ export function Runs({ state }: { state: GameState }) {
         {reports.length === 0 ? (
           <p className="panel-help">When a crew comes home, the story of their run is kept here.</p>
         ) : (
-          <ul className="report-list">
-            {reports.map((r) => (
-              <li key={r.report.id}>
-                <button type="button" className={`report-row${r.report.read ? '' : ' is-unread'}`} onClick={() => navigate({ screen: 'run', id: r.report.id })}>
-                  <span className={`report-dot tone-${r.tone}`} aria-hidden="true" />
-                  <span className="report-body">
-                    <span className="report-headline">{r.headline}</span>
-                    <span className="report-meta">
-                      {r.crew}. Day {r.day}.{r.report.read ? '' : ' New.'}
-                    </span>
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
+          <>
+            <ul className="report-list">
+              {(all ? reports : recent).map((r) => (
+                <ReportRow key={r.report.id} r={r} />
+              ))}
+            </ul>
+            {older.length > 0 && (
+              <button type="button" className="btn btn-quiet btn-small report-more" aria-expanded={all} onClick={() => setAll((a) => !a)}>
+                {all ? 'Show fewer' : `Show ${older.length} older ${older.length === 1 ? 'report' : 'reports'}`}
+              </button>
+            )}
+          </>
         )}
       </div>
     </section>
+  );
+}
+
+function ReportRow({ r }: { r: ReportItem }) {
+  return (
+    <li>
+      <button type="button" className={`report-row${r.report.read ? '' : ' is-unread'}`} onClick={() => navigate({ screen: 'run', id: r.report.id })}>
+        <span className={`report-dot tone-${r.tone}`} aria-hidden="true" />
+        <span className="report-body">
+          <span className="report-headline">{r.headline}</span>
+          <span className="report-meta">
+            {r.crew}. Day {r.day}.{r.report.read ? '' : ' New.'}
+          </span>
+        </span>
+      </button>
+    </li>
   );
 }

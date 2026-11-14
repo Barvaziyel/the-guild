@@ -28,7 +28,7 @@ const PLACE_TAB_LABELS: Record<PlaceTab, string> = { about: 'About', outpost: 'O
 
 export function Reach({ state, selected, tab = 'about' }: { state: GameState; selected?: string; tab?: PlaceTab }) {
   const places = knownLocations(state);
-  const pick = (id: string): void => navigate({ screen: 'reach', id }, { replace: true });
+  const pick = (id: string): void => navigate({ screen: 'reach', id }, { replace: true, keepScroll: true });
   const sel = selected && findLocation(selected) ? selected : undefined;
 
   return (
@@ -172,7 +172,7 @@ function PlacePanel({ state, id, tab }: { state: GameState; id: string; tab: Pla
             aria-selected={t === tab}
             aria-controls="place-tabpanel"
             className="sheet-tab"
-            onClick={() => navigate(t === 'about' ? { screen: 'reach', id } : { screen: 'reach', id, tab: t }, { replace: true })}
+            onClick={() => navigate(t === 'about' ? { screen: 'reach', id } : { screen: 'reach', id, tab: t }, { replace: true, keepScroll: true })}
           >
             {PLACE_TAB_LABELS[t]}
             {t === 'outpost' && outpost && <span className={`tab-mark${outpost.damaged ? ' is-damaged' : ''}`} aria-label={outpost.damaged ? ', needs mending' : ', set up'} />}

@@ -186,12 +186,16 @@ export function Command({
     } else if (next.open !== open) setOpen(next.open);
   };
 
+  // The stage, to bring back into view when the orders go out: the round plays there.
+  const stageRef = useRef<HTMLDivElement>(null);
   const give = (): void => {
     const orders = roundOrders(view, picks, pullOut);
     seen.current = { round: view.round, lines: view.lines.length };
     if (act((s) => send(s, orders))) {
       setPullOut(false);
       setOpen(standing[0]?.id);
+      const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      stageRef.current?.scrollIntoView({ behavior: still ? 'auto' : 'smooth', block: 'start' });
     }
   };
 
@@ -208,7 +212,9 @@ export function Command({
         </p>
       </header>
 
-      <BattleStage state={state} place={place} seed={seed} view={view} orders={{ picks, ...(open ? { open } : {}) }} onTap={tapStage} onLine={setTold} caption={stageHint(view, open, picks)} />
+      <div ref={stageRef} className="stage-anchor">
+        <BattleStage state={state} place={place} seed={seed} view={view} orders={{ picks, ...(open ? { open } : {}) }} onTap={tapStage} onLine={setTold} caption={stageHint(view, open, picks)} />
+      </div>
 
       {lastRound.length > 0 && (
         <section className="panel" aria-labelledby="last-title">

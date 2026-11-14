@@ -30,7 +30,7 @@ describe('buildings on screen', () => {
     const state = testGame();
     const garden = buildingRow(state, 'garden');
     assert.equal(garden.built, true);
-    assert.match(garden.status, /^Grows about [\d.]+ rations a day\. The guild at home eats \d+\.$/);
+    assert.match(garden.status, /^Grows about [\d.]+ rations a day\. The guild at home eats \d+\. Rations keep 10 days; after that, half of what's left goes off each day\.$/);
     assert.equal(garden.workers.length, 2);
     assert.equal(garden.slots, 2);
     const infirmary = buildingRow(state, 'infirmary');
@@ -213,5 +213,22 @@ describe('upkeep on screen', () => {
     const lines = summaryLines(s, state);
     assert.ok(lines.includes('Keeping the buildings going used 2 rations.'));
     assert.ok(lines.includes('The Bar ran short and worked a level lower.'));
+  });
+});
+
+describe('rations going off', () => {
+  test('the Garden says how long rations keep and how many are past it; the away note counts what went off', async () => {
+    const { spoilLine, summaryLines } = await import('./depot-view.ts');
+    const state = testGame('spoil-line');
+    state.depot.lastDay = 20;
+    state.depot.pantry = [
+      { day: 5, n: 40 },
+      { day: 10, n: 12 },
+    ];
+    assert.equal(spoilLine(state), "Rations keep 10 days; after that, half of what's left goes off each day. 40 are past that now.");
+    state.depot.pantry = [{ day: 10, n: 12 }];
+    assert.equal(spoilLine(state), "Rations keep 10 days; after that, half of what's left goes off each day. 12 will be by tomorrow.");
+    const s = { ...emptySummary(), days: 2, spoiled: 9 };
+    assert.ok(summaryLines(s).includes('9 rations kept too long went off.'));
   });
 });
