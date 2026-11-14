@@ -4286,3 +4286,15 @@ p.is-bad {
 .report-more {
   margin-top: 0.5rem;
 }
+
+/* Where someone stands in a fight (2.3.0). */
+.fight-rank {
+  display: flex;
+  gap: 0.375rem;
+  margin-bottom: 0.25rem;
+}
+
+.fight-rank + .fight-detail {
+  margin-top: 0;
+  margin-bottom: 0.625rem;
+}

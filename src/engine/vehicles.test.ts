@@ -140,7 +140,8 @@ describe('vehicles: runs', () => {
   test('wrecks are rare in a vehicle kept in good shape, and much likelier in a worn one', () => {
     const rate = (condition: number): number => {
       let wrecks = 0;
-      const n = 300;
+      // Wrecks are rare: at 300 runs a few either way could flip the comparison.
+      const n = 1000;
       for (let i = 0; i < n; i++) {
         const { state, vehicles } = garage(`rate-${condition}-${i}`, ['car'], 3, condition);
         const plan: RunPlan = { ...testPlan(state, 'checkpoint_bravo'), vehicles: [vehicles[0]!.id] };

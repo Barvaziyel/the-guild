@@ -21,14 +21,14 @@ function commanded(seed: string): { state: GameState; run: Run; view: FightView 
   throw new Error('no commanded fight');
 }
 
-const member = (id: string, moves: FightMemberView['moves']): FightMemberView => ({ id, name: id === 'a' ? 'Mara' : 'Kai', hp: 10, maxHp: 20, state: 'up', aimed: false, moves });
+const member = (id: string, moves: FightMemberView['moves']): FightMemberView => ({ id, name: id === 'a' ? 'Mara' : 'Kai', hp: 10, maxHp: 20, state: 'up', aimed: false, moves, rank: 'front', byRank: { front: moves, back: moves } });
 const VIEW: FightView = {
   round: 2,
   maxRounds: 6,
   place: 'Kessler Farm',
   enemies: [
-    { index: 0, name: 'Raider Scav 1', type: 'raider', kind: 'raider_scav', hp: 4, maxHp: 10, state: 'up', stunned: false, named: false, nemesis: false, vulture: false },
-    { index: 1, name: 'Raider Scav 2', type: 'raider', kind: 'raider_scav', hp: 6, maxHp: 10, state: 'up', stunned: false, named: false, nemesis: false, vulture: false },
+    { index: 0, name: 'Raider Scav 1', type: 'raider', kind: 'raider_scav', hp: 4, maxHp: 10, state: 'up', stunned: false, named: false, nemesis: false, vulture: false, rank: 'front', damage: 3, leader: false, fearless: false },
+    { index: 1, name: 'Raider Scav 2', type: 'raider', kind: 'raider_scav', hp: 6, maxHp: 10, state: 'up', stunned: false, named: false, nemesis: false, vulture: false, rank: 'front', damage: 3, leader: false, fearless: false },
   ],
   crew: [
     member('a', [

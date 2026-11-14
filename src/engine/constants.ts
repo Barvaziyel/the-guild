@@ -813,6 +813,30 @@ export const CHARGE_BONUS = 2;
 export const DRAW_FIRE_DEFENSE = 2;
 /** Spot: everyone else is this much more likely to hit the spotted enemy. */
 export const SPOT_TO_HIT = 2;
+
+// ---------------------------------------------------------------- their moves, ranks and nerve (§7.4, 2.3.0)
+/** A big hit an enemy winds up (shown before the crew acts) does this many times its damage... */
+export const HEAVY_HIT_MULT = 2;
+/** ...and is this much harder to land. */
+export const HEAVY_TO_HIT = -2;
+/** A group that can break starts with this much nerve; at 0 those that can run do. */
+export const NERVE_FULL = 100;
+/** Nerve lost when their leader falls, on top of what any death costs. */
+export const NERVE_LEADER = 30;
+/** A hit at least this big shakes them... */
+export const BIG_HIT = 6;
+/** ...by this much. */
+export const NERVE_BIG_HIT = 8;
+/** One of the crew going down gives them heart. */
+export const NERVE_DOWN = 15;
+/** Someone stared down and running (intimidate) takes this off the rest. */
+export const NERVE_TALKED = 20;
+/** Below this nerve, a badly hurt one may look for a way out instead of attacking... */
+export const RUN_NERVE = 40;
+/** ...this often a round. It runs at the end of the round unless stopped. */
+export const RUN_CHANCE = 0.5;
+/** A crew that can't reach what's left (drones, and nobody who can shoot) pulls out and leaves this share of what it found. */
+export const UNREACHABLE_DROP = 1 / 3;
 /** Intimidate, Soothe, Short out: checks against this + danger. */
 export const INTIMIDATE_DC = 10;
 export const SOOTHE_DC = 9;

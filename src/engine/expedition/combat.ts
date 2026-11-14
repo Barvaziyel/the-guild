@@ -35,7 +35,19 @@ import {
   HEAVY_ARMOR,
   HEAVY_ARMOR_SOAK,
   SURVIVOR_DEFENSE,
-  UNARMED_DAMAGE, TOWER_TO_HIT, WALL_COVER, RAID_SHORE_COVER, RAID_MARKED_WEIGHT, RAID_WORKSHOP_TO_HIT, DOG_TO_HIT, DOG_DAMAGE } from '../constants.ts';
+  UNARMED_DAMAGE, TOWER_TO_HIT, WALL_COVER, RAID_SHORE_COVER, RAID_MARKED_WEIGHT, RAID_WORKSHOP_TO_HIT, DOG_TO_HIT, DOG_DAMAGE,
+  BIG_HIT,
+  HEAVY_HIT_MULT,
+  HEAVY_TO_HIT,
+  NERVE_BIG_HIT,
+  NERVE_DOWN,
+  NERVE_FULL,
+  NERVE_LEADER,
+  NERVE_TALKED,
+  RUN_CHANCE,
+  RUN_NERVE,
+  UNREACHABLE_DROP,
+} from '../constants.ts';
 import { getEnemy, type EncounterDef, type EnemyDef } from '../content/index.ts';
 import { ENEMIES_BREAK, FLEE_LINES, STALEMATE_LINES, WITHDRAW_FAIL, WITHDRAW_SUCCESS } from '../content/flavor.ts';
 import { armorValue, itemDef, itemName, qualityMod, weaponDamage } from '../gear.ts';
@@ -71,7 +83,8 @@ import {
   toughened,
   type FightPlan,
 } from './context.ts';
-import { FightPause, enemyNames, fightView, movesFor, validOrder, type FightAct } from './command.ts';
+import { FightPause, attackKind, defaultRank, enemyNames, fightView, movesFor, validOrder, type FightAct } from './command.ts';
+import { enemyReaches, reaches } from './reach.ts';
 import { afterFight, announceNemesis, enemyRef, grudgeBonus, maybeNemesisEscape, nemesisEnemy, nemesisJoins, nemesisKilled } from './stories.ts';
 
 export interface Enemy {
@@ -95,6 +108,30 @@ export interface Enemy {
   escapeTried?: boolean;
   /** Stunned: loses its next attack (§7.13). */
   stunned?: boolean;
+  /** What it means to do this round, chosen before the crew acts (§7.4, 2.3.0). */
+  intent?: EnemyIntent;
+}
+
+/** What an enemy means to do this round (§7.4, 2.3.0): a hit or a big hit at someone, or a run for it. Shown to a commander before the orders. */
+export interface EnemyIntent {
+  kind: 'strike' | 'heavy' | 'run';
+  at?: Member;
+}
+
+/** A group's nerve (§7.4, 2.3.0): deaths, their leader falling and big hits wear it down, one of the crew going down builds it up; at 0 those that can run do. */
+interface Morale {
+  nerve: number;
+  /** What each death costs: enough that, with nothing else, they break once more than half are dead. */
+  perDeath: number;
+}
+
+function loseNerve(morale: Morale | undefined, amount: number): void {
+  if (morale) morale.nerve = Math.max(0, morale.nerve - amount);
+}
+
+/** One of them killed (or shut down): what it costs the rest. */
+function fell(morale: Morale | undefined, e: Enemy): void {
+  loseNerve(morale, (morale?.perDeath ?? 0) + (e.def.leader ? NERVE_LEADER : 0));
 }
 
 export function newEnemy(def: EnemyDef, danger = 1): Enemy {
@@ -179,6 +216,8 @@ interface AttackContext {
   /** Names that tell enemies apart, for those lines. */
   names: string[];
   enemies: readonly Enemy[];
+  /** Their nerve, when any of them can break. */
+  morale?: Morale;
 }
 
 /** What a move adds to an attack (§7.13). */
@@ -253,6 +292,8 @@ function survivorAttack(sim: Sim, m: Member, target: Enemy, ctx: AttackContext, 
   const raw = (damage + (mods.damage ?? 0) + (aimed ? AIM_DAMAGE : 0)) * (mods.double ? 2 : 1);
   const dealt = Math.max(1, raw - (mods.throughArmor ? 0 : target.def.armor));
   target.hp -= dealt;
+  // A big hit shakes the rest of them.
+  if (dealt >= BIG_HIT) loseNerve(ctx.morale, NERVE_BIG_HIT);
   if (target.hp > 0) {
     if (mods.stun) target.stunned = true;
     act(sim, { by: m.s.id, at, kind: 'hit', amount: dealt, shot: ranged, ...(mods.stun ? { stun: true } : {}) });
@@ -264,6 +305,7 @@ function survivorAttack(sim: Sim, m: Member, target: Enemy, ctx: AttackContext, 
   act(sim, { by: m.s.id, at, kind: 'kill', amount: dealt, shot: ranged });
 
   target.dead = true;
+  fell(ctx.morale, target);
   const c = m.s.counters;
   c.kills += 1;
   c.killsByEnemy[target.def.type] = (c.killsByEnemy[target.def.type] ?? 0) + 1;
@@ -293,6 +335,8 @@ interface FightState {
   /** Members who went down during this fight. */
   downedHere: Member[];
   fledHere: Member[];
+  /** Their nerve, when any of them can break (2.3.0). */
+  morale?: Morale;
 }
 
 function maybeFlee(sim: Sim, m: Member, fight: FightState): void {
@@ -310,7 +354,7 @@ function maybeFlee(sim: Sim, m: Member, fight: FightState): void {
   revealHook(sim, m, 'fleeChance');
 }
 
-/** What the crew set up this round under orders (§7.13): who is in cover, drawing fire, charging or guarding, and the enemy spotted. */
+/** What the crew set up this round (§7.13): who is in cover, drawing fire, charging or guarding, and the enemy spotted. On their own, only cover: someone with nothing in reach keeps down. */
 interface Tactics {
   cover: Set<Member>;
   drawFire: Set<Member>;
@@ -321,44 +365,93 @@ interface Tactics {
   spotter?: Member;
 }
 
-function enemyRound(sim: Sim, fight: FightState, tactics?: Tactics): void {
+/** Who an enemy can go for: anyone in the fight it can reach. Lookouts on the Watchtower are out of reach (§9.8). */
+function reachableBy(sim: Sim, enemy: Enemy): Member[] {
+  const crew = active(sim).filter((m) => !m.perch);
+  return crew.filter((m) => enemyReaches(enemy, m, crew));
+}
+
+/** How much an enemy wants to go for someone: the Brave draw it, and raiders with a score to settle go for that person (§9.8). */
+function attention(sim: Sim, enemy: Enemy, m: Member): number {
+  return mulTraitHook(m.s, 'attentionWeight') * (sim.gate?.marked === m.s.id && enemy.def.type === 'raider' ? RAID_MARKED_WEIGHT : 1);
+}
+
+/**
+ * What each enemy means to do this round (§7.4, 2.3.0), chosen before the crew
+ * acts, so a commander sees it: a hit at someone, a big hit for those that wind
+ * one up, or (hurt, with their nerve going) a run for it.
+ */
+function chooseIntents(sim: Sim, fight: FightState): void {
+  for (const enemy of fight.enemies) {
+    enemy.intent = undefined;
+    if (enemy.dead || enemy.fled || enemy.stunned) continue;
+    const morale = fight.morale;
+    const canRun = enemy.def.morale === 'breaks' && !enemy.nemesis && !enemy.def.leader;
+    if (canRun && morale && morale.nerve < RUN_NERVE && enemy.hp * 2 <= enemy.maxHp && sim.rng.chance(RUN_CHANCE)) {
+      enemy.intent = { kind: 'run' };
+      continue;
+    }
+    const targets = reachableBy(sim, enemy);
+    if (targets.length === 0) continue;
+    const at = sim.rng.weightedBy(targets, (m) => attention(sim, enemy, m));
+    const heavy = enemy.def.heavy !== undefined && sim.rng.chance(enemy.def.heavy);
+    enemy.intent = { kind: heavy ? 'heavy' : 'strike', at };
+  }
+}
+
+function enemyRound(sim: Sim, fight: FightState, tactics: Tactics, commanded: boolean): void {
   for (const enemy of living(fight.enemies)) {
+    const label = commanded ? (fight.names[fight.enemies.indexOf(enemy)] ?? enemyRef(enemy)) : enemyRef(enemy);
     // A stunned enemy loses this attack.
     if (enemy.stunned) {
       enemy.stunned = false;
       act(sim, { by: fight.enemies.indexOf(enemy), kind: 'reel' });
       continue;
     }
-    // Lookouts on the Watchtower are out of reach (§9.8).
-    const targets = active(sim).filter((m) => !m.perch);
-    if (targets.length === 0) return;
-    // Without orders this is exactly the automatic fight: one weighted pick, then the roll.
-    // Raiders with a score to settle go for that person (§9.8).
-    let target = sim.rng.weightedBy(
-      targets,
-      (m) => mulTraitHook(m.s, 'attentionWeight') * (tactics?.drawFire.has(m) ? 20 : 1) * (sim.gate?.marked === m.s.id && enemy.def.type === 'raider' ? RAID_MARKED_WEIGHT : 1),
-    );
-    const guard = tactics?.guards.get(target);
+    const intent = enemy.intent;
+    // One that meant to run, does (2.3.0).
+    if (intent?.kind === 'run') {
+      enemy.fled = true;
+      loseNerve(fight.morale, (fight.morale?.perDeath ?? 0) / 2);
+      act(sim, { by: fight.enemies.indexOf(enemy), kind: 'break' });
+      say(sim, `${capitalize(label)} breaks away and runs.`);
+      continue;
+    }
+    const targets = reachableBy(sim, enemy);
+    if (targets.length === 0) {
+      if (active(sim).length === 0) return;
+      continue;
+    }
+    // Who it meant to hit, if it still can; or else someone it can reach now.
+    let target = intent?.at && targets.includes(intent.at) ? intent.at : sim.rng.weightedBy(targets, (m) => attention(sim, enemy, m));
+    // Someone drawing fire pulls it their way.
+    const drawing = targets.filter((m) => tactics.drawFire.has(m));
+    if (drawing.length > 0 && !drawing.includes(target)) target = drawing[0]!;
+    const guard = tactics.guards.get(target);
     if (guard && !guard.down && !guard.dead && !guard.fled) target = guard;
     const armor = target.s.equipment.armor ? armorValue(target.s.equipment.armor) : 0;
     const extra =
-      (tactics
-        ? (tactics.cover.has(target) ? COVER_DEFENSE : 0) + (tactics.drawFire.has(target) ? DRAW_FIRE_DEFENSE : 0) - (tactics.charging.has(target) ? CHARGE_BONUS : 0)
-        : 0) + (sim.gate?.wall ? WALL_COVER : 0) + (sim.gate?.shored ? RAID_SHORE_COVER : 0);
+      (tactics.cover.has(target) ? COVER_DEFENSE : 0) +
+      (tactics.drawFire.has(target) ? DRAW_FIRE_DEFENSE : 0) -
+      (tactics.charging.has(target) ? CHARGE_BONUS : 0) +
+      (sim.gate?.wall ? WALL_COVER : 0) +
+      (sim.gate?.shored ? RAID_SHORE_COVER : 0);
     const shot = /shot|zapped/.test(enemy.def.hitVerb);
-    if (sim.rng.d10() + enemy.attack < SURVIVOR_DEFENSE + armor + extra) {
+    const heavy = intent?.kind === 'heavy';
+    if (sim.rng.d10() + enemy.attack + (heavy ? HEAVY_TO_HIT : 0) < SURVIVOR_DEFENSE + armor + extra) {
       act(sim, { by: fight.enemies.indexOf(enemy), at: target.s.id, kind: 'miss', shot });
+      if (commanded && intent?.kind === 'heavy') say(sim, `${capitalize(label)}'s big hit misses ${target.s.firstName}.`);
       continue;
     }
 
-    const damage = damageThrough(enemy.damage, armor);
+    const damage = damageThrough(enemy.damage * (heavy ? HEAVY_HIT_MULT : 1), armor);
     if (enemy.def.rads) absorbRads(target, enemy.def.rads);
     const wentDown = hurt(sim, target, damage, enemyRef(enemy), enemy.def.type, enemy.nemesis?.id);
-    // Under orders, the player needs to know which one it was.
-    const who = tactics ? (fight.names[fight.enemies.indexOf(enemy)] ?? enemyRef(enemy)) : enemyRef(enemy);
     act(sim, { by: fight.enemies.indexOf(enemy), at: target.s.id, kind: 'hit', amount: damage, shot, ...(wentDown ? { down: true } : {}) });
-    say(sim, `${target.s.firstName} is ${enemy.def.hitVerb} ${who} (-${damage} HP)${wentDown ? ' and goes down.' : '.'}`, { tone: 'bad' });
+    say(sim, `${target.s.firstName} is ${heavy ? 'hit hard, ' : ''}${enemy.def.hitVerb} ${label} (-${damage} HP)${wentDown ? ' and goes down.' : '.'}`, { tone: 'bad' });
     if (wentDown) {
+      // One of the crew down gives the rest of them heart.
+      if (fight.morale) fight.morale.nerve = Math.min(NERVE_FULL, fight.morale.nerve + NERVE_DOWN);
       enemy.downed.push(target);
       fight.downedHere.push(target);
       for (const other of active(sim)) maybeFlee(sim, other, fight);
@@ -368,10 +461,12 @@ function enemyRound(sim: Sim, fight: FightState, tactics?: Tactics): void {
   }
 }
 
+const capitalize = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);
+
 /** The guild's dog joins in at the gate (§9.8): a bite at whichever raider is closest to the people. */
 function dogBite(sim: Sim, enemies: readonly Enemy[], ctx: AttackContext): void {
   const name = sim.gate!.dog!;
-  const targets = living(enemies);
+  const targets = living(enemies).filter((e) => reaches(false, 'front', e, enemies));
   if (targets.length === 0) return;
   const target = sim.rng.weightedBy(targets, (e) => (e.hp < e.maxHp ? 2 : 1));
   const at = enemies.indexOf(target);
@@ -390,14 +485,13 @@ function dogBite(sim: Sim, enemies: readonly Enemy[], ctx: AttackContext): void 
   }
   act(sim, { by: 'dog', at, kind: 'kill', amount: dealt });
   target.dead = true;
+  fell(ctx.morale, target);
   say(sim, `${name} brings ${label} down.`, { tone: 'good' });
 }
 
-/** Enemies that can break do so once more than half the group is dead. Returns true if any ran. */
+/** Enemies that can break do so once their nerve is gone (2.3.0; before, once more than half the group was dead). Returns true if any ran. */
 function checkMorale(sim: Sim, fight: FightState): boolean {
-  const total = fight.enemies.length;
-  const dead = fight.enemies.filter((e) => e.dead).length;
-  if (dead * 2 <= total) return false;
+  if (!fight.morale || fight.morale.nerve > 0) return false;
   // A nemesis doesn't run with the pack; it has its own way of getting out.
   const runners = living(fight.enemies).filter((e) => e.def.morale === 'breaks' && !e.nemesis);
   if (runners.length === 0) return false;
@@ -446,7 +540,8 @@ function withdraw(sim: Sim, fight: FightState): void {
     say(sim, flavor(sim, WITHDRAW_SUCCESS, { a: leader }), { check: result.info });
   } else {
     say(sim, flavor(sim, WITHDRAW_FAIL, { a: leader }), { check: result.info, tone: 'bad' });
-    enemyRound(sim, fight);
+    chooseIntents(sim, fight);
+    enemyRound(sim, fight, noTactics(), false);
   }
 }
 
@@ -505,9 +600,18 @@ function callHome(sim: Sim, enemies: readonly Enemy[]): FightPlan | undefined {
   return plan;
 }
 
-/** The orders that set things up before anyone swings: cover, drawing fire, charging, guarding, spotting, aiming. */
+function noTactics(): Tactics {
+  return { cover: new Set(), drawFire: new Set(), charging: new Set(), guards: new Map() };
+}
+
+/** The orders that set things up before anyone swings: where people stand, cover, drawing fire, charging, guarding, spotting, aiming. */
 function prepareRound(sim: Sim, enemies: readonly Enemy[], orders: RoundOrders): Tactics {
-  const t: Tactics = { cover: new Set(), drawFire: new Set(), charging: new Set(), guards: new Map() };
+  const t = noTactics();
+  // Where people stand comes first: it decides what they can reach (2.3.0).
+  for (const m of active(sim)) {
+    const rank = orders.ranks?.[m.s.id];
+    if (rank && !m.perch) m.rank = rank;
+  }
   for (const m of active(sim)) {
     const order = orders.moves[m.s.id];
     if (!order || !validOrder(sim, m, enemies, order.move, order.target)) continue;
@@ -547,7 +651,7 @@ export function patchUp(sim: Sim, medic: Member, ally: Member): void {
 }
 
 /** A check that ends one enemy's part in the fight: staring a raider down, soothing a feral, shorting out a scrapbot. */
-function talkDown(sim: Sim, m: Member, target: Enemy, at: number, label: string, move: 'intimidate' | 'soothe' | 'short_out'): void {
+function talkDown(sim: Sim, m: Member, target: Enemy, at: number, label: string, move: 'intimidate' | 'soothe' | 'short_out', morale: Morale | undefined): void {
   const spec =
     move === 'intimidate'
       ? { stat: 'nerve' as const, dc: INTIMIDATE_DC, contexts: ['intimidate'], won: `${label} breaks and runs.`, lost: `${label} laughs at ${m.s.firstName}.` }
@@ -559,8 +663,13 @@ function talkDown(sim: Sim, m: Member, target: Enemy, at: number, label: string,
   say(sim, result.success ? spec.won : spec.lost, { check: result.info, tone: result.success ? 'good' : 'bad' });
   if (!result.success) return;
   // A machine shut down is as good as destroyed: its parts are there for the taking.
-  if (move === 'short_out') target.dead = true;
-  else target.fled = true;
+  if (move === 'short_out') {
+    target.dead = true;
+    fell(morale, target);
+  } else {
+    target.fled = true;
+    if (move === 'intimidate') loseNerve(morale, NERVE_TALKED);
+  }
 }
 
 /** Carry out one person's order. Returns false if they can't, and should just fight as they would on their own. */
@@ -614,7 +723,7 @@ function actOnOrder(sim: Sim, m: Member, given: MoveOrder, enemies: readonly Ene
     case 'intimidate':
     case 'soothe':
     case 'short_out':
-      talkDown(sim, m, foe!, order.target as number, ctx.names[order.target as number] ?? foe!.def.name, order.move);
+      talkDown(sim, m, foe!, order.target as number, ctx.names[order.target as number] ?? foe!.def.name, order.move, ctx.morale);
       return true;
     case 'cover':
       act(sim, { by: m.s.id, kind: 'cover' });
@@ -641,14 +750,46 @@ function actOnOrder(sim: Sim, m: Member, given: MoveOrder, enemies: readonly Ene
   }
 }
 
+/** A big hit coming at them would put them down (2.3.0): what someone on their own takes cover from. */
+function bigHitWouldDrop(m: Member, enemies: readonly Enemy[]): boolean {
+  const armor = m.s.equipment.armor ? armorValue(m.s.equipment.armor) : 0;
+  return living(enemies).some((e) => e.intent?.kind === 'heavy' && e.intent.at === m && !e.stunned && damageThrough(e.damage * HEAVY_HIT_MULT, armor) >= m.s.hp);
+}
+
+/** Nobody still in the fight can reach any of them: what's left flies, and nobody can shoot (2.3.0). */
+function cannotReach(sim: Sim, enemies: readonly Enemy[]): boolean {
+  const left = living(enemies);
+  const crew = active(sim);
+  if (left.length === 0 || crew.length === 0) return false;
+  return crew.every((m) => {
+    const shot = attackKind(sim, m) === 'shoot';
+    return !left.some((e) => reaches(shot, 'front', e, enemies));
+  });
+}
+
+/** The crew pulls out from what it can't reach, under fire, and drops part of what it found to get away (2.3.0). */
+function outOfReach(sim: Sim, enemies: readonly Enemy[]): void {
+  const left = describeGroup(living(enemies));
+  const solo = sim.members.length === 1;
+  const carried = Object.values(sim.loot).some((n) => n >= 1);
+  for (const k of Object.keys(sim.loot) as (keyof typeof sim.loot)[]) sim.loot[k] *= 1 - UNREACHABLE_DROP;
+  const one = active(sim)[0]!;
+  const who = solo ? one.s.firstName : 'The crew';
+  const found = solo ? `${pronounForms(one.s.pronouns).they} found` : 'they found';
+  say(sim, `Nobody can reach ${left}. ${who} pulls out under fire${carried ? `, dropping a third of what ${found} to get away` : ''}.`, { tone: 'bad' });
+}
+
 export function fight(sim: Sim, enemies: Enemy[], start: FightStart): FightResult {
-  const state: FightState = { enemies, names: enemyNames(enemies), downedHere: [], fledHere: [] };
+  // A group that can break has nerve (2.3.0): with nothing else, they break once more than half are dead, as before.
+  const breakers = enemies.some((e) => e.def.morale === 'breaks' && !e.nemesis);
+  const morale: Morale | undefined = breakers ? { nerve: NERVE_FULL, perDeath: Math.ceil(NERVE_FULL / (Math.floor(enemies.length / 2) + 1)) } : undefined;
+  const state: FightState = { enemies, names: enemyNames(enemies), downedHere: [], fledHere: [], ...(morale ? { morale } : {}) };
   // On a led run the crew stops here and calls home first (§7.13).
   const plan = callHome(sim, enemies);
   const fightFrom = sim.beats.at(-1)?.lines.length ?? 0;
   // A fight under command notes what happens, act by act, for the battle stage.
   sim.fightActs = plan ? { round: 0, acts: [] } : undefined;
-  const attackCtx: AttackContext = { drop: false, ambushed: start.ambushed, round: 0, outOfAmmoSaid: new Set(), commanded: false, names: enemyNames(enemies), enemies };
+  const attackCtx: AttackContext = { drop: false, ambushed: start.ambushed, round: 0, outOfAmmoSaid: new Set(), commanded: false, names: enemyNames(enemies), enemies, ...(morale ? { morale } : {}) };
   const enemyType = enemies[0]!.def.type;
   sim.hadCombat = true;
 
@@ -656,6 +797,8 @@ export function fight(sim: Sim, enemies: Enemy[], start: FightStart): FightResul
   for (const m of standing(sim)) {
     m.fled = false;
     m.fleeRolled = false;
+    // Those who can shoot start at the back, everyone else in front (2.3.0).
+    m.rank = defaultRank(sim, m);
     m.s.counters.combats += 1;
     m.tally.combats += 1;
     const nerve = check(sim, m, 'nerve', 7 + sim.loc.danger, ['combat', ...enemyContexts(m.s, enemyType)]);
@@ -682,25 +825,40 @@ export function fight(sim: Sim, enemies: Enemy[], start: FightStart): FightResul
     attackCtx.drop = start.drop && round === 1;
     const crewActs = !(start.ambushed && round === 1);
 
+    // What they mean to do this round, before anyone moves: a commander sees it (2.3.0).
+    chooseIntents(sim, state);
+
     let orders: RoundOrders | undefined;
     if (plan && crewActs) {
       orders = plan.rounds[given];
       // Under command and out of orders: the fight waits for the next round's.
-      if (!orders && plan.live) throw new FightPause(fightView(sim, enemies, round, fightFrom));
+      if (!orders && plan.live) throw new FightPause(fightView(sim, enemies, round, fightFrom, undefined, morale?.nerve));
       if (orders) given++;
     }
     attackCtx.commanded = orders !== undefined;
-    const tactics = orders ? prepareRound(sim, enemies, orders) : undefined;
+    const tactics = orders ? prepareRound(sim, enemies, orders) : noTactics();
 
     if (crewActs) {
       for (const m of active(sim)) {
-        const targets = living(enemies);
-        if (targets.length === 0) break;
+        if (living(enemies).length === 0) break;
         const order = orders?.moves[m.s.id];
-        if (order && tactics && actOnOrder(sim, m, order, enemies, attackCtx, tactics)) continue;
-        // People tend to finish what is already hurt.
-        const target = sim.rng.weightedBy(targets, (e) => (e.hp < e.maxHp ? 3 : 1));
-        survivorAttack(sim, m, target, attackCtx, tactics?.spotted === target && tactics.spotter !== m ? { toHit: SPOT_TO_HIT } : {});
+        if (order && actOnOrder(sim, m, order, enemies, attackCtx, tactics)) continue;
+        // On their own, someone a big hit would put down keeps their head down.
+        if (bigHitWouldDrop(m, enemies)) {
+          tactics.cover.add(m);
+          if (attackCtx.commanded) say(sim, `${m.s.firstName} sees it coming and keeps down.`);
+          continue;
+        }
+        // On their own: something in reach, the hurt first and whatever is winding up a big hit next.
+        const shot = attackKind(sim, m) === 'shoot';
+        const targets = living(enemies).filter((e) => reaches(shot, m.perch ? 'back' : (m.rank ?? 'front'), e, enemies));
+        if (targets.length === 0) {
+          // Nothing in reach (2.3.0): they keep their head down.
+          tactics.cover.add(m);
+          continue;
+        }
+        const target = sim.rng.weightedBy(targets, (e) => (e.hp < e.maxHp ? 3 : 1) * (e.intent?.kind === 'heavy' ? 2 : 1));
+        survivorAttack(sim, m, target, attackCtx, tactics.spotted === target && tactics.spotter !== m ? { toHit: SPOT_TO_HIT } : {});
       }
       if (sim.gate?.dog) dogBite(sim, enemies, attackCtx);
       if (living(enemies).length === 0 || (checkMorale(sim, state) && living(enemies).length === 0)) {
@@ -709,7 +867,7 @@ export function fight(sim: Sim, enemies: Enemy[], start: FightStart): FightResul
       }
     }
 
-    if (!(start.drop && round === 1)) enemyRound(sim, state, tactics);
+    if (!(start.drop && round === 1)) enemyRound(sim, state, tactics, attackCtx.commanded);
 
     if (active(sim).length === 0) {
       end = standing(sim).length === 0 ? 'routed' : 'withdrew';
@@ -718,6 +876,12 @@ export function fight(sim: Sim, enemies: Enemy[], start: FightStart): FightResul
     // At the gate, lookouts on the tower can't hold it alone (§9.8).
     if (sim.gate && active(sim).every((m) => m.perch)) {
       say(sim, 'Nobody is left at the gate. The raiders are through.', { tone: 'bad' });
+      end = 'withdrew';
+      break;
+    }
+    // Out on a run, a crew that can't reach what's left (drones, and nobody who can shoot) has to get out, and leaves things behind (2.3.0).
+    if (!sim.gate && cannotReach(sim, enemies)) {
+      outOfReach(sim, enemies);
       end = 'withdrew';
       break;
     }
@@ -758,8 +922,9 @@ export function fight(sim: Sim, enemies: Enemy[], start: FightStart): FightResul
   }
 
   afterFight(sim, enemies);
+  for (const e of enemies) e.intent = undefined;
   // A commanded fight as it ended, for the screen that shows how it went.
-  if (plan && sim.lead) sim.lead.ends[sim.lead.stops.length - 1] = fightView(sim, enemies, attackCtx.round, fightFrom, end);
+  if (plan && sim.lead) sim.lead.ends[sim.lead.stops.length - 1] = fightView(sim, enemies, attackCtx.round, fightFrom, end, morale?.nerve);
   sim.fightActs = undefined;
 
   const loot: Partial<Record<ResourceId, number>> = {};
