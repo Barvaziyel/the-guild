@@ -94,7 +94,7 @@ export function SurvivorSheet({ state, id, tab, day, now }: Props) {
             aria-selected={t === current}
             aria-controls="sheet-panel"
             className="sheet-tab"
-            onClick={() => navigate({ screen: 'survivor', id, tab: t }, { replace: true })}
+            onClick={() => navigate({ screen: 'survivor', id, tab: t }, { replace: true, keepScroll: true })}
           >
             {t === 'stats' && (dead || child) ? 'Stats' : TAB_LABELS[t]}
           </button>

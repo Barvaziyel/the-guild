@@ -27,6 +27,7 @@ import {
   runProgress,
   suggestedAmmo,
   toggleCrew,
+  splitReports,
   unreadCount,
 } from './runs-view.ts';
 
@@ -195,10 +196,20 @@ test('the planner says what rations go, and what happens when the Depot is short
   const plan = testPlan(state, 'rail_yard');
   assert.equal(rationsNote(state, { ...plan, crew: [] }), 'Rations are packed for each person automatically.');
   state.resources.rations = 10;
-  assert.equal(rationsNote(state, plan), '3 rations packed automatically, of 10 at the Depot.');
-  assert.equal(rationsNote(state, { ...plan, crew: plan.crew.slice(0, 1) }), '1 ration packed automatically, of 10 at the Depot.');
+  assert.equal(rationsNote(state, plan), '3 rations packed.');
+  assert.equal(rationsNote(state, { ...plan, crew: plan.crew.slice(0, 1) }), '1 ration packed.');
   state.resources.rations = 2;
   assert.equal(rationsNote(state, plan), 'Only 2 of the 3 rations the crew needs: all the Depot has.');
   state.resources.rations = 0;
   assert.equal(rationsNote(state, plan), 'No rations at the Depot. The crew can still go, hungry.');
+});
+
+describe('the Runs screen’s report list', () => {
+  test('the newest few and anything unread up front, the rest folded', () => {
+    const item = (id: string, read: boolean) => ({ id, report: { read } });
+    const items = [item('a', true), item('b', false), item('c', true), item('d', true), item('e', false)];
+    const { recent, older } = splitReports(items, 2);
+    assert.deepEqual(recent.map((i) => i.id), ['a', 'b', 'e']);
+    assert.deepEqual(older.map((i) => i.id), ['c', 'd']);
+  });
 });

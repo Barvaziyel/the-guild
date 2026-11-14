@@ -2,6 +2,7 @@
  * One day at the Depot: people eat, work, heal, rest and get on (or don't).
  * Played for every game day that passes, in order, by advanceTime.
  */
+import { pantryIn, pantryOut, spoilRations } from './pantry.ts';
 import { animalsDay, goatMilk } from '../animals.ts';
 import { childGarden, childRations, childRelief } from '../family.ts';
 import { addGuildLog } from '../chronicle.ts';
@@ -65,10 +66,12 @@ export interface DepotSummary {
   unpaid: BuildingId[];
   /** Nights someone slept on the floor, for want of a bed (§9.1). */
   floorNights?: number;
+  /** Rations that went off in the stores (§9.1). */
+  spoiled?: number;
 }
 
 export function emptySummary(): DepotSummary {
-  return { days: 0, grown: 0, eaten: 0, hungryDays: 0, ammoMade: 0, healed: 0, cured: 0, news: [], outposts: {}, upkeep: {}, unpaid: [], floorNights: 0 };
+  return { days: 0, grown: 0, eaten: 0, hungryDays: 0, ammoMade: 0, healed: 0, cured: 0, news: [], outposts: {}, upkeep: {}, unpaid: [], floorNights: 0, spoiled: 0 };
 }
 
 /** Round a fractional amount up or down at random, so 2.3 is 3 about a third of the time. */
@@ -124,8 +127,9 @@ export function playDepotDay(state: GameState, day: number, rng: Rng, summary: D
   // Conditions that have run their course.
   for (const s of home) expireConditions(s, day);
 
-  // Food.
-  growFood(state, rng, summary);
+  // Food: what's been kept too long goes off, the Garden grows, everyone eats (the oldest first).
+  summary.spoiled = (summary.spoiled ?? 0) + spoilRations(state, day);
+  growFood(state, day, rng, summary);
   const hungry = eat(state, day, summary);
 
   // What the upper levels use up; a building that can't be kept going works a level lower today.
@@ -221,10 +225,11 @@ function payUpkeep(state: GameState, rng: Rng, summary: DepotSummary): void {
   if (state.depot.unpaid.length === 0) delete state.depot.unpaid;
 }
 
-function growFood(state: GameState, rng: Rng, summary: DepotSummary): void {
+function growFood(state: GameState, day: number, rng: Rng, summary: DepotSummary): void {
   // The goat's milk counts with what the Garden grows (§9.7).
   const grown = roundChance(rng, gardenYield(state)) + goatMilk(state);
   state.resources.rations += grown;
+  pantryIn(state, day, grown);
   summary.grown += grown;
 }
 
@@ -263,6 +268,7 @@ function eat(state: GameState, day: number, summary: DepotSummary): boolean {
   const need = dailyUpkeep(state);
   const eaten = Math.min(need, state.resources.rations);
   state.resources.rations -= eaten;
+  pantryOut(state, eaten);
   summary.eaten += eaten;
   const hungry = eaten < need;
   if (hungry) summary.hungryDays += 1;

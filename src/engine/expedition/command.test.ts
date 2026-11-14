@@ -236,6 +236,31 @@ describe('moves', () => {
   });
 });
 
+describe('orders whose target is gone', () => {
+  test('they keep the move and turn it on the enemy next to it', () => {
+    let turned = 0;
+    for (let i = 0; i < 40 && turned === 0; i++) {
+      const { state, run } = ledRun(`retarget-${i}`, { setup: (s) => s.survivors.forEach((x) => (x.stats.aim = x.stats.brawn = 9)) });
+      const f = run.lead!.fights[0]!;
+      let now = f.at + 60_000;
+      let view = takeCommand(state, run.id, now);
+      while (view) {
+        // Everyone at the weakest enemy: whoever goes last often finds it already down.
+        const up = view.enemies.filter((e) => e.state === 'up');
+        const weakest = up.reduce((a, b) => (b.hp < a.hp ? b : a), up[0]!);
+        const moves: RoundOrders['moves'] = {};
+        for (const m of view.crew) if (m.moves.some((c) => c.move === 'attack')) moves[m.id] = { move: 'attack', target: weakest.index };
+        now += 30_000;
+        const next = commandRound(state, run.id, { moves }, now);
+        if (!next) break;
+        turned += next.lines.filter((l) => /^\w+'s target is gone\. (He|She) turns to .+\.$/.test(l.text)).length;
+        view = next;
+      }
+    }
+    assert.ok(turned > 0, 'someone turned to another enemy');
+  });
+});
+
 describe('the battle stage', () => {
   test('every act names who did it and to whom, points at a line, and the hits add up to what the enemies lost', () => {
     let checked = 0;

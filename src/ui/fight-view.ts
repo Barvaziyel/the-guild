@@ -22,10 +22,14 @@ import {
 import { formatDuration, type PlannedNotice } from './runs-view.ts';
 
 /** The planner's switch: whether it can be on, and what it says. */
-export function leadChoice(state: GameState): { can: boolean; help: string } {
+export function leadChoice(state: GameState): { can: boolean; help: string; short: string } {
   const wait = formatDuration(LEAD_WAIT);
-  if ((state.buildings.radio_tower ?? 0) < 1) return { can: false, help: 'Orders go over the radio: this needs a Radio Tower.' };
-  return { can: true, help: `At every fight they call home and wait up to ${wait} for your orders, with a notice. Nobody there? They fight on their own.` };
+  if ((state.buildings.radio_tower ?? 0) < 1) return { can: false, help: 'Orders go over the radio: this needs a Radio Tower.', short: 'Needs a Radio Tower.' };
+  return {
+    can: true,
+    help: `At every fight they call home and wait up to ${wait} for your orders, with a notice. Nobody there? They fight on their own.`,
+    short: `At each fight they wait up to ${wait} for your orders.`,
+  };
 }
 
 function crewName(run: Run, id: string): string {

@@ -895,6 +895,8 @@ export interface DepotState {
   crowded?: boolean;
   /** Raiders coming for the Depot, at the gate, or the last raid fought (§9.8). */
   raid?: DepotRaid;
+  /** The rations in the stores by the game day they came in, oldest first (§9.1): they go off after a while. */
+  pantry?: RationBatch[];
 }
 
 /**
@@ -920,6 +922,12 @@ export interface RaidSpoils {
   found: Partial<Resources>;
   gear: string[];
   captive?: string;
+}
+
+/** Rations that came into the stores on one game day. */
+export interface RationBatch {
+  day: number;
+  n: number;
 }
 
 export interface DepotRaid {

@@ -226,7 +226,7 @@ function Report({ state, report }: { state: GameState; report: RunReport }) {
         {followedHome(s, names).map((line) => (
           <p key={line} className="summary-found">
             {line}{' '}
-            <button type="button" className="link" onClick={() => navigate({ screen: 'depot', tab: 'yard' })}>
+            <button type="button" className="link" onClick={() => navigate({ screen: 'depot' })}>
               See the yard
             </button>
           </p>

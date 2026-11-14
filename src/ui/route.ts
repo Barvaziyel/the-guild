@@ -10,13 +10,13 @@ export type SheetTab = (typeof SHEET_TABS)[number];
 export const PLACE_TABS = ['about', 'outpost'] as const;
 export type PlaceTab = (typeof PLACE_TABS)[number];
 
-/** The Depot's tabs. 'today' is the default and has no part in the hash. */
-export const DEPOT_TABS = ['today', 'yard', 'buildings', 'projects', 'news'] as const;
+/** The Depot's tabs. 'yard' is the default (Aviel, 2.2.0) and has no part in the hash. */
+export const DEPOT_TABS = ['yard', 'today', 'buildings', 'projects', 'news'] as const;
 export type DepotTab = (typeof DEPOT_TABS)[number];
 
 export type Route =
   /** The Depot: what needs you today, the buildings, or the news. */
-  | { screen: 'depot'; tab?: Exclude<DepotTab, 'today'> }
+  | { screen: 'depot'; tab?: Exclude<DepotTab, 'yard'> }
   /** A Depot building: its workers and what it does. */
   | { screen: 'building'; id: string }
   /** Who is at the gate. */
@@ -31,7 +31,7 @@ export type Route =
   | { screen: 'settings' }
   /** The Reach map, optionally with a location picked, and its outpost tab. */
   | { screen: 'reach'; id?: string; tab?: Exclude<PlaceTab, 'about'> }
-  | { screen: 'plan'; locationId: string }
+  | { screen: 'plan'; locationId: string; step?: 'orders' }
   /** The Vultures (§7.11). */
   | { screen: 'vultures' }
   | { screen: 'raid' }
@@ -52,7 +52,7 @@ export function parseRoute(hash: string): Route {
   switch (head) {
     case 'depot': {
       const tab = DEPOT_TABS.find((t) => t === a);
-      return tab && tab !== 'today' ? { screen: 'depot', tab } : DEFAULT_ROUTE;
+      return tab && tab !== 'yard' ? { screen: 'depot', tab } : DEFAULT_ROUTE;
     }
     case 'roster':
       return { screen: 'roster' };
@@ -76,7 +76,7 @@ export function parseRoute(hash: string): Route {
       return tab && tab !== 'about' ? { screen: 'reach', id: a, tab } : { screen: 'reach', id: a };
     }
     case 'plan':
-      return a ? { screen: 'plan', locationId: a } : { screen: 'reach' };
+      return a ? { screen: 'plan', locationId: a, ...(b === 'orders' ? { step: 'orders' as const } : {}) } : { screen: 'reach' };
     case 'vultures':
       return { screen: 'vultures' };
     case 'raid':
@@ -115,7 +115,7 @@ export function routeHash(route: Route): string {
     case 'reach':
       return route.id ? `#/reach/${enc(route.id)}${route.tab ? `/${route.tab}` : ''}` : '#/reach';
     case 'plan':
-      return `#/plan/${enc(route.locationId)}`;
+      return `#/plan/${enc(route.locationId)}${route.step === 'orders' ? '/orders' : ''}`;
     case 'run':
       return `#/run/${enc(route.id)}`;
     case 'fight':

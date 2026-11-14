@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { answerRadio, type GameState } from '../../engine/index.ts';
-import { navigate, useAction } from '../hooks.ts';
+import { navigate, useAction, useKeepInView } from '../hooks.ts';
 import { answeredLine, radioCard, radioCards, type RadioCardView } from '../radio-view.ts';
 import { Portrait } from './Portrait.tsx';
 
@@ -14,8 +14,11 @@ export function RadioCalls({ state, now, runId }: { state: GameState; now: numbe
   const run = runId === undefined ? undefined : state.runs.find((r) => r.id === runId);
   const live = runId === undefined ? radioCards(state, now) : run ? [radioCard(state, run, now)].filter((c): c is RadioCardView => c !== undefined) : [];
   const showRun = runId === undefined;
+  // Answered, the call turns into a line of what was said: keep it in view.
+  const ref = useKeepInView<HTMLDivElement>(said.length);
+  if (said.length === 0 && live.length === 0) return null;
   return (
-    <>
+    <div ref={ref} className="radio-calls">
       {said.map((s) => (
         <section key={s.runId} className="panel radio-call is-done" role="status">
           <p className="radio-said">{s.text}</p>
@@ -34,7 +37,7 @@ export function RadioCalls({ state, now, runId }: { state: GameState; now: numbe
       {live.map((card) => (
         <RadioCard key={card.runId} card={card} showRun={showRun} onAnswered={(label) => setSaid((list) => [...list, { runId: card.runId, text: answeredLine(card.callerName, label) }])} />
       ))}
-    </>
+    </div>
   );
 }
 

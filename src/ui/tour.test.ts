@@ -107,7 +107,7 @@ describe('tour', () => {
   test('the card says where in the tour you are', () => {
     const state = openGame('tour-card');
     const first = tourCard(state, 'welcome')!;
-    assert.equal(first.where, 'Supplies: 1 of 4');
+    assert.equal(first.where, 'Supplies: 1 of 5');
     assert.equal(first.partOf, `Part 1 of ${TOUR_PARTS.length}`);
     assert.equal(first.last, false);
     assert.equal(first.lastInPart, false);

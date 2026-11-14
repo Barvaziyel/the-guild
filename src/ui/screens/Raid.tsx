@@ -20,7 +20,7 @@ import {
 } from '../../engine/index.ts';
 import { BattleStage } from '../components/BattleStage.tsx';
 import { fightEnd } from '../fight-view.ts';
-import { goBack, navigate, useAction, useNow } from '../hooks.ts';
+import { goBack, navigate, useAction, useNow, useTopOnChange } from '../hooks.ts';
 import { gateView, raidCard, raidOver, readyView, regroupView, type RegroupView } from '../raid-view.ts';
 import { Command } from './Fight.tsx';
 
@@ -42,11 +42,14 @@ export function Raid({ state }: { state: GameState }) {
   // The fight as the player last saw it, so its end can play what came after.
   const lastSeen = useRef<FightView | undefined>(undefined);
   if (view) lastSeen.current = view;
+  // On the road, at the gate, in command, between the bands, over: each is a new screen, read from the top.
+  const phase = !open ? 'over' : !gate ? 'road' : view ? `fight-${gate.rounds2 !== undefined ? 2 : 1}` : between ? 'between' : 'gate';
+  useTopOnChange(phase);
 
   return (
     <article className="sheet fight-screen">
       <div className="sheet-nav">
-        <button type="button" className="back" onClick={() => goBack({ screen: 'depot' })}>
+        <button type="button" className="back" onClick={() => goBack({ screen: 'depot', tab: 'today' })}>
           <span aria-hidden="true">&lsaquo;</span> Depot
         </button>
       </div>

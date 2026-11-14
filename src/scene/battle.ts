@@ -164,19 +164,31 @@ export function labelLines(text: string, room: number): string[] {
   return [fitLabel(words.slice(0, best).join(' '), room), fitLabel(words.slice(best).join(' '), room)];
 }
 
+/** How tall a health bar is: room for its number. */
+const HP_BAR_H = 11;
+
+/** The number on a health bar, "9/12"; just "9" if that wouldn't fit. */
+export function hpText(hp: number, maxHp: number, width: number): string {
+  const both = `${hp}/${maxHp}`;
+  return both.length * 5.3 <= width - 3 ? both : `${hp}`;
+}
+
 /** The bar and marks over someone's head, and their name: under the feet in front, over the bar behind. */
 function overhead(f: StageFighter, slot: Slot, height: number, room: number, model: StageModel): string {
   if (f.state === 'fled') return '';
   const lying = f.state === 'down' || f.state === 'dead';
-  const top = slot.y - (lying ? 24 : height * slot.scale + 8);
-  const w = 30 * Math.max(0.85, Math.min(1.1, slot.scale));
+  const top = slot.y - (lying ? 30 : height * slot.scale + 14);
+  // Wide enough for "24/24", narrow enough that neighbours' bars don't touch when a side crowds.
+  const w = 36 * Math.max(0.85, Math.min(1.05, slot.scale / 1.25));
   const x = slot.x - w / 2;
   let out = '';
   if (f.state !== 'dead' && f.maxHp > 0) {
-    const share = f.maxHp > 0 ? Math.max(0, Math.min(1, f.hp / f.maxHp)) : 0;
-    const color = share > 0.5 ? '#9cc27f' : share > 0.25 ? '#e0b13a' : '#d9614a';
-    out += rect(x, top, w, 5, '#1d1915', `stroke="${BONE}" stroke-width="0.8"`);
-    if (share > 0) out += `<rect x="${n1(x + 0.8)}" y="${n1(top + 0.8)}" width="${n1((w - 1.6) * share)}" height="3.4" fill="${color}" class="bt-bar"/>`;
+    const hp = Math.max(0, Math.round(f.hp));
+    const share = Math.max(0, Math.min(1, hp / f.maxHp));
+    const color = share > 0.5 ? '#6f9a52' : share > 0.25 ? '#b8892a' : '#b5432f';
+    out += `<rect x="${n1(x)}" y="${n1(top)}" width="${n1(w)}" height="${HP_BAR_H}" rx="2" fill="#1d1915" stroke="${BONE}" stroke-width="0.8"/>`;
+    if (share > 0) out += `<rect x="${n1(x + 0.9)}" y="${n1(top + 0.9)}" width="${n1((w - 1.8) * share)}" height="${HP_BAR_H - 1.8}" rx="1.4" fill="${color}" class="bt-bar"/>`;
+    out += `<text x="${n1(slot.x)}" y="${n1(top + 8.3)}" class="bt-hp" text-anchor="middle">${hpText(hp, f.maxHp, w)}</text>`;
   }
   const lines = labelLines(f.label, room);
   const lw = Math.max(...lines.map(labelWidth));
@@ -192,15 +204,17 @@ function overhead(f: StageFighter, slot: Slot, height: number, room: number, mod
   if (f.vulture) out += poly([[mx - 2, ly + 1], [mx + 2, ly - 10], [mx + 3, ly - 1]], '#1d1b1a', `stroke="${BONE}" stroke-width="0.7"`);
   if (f.nemesis) out += circle(mx, ly - 3.5, 3.2, '#b5432f', `stroke="${BONE}" stroke-width="0.8"`);
   if (f.stunned && f.state === 'up') {
-    for (const k of [-1, 0, 1]) out += poly(starPoints(slot.x + k * 8, top - 7 + Math.abs(k) * 2, 3, 1.3), '#f7d36b', `stroke="${INK}" stroke-width="0.6"`);
+    // Over the bar in front; behind, the name is there, so over the name.
+    const sy = slot.rank === 0 ? top - 7 : ly - 14;
+    for (const k of [-1, 0, 1]) out += poly(starPoints(slot.x + k * 8, sy + Math.abs(k) * 2, 3, 1.3), '#f7d36b', `stroke="${INK}" stroke-width="0.6"`);
   }
   if (f.aimed && f.state === 'up') {
     const cx = x + w + 7;
-    const cy = top + 2.5;
+    const cy = top + HP_BAR_H / 2;
     out += circle(cx, cy, 4, 'none', `stroke="${BONE}" stroke-width="1"`) + line(cx - 6, cy, cx + 6, cy, 0.9, BONE) + line(cx, cy - 6, cx, cy + 6, 0.9, BONE);
   }
   // The picked target gets a marker over it.
-  const above = slot.rank === 0 ? top - 4 : top - 16;
+  const above = slot.rank === 0 ? top - 4 : ly - 12;
   if (model.picked === f.key) out += poly([[slot.x - 6, above - 10], [slot.x + 6, above - 10], [slot.x, above - 2]], '#d0703c', `stroke="${BONE}" stroke-width="1"`);
   return out;
 }

@@ -134,6 +134,6 @@ export function noticeRoute(id: string): Route {
   if (fight) return { screen: 'fight', id: fight };
   const radio = radioNoticeRun(id);
   if (radio) return { screen: 'run', id: radio };
-  if (/^(dilemma|rescue|baby|grown)-/.test(id)) return { screen: 'depot' };
+  if (/^(dilemma|rescue|baby|grown)-/.test(id)) return { screen: 'depot', tab: 'today' };
   return { screen: 'run', id };
 }

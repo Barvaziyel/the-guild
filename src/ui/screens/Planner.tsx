@@ -14,7 +14,7 @@ import {
   type RunPlan,
 } from '../../engine/index.ts';
 import { Vitals } from '../components/Bars.tsx';
-import { ChoiceList, Stepper } from '../components/Choices.tsx';
+import { MiniStepper, Segmented } from '../components/Choices.tsx';
 import { Portrait } from '../components/Portrait.tsx';
 import { goBack, navigate, useNow, useServices } from '../hooks.ts';
 import {
@@ -22,6 +22,7 @@ import {
   JOBS,
   LOOT_PRIORITIES,
   RETREATS,
+  crewLine,
   crewOptions,
   dangerText,
   defaultPlan,
@@ -40,30 +41,42 @@ import { toggleVehicle, vehicleChoices, vehicleNote } from '../vehicles-view.ts'
 import { clockTime } from '../time.ts';
 import { leadChoice } from '../fight-view.ts';
 
-export function Planner({ state, locationId }: { state: GameState; locationId: string }) {
+export function Planner({ state, locationId, step }: { state: GameState; locationId: string; step: 'crew' | 'orders' }) {
   const loc = findLocation(locationId);
   if (!loc || !locationState(state, locationId).discovered) {
     return (
       <div className="sheet">
-        <PlannerNav />
+        <PlannerNav step="crew" locationId={locationId} />
         <p className="empty">The guild doesn&rsquo;t know the way there yet.</p>
       </div>
     );
   }
-  return <PlannerForm state={state} locationId={locationId} />;
+  return <PlannerForm state={state} locationId={locationId} step={step} />;
 }
 
-function PlannerNav() {
+function PlannerNav({ step, locationId }: { step: 'crew' | 'orders'; locationId: string }) {
   return (
     <div className="sheet-nav">
-      <button type="button" className="back" onClick={() => goBack({ screen: 'reach' })}>
-        <span aria-hidden="true">&lsaquo;</span> The Reach
-      </button>
+      {step === 'orders' ? (
+        <button type="button" className="back" onClick={() => goBack({ screen: 'plan', locationId })}>
+          <span aria-hidden="true">&lsaquo;</span> Crew
+        </button>
+      ) : (
+        <button type="button" className="back" onClick={() => goBack({ screen: 'reach' })}>
+          <span aria-hidden="true">&lsaquo;</span> The Reach
+        </button>
+      )}
     </div>
   );
 }
 
-function PlannerForm({ state, locationId }: { state: GameState; locationId: string }) {
+/**
+ * Planning a run, in two steps (Aviel, 2.2.0): who goes, then the orders,
+ * which fit a screen with *Send them* right under them. The plan lives here,
+ * across both steps (the step is in the address, so Back goes from the orders
+ * to the crew).
+ */
+function PlannerForm({ state, locationId, step }: { state: GameState; locationId: string; step: 'crew' | 'orders' }) {
   const { store } = useServices();
   const now = useNow(30_000);
   // While someone is calling for help from here, the plan starts as a rescue (§10.1).
@@ -98,7 +111,7 @@ function PlannerForm({ state, locationId }: { state: GameState; locationId: stri
   const warnings = plan.crew.length === 0 ? [] : planWarnings(state, plan);
   const duration = runDuration(state, plan);
   const ready = plan.crew.length > 0 && problems.length === 0;
-  const risk = useRisk(state, plan, ready);
+  const risk = useRisk(state, plan, ready && step === 'orders');
 
   const send = (): void => {
     let id = '';
@@ -113,114 +126,141 @@ function PlannerForm({ state, locationId }: { state: GameState; locationId: stri
     navigate({ screen: 'run', id }, { replace: true });
   };
 
-  return (
-    <article className="sheet planner" aria-labelledby="plan-title">
-      <PlannerNav />
-      <header className="sheet-head">
-        <p className="place-biome">Plan a run</p>
-        <h2 id="plan-title" className="plan-title">
-          {loc.name}
-        </h2>
-        <p className="place-facts">
-          {dangerText(loc.danger)}, {radiationText(loc.radiation).toLowerCase()}, about {formatDuration(loc.durationMin * 60_000)} on foot.
-        </p>
-      </header>
+  const header = (
+    <header className="sheet-head planner-head">
+      <h2 id="plan-title" className="plan-title">
+        <span className="visually-hidden">Plan a run to </span>
+        {loc.name}
+      </h2>
+      <p className="place-facts">
+        {dangerText(loc.danger)}, {radiationText(loc.radiation).toLowerCase()}, about {formatDuration(loc.durationMin * 60_000)} on foot.
+      </p>
+      <ol className="plan-steps" aria-label="Steps">
+        <li aria-current={step === 'crew' ? 'step' : undefined}>
+          <button type="button" onClick={() => step === 'orders' && goBack({ screen: 'plan', locationId })}>
+            1. Crew <span className="count">{plan.crew.length > 0 ? crewLine(state, plan.crew) : 'nobody yet'}</span>
+          </button>
+        </li>
+        <li aria-current={step === 'orders' ? 'step' : undefined}>
+          <button type="button" disabled={plan.crew.length === 0} onClick={() => step === 'crew' && navigate({ screen: 'plan', locationId, step: 'orders' })}>
+            2. Orders
+          </button>
+        </li>
+      </ol>
+    </header>
+  );
 
-      {vehicles.length > 0 && (
-        <section className="panel" aria-labelledby="ride-title">
-          <h3 id="ride-title" className="panel-title">
-            Vehicles
+  if (step === 'crew') {
+    return (
+      <article className="sheet planner" aria-labelledby="plan-title">
+        <PlannerNav step="crew" locationId={locationId} />
+        {header}
+        {vehicles.length > 0 && (
+          <section className="panel" aria-labelledby="ride-title">
+            <h3 id="ride-title" className="panel-title">
+              Vehicles
+            </h3>
+            <ul className="crew-pick">
+              {vehicles.map((v) => {
+                const picked = (plan.vehicles ?? []).includes(v.vehicle.id);
+                return (
+                  <li key={v.vehicle.id}>
+                    <label className={`crew-option ride-option${v.reason ? ' is-unavailable' : ''}${picked ? ' is-picked' : ''}`}>
+                      <input type="checkbox" checked={picked} disabled={v.reason !== undefined && !picked} onChange={() => toggleRide(v.vehicle.id)} />
+                      <span className="crew-body">
+                        <span className="crew-name">{v.name}</span>
+                        {v.reason ? <span className="crew-reason">{v.reason}</span> : <span className="crew-stats">{v.label}</span>}
+                      </span>
+                    </label>
+                  </li>
+                );
+              })}
+            </ul>
+            <p className="panel-help">{vehicleNote(state, plan)}</p>
+          </section>
+        )}
+
+        <section className="panel" aria-labelledby="crew-title" data-tour="crew">
+          <h3 id="crew-title" className="panel-title">
+            Crew <span className="count">{plan.crew.length} of {limit}</span>
           </h3>
           <ul className="crew-pick">
-            {vehicles.map((v) => {
-              const picked = (plan.vehicles ?? []).includes(v.vehicle.id);
+            {options.map(({ survivor: s, reason, stats }) => {
+              const picked = plan.crew.includes(s.id);
+              const full = !picked && plan.crew.length >= limit;
               return (
-                <li key={v.vehicle.id}>
-                  <label className={`crew-option ride-option${v.reason ? ' is-unavailable' : ''}${picked ? ' is-picked' : ''}`}>
-                    <input type="checkbox" checked={picked} disabled={v.reason !== undefined && !picked} onChange={() => toggleRide(v.vehicle.id)} />
+                <li key={s.id}>
+                  <label className={`crew-option${reason ? ' is-unavailable' : ''}${picked ? ' is-picked' : ''}`}>
+                    <input type="checkbox" checked={picked} disabled={reason !== undefined || full} onChange={() => toggle(s.id)} />
+                    <Portrait survivor={s} size={52} decorative />
                     <span className="crew-body">
-                      <span className="crew-name">{v.name}</span>
-                      {v.reason ? <span className="crew-reason">{v.reason}</span> : <span className="crew-stats">{v.label}</span>}
+                      <span className="crew-name">
+                        {s.firstName} {s.lastName}
+                      </span>
+                      {reason ? <span className="crew-reason">{reason}</span> : <span className="crew-stats">{stats}</span>}
+                      {!reason && <Vitals survivor={s} />}
                     </span>
                   </label>
                 </li>
               );
             })}
           </ul>
-          <p className="panel-help">{vehicleNote(state, plan)}</p>
         </section>
-      )}
 
-      <section className="panel" aria-labelledby="crew-title" data-tour="crew">
-        <h3 id="crew-title" className="panel-title">
-          Crew <span className="count">{plan.crew.length} of {limit}</span>
-        </h3>
-        <ul className="crew-pick">
-          {options.map(({ survivor: s, reason, stats }) => {
-            const picked = plan.crew.includes(s.id);
-            const full = !picked && plan.crew.length >= limit;
-            return (
-              <li key={s.id}>
-                <label className={`crew-option${reason ? ' is-unavailable' : ''}${picked ? ' is-picked' : ''}`}>
-                  <input type="checkbox" checked={picked} disabled={reason !== undefined || full} onChange={() => toggle(s.id)} />
-                  <Portrait survivor={s} size={52} decorative />
-                  <span className="crew-body">
-                    <span className="crew-name">
-                      {s.firstName} {s.lastName}
-                    </span>
-                    {reason ? <span className="crew-reason">{reason}</span> : <span className="crew-stats">{stats}</span>}
-                    {!reason && <Vitals survivor={s} />}
-                  </span>
-                </label>
-              </li>
-            );
-          })}
-        </ul>
-      </section>
+        <div className="action-bar">
+          <div className="action-summary">
+            <span className="action-sub">{plan.crew.length === 0 ? 'Pick at least one survivor.' : crewLine(state, plan.crew)}</span>
+          </div>
+          <button type="button" className="btn btn-primary" disabled={plan.crew.length === 0} onClick={() => navigate({ screen: 'plan', locationId, step: 'orders' })}>
+            Orders <span aria-hidden="true">&rsaquo;</span>
+          </button>
+        </div>
+      </article>
+    );
+  }
 
-      {depths.length > 0 && (
-        <section className="panel" data-tour="depth">
-          <ChoiceList legend="How far in" name="depth" choices={depths} value={String(plan.depth ?? 1)} onChange={(d) => setPlan((p) => withDepth(p, Number(d)))} />
-        </section>
-      )}
-
-      <section className="panel">
-        <ChoiceList legend="Job" name="job" choices={jobs} value={plan.job} onChange={(job) => {
+  return (
+    <article className="sheet planner planner-orders" aria-labelledby="plan-title">
+      <PlannerNav step="orders" locationId={locationId} />
+      {header}
+      <section className="panel orders-panel" aria-label="Orders">
+        {(plan.vehicles ?? []).length > 0 && <p className="panel-help orders-crew">{vehicleNote(state, plan)}</p>}
+        {depths.length > 0 && (
+          <div data-tour="depth">
+            <Segmented legend="How far in" name="depth" choices={depths} value={String(plan.depth ?? 1)} onChange={(d) => setPlan((p) => withDepth(p, Number(d)))} />
+          </div>
+        )}
+        <Segmented
+          legend="Job"
+          name="job"
+          choices={jobs}
+          value={plan.job}
+          onChange={(job) => {
             setPlan((p) => (job === 'rescue' ? { ...withDepth(p, 1), job } : { ...p, job }));
             setSendError(null);
           }}
         />
-      </section>
-
-      <section className="panel" aria-labelledby="supplies-title">
-        <h3 id="supplies-title" className="panel-title">
-          Supplies
-        </h3>
-        <Stepper label="Meds" value={plan.meds} min={0} max={state.resources.meds} note={`${state.resources.meds} at the Depot. Patch people up on the road.`} onChange={(meds) => change({ meds })} />
-        <Stepper
-          label="Ammo"
-          value={plan.ammo}
-          min={0}
-          max={state.resources.ammo}
-          step={5}
-          note={`${state.resources.ammo} at the Depot. Guns need it; what's left comes back.`}
-          onChange={(ammo) => {
-            setAmmoTouched(true);
-            change({ ammo });
-          }}
-        />
-        <p className="panel-help rations-note">
-          {rationsNote(state, plan)}
-        </p>
-      </section>
-
-      <section className="panel">
-        <ChoiceList legend="Approach" name="approach" choices={APPROACHES} value={plan.approach} onChange={(approach) => change({ approach })} />
-        <ChoiceList legend="Pull out when" name="retreat" choices={RETREATS} value={plan.retreat} onChange={(retreat) => change({ retreat })} />
+        <Segmented legend="Approach" name="approach" choices={APPROACHES} value={plan.approach} onChange={(approach) => change({ approach })} />
+        <Segmented legend="Pull out when" name="retreat" choices={RETREATS} value={plan.retreat} onChange={(retreat) => change({ retreat })} />
+        <div className="orders-supplies">
+          <MiniStepper label="Meds" value={plan.meds} min={0} max={state.resources.meds} note={`of ${state.resources.meds}`} onChange={(meds) => change({ meds })} />
+          <MiniStepper
+            label="Ammo"
+            value={plan.ammo}
+            min={0}
+            max={state.resources.ammo}
+            step={5}
+            note={`of ${state.resources.ammo}`}
+            onChange={(ammo) => {
+              setAmmoTouched(true);
+              change({ ammo });
+            }}
+          />
+        </div>
         <label className="toggle lead-toggle" data-tour="lead">
           <span className="toggle-text">
             <span className="toggle-label">Lead the fights</span>
-            <span className="toggle-help">{lead.help}</span>
+            <span className="toggle-help">{lead.short}</span>
           </span>
           <input
             type="checkbox"
@@ -236,8 +276,8 @@ function PlannerForm({ state, locationId }: { state: GameState; locationId: stri
             }}
           />
         </label>
-        <label className="field select-field">
-          Keep first when there&rsquo;s too much to carry
+        <label className="orders-keep">
+          <span>Too much to carry? Keep</span>
           <select
             value={plan.lootPriority ?? 'any'}
             onChange={(e) => {
@@ -257,18 +297,19 @@ function PlannerForm({ state, locationId }: { state: GameState; locationId: stri
         </label>
       </section>
 
-      <section className="panel" aria-labelledby="check-title">
-        <h3 id="check-title" className="panel-title">
+      <section className="panel orders-send" aria-labelledby="check-title">
+        <h3 id="check-title" className="visually-hidden">
           Before they go
         </h3>
+
         {plan.crew.length === 0 ? (
-          <p className="panel-help">Pick a crew to see how long it takes and how risky it is.</p>
+          <p className="panel-help">Pick a crew first.</p>
         ) : (
           <>
             <p>
-              Away for {formatDuration(duration)}, back at {clockTime(now + duration)}.
+              Away for {formatDuration(duration)}, back at {clockTime(now + duration)}. <span className="panel-help">{rationsNote(state, plan)}</span>
+              {fromOutpost && <span className="panel-help"> {fromOutpost}</span>}
             </p>
-            {fromOutpost && <p className="panel-help">{fromOutpost}</p>}
             {problems.length > 0 && (
               <ul className="problems">
                 {problems.map((p) => (
@@ -287,23 +328,10 @@ function PlannerForm({ state, locationId }: { state: GameState; locationId: stri
           </>
         )}
         {sendError && <p className="field-error">{sendError}</p>}
-      </section>
-
-      <div className="action-bar">
-        <div className="action-summary">
-          {ready ? (
-            <>
-              <span className={`risk-label risk-${risk?.label.toLowerCase() ?? 'pending'}`}>{risk ? `${risk.label} risk` : 'Weighing the odds'}</span>
-              <span className="action-sub">Back at {clockTime(now + duration)}</span>
-            </>
-          ) : (
-            <span className="action-sub">{plan.crew.length === 0 ? 'Pick at least one survivor.' : 'Fix the problems above first.'}</span>
-          )}
-        </div>
-        <button type="button" className="btn btn-primary" disabled={!ready} onClick={send}>
-          Send the crew
+        <button type="button" className="btn btn-primary btn-send" disabled={!ready} onClick={send}>
+          Send them
         </button>
-      </div>
+      </section>
     </article>
   );
 }

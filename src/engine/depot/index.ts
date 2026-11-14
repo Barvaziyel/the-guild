@@ -84,3 +84,4 @@ export {
   workshopItems,
 } from './workshop.ts';
 export { advanceTime, dayStart, nextDayAt, type AdvanceResult } from './time.ts';
+export { oldestRations, rationsGoingOff, settlePantry } from './pantry.ts';

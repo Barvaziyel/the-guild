@@ -11,6 +11,7 @@ import {
   MAX_CATCHUP_DAYS,
   MAX_CREW,
   LEAD_WAIT,
+  RATION_KEEP_DAYS,
   RAID_WAIT,
   RADIO_WAIT,
   dailyUpkeep,
@@ -49,7 +50,7 @@ export const TOUR_PARTS: readonly TourPart[] = [
   { id: 'time', title: 'Time' },
 ];
 
-const depot = (): Route => ({ screen: 'depot' });
+const depot = (): Route => ({ screen: 'depot', tab: 'today' });
 const depotBuildings = (): Route => ({ screen: 'depot', tab: 'buildings' });
 
 const SMALL = ['No', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve'];
@@ -104,9 +105,18 @@ export const TOUR_STEPS: readonly TourStep[] = [
     id: 'welcome',
     part: 'supplies',
     title: 'Welcome to the Depot',
-    route: depot,
+    route: () => ({ screen: 'depot' }),
     text: () =>
       'Your guild lives in an old rail depot, forty years after the Burn. This tour shows what everything is for. Skip a part you know, or the whole tour; Settings can show it again.',
+  },
+  {
+    id: 'bell',
+    part: 'supplies',
+    title: 'The bell',
+    route: depot,
+    target: 'bell',
+    text: () =>
+      'The bell up top keeps track of what needs you: raiders, a crew on the radio or at a fight, a decision, people at the gate, crews back with a report, and warnings. Tap it, then tap a line to go there.',
   },
   {
     id: 'supplies',
@@ -152,7 +162,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     title: 'Running out',
     route: () => ({ screen: 'building', id: 'garden' }),
     text: () =>
-      "If the rations run out, nobody starves, but hungry people can't rest, heal slowly, and grow tense. Crews can still go out hungry: hunting runs bring back food, and a bigger Garden feeds a bigger guild.",
+      `Rations keep ${RATION_KEEP_DAYS} days; after that, half of what's left goes off each day, so a hoard shrinks. If the rations run out, nobody starves, but hungry people can't rest, heal slowly, and grow tense. Hunting runs bring back food, and a bigger Garden feeds a bigger guild.`,
   },
 
   // ---------------------------------------------------------------- people
@@ -169,7 +179,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     id: 'yard',
     part: 'people',
     title: 'The yard',
-    route: () => ({ screen: 'depot', tab: 'yard' }),
+    route: () => ({ screen: 'depot' }),
     target: 'yard',
     text: () =>
       "The Yard shows the Depot as it is right now: who's at work, who's by the fire, who's resting, and who's at the gate. It darkens with the evening. Tap anyone or anything to see what it is.",
@@ -232,7 +242,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     text: (state) => {
       const place = easiestPlace(state);
       const first = place ? ` A good first run: three people scavenging ${place.name}.` : '';
-      return `Pick a crew of 1 to ${MAX_CREW}, a job, supplies and orders. The bar at the bottom shows the risk: how often someone gets hurt.${first}`;
+      return `First pick a crew of 1 to ${MAX_CREW}, then their orders: a job, supplies, how careful to be. Under the orders it says how risky it is: how often someone gets hurt.${first}`;
     },
   },
   {
@@ -259,11 +269,11 @@ export const TOUR_STEPS: readonly TourStep[] = [
     title: 'Leading the fights',
     route: (state) => {
       const place = easiestPlace(state);
-      return place ? { screen: 'plan', locationId: place.id } : { screen: 'reach' };
+      return place ? { screen: 'plan', locationId: place.id, step: 'orders' } : { screen: 'reach' };
     },
     target: 'lead',
     text: () =>
-      `With a Radio Tower you can lead a crew's fights. Switch on Lead the fights, and at every fight they call home and wait up to ${Math.round(LEAD_WAIT / 60_000)} minutes. Then it's yours, round by round, on the battle stage: a move for each person, from what their gear and traits let them do, and a tap on the enemy they go after. Nobody answers? They fight on their own, as always.`,
+      `With a Radio Tower you lead a crew's fights: at every fight they call home and wait up to ${Math.round(LEAD_WAIT / 60_000)} minutes (switch it off in the orders to let them fight on their own). Then it's yours, round by round, on the battle stage: a move for each person, from what their gear and traits let them do, and a tap on the enemy they go after. Nobody answers? They fight on their own, as always.`,
   },
   {
     id: 'vehicles',

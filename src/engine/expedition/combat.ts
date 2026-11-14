@@ -71,7 +71,7 @@ import {
   toughened,
   type FightPlan,
 } from './context.ts';
-import { FightPause, enemyNames, fightView, validOrder, type FightAct } from './command.ts';
+import { FightPause, enemyNames, fightView, movesFor, validOrder, type FightAct } from './command.ts';
 import { afterFight, announceNemesis, enemyRef, grudgeBonus, maybeNemesisEscape, nemesisEnemy, nemesisJoins, nemesisKilled } from './stories.ts';
 
 export interface Enemy {
@@ -564,8 +564,21 @@ function talkDown(sim: Sim, m: Member, target: Enemy, at: number, label: string,
 }
 
 /** Carry out one person's order. Returns false if they can't, and should just fight as they would on their own. */
-function actOnOrder(sim: Sim, m: Member, order: MoveOrder, enemies: readonly Enemy[], ctx: AttackContext, t: Tactics): boolean {
-  const choice = validOrder(sim, m, enemies, order.move, order.target);
+function actOnOrder(sim: Sim, m: Member, given: MoveOrder, enemies: readonly Enemy[], ctx: AttackContext, t: Tactics): boolean {
+  let order = given;
+  let choice = validOrder(sim, m, enemies, order.move, order.target);
+  // Their target went down or ran before their turn: the same move, at the enemy next to it.
+  if (!choice && typeof order.target === 'number') {
+    const same = movesFor(sim, m, enemies).find((c) => c.move === order.move && c.target === 'enemy' && c.targets.length > 0);
+    const was = order.target;
+    const next = same?.targets.map(Number).sort((a, b) => Math.abs(a - was) - Math.abs(b - was))[0];
+    if (same && next !== undefined) {
+      order = { ...order, target: next };
+      choice = same;
+      const he = pronounForms(m.s.pronouns).they;
+      say(sim, `${m.s.firstName}'s target is gone. ${he[0]!.toUpperCase()}${he.slice(1)} turns to ${ctx.names[next] ?? enemies[next]!.def.name}.`);
+    }
+  }
   if (!choice) return false;
   const foe = typeof order.target === 'number' ? enemies[order.target] : undefined;
   const spot = foe && t.spotted === foe && t.spotter !== m ? SPOT_TO_HIT : 0;
