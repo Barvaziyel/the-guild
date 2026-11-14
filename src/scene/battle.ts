@@ -40,6 +40,10 @@ export interface StageFighter {
   rank?: 'front' | 'back' | 'air';
   /** An enemy's move this round (2.3.0): a hit or a big hit at someone (their key), or a run for it. */
   intent?: { kind: 'strike' | 'heavy' | 'run'; at?: string };
+  /** On the ground and getting back up unless finished (a hollow, 2.4.0). */
+  rising?: boolean;
+  /** Heavy armor (2.4.0): a shield by the name. */
+  armored?: boolean;
 }
 
 /** One act being played: who does it, to whom, and what pops up. */
@@ -121,8 +125,11 @@ export function rankedSlots(fighters: readonly StageFighter[], side: 'crew' | 'e
 
 const n1 = (v: number): string => String(Math.round(v * 10) / 10);
 
-/** An enemy's move this round, as a small badge (2.3.0): a hit, a big hit, or running. */
-function intentBadge(kind: 'strike' | 'heavy' | 'run', cx: number, cy: number): string {
+/** An enemy's move this round, as a small badge (2.3.0): a hit, a big hit, or running; or, on the ground, getting back up (2.4.0). */
+function intentBadge(kind: 'strike' | 'heavy' | 'run' | 'rise', cx: number, cy: number): string {
+  if (kind === 'rise') {
+    return circle(cx, cy, 6.5, '#b8892a', `stroke="${BONE}" stroke-width="1"`) + pathEl(`M ${n1(cx)} ${n1(cy + 3.4)} V ${n1(cy - 3.2)} M ${n1(cx - 2.8)} ${n1(cy - 0.6)} L ${n1(cx)} ${n1(cy - 3.4)} L ${n1(cx + 2.8)} ${n1(cy - 0.6)}`, 'none', `stroke="${INK}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"`);
+  }
   if (kind === 'heavy') {
     return (
       circle(cx, cy, 7, '#b5432f', `stroke="${BONE}" stroke-width="1"`) +
@@ -278,6 +285,8 @@ function overhead(f: StageFighter, slot: Slot, height: number, room: number, mod
   const intent = f.side === 'enemy' && f.state === 'up' && !f.stunned ? f.intent : undefined;
   const badgeY = slot.rank === 0 ? top - 9 : ly - 16;
   if (intent) out += intentBadge(intent.kind, slot.x, badgeY);
+  // One on the ground that gets back up unless finished, over its bar (2.4.0).
+  if (f.side === 'enemy' && f.state === 'down' && f.rising) out += intentBadge('rise', slot.x, top - 9);
   // Blows coming at one of the crew this round.
   let threatened = false;
   if (f.side === 'crew' && f.state === 'up') {
@@ -292,6 +301,11 @@ function overhead(f: StageFighter, slot: Slot, height: number, room: number, mod
   const mx = lx - lw / 2 - 5;
   if (f.vulture) out += poly([[mx - 2, ly + 1], [mx + 2, ly - 10], [mx + 3, ly - 1]], '#1d1b1a', `stroke="${BONE}" stroke-width="0.7"`);
   if (f.nemesis) out += circle(mx, ly - 3.5, 3.2, '#b5432f', `stroke="${BONE}" stroke-width="0.8"`);
+  // Heavy armor: a small shield on the other side of the name (2.4.0).
+  if (f.armored && f.state !== 'dead') {
+    const sx = lx + lw / 2 + 5;
+    out += pathEl(`M ${n1(sx - 3.2)} ${n1(ly - 8)} H ${n1(sx + 3.2)} V ${n1(ly - 4)} Q ${n1(sx + 3.2)} ${n1(ly - 0.2)} ${n1(sx)} ${n1(ly + 1)} Q ${n1(sx - 3.2)} ${n1(ly - 0.2)} ${n1(sx - 3.2)} ${n1(ly - 4)} Z`, '#8a8f8c', `stroke="${BONE}" stroke-width="0.8"`);
+  }
   if (f.stunned && f.state === 'up') {
     // Over the bar in front; behind, the name is there, so over the name.
     const sy = slot.rank === 0 ? top - 7 : ly - 14;
@@ -303,7 +317,7 @@ function overhead(f: StageFighter, slot: Slot, height: number, room: number, mod
     out += circle(cx, cy, 4, 'none', `stroke="${BONE}" stroke-width="1"`) + line(cx - 6, cy, cx + 6, cy, 0.9, BONE) + line(cx, cy - 6, cx, cy + 6, 0.9, BONE);
   }
   // The picked target gets a marker over it, above any badge or marks.
-  const lifted = intent !== undefined || threatened ? 13 : 0;
+  const lifted = intent !== undefined || threatened || (f.state === 'down' && f.rising) ? 13 : 0;
   const above = (slot.rank === 0 ? top - 4 : ly - 12) - lifted;
   if (model.picked === f.key) out += poly([[slot.x - 6, above - 10], [slot.x + 6, above - 10], [slot.x, above - 2]], '#d0703c', `stroke="${BONE}" stroke-width="1"`);
   return out;

@@ -3893,7 +3893,8 @@ p.is-bad {
 
 /* Scrolled back to when the orders go out: leave room above for the top of the screen. */
 .stage-anchor {
-  scroll-margin-top: 0.75rem;
+  /* Clear of the sticky "‹ Runs" bar (44 px and its border) when the orders go out. */
+  scroll-margin-top: calc(var(--sa-top) + 45px + 0.5rem);
 }
 
 /* ---------------------------------------------------------------- the planner in two steps (2.2.0) */
@@ -4297,4 +4298,17 @@ p.is-bad {
 .fight-rank + .fight-detail {
   margin-top: 0;
   margin-bottom: 0.625rem;
+}
+
+/* What each kind of enemy in a fight is, and what works on it (2.4.0). */
+.their-kinds-title {
+  margin: 0.875rem 0 0.25rem;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--bone-2);
+}
+
+.their-kinds li {
+  color: var(--bone-2);
+  font-size: 0.9375rem;
 }

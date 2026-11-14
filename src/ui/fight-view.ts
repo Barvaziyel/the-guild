@@ -228,19 +228,53 @@ export function canStillReach(view: FightView, e: FightView['enemies'][number], 
 export function theirMoves(view: FightView): string[] {
   const out: string[] = [];
   for (const e of view.enemies) {
+    if (e.state === 'down') {
+      out.push(`${e.name}: on the ground. It gets back up at the end of the round unless someone finishes it.`);
+      continue;
+    }
     if (e.state !== 'up') continue;
     const who = view.crew.find((m) => m.id === e.intent?.at)?.name;
+    // How much its pack helps it this round: +1 for each other one going for the same person, up to +2.
+    const pack = e.pack && e.intent?.at ? Math.min(2, view.enemies.filter((o) => o !== e && o.pack && o.state === 'up' && !o.stunned && o.intent?.kind !== 'run' && o.intent?.at === e.intent?.at).length) : 0;
     const shoots = e.rank !== 'front';
     let what: string;
     if (e.stunned) what = 'stunned, and loses its turn';
     else if (e.intent?.kind === 'run') what = 'looking for a way out: it runs at the end of the round';
     else if (who && e.intent?.at && !canStillReach(view, e, e.intent.at)) what = `${e.intent.kind === 'heavy' ? 'winding up a big hit' : 'going'} for ${who}, who is out of reach at the back now: it turns to someone in front`;
     else if (e.intent?.kind === 'heavy' && who) what = `${shoots ? 'taking careful aim at' : 'winding up a big hit at'} ${who} (up to ${e.damage * 2})`;
+    else if (who && pack > 0) what = `going for ${who} with the pack (+${pack} to hit)`;
     else if (who) what = `${shoots ? 'shooting at' : 'going for'} ${who}`;
     else what = 'can’t reach anyone';
     out.push(`${e.name}: ${what}.`);
   }
   return out;
+}
+
+/**
+ * One line for each kind of enemy in the fight that needs a particular answer
+ * (2.4.0): what it does and what works on it. Shown once per kind.
+ */
+export function whatTheyAre(view: FightView): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const e of view.enemies) {
+    if (e.state === 'dead' || e.state === 'fled' || seen.has(e.kind)) continue;
+    seen.add(e.kind);
+    const kind = kindName(e);
+    if (e.armor >= 2) out.push(`${kind}: armored, so ${e.armor} comes off every hit. Smash goes through armor, a called shot doubles the damage first, and big guns hit hardest.`);
+    if (e.rises) out.push(`${kind}: drops, then gets back up a round later with half its strength, unless someone finishes it on the ground.`);
+    if (e.pack) out.push(`${kind}: hunts as a pack. They all go for the same one of you and hit easier together: move that person back, guard them, or spray the pack.`);
+    if (e.rank === 'air') out.push(`${kind}: flies. Only shots reach it, and one good one brings it down.`);
+    else if (e.rank === 'back') out.push(`${kind}: shoots from the back. Blades can't reach it while anyone stands in front of it.`);
+    if (e.heavy) out.push(`${kind}: winds up big hits now and then, for twice the damage. Watch for it and get out of the way.`);
+    if (e.leader) out.push(`${kind}: leads them. If it falls, the rest lose heart.`);
+  }
+  return out;
+}
+
+/** "Raider Scav 2" → "Raider Scav", like a glossary entry; a named one keeps its name. */
+function kindName(e: FightView['enemies'][number]): string {
+  return e.named ? e.name : e.name.replace(/ \d+$/, '');
 }
 
 /** Their nerve, in words (2.3.0): how close they are to breaking, or that they won't. */

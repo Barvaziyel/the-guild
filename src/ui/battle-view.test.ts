@@ -27,8 +27,8 @@ const VIEW: FightView = {
   maxRounds: 6,
   place: 'Kessler Farm',
   enemies: [
-    { index: 0, name: 'Raider Scav 1', type: 'raider', kind: 'raider_scav', hp: 4, maxHp: 10, state: 'up', stunned: false, named: false, nemesis: false, vulture: false, rank: 'front', damage: 3, leader: false, fearless: false },
-    { index: 1, name: 'Raider Scav 2', type: 'raider', kind: 'raider_scav', hp: 6, maxHp: 10, state: 'up', stunned: false, named: false, nemesis: false, vulture: false, rank: 'front', damage: 3, leader: false, fearless: false },
+    { index: 0, name: 'Raider Scav 1', type: 'raider', kind: 'raider_scav', hp: 4, maxHp: 10, state: 'up', stunned: false, named: false, nemesis: false, vulture: false, rank: 'front', damage: 3, armor: 0, rises: false, pack: false, heavy: false, leader: false, fearless: false },
+    { index: 1, name: 'Raider Scav 2', type: 'raider', kind: 'raider_scav', hp: 6, maxHp: 10, state: 'up', stunned: false, named: false, nemesis: false, vulture: false, rank: 'front', damage: 3, armor: 0, rises: false, pack: false, heavy: false, leader: false, fearless: false },
   ],
   crew: [
     member('a', [
@@ -84,6 +84,8 @@ describe('tapping the stage', () => {
   test('short names: the faction word goes', () => {
     assert.equal(shortName('Raider Scav 2'), 'Scav 2');
     assert.equal(shortName('Vulture Shot'), 'Shot');
+    assert.equal(shortName('Rad-hound 3'), 'Hound 3');
+    assert.equal(shortName('Rad-hound'), 'Rad-hound');
     assert.equal(shortName('Rad-hound'), 'Rad-hound');
     assert.equal(shortName('Old Notch'), 'Old Notch');
     assert.equal(shortName('Raider'), 'Raider');

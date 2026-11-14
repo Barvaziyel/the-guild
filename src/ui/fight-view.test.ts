@@ -23,6 +23,7 @@ import {
   roundOrders,
   targetName,
   theirMoves,
+  whatTheyAre,
   withRanks,
 } from './fight-view.ts';
 import { noticeRoute } from './radio-view.ts';
@@ -135,8 +136,8 @@ describe('the fight screen', () => {
     maxRounds: 8,
     place: 'Kessler Farm',
     enemies: [
-      { index: 0, name: 'Raider Scav 1', type: 'raider', kind: 'raider_scav', hp: 4, maxHp: 10, state: 'up', stunned: false, named: false, nemesis: false, vulture: false, rank: 'front', damage: 3, leader: false, fearless: false },
-      { index: 1, name: 'Raider Scav 2', type: 'raider', kind: 'raider_scav', hp: 0, maxHp: 10, state: 'dead', stunned: false, named: false, nemesis: false, vulture: false, rank: 'front', damage: 3, leader: false, fearless: false },
+      { index: 0, name: 'Raider Scav 1', type: 'raider', kind: 'raider_scav', hp: 4, maxHp: 10, state: 'up', stunned: false, named: false, nemesis: false, vulture: false, rank: 'front', damage: 3, armor: 0, rises: false, pack: false, heavy: false, leader: false, fearless: false },
+      { index: 1, name: 'Raider Scav 2', type: 'raider', kind: 'raider_scav', hp: 0, maxHp: 10, state: 'dead', stunned: false, named: false, nemesis: false, vulture: false, rank: 'front', damage: 3, armor: 0, rises: false, pack: false, heavy: false, leader: false, fearless: false },
     ],
     crew: [member('a'), member('b', { state: 'down', hp: 0, moves: [] })],
     meds: 1,
@@ -208,6 +209,10 @@ describe('their moves, and where people stand (2.3.0)', () => {
     vulture: false,
     rank: 'front',
     damage: 3,
+    armor: 0,
+    rises: false,
+    pack: false,
+    heavy: false,
     leader: false,
     fearless: false,
     ...extra,
@@ -245,6 +250,30 @@ describe('their moves, and where people stand (2.3.0)', () => {
     ]);
     assert.match(nerveLine(view), /^Their nerve: 64 of 100, shaken\./);
     assert.match(nerveLine({ ...view, nerve: undefined }), /won’t break/);
+  });
+
+  test('a hollow on the ground, a pack, and what each kind of them is (2.4.0)', () => {
+    const v: FightView = {
+      ...view,
+      enemies: [
+        enemy(0, { name: 'Hollow 1', type: 'hollow', kind: 'hollow', state: 'down', hp: 0, rises: true }),
+        enemy(1, { name: 'Rad-hound 1', type: 'feral', kind: 'rad_hound', pack: true, intent: { kind: 'strike', at: 'b' } }),
+        enemy(2, { name: 'Rad-hound 2', type: 'feral', kind: 'rad_hound', pack: true, intent: { kind: 'strike', at: 'b' } }),
+        enemy(3, { name: 'Raider Brute', kind: 'raider_brute', armor: 3, heavy: true, intent: { kind: 'strike', at: 'a' } }),
+      ],
+    };
+    assert.deepEqual(theirMoves(v), [
+      'Hollow 1: on the ground. It gets back up at the end of the round unless someone finishes it.',
+      'Rad-hound 1: going for Kai with the pack (+1 to hit).',
+      'Rad-hound 2: going for Kai with the pack (+1 to hit).',
+      'Raider Brute: going for Mara.',
+    ]);
+    const kinds = whatTheyAre(v);
+    assert.equal(kinds.length, 4);
+    assert.match(kinds[0]!, /^Hollow: drops, then gets back up/);
+    assert.match(kinds[1]!, /^Rad-hound: hunts as a pack/);
+    assert.match(kinds[2]!, /^Raider Brute: armored, so 3 comes off every hit/);
+    assert.match(kinds[3]!, /^Raider Brute: winds up big hits/);
   });
 
   test('moving someone to the back shows what they can do from there, and the orders say they moved', () => {

@@ -246,16 +246,16 @@ describe('raids, measured', () => {
       }
       return { held: held / n, hurt: wounds / n };
     };
-    const fresh = rate(() => {}, 300);
+    const fresh = rate(() => {}, 600);
     const lookout = rate((s) => {
       s.buildings.watchtower = 1;
       const p = s.survivors[3]!;
       p.equipment.weapon = createItem(s, 'hunting_rifle');
       assignPost(s, p.id, { building: 'watchtower' });
-    }, 300);
+    }, 600);
     assert.ok(fresh.held > 0.35 && fresh.held < 0.65, `fresh guild holds ${fresh.held}`);
     assert.ok(fresh.hurt < 0.8, `hurt per raid ${fresh.hurt}`);
-    assert.ok(lookout.held > fresh.held + 0.1, `with a lookout ${lookout.held}`);
+    assert.ok(lookout.held > fresh.held + 0.1, `with a lookout ${lookout.held} vs ${fresh.held}`);
   });
 });
 

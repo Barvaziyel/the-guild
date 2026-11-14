@@ -16,6 +16,7 @@ export interface MoveDef {
 
 export const MOVES: Record<MoveId, MoveDef> = {
   attack: { id: 'attack', name: 'Attack', detail: 'Go for one of them.', target: 'enemy' },
+  finish: { id: 'finish', name: 'Finish it', detail: 'Make sure one on the ground stays down. It can’t miss.', target: 'enemy' },
   cover: { id: 'cover', name: 'Take cover', detail: 'No attack, and harder to hit this round.', target: 'none' },
   patch: { id: 'patch', name: 'Patch up', detail: 'Use a med. Someone down gets back up.', target: 'ally' },
   aim: { id: 'aim', name: 'Aim', detail: 'No shot now; the next one is better.', target: 'none' },

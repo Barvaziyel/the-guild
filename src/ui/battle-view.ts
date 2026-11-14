@@ -36,7 +36,10 @@ const keyFor = (who: number | string): string => (typeof who === 'number' ? enem
 /** "Scav 2" for "Raider Scav 2", "Shot" for "Vulture Shot": the stage's room is tight, and the feather says Vulture. */
 export function shortName(name: string): string {
   const words = name.split(' ');
-  return words.length > 1 && (words[0] === 'Raider' || words[0] === 'Vulture') ? words.slice(1).join(' ') : name;
+  if (words.length > 1 && (words[0] === 'Raider' || words[0] === 'Vulture')) return words.slice(1).join(' ');
+  // A pack crowds the stage: "Rad-hound 2" is "Hound 2" there (2.4.0).
+  if (words[0] === 'Rad-hound' && words.length > 1) return ['Hound', ...words.slice(1)].join(' ');
+  return name;
 }
 
 /** What a tap on an enemy can target for this person: the move they're picking if it takes an enemy, or else an attack. */
@@ -135,6 +138,8 @@ export function stageModel(state: GameState, at: StageAt, view: FightView, order
       vulture: e.vulture,
       stunned: frame?.stunned[key] ?? e.stunned,
       rank: e.rank,
+      ...(shown === 'down' ? { rising: true } : {}),
+      ...(e.armor >= 2 ? { armored: true } : {}),
       // Their moves for the round about to be given (not while the last one plays), aimed at whoever they can still reach.
       ...(!frame && e.intent ? { intent: { kind: e.intent.kind, ...(e.intent.at && canStillReach(view, e, e.intent.at) ? { at: crewKey(e.intent.at) } : {}) } } : {}),
     };
@@ -184,6 +189,10 @@ function effectOf(a: FightAct, after: FightView): StageEffect {
       const gone = typeof a.at === 'number' ? after.enemies[a.at]?.state : undefined;
       return { ...base, motion: 'act', reaction: 'none', pop: a.ok ? (gone === 'dead' ? 'Shuts down' : 'Backs off') : 'No good', tone: a.ok ? 'hit' : 'miss' };
     }
+    case 'finish':
+      return { ...base, motion: a.shot ? 'shoot' : 'lunge', reaction: 'hit', pop: 'Finished', tone: 'hit' };
+    case 'rise':
+      return { by, motion: 'none', reaction: 'none', pop: 'Gets up', tone: 'hurt' };
     case 'withdraw':
       return { by, motion: 'act', reaction: 'none', pop: a.ok ? 'Pulling out' : 'Cut off', tone: a.ok ? 'plain' : 'hurt', ...(a.ok ? { leaving: after.crew.filter((m) => m.state === 'up').map((m) => crewKey(m.id)) } : {}) };
     case 'flee':
@@ -234,10 +243,15 @@ export function roundFrames(before: FightView, after: FightView): StageFrame[] {
         }
         break;
       case 'kill':
+      case 'finish':
         if (at) {
           hp[at] = 0;
           state[at] = 'dead';
         }
+        break;
+      case 'rise':
+        hp[by] = a.amount ?? 1;
+        state[by] = 'up';
         break;
       case 'heal':
         if (at) hp[at] = Math.min(max[at] ?? 0, (hp[at] ?? 0) + (a.amount ?? 0));

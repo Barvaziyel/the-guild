@@ -835,6 +835,8 @@ export const NERVE_TALKED = 20;
 export const RUN_NERVE = 40;
 /** ...this often a round. It runs at the end of the round unless stopped. */
 export const RUN_CHANCE = 0.5;
+/** A pack (2.4.0): +1 to hit for each other one going for the same person, up to this. */
+export const PACK_TO_HIT_MAX = 2;
 /** A crew that can't reach what's left (drones, and nobody who can shoot) pulls out and leaves this share of what it found. */
 export const UNREACHABLE_DROP = 1 / 3;
 /** Intimidate, Soothe, Short out: checks against this + danger. */

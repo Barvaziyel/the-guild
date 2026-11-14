@@ -36,7 +36,8 @@ export interface FightEnemyView {
   kind: string;
   hp: number;
   maxHp: number;
-  state: 'up' | 'dead' | 'fled';
+  /** `down`: on the ground, and back up at the end of the round unless someone finishes it (2.4.0). */
+  state: 'up' | 'down' | 'dead' | 'fled';
   /** Loses its next attack. */
   stunned: boolean;
   /** A nemesis or one of the Vultures' named people. */
@@ -51,6 +52,14 @@ export interface FightEnemyView {
   intent?: { kind: 'strike' | 'heavy' | 'run'; at?: string };
   /** What one of its hits does, before armor; a big hit does twice that. */
   damage: number;
+  /** What comes off every hit on it (2.4.0: a brute's is 3). */
+  armor: number;
+  /** Gets back up once unless finished (hollows, 2.4.0). */
+  rises: boolean;
+  /** Hunts as a pack (hounds, 2.4.0). */
+  pack: boolean;
+  /** Winds up big hits now and then. */
+  heavy: boolean;
   /** It leads them: its fall shakes the rest. */
   leader: boolean;
   /** It never breaks and runs. */
@@ -102,7 +111,11 @@ export type FightActKind =
   /** A stunned enemy losing its attack. */
   | 'reel'
   /** The crew trying to break away. */
-  | 'withdraw';
+  | 'withdraw'
+  /** A blow at one on the ground, so it stays down (2.4.0). */
+  | 'finish'
+  /** One on the ground getting back up (2.4.0): `amount` is its HP. */
+  | 'rise';
 
 export interface FightMemberView {
   id: string;
@@ -154,7 +167,7 @@ export class FightPause extends Error {
   }
 }
 
-const living = (enemies: readonly Enemy[]): Enemy[] => enemies.filter((e) => !e.dead && !e.fled);
+const living = (enemies: readonly Enemy[]): Enemy[] => enemies.filter((e) => !e.dead && !e.fled && !e.down);
 
 /** Names to tell enemies apart: "Raider Scav 1", "Raider Scav 2", "Old Notch". */
 export function enemyNames(enemies: readonly Enemy[]): string[] {
@@ -218,11 +231,16 @@ export function movesFor(sim: Sim, m: Member, enemies: readonly Enemy[], rank: R
     if (def.target !== 'none' && targets.length === 0) return;
     out.push({ move, name: name ?? def.name, detail: def.detail, target: def.target, targets });
   };
+  // One on the ground that would get back up (2.4.0): anyone who can reach it can finish it.
+  add(
+    'finish',
+    enemies.filter((e) => e.down && !e.dead && reaches(gun, from, e, enemies)).map((e) => enemies.indexOf(e)),
+  );
   const ofType = (type: string, unnamed = false): number[] =>
     foes.filter((e) => e.def.type === type && (!unnamed || (!e.nemesis && !e.vulture))).map((e) => enemies.indexOf(e));
 
   // A lookout on the Watchtower (§9.8) can only shoot, aim and point things out from up there.
-  const PERCHED: readonly MoveId[] = ['attack', 'aim', 'called_shot', 'spray', 'spot'];
+  const PERCHED: readonly MoveId[] = ['attack', 'finish', 'aim', 'called_shot', 'spray', 'spot'];
   if (m.perch && kind === 'shoot') {
     return movesFor(sim, { ...m, perch: false }, enemies, 'back').filter((c) => PERCHED.includes(c.move));
   }
@@ -273,13 +291,17 @@ export function fightView(sim: Sim, enemies: readonly Enemy[], round: number, fr
       kind: e.def.id,
       hp: Math.max(0, e.hp),
       maxHp: e.maxHp,
-      state: e.dead ? 'dead' : e.fled ? 'fled' : 'up',
+      state: e.dead ? 'dead' : e.fled ? 'fled' : e.down ? 'down' : 'up',
       stunned: e.stunned === true,
       named: e.nemesis !== undefined || e.vulture !== undefined,
       nemesis: e.nemesis !== undefined,
       vulture: e.def.id.startsWith('vulture_'),
       rank: enemyRank(e),
       damage: e.damage,
+      armor: e.def.armor,
+      rises: e.def.rises === true && !e.rose && !e.nemesis,
+      pack: e.def.pack === true,
+      heavy: e.def.heavy !== undefined,
       ...(e.intent && !over && !e.dead && !e.fled ? { intent: { kind: e.intent.kind, ...(e.intent.at ? { at: e.intent.at.s.id } : {}) } } : {}),
       leader: e.def.leader === true,
       fearless: e.def.morale === 'fearless' || e.nemesis !== undefined,
