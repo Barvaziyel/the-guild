@@ -16,6 +16,7 @@ import {
   rationsNeeded,
   startRun,
   unavailableReason,
+  validatePlan,
   withRng,
   type GameState,
   type RunPlan,
@@ -75,9 +76,12 @@ export function fastForward(state: GameState, now: number, options: Partial<Fast
       }));
       // Fast-forward never stalls for food.
       state.resources.rations = Math.max(state.resources.rations, rationsNeeded(state, plan));
-      const run = startRun(state, plan, t);
-      t = run.returnAt;
-      played += 1;
+      // Nobody goes out while raiders are at the gate: the rest of the wait plays it out.
+      if (validatePlan(state, plan).length === 0) {
+        const run = startRun(state, plan, t);
+        t = run.returnAt;
+        played += 1;
+      }
     }
     t += opts.restDays * DAY_MS;
     state.resources.rations = Math.max(state.resources.rations, dailyUpkeep(state) * (opts.restDays + 3));

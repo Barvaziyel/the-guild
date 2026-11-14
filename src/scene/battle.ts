@@ -22,7 +22,8 @@ export interface StageFighter {
   title: string;
   hp: number;
   maxHp: number;
-  state: 'up' | 'down' | 'dead' | 'fled';
+  /** `waiting`: behind a door, not on the stage yet (2.5.0). */
+  state: 'up' | 'down' | 'dead' | 'fled' | 'waiting';
   /** The crew: their colors and the weapon they carry. */
   look?: FigureLook;
   weapon?: string;
@@ -74,6 +75,16 @@ export interface StageModel {
   effect?: StageEffect;
   /** Their nerve, 0–100, when they can break (2.3.0). */
   nerve?: number;
+  /** The job the fight came with (2.5.0), in the other top corner. */
+  job?: StageJob;
+}
+
+/** A fight's job on the stage: its name and a pip for each turn of work. */
+export interface StageJob {
+  title: string;
+  progress: number;
+  needed: number;
+  state: 'open' | 'done' | 'lost';
 }
 
 interface Slot {
@@ -157,6 +168,22 @@ function threatMarks(heavy: number, strikes: number, cx: number, y: number): str
     x += w(k) + 2;
   }
   return out;
+}
+
+/** The job the fight came with (2.5.0), in the top left: a pip for each turn of work, or how it ended. */
+function jobPlate(job: StageJob): string {
+  const label = job.state === 'done' ? `${job.title}: done` : job.state === 'lost' ? `${job.title}: lost` : job.title;
+  const textW = Math.ceil(label.length * 5.1);
+  const pips = job.state === 'open' ? job.needed : 0;
+  const w = 12 + textW + (pips > 0 ? 6 + pips * 10 : 0);
+  let svg = `<rect x="6" y="5" width="${w}" height="17" rx="3" fill="#1d1915" fill-opacity="0.82"/>`;
+  svg += `<text x="12" y="16.5" class="bt-hp${job.state === 'lost' ? ' bt-job-lost' : ''}">${escapeAttr(label)}</text>`;
+  for (let k = 0; k < pips; k++) {
+    const cx = 12 + textW + 6 + k * 10 + 4;
+    svg += `<circle cx="${cx}" cy="13.5" r="3.4" fill="${k < job.progress ? '#c9b98f' : '#2b2420'}" stroke="${BONE}" stroke-width="0.7"/>`;
+  }
+  const said = job.state === 'open' ? `${job.title}, ${Math.min(job.progress, job.needed)} of ${job.needed}` : label;
+  return `<g class="bt-job" aria-label="${escapeAttr(said)}">${svg}</g>`;
 }
 
 /** The nerve of their side (2.3.0), in the top corner. */
@@ -407,6 +434,7 @@ export function stageSvg(model: StageModel): string {
     figures +
     marks +
     (model.nerve !== undefined ? nerveMeter(model.nerve) : '') +
+    (model.job ? jobPlate(model.job) : '') +
     effectLayer(model, spots) +
     '</svg>'
   );

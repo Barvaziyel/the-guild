@@ -85,8 +85,9 @@ describe('balance: permadeath is rare', () => {
   });
 
   test('a Medkit in the crew prevents most deaths', () => {
-    const without = simulate('water_plant', N);
-    const withKit = simulate('water_plant', N, {}, (state) => {
+    // Twice the runs: at 3,000 the ratio swings between about 0.26 and 0.41 with the seeds.
+    const without = simulate('water_plant', 2 * N);
+    const withKit = simulate('water_plant', 2 * N, {}, (state) => {
       state.survivors[0]!.equipment.tool = state.stash.find((i) => i.defId === 'medkit')!;
     });
     assert.ok(withKit.deaths < without.deaths * 0.4, `${withKit.deaths} vs ${without.deaths}`);

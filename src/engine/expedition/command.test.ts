@@ -107,10 +107,19 @@ describe('the start copy', () => {
     }
   });
 
-  test('any crew can be led, with or without a Radio Tower', () => {
+  test('any crew can be led, with or without a Radio Tower, and stops at its fights either way', () => {
     const state = openGame('no-radio');
     state.buildings.radio_tower = 0;
     assert.deepEqual(validatePlan(state, { ...testPlan(state), lead: true }), []);
+    // 2.2.0 let the plan through but the run still needed the tower to stop (fixed in 2.5.0).
+    let stopped = 0;
+    for (let i = 0; i < 40 && stopped === 0; i++) {
+      const s = openGame(`no-radio-${i}`);
+      s.rng = new Rng(`no-radio-${i}`).getState();
+      const run = startRun(s, { ...testPlan(s, PLACES[i % PLACES.length]!, { job: 'hunt' }), lead: true }, T0);
+      stopped += run.lead?.fights.length ?? 0;
+    }
+    assert.ok(stopped > 0, 'a led crew without a tower calls home at a fight');
   });
 });
 
