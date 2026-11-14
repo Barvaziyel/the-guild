@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import { Rng, commandRound, startRun, takeCommand, type FightMemberView, type FightView, type GameState, type Run } from '../engine/index.ts';
 import { T0, openGame, testPlan } from '../engine/test-utils.ts';
-import { crewKey, enemyKey, roundFrames, shortName, stageHint, stageModel, stageTargets, tapOnStage } from './battle-view.ts';
+import { crewKey, enemyKey, roundFrames, shortName, stageModel, stageTargets, tapOnStage } from './battle-view.ts';
 
 const PLACES = ['kessler_farm', 'old_metro', 'drowned_mall', 'st_judes'];
 
@@ -72,13 +72,6 @@ describe('tapping the stage', () => {
     assert.deepEqual(stageTargets(VIEW, { picks: { a: { move: 'attack', target: 1 } }, open: 'a' }), { targets: ['e:0', 'e:1'], picked: 'e:1' });
     assert.deepEqual(stageTargets(VIEW, { picks: { a: { move: 'cover' } }, open: 'a' }), { targets: [] });
     assert.deepEqual(stageTargets(VIEW, { picks: {} }), { targets: [] });
-  });
-
-  test('the line under the stage says what a tap does', () => {
-    assert.equal(stageHint(VIEW, undefined), 'Tap one of the crew to give their orders.');
-    assert.equal(stageHint(VIEW, 'a'), 'Tap an enemy for Mara to go after.');
-    assert.equal(stageHint(VIEW, 'a', { a: { move: 'patch' } }), 'Tap who Mara should help.');
-    assert.equal(stageHint(VIEW, 'a', { a: { move: 'cover' } }), 'Mara: take cover. Tap someone else to give their orders.');
   });
 
   test('short names: the faction word goes', () => {

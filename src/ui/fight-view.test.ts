@@ -4,6 +4,10 @@ import { Rng, completeRun, letThemFight, startRun, takeCommand, type FightMember
 import { T0, openGame, testPlan } from '../engine/test-utils.ts';
 import {
   anyoneFighting,
+  crewChips,
+  fightStatus,
+  orderHint,
+  tickerLines,
   fightCard,
   fightCards,
   fightEnd,
@@ -332,5 +336,67 @@ describe('the job a fight came with (2.5.0)', () => {
   test('done or lost, it says so', () => {
     assert.deepEqual(jobPanel({ ...view, goal: { ...goal, progress: 2, state: 'done' } })!.lines, [goal.doneLine]);
     assert.deepEqual(jobPanel({ ...view, goal: { ...goal, state: 'lost' } })!.lines, [goal.lostLine]);
+  });
+});
+
+describe('the fight on one screen (2.6.0)', () => {
+  // Aviel: scrolling up and down, with things opening and closing, was clunky.
+  const moves = (target: number[] = [0, 1]): FightMemberView['moves'] => [
+    { move: 'attack', name: 'Shoot', detail: 'Go for one of them.', target: 'enemy', targets: target },
+    { move: 'cover', name: 'Take cover', detail: 'No attack: harder to hit this round.', target: 'none', targets: [] },
+  ];
+  const member = (id: string, name: string, extra: Partial<FightMemberView> = {}): FightMemberView => {
+    const m = moves();
+    return { id, name, hp: 10, maxHp: 20, state: 'up', aimed: false, moves: m, rank: 'front', byRank: { front: m, back: m }, ...extra };
+  };
+  const foe = (index: number, name: string) => ({ index, name, type: 'raider', kind: 'raider_scav', hp: 4, maxHp: 10, state: 'up' as const, stunned: false, named: false, nemesis: false, vulture: false, rank: 'front' as const, damage: 3, armor: 0, rises: false, pack: false, heavy: false, leader: false, fearless: false });
+  const view: FightView = {
+    round: 2,
+    maxRounds: 6,
+    place: 'Kessler Farm',
+    enemies: [foe(0, 'Raider Scav 1'), foe(1, 'Raider Scav 2')],
+    crew: [member('a', 'Mara'), member('b', 'Kai'), member('c', 'Rhea', { state: 'down', hp: 0, moves: [] })],
+    meds: 1,
+    ammo: 12,
+    lines: [{ text: 'One.' }, { text: 'Two.' }, { text: 'Three.', tone: 'bad' }],
+    acts: [],
+  };
+
+  test('one line over the stage: the round, the time left, what they carry', () => {
+    assert.equal(fightStatus(view, T0 + 27 * 60_000, T0, 'in the packs'), 'Round 2 of 6 · 27 min left · 1 med, 12 ammo in the packs');
+    assert.match(fightStatus({ ...view, meds: 3 }, T0, T0, 'in the stores'), / · 1 min left · 3 meds, 12 ammo in the stores$/, 'never less than a minute');
+  });
+
+  test('the crew strip: each one’s orders, a move still waiting for its target, and who can’t act', () => {
+    const chips = crewChips(view, { a: { move: 'attack', target: 1 }, b: { move: 'attack' } });
+    assert.deepEqual(
+      chips.map((c) => [c.name, c.label, c.canAct, c.own, c.pending]),
+      [
+        ['Mara', 'Shoot Raider Scav 2', true, false, false],
+        ['Kai', 'Shoot: who?', true, false, true],
+        ['Rhea', 'Down', false, false, false],
+      ],
+    );
+    assert.deepEqual(crewChips(view, {}).map((c) => c.label), ['On their own', 'On their own', 'Down']);
+  });
+
+  test('the lines under the stage: the end of the last round, else the fight so far, a job first in round 1, or what to do', () => {
+    assert.deepEqual(tickerLines(view, [{ text: 'A.' }, { text: 'B.' }, { text: 'C.' }]).map((l) => l.text), ['B.', 'C.']);
+    assert.deepEqual(tickerLines(view, []).map((l) => l.text), ['Two.', 'Three.']);
+    const goal = { id: 'hold_door', title: 'Hold the door', move: 'Hold the door', intro: 'More of them are coming through a side door.', detail: '', progress: 0, needed: 3, state: 'open' as const, doneLine: '', lostLine: '' };
+    assert.deepEqual(tickerLines({ ...view, round: 1, goal }, []).map((l) => l.text), [goal.intro, 'Three.']);
+    assert.deepEqual(tickerLines({ ...view, round: 2, goal }, []).map((l) => l.text), ['Two.', 'Three.'], 'only in the first round');
+    assert.deepEqual(tickerLines({ ...view, round: 1, lines: [] }, []).map((l) => l.text), ['Round 1: give each of them a move, or leave them to it.']);
+  });
+
+  test('the hint under the moves: whom to tap, what the move does, where they stand, or that nothing is in reach', () => {
+    const mara = view.crew[0]!;
+    assert.equal(orderHint(view, mara, {}, false), 'Tap an enemy for Mara to go after, or pick a move.');
+    assert.equal(orderHint(view, mara, { a: { move: 'attack' } }, false), 'Shoot: who? Tap one of them, here or on the stage.');
+    assert.equal(orderHint(view, mara, { a: { move: 'attack', target: 0 } }, false), 'Go for one of them.');
+    assert.equal(orderHint(view, mara, { a: { move: 'cover' } }, false), 'No attack: harder to hit this round.');
+    assert.match(orderHint(view, { ...mara, rank: 'back' }, {}, true), /^At the back:/);
+    const blade = member('d', 'Dov', { rank: 'back', moves: moves([]) });
+    assert.equal(orderHint(view, blade, {}, false), 'Dov can’t reach any of them from the back. Pick a move, or move them.');
   });
 });

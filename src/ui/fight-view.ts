@@ -340,3 +340,70 @@ export function memberState(m: FightMemberView): string {
   return `${m.hp} of ${m.maxHp} HP`;
 }
 
+
+// ---------------------------------------------------------------- the fight on one screen (2.6.0)
+
+/** The line over the stage: "Round 2 of 6 · 27 min left · 2 meds, 12 ammo in the packs." */
+export function fightStatus(view: FightView, until: number, now: number, stores: string): string {
+  const meds = view.meds === 1 ? '1 med' : `${view.meds} meds`;
+  return `Round ${view.round} of ${view.maxRounds} · ${formatDuration(Math.max(60_000, until - now))} left · ${meds}, ${view.ammo} ammo ${stores}`;
+}
+
+/** One of the crew in the strip under the stage: who, how they are, and what they've been told. */
+export interface CrewChip {
+  id: string;
+  name: string;
+  hp: number;
+  maxHp: number;
+  /** Can be given orders this round (standing, not out of it). */
+  canAct: boolean;
+  /** Their orders ("Shoot Hollow 1", "On their own"), "Shoot: who?" while a target is still to pick, or how they are ("Down"). */
+  label: string;
+  /** No orders: they fight on their own. */
+  own: boolean;
+  /** A move picked, its target not yet. */
+  pending: boolean;
+}
+
+export function crewChips(view: FightView, picks: Picks): CrewChip[] {
+  const current = livePicks(view, picks);
+  return view.crew.map((m) => {
+    const canAct = m.moves.length > 0;
+    const raw = picks[m.id];
+    const choice = raw ? m.moves.find((c) => c.move === raw.move) : undefined;
+    const pending = canAct && choice !== undefined && current[m.id] === undefined;
+    const label = !canAct ? (m.state === 'up' ? 'Can’t act' : memberState(m)) : pending ? `${choice!.name}: who?` : pickLabel(view, m, current[m.id]);
+    return { id: m.id, name: m.name, hp: m.hp, maxHp: m.maxHp, canAct, label, own: canAct && !current[m.id] && !pending, pending };
+  });
+}
+
+/**
+ * What the lines under the stage show: the latest of what the last round
+ * brought, or of the fight so far. In the first round a job the fight came
+ * with leads (its first line is said before the fight's own); with nothing
+ * said yet, what to do.
+ */
+export function tickerLines(view: FightView, lastRound: readonly LogLine[], count = 2): LogLine[] {
+  if (lastRound.length > 0) return lastRound.slice(-count);
+  const intro = view.goal?.state === 'open' && view.round === 1 ? view.goal.intro : undefined;
+  const tail = view.lines.slice(-count);
+  if (intro !== undefined && !tail.some((l) => l.text === intro)) return [{ text: intro, tone: 'bad' }, ...view.lines.slice(-(count - 1))];
+  return tail.length > 0 ? tail : [{ text: `Round ${view.round}: give each of them a move, or leave them to it.` }];
+}
+
+/**
+ * The line under the open person's moves: what their move does, whom to tap
+ * for a target, where they stand if they were just moved, or that they can't
+ * reach anything from there.
+ */
+export function orderHint(view: FightView, m: FightMemberView, picks: Picks, moved: boolean): string {
+  const raw = picks[m.id];
+  const choice = raw ? m.moves.find((c) => c.move === raw.move) : undefined;
+  if (choice && choice.target !== 'none' && (raw!.target === undefined || !choice.targets.includes(raw!.target))) {
+    return choice.target === 'ally' ? `${choice.name}: who? Tap one of the crew, here or on the stage.` : `${choice.name}: who? Tap one of them, here or on the stage.`;
+  }
+  if (choice) return choice.detail;
+  if (moved) return rankHelp(m, m.rank);
+  if (!m.moves.some((c) => c.target === 'enemy' && c.targets.length > 0)) return `${m.name} can’t reach any of them from ${m.rank === 'back' ? 'the back' : 'here'}. Pick a move, or move them.`;
+  return `Tap an enemy for ${m.name} to go after, or pick a move.`;
+}
