@@ -1,3 +1,4 @@
+import { letRaidFight, openRaid, stepRaid } from './depot/raids.ts';
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import {
@@ -282,8 +283,17 @@ describe('what they compete for', () => {
     state.buildings.radio_tower = 1;
     state.resources.scrap = state.resources.tech = 100;
     buildOutpost(state, place, 2);
-    for (let day = 3; day < 400 && state.outposts.length > 0; day++) playVulturesDay(state, day, new Rng(`o${day}`));
-    assert.ok(state.log.some((l) => /^The Vultures (came for|broke into|burned) the outpost/.test(l.text)));
+    for (let day = 3; day < 400 && state.outposts.length > 0; day++) {
+      playVulturesDay(state, day, new Rng(`o${day}`));
+      // Fought like the gate (§9.8), on their own.
+      const raid = openRaid(state);
+      if (raid) {
+        assert.equal(raid.outpost, place);
+        stepRaid(state, raid.arrive);
+        if (openRaid(state)) letRaidFight(state, raid.arrive + 1000);
+      }
+    }
+    assert.ok(state.log.some((l) => /^The Vultures(, led by [^,]+,)? (came for|broke into|burned) the outpost/.test(l.text)));
   });
 });
 

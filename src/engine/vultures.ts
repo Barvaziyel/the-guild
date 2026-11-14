@@ -27,7 +27,6 @@ import {
   VULTURES_MAX_STRENGTH,
   VULTURES_OUTPOST_RAID,
   VULTURES_PROMOTION_DAYS,
-  VULTURES_RAID_PER_STRENGTH,
   VULTURES_RANSOM,
   VULTURES_RANSOM_STANDING,
   VULTURES_RECRUIT_STANDING,
@@ -349,7 +348,7 @@ function outpostRaids(state: GameState, day: number, rng: Rng): void {
   const theirs = new Set(turf(state));
   for (const o of [...state.outposts]) {
     if (!theirs.has(o.locationId) || !rng.chance(chance)) continue;
-    raidOutpost(state, o, day, rng, { name: 'The Vultures', lower: 'the Vultures', dc: Math.round(state.vultures.strength * VULTURES_RAID_PER_STRENGTH) });
+    raidOutpost(state, o, day, rng, 'vultures');
   }
 }
 

@@ -4,10 +4,25 @@
  * run, from the defenders as they stood when it began; under command it's
  * played again with the orders so far, like a led run's fight (§7.13).
  */
-import { ENCOUNTER_BASE, ENCOUNTER_CREW_MULT, ENCOUNTER_PER_DANGER, MAX_ENEMIES, RAID_BUDGET_MULT, RAID_DANGER, RAID_FULL_FENCE, RAID_HIDDEN_SHARE, RAID_WAVE_BUDGET, RAID_WOUND_BONUS } from '../constants.ts';
-import { getEnemy, type LocationDef } from '../content/index.ts';
+import {
+  ENCOUNTER_BASE,
+  ENCOUNTER_CREW_MULT,
+  ENCOUNTER_PER_DANGER,
+  MAX_ENEMIES,
+  OUTPOST_RAID_BUDGET,
+  OUTPOST_RAID_DANGER,
+  OUTPOST_RAID_FENCE,
+  RAID_BUDGET_MULT,
+  RAID_DANGER,
+  RAID_FULL_FENCE,
+  RAID_HIDDEN_SHARE,
+  RAID_WAVE_BUDGET,
+  RAID_WOUND_BONUS,
+} from '../constants.ts';
+import { getEnemy, getLocation, type LocationDef } from '../content/index.ts';
+import { RAID_BANDS } from '../content/raids.ts';
 import { Rng } from '../rng.ts';
-import type { DepotRaid, GameState, Survivor, VultureMember } from '../types.ts';
+import type { DepotRaid, GameState, ResourceId, Survivor, VultureMember } from '../types.ts';
 import { fight, newEnemy, patchUp, type CombatEnd, type Enemy } from './combat.ts';
 import { FightPause, type FightView } from './command.ts';
 import { bestBy, isHurt, say, simBonus, standing, startBeat, type FightPlan, type Member, type Sim } from './context.ts';
@@ -37,38 +52,45 @@ export const DEPOT_SITE: LocationDef = {
   sights: [],
 };
 
-const RAIDER_KINDS = ['raider_scav', 'raider_gunner', 'raider_brute'] as const;
-const VULTURE_KINDS = ['vulture_scav', 'vulture_shot'] as const;
+/** Where a raid is fought: the Depot, or the outpost it came for, at the danger the raid is fought at. */
+export function raidSite(raid: DepotRaid): LocationDef {
+  if (!raid.outpost) return DEPOT_SITE;
+  const loc = getLocation(raid.outpost);
+  return { ...loc, danger: OUTPOST_RAID_DANGER[loc.danger] ?? loc.danger };
+}
 
 /**
- * Who comes, bought like a fight at a place of RAID_DANGER, a little bigger,
- * for a fence of at least three: fewer at home doesn't mean fewer raiders.
- * The Vultures bring one of their named people, and come stronger as they grow.
- * A second band (`wave` 2) is smaller, and never has a leader.
+ * Who comes, bought like a fight at the place (the Depot counts as
+ * RAID_DANGER), a little bigger, for a fence of at least three at the Depot
+ * and two at an outpost: fewer at home doesn't mean fewer raiders. Each band
+ * has its own kinds; the Vultures bring one of their named people, and come
+ * stronger as they grow. A second band (`wave` 2) is smaller, and never has a
+ * leader.
  */
 export function raidEnemies(state: GameState, raid: DepotRaid, defenders: number, wave: 1 | 2 = 1): string[] {
   const rng = new Rng(wave === 1 ? `raid-enemies:${raid.seed}` : `raid-enemies-2:${raid.seed}`);
-  const fence = Math.max(defenders, RAID_FULL_FENCE);
+  const band = RAID_BANDS[raid.by];
+  const site = raidSite(raid);
+  const fence = Math.max(defenders, raid.outpost ? OUTPOST_RAID_FENCE : RAID_FULL_FENCE);
   const mult = ENCOUNTER_CREW_MULT[Math.min(fence, ENCOUNTER_CREW_MULT.length) - 1] ?? 1;
-  let budget = (ENCOUNTER_BASE + RAID_DANGER * ENCOUNTER_PER_DANGER) * mult * RAID_BUDGET_MULT * (wave === 2 ? RAID_WAVE_BUDGET : 1);
+  let budget =
+    (ENCOUNTER_BASE + site.danger * ENCOUNTER_PER_DANGER) * mult * band.budget * (raid.outpost ? OUTPOST_RAID_BUDGET : RAID_BUDGET_MULT) * (wave === 2 ? RAID_WAVE_BUDGET : 1);
   const out: string[] = [];
-  let kinds: readonly string[] = RAIDER_KINDS;
   if (raid.by === 'vultures') {
     budget *= 0.8 + state.vultures.strength / 200;
-    kinds = VULTURE_KINDS;
     if (raid.leadId && wave === 1) {
       out.push('vulture_lieutenant');
       budget -= getEnemy('vulture_lieutenant').threat;
     }
   }
   while (out.length < MAX_ENEMIES) {
-    const affordable = kinds.filter((id) => getEnemy(id).threat <= budget);
+    const affordable = band.kinds.filter((id) => getEnemy(id).threat <= budget);
     if (affordable.length === 0) break;
     const id = rng.pick(affordable);
     out.push(id);
     budget -= getEnemy(id).threat;
   }
-  if (out.length === 0) out.push(kinds[0]!);
+  if (out.length === 0) out.push(band.kinds[0]!);
   return out;
 }
 
@@ -83,6 +105,8 @@ export interface RaidFight {
   regroup?: boolean;
   /** The last fight as it ended, under command (for the screen after it). */
   view?: FightView;
+  /** What the beaten left on the ground. */
+  loot: Partial<Record<ResourceId, number>>;
 }
 
 /** The named Vulture at the head of a raid, as the guild knows them now. */
@@ -107,7 +131,10 @@ export function playRaid(state: GameState, raid: DepotRaid, live: boolean): Raid
   const shell = structuredClone(raid.start!);
   const perch = new Set(raid.perch ?? []);
   const crew = shell.survivors;
-  const dog = animalOf(shell, 'dog');
+  const site = raidSite(raid);
+  // The dog stays at the Depot; a score to settle marks the one they came for.
+  const dog = raid.outpost ? undefined : animalOf(shell, 'dog');
+  const marked = raid.wants?.what === 'score' && !raid.wants.missing ? raid.wants.id : undefined;
   const leader = raidLeader(state, raid);
   const meds = withinReach(raid, raid.meds);
   const ammo = withinReach(raid, raid.ammo);
@@ -123,8 +150,8 @@ export function playRaid(state: GameState, raid: DepotRaid, live: boolean): Raid
   const sim: Sim = {
     state: shell,
     rng: new Rng(`raid:${raid.seed}`),
-    plan: { locationId: DEPOT_SITE.id, crew: crew.map((s) => s.id), job: 'scout', meds, ammo, approach: 'balanced', retreat: 'downed' },
-    loc: DEPOT_SITE,
+    plan: { locationId: site.id, crew: crew.map((s) => s.id), job: 'scout', meds, ammo, approach: 'balanced', retreat: 'downed' },
+    loc: site,
     members: all.filter((m) => team.has(m.s.id)),
     departAt: raid.arrive,
     offset: 0,
@@ -155,12 +182,16 @@ export function playRaid(state: GameState, raid: DepotRaid, live: boolean): Raid
     delay: 0,
     radio: false,
     lead: { plans: [first, second], stops: [], ends: [], home: true },
-    gate: {
-      tower: workingLevel(shell, 'watchtower'),
-      wall: wallDefense(shell) > 0,
-      ...(raid.shored ? { shored: true } : {}),
-      ...(dog ? { dog: dog.name } : {}),
-    },
+    gate: raid.outpost
+      ? { tower: 0, wall: false, ...(marked ? { marked } : {}) }
+      : {
+          tower: workingLevel(shell, 'watchtower'),
+          wall: wallDefense(shell) > 0,
+          ...(raid.shored ? { shored: true } : {}),
+          ...(dog ? { dog: dog.name } : {}),
+          ...(raid.by === 'scrapbots' && workingLevel(shell, 'workshop') > 0 ? { machines: workingLevel(shell, 'workshop') } : {}),
+          ...(marked ? { marked } : {}),
+        },
     ...(raid.by === 'vultures'
       ? {
           vultures: {
@@ -174,11 +205,12 @@ export function playRaid(state: GameState, raid: DepotRaid, live: boolean): Raid
       : {}),
   };
   const enemies = (raid.enemies ?? []).map((id, i) =>
-    i === 0 && id === 'vulture_lieutenant' && leader ? namedEnemy(sim, structuredClone(leader)) : newEnemy(getEnemy(id), RAID_DANGER),
+    i === 0 && id === 'vulture_lieutenant' && leader ? namedEnemy(sim, structuredClone(leader)) : newEnemy(getEnemy(id), site.danger),
   );
   // Stared at and not backing down, they strike first; seen coming from the Watchtower, the defenders do.
   const stared = raid.talk?.how === 'stare' && !raid.talk.ok;
   let result = fight(sim, enemies, { ambushed: stared, drop: !stared && raid.seen !== undefined });
+  const loot: Partial<Record<ResourceId, number>> = { ...result.loot };
   let wave: 1 | 2 = 1;
   let fought = enemies;
   const held = (end: CombatEnd): boolean => end === 'won' || end === 'stalemate';
@@ -186,27 +218,31 @@ export function playRaid(state: GameState, raid: DepotRaid, live: boolean): Raid
     sim.members = all;
     regroup(sim);
     // In command, the player picks who holds the gate against the second band.
-    if (live && first && raid.team2 === undefined) return finishPlay(sim, all, result.end, enemies, 1, true);
+    if (live && first && raid.team2 === undefined) return finishPlay(sim, all, result.end, enemies, 1, loot, true);
     wave = 2;
     const team2 = new Set(raid.team2 ?? standing(sim).map((m) => m.s.id));
     sim.members = all.filter((m) => team2.has(m.s.id) && !m.down && !m.dead);
-    fought = (raid.enemies2 ?? []).map((id) => newEnemy(getEnemy(id), RAID_DANGER));
+    fought = (raid.enemies2 ?? []).map((id) => newEnemy(getEnemy(id), site.danger));
     if (sim.members.length === 0 || fought.length === 0) {
       sim.members = all;
       say(sim, 'Nobody is left to hold the gate. The second band walks in.', { tone: 'bad' });
       result = { end: 'withdrew', loot: {} };
-    } else result = fight(sim, fought, { ambushed: false, drop: false });
+    } else {
+      result = fight(sim, fought, { ambushed: false, drop: false });
+      for (const [r, n] of Object.entries(result.loot) as [ResourceId, number][]) loot[r] = (loot[r] ?? 0) + n;
+    }
   }
   sim.members = all;
   if (sim.vultures) settle(sim, sim.vultures, [...enemies, ...(wave === 2 ? fought : [])], result.end, leader ? structuredClone(leader) : undefined);
   resolveWounds(sim);
-  return finishPlay(sim, all, result.end, fought, wave, false);
+  return finishPlay(sim, all, result.end, wave === 2 ? [...enemies, ...fought] : enemies, wave, result.end === 'won' ? loot : {}, false);
 }
 
-function finishPlay(sim: Sim, all: Member[], end: CombatEnd, enemies: Enemy[], wave: 1 | 2, regroup: boolean): RaidFight {
+/** `enemies`: everyone fought, both bands once it's over (the spoils come off all of them). */
+function finishPlay(sim: Sim, all: Member[], end: CombatEnd, enemies: Enemy[], wave: 1 | 2, loot: Partial<Record<ResourceId, number>>, regroup: boolean): RaidFight {
   sim.members = all;
   const view = sim.lead!.ends[wave - 1];
-  return { end, sim, enemies, wave, ...(regroup ? { regroup } : {}), ...(view ? { view } : {}) };
+  return { end, sim, enemies, wave, loot, ...(regroup ? { regroup } : {}), ...(view ? { view } : {}) };
 }
 
 /** Between the bands: the second comes up the road, and anyone down or badly hurt gets patched up while there are meds. */

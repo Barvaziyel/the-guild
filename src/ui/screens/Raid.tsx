@@ -20,8 +20,8 @@ import {
 } from '../../engine/index.ts';
 import { BattleStage } from '../components/BattleStage.tsx';
 import { fightEnd } from '../fight-view.ts';
-import { goBack, useAction, useNow } from '../hooks.ts';
-import { gateView, raidCard, readyView, regroupView, type RegroupView } from '../raid-view.ts';
+import { goBack, navigate, useAction, useNow } from '../hooks.ts';
+import { gateView, raidCard, raidOver, readyView, regroupView, type RegroupView } from '../raid-view.ts';
 import { Command } from './Fight.tsx';
 
 const OVER: Record<'held' | 'broken' | 'paid' | 'stared', string> = {
@@ -56,9 +56,9 @@ export function Raid({ state }: { state: GameState }) {
           view={view}
           until={gate.until}
           now={now}
-          place="depot"
+          place={gate.outpost ?? 'depot'}
           seed={gate.id}
-          title={gate.rounds2 !== undefined ? 'The second band' : 'The fight at the gate'}
+          title={gate.rounds2 !== undefined ? 'The second band' : gate.outpost ? 'The fight at the outpost' : 'The fight at the gate'}
           stores="in the stores"
           give={(s, orders) => void commandRaidRound(s, orders, Date.now())}
           letThem={(s) => letRaidFight(s, Date.now())}
@@ -89,6 +89,7 @@ function OnTheRoad({ state, now }: { state: GameState; now: number }) {
         <p className="dilemma-kicker">Seen from the Watchtower</p>
         <h2 className="dilemma-title">{card.title}</h2>
         <p>{ready.when}</p>
+        <p>{ready.after}</p>
         {ready.secondBand && <p>{ready.secondBand}</p>}
         <p>{ready.home}</p>
         <p className="panel-help">{card.lines.at(-1)}</p>
@@ -167,11 +168,15 @@ function AtGate({ state, now }: { state: GameState; now: number }) {
   return (
     <>
       <section className="panel fight-call raid-call">
-        <p className="dilemma-kicker">At the Depot</p>
+        <p className="dilemma-kicker">{raid.outpost ? 'At the outpost' : 'At the Depot'}</p>
         <h2 className="dilemma-title">{card.title}</h2>
         {card.against && <p className="fight-sub">{card.against}</p>}
         {gate.secondBand && <p>{gate.secondBand}</p>}
-        {preview && <BattleStage state={state} place="depot" seed={raid.id} view={preview} />}
+        {preview && <BattleStage state={state} place={raid.outpost ?? 'depot'} seed={raid.id} view={preview} />}
+        {card.lines.slice(0, -1).map((l) => (
+          <p key={l}>{l}</p>
+        ))}
+        {gate.mute && <p>{gate.mute}</p>}
         {gate.said && <p className="is-bad">{gate.said}</p>}
       </section>
       {gate.talk && (
@@ -180,13 +185,20 @@ function AtGate({ state, now }: { state: GameState; now: number }) {
             Talk first
           </h3>
           <ul className="raid-list">
-            <li className="raid-item">
-              <p>{gate.talk.pay}</p>
-              <button type="button" className="btn" disabled={gate.talk.payProblem !== undefined} onClick={() => act((s) => payRaiders(s, Date.now()))}>
-                Pay them off
-              </button>
-              {gate.talk.payProblem && <p className="panel-help">{gate.talk.payProblem}</p>}
-            </li>
+            {gate.talk.pay && (
+              <li className="raid-item">
+                <p>{gate.talk.pay.text}</p>
+                <button type="button" className="btn" disabled={gate.talk.pay.problem !== undefined} onClick={() => act((s) => payRaiders(s, Date.now()))}>
+                  {gate.talk.pay.label}
+                </button>
+                {gate.talk.pay.problem && <p className="panel-help">{gate.talk.pay.problem}</p>}
+              </li>
+            )}
+            {gate.talk.refused && (
+              <li className="raid-item">
+                <p>{gate.talk.refused}</p>
+              </li>
+            )}
             <li className="raid-item">
               <p>{gate.talk.stare}</p>
               <button type="button" className="btn" onClick={() => act((s) => void stareDown(s, Date.now()))}>
@@ -198,9 +210,9 @@ function AtGate({ state, now }: { state: GameState; now: number }) {
       )}
       <section className="panel" aria-labelledby="raid-team">
         <h3 id="raid-team" className="panel-title">
-          Who holds the gate
+          {raid.outpost ? 'Who holds the outpost' : 'Who holds the gate'}
         </h3>
-        <div className="fight-chips" role="group" aria-label="Who holds the gate">
+        <div className="fight-chips" role="group" aria-label={raid.outpost ? 'Who holds the outpost' : 'Who holds the gate'}>
           {gate.team.map((p) => (
             <button key={p.id} type="button" className={`chip${p.in ? ' is-on' : ''}`} aria-pressed={p.in} onClick={() => toggle(p.id)}>
               {p.name}
@@ -238,7 +250,7 @@ function Regroup({ state, now, view }: { state: GameState; now: number; view: Re
     });
   return (
     <section className="panel fight-call raid-call">
-      <p className="dilemma-kicker">At the Depot</p>
+      <p className="dilemma-kicker">{state.depot.raid?.outpost ? 'At the outpost' : 'At the Depot'}</p>
       <h2 className="dilemma-title">The first band is beaten</h2>
       <p className="fight-sub">{view.against}</p>
       {view.lines.length > 0 && (
@@ -281,15 +293,15 @@ function Regroup({ state, now, view }: { state: GameState; now: number; view: Re
 function Over({ state, seen }: { state: GameState; seen: FightView | undefined }) {
   const raid = state.depot.raid!;
   const end = useMemo(() => lastRaidFight(state), [state]);
+  const over = raidOver(state);
   const before = seen && end && seen.enemies.length === end.enemies.length && seen.acts.length <= end.acts.length ? seen : undefined;
   const [told, setTold] = useState<number | undefined>(undefined);
   const lines = !end ? [] : told === undefined ? fightEnd(end.lines, before?.lines.length ?? 0) : end.lines.slice(before?.lines.length ?? 0, told);
-  const news = state.log.filter((l) => l.tags?.includes('raid')).at(-1);
   const { name } = raidersName(state, raid);
   return (
     <section className="panel">
       <h2 className="plan-title">The raid is over</h2>
-      {end && <BattleStage state={state} place="depot" seed={raid.id} view={end} before={before} onLine={setTold} caption={OVER[raid.end ?? 'held']} />}
+      {end && <BattleStage state={state} place={raid.outpost ?? 'depot'} seed={raid.id} view={end} before={before} onLine={setTold} caption={OVER[raid.end ?? 'held']} />}
       {lines.length > 0 && (
         <ul className="fight-lines fight-end">
           {lines.map((l, k) => (
@@ -299,7 +311,12 @@ function Over({ state, seen }: { state: GameState; seen: FightView | undefined }
           ))}
         </ul>
       )}
-      <p>{news?.text ?? `${name.replace(/,$/, '')} came and went.`}</p>
+      {over && over.lines.length > 0 ? over.lines.map((l) => <p key={l}>{l}</p>) : <p>{`${name.replace(/,$/, '')} came and went.`}</p>}
+      {over?.captive && (
+        <button type="button" className="btn" onClick={() => navigate({ screen: 'roster' })}>
+          See {over.captive.name} in the Roster
+        </button>
+      )}
     </section>
   );
 }

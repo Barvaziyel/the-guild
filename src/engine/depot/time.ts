@@ -1,6 +1,7 @@
 /**
  * Time passing: Depot days and returning crews, in the order they happen.
  */
+import { playCaptivesDay } from '../captives.ts';
 import { DAY_MS, MAX_CATCHUP_DAYS } from '../constants.ts';
 import { completeDueRuns, settleLed, settleRadio } from '../expedition/runs.ts';
 import { dayAt, withRng } from '../game.ts';
@@ -67,6 +68,7 @@ export function advanceTime(state: GameState, now: number): AdvanceResult {
       playRescueDay(state, day, rng);
       playFamilyDay(state, day, rng);
       playVulturesDay(state, day, rng);
+      playCaptivesDay(state, day, rng);
     });
     state.depot.lastDay = day;
   }

@@ -31,6 +31,7 @@ export { NEMESIS_NAMES, NICKNAMES, WEAPON_NAMES, type NicknameRule } from './sto
 export { VEHICLES, type VehicleDef } from './vehicles.ts';
 export { LINE_STOPS, PROJECTS, getProject, type ProjectDef, type ProjectStage } from './projects.ts';
 export { ANIMALS, getAnimal, type AnimalDef } from './animals.ts';
+export { RAID_BANDS, RAID_SPOILS, type RaidBandDef } from './raids.ts';
 
 const traitById = new Map<string, TraitDef>(TRAITS.map((t) => [t.id, t]));
 const gearById = new Map<string, GearDef>(GEAR.map((g) => [g.id, g]));

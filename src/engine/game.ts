@@ -104,6 +104,7 @@ export function newGame(opts: NewGameOptions): GameState {
     departed: [],
     children: [],
     vultures: newVultures(),
+    captives: [],
     relationships: {},
     stash: [],
     resources: { ...STARTING_RESOURCES },

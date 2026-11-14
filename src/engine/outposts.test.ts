@@ -24,6 +24,7 @@ import {
   stationProblem,
 } from './outposts.ts';
 import { Rng } from './rng.ts';
+import { letRaidFight, openRaid, stepRaid } from './depot/raids.ts';
 import { maxHp } from './stats.ts';
 import { deserialize } from './save.ts';
 import { T0, openGame, testGame, testPlan } from './test-utils.ts';
@@ -138,21 +139,36 @@ describe('outposts: day to day', () => {
     assert.ok(perDay(3, true) < three * 0.7);
   });
 
+  /** Raiders come for the outpost on `day`; whoever lives there fights them on their own. How it ended for the outpost. */
+  function raidAt(state: GameState, day: number, seed: string): 'held' | 'damaged' | 'burned' {
+    const outpost = findOutpost(state, 'maple_street')!;
+    const raid = raidOutpost(state, outpost, day, new Rng(seed))!;
+    assert.ok(raid, 'a raid is on its way');
+    stepRaid(state, raid.arrive);
+    if (openRaid(state)) letRaidFight(state, raid.arrive + 1000);
+    return raid.end === 'held' ? 'held' : findOutpost(state, 'maple_street') ? 'damaged' : 'burned';
+  }
+
   test('raiders damage an outpost, burn a damaged one, and send its people home', () => {
     const state = ready('raid');
     buildOutpost(state, 'maple_street', 2);
     const outpost = findOutpost(state, 'maple_street')!;
-    assert.equal(raidOutpost(state, outpost, 3, new Rng('r1')), 'damaged', 'nobody there to hold it');
+    assert.equal(raidAt(state, 3, 'r1'), 'damaged', 'nobody there to hold it');
     repairOutpost(state, 'maple_street', 3);
     assert.equal(outpost.damaged, false);
-    const s = state.survivors[0]!;
-    station(state, s.id, 'maple_street', 3);
-    s.stats.aim = 1;
+    const id = state.survivors[0]!.id;
+    // A fight merges the defenders back as new objects: look them up each time.
+    const who = () => state.survivors.find((x) => x.id === id)!;
+    station(state, id, 'maple_street', 3);
     let result = 'held';
     for (let i = 0; result !== 'burned' && i < 200; i++) {
-      result = raidOutpost(state, outpost, 4, new Rng(`r${i}`));
-      s.traits = [];
+      who().stats.aim = 1;
+      who().stats.brawn = 1;
+      who().traits = [];
+      who().hp = maxHp(who());
+      result = raidAt(state, 4 + i, `r${i}`);
     }
+    const s = who();
     assert.equal(result, 'burned');
     assert.equal(findOutpost(state, 'maple_street'), undefined);
     assert.equal(s.outpost, undefined);
@@ -160,8 +176,27 @@ describe('outposts: day to day', () => {
     assert.ok(state.log.some((l) => /Raiders burned the outpost at Maple Street\. .* made it home\./.test(l.text)));
   });
 
+  test('raiders at an outpost are fought like the gate: by those who live there, and runs still go out', () => {
+    const state = ready('raid-fight');
+    buildOutpost(state, 'maple_street', 2);
+    const [a, b, c] = state.survivors;
+    station(state, a!.id, 'maple_street', 2);
+    station(state, b!.id, 'maple_street', 2);
+    const raid = raidOutpost(state, findOutpost(state, 'maple_street')!, 3, new Rng('rf'))!;
+    assert.equal(raid.outpost, 'maple_street');
+    assert.equal(raid.seen, undefined, 'no Watchtower out there');
+    stepRaid(state, raid.arrive);
+    assert.deepEqual([...raid.defenders!].sort(), [a!.id, b!.id].sort());
+    assert.deepEqual(validatePlan(state, { ...testPlan(state, 'rail_yard', {}, 1), crew: [c!.id] }).filter((p) => /Raiders/.test(p)), [], 'runs from the Depot still go');
+    letRaidFight(state, raid.arrive + 1000);
+    const after = state.survivors.find((x) => x.id === a!.id)!;
+    const line = raid.end === 'held' ? /Held the outpost at Maple Street against raiders\./ : /at the outpost at Maple Street, and couldn’t keep them out\./;
+    assert.ok(after.chronicle.some((e) => line.test(e.text)));
+  });
+
   test('well staffed, an outpost near home rarely burns', () => {
     let burned = 0;
+    let raids = 0;
     for (let g = 0; g < 100; g++) {
       const state = ready(`hold-${g}`);
       buildOutpost(state, 'maple_street', 1);
@@ -169,6 +204,12 @@ describe('outposts: day to day', () => {
       const rng = new Rng(`h-${g}`);
       for (let d = 2; d < 122; d++) {
         playOutpostsDay(state, d, rng, {});
+        const raid = openRaid(state);
+        if (raid) {
+          raids++;
+          stepRaid(state, raid.arrive);
+          if (openRaid(state)) letRaidFight(state, raid.arrive + 1000);
+        }
         const o = findOutpost(state, 'maple_street');
         if (!o) {
           burned += 1;
@@ -176,6 +217,7 @@ describe('outposts: day to day', () => {
         }
       }
     }
+    assert.ok(raids > 50, `${raids} raids`);
     assert.ok(burned < 10, `${burned} of 100 burned in 120 days`);
   });
 });

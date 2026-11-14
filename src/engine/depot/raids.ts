@@ -11,8 +11,14 @@ import {
   DAY_MS,
   PRACTICE_HARD,
   RAID_ARRIVE_MINUTES,
+  RAID_CAPTIVE_CHANCE,
   RAID_HIDDEN_SHARE,
   RAID_LOSS,
+  RAID_SCORE_KILLS,
+  RAID_SPOILS_GEAR,
+  RAID_WANT_CHANCE,
+  RAID_WANT_MIN,
+  RAID_WANT_SHARE,
   RAID_SHORE_COST,
   RAID_STARE_DC,
   RAID_STARE_VULTURES,
@@ -27,23 +33,27 @@ import {
   WATCH_SPOT_CHANCE,
   WATCH_SPOT_LOOKOUT,
 } from '../constants.ts';
-import { itemDef } from '../gear.ts';
+import { createItem, itemDef, itemName } from '../gear.ts';
+import { takeCaptive } from '../captives.ts';
+import { LOCATIONS, getEnemy, getLocation } from '../content/index.ts';
+import { RAID_BANDS, RAID_SPOILS } from '../content/raids.ts';
+import { locationState } from '../locations.ts';
+import { addTrait } from '../traits.ts';
 import { dayAt } from '../game.ts';
 import { newId } from '../ids.ts';
-import { RAIDERS } from '../outposts.ts';
+import { findOutpost, outpostBroken } from '../outposts.ts';
 import { Rng } from '../rng.ts';
 import { addPractice, changeStress, checkBonus, enemyContexts, maxHp, rollCheck } from '../stats.ts';
-import { fullName } from '../text.ts';
-import type { DepotRaid, GameState, LogLine, Resources, RoundOrders, Survivor } from '../types.ts';
+import { fullName, pronounForms } from '../text.ts';
+import type { DepotRaid, GameState, LogLine, RaidBand, RaidSpoils, RaidWant, ResourceId, Resources, RoundOrders, Survivor, Vehicle } from '../types.ts';
 import { pairKey } from '../relationships.ts';
-import { applyVultureNews, freeLieutenants, noteMember, vultureBoss, vultureMember } from '../vultures.ts';
+import { applyVultureNews, freeLieutenants, noteMember, prisoners, vultureBoss, vultureMember } from '../vultures.ts';
 import { vehicleName } from '../vehicles.ts';
 import { FightPause, type FightView } from '../expedition/command.ts';
-import { playRaid, raidEnemies, raidPause, withinReach } from '../expedition/raid.ts';
+import { playRaid, raidEnemies, raidPause, withinReach, type RaidFight } from '../expedition/raid.ts';
 import { runStart } from '../expedition/sim.ts';
 import { homecoming, recallReplay, storeRecall } from '../expedition/runs.ts';
-import { atDepot, canAfford, canWork, costText, payCost, workingAt, workingLevel } from './buildings.ts';
-import { getEnemy } from '../content/index.ts';
+import { atDepot, canAfford, canWork, costText, laidUp, payCost, workingAt, workingLevel } from './buildings.ts';
 import { describeGroup, newEnemy } from '../expedition/combat.ts';
 import { raidCap } from './events.ts';
 import type { Rng as RngType } from '../rng.ts';
@@ -73,9 +83,15 @@ export function raidSeen(state: GameState, now: number): DepotRaid | undefined {
 
 /** "Raiders", or "The Vultures, led by Rook Harlan,". */
 export function raidersName(state: GameState, raid: DepotRaid): { name: string; lower: string } {
-  if (raid.by === 'raiders') return { name: RAIDERS.name, lower: RAIDERS.lower };
+  const band = RAID_BANDS[raid.by];
+  if (raid.by !== 'vultures') return { name: band.name, lower: band.lower };
   const lead = raid.leadId ? vultureMember(state, raid.leadId) : undefined;
   return { name: lead ? `The Vultures, led by ${fullName(lead.person)},` : 'The Vultures', lower: 'the Vultures' };
+}
+
+/** Where they came: "the Depot", or "the outpost at Maple Street". */
+export function raidPlace(raid: DepotRaid): string {
+  return raid.outpost ? `the outpost at ${getLocation(raid.outpost).name}` : 'the Depot';
 }
 
 /** Who's at the gate: "two Raider Scavs and a Raider Gunner", "Rook Harlan, two Vultures and a Vulture Shot". */
@@ -94,22 +110,27 @@ export function raidAgainst(state: GameState, raid: DepotRaid): string {
  * Watchtower sees them coming (more likely the higher it is, and with lookouts
  * on it; the higher, the sooner). Nothing if a raid is already under way.
  */
-export function scheduleRaid(state: GameState, day: number, rng: RngType, by: 'raiders' | 'vultures'): DepotRaid | undefined {
+export function scheduleRaid(state: GameState, day: number, rng: RngType, by: 'raiders' | 'vultures', outpost?: string): DepotRaid | undefined {
   if (openRaid(state)) return undefined;
   const start = dayStartOf(state, day);
   const arrive = start + rng.int(RAID_ARRIVE_MINUTES[0], RAID_ARRIVE_MINUTES[1]) * 60_000;
-  const tower = workingLevel(state, 'watchtower');
-  const lookouts = tower > 0 ? workingAt(state, 'watchtower').length : 0;
-  const chance = tower > 0 ? Math.min(0.95, (WATCH_SPOT_CHANCE[tower] ?? WATCH_SPOT_CHANCE[3]) + lookouts * WATCH_SPOT_LOOKOUT) : 0;
-  const spotted = tower > 0 && rng.chance(chance);
   const id = newId(state, 'raid');
+  const seed = `${state.seed}:${id}`;
+  // Who's coming, on their own dice so the day's don't change: at the Depot, a band from places the guild knows.
+  const band: RaidBand = by === 'vultures' ? 'vultures' : outpost ? 'raiders' : pickBand(state, new Rng(`raid-band:${seed}`));
+  // An outpost has no Watchtower; hollows come in the dark.
+  const tower = outpost ? 0 : workingLevel(state, 'watchtower');
+  const lookouts = tower > 0 ? workingAt(state, 'watchtower').length : 0;
+  const chance = tower > 0 ? Math.min(0.95, (WATCH_SPOT_CHANCE[tower] ?? WATCH_SPOT_CHANCE[3]) + lookouts * WATCH_SPOT_LOOKOUT) * RAID_BANDS[band].spot : 0;
+  const spotted = tower > 0 && rng.chance(chance);
   const raid: DepotRaid = {
     id,
-    by,
-    seed: `${state.seed}:${id}`,
+    by: band,
+    seed,
     day,
     arrive,
     until: arrive + RAID_WAIT,
+    ...(outpost ? { outpost } : {}),
     ...(spotted ? { seen: Math.max(start, arrive - (WATCH_LEAD_MINUTES[tower] ?? WATCH_LEAD_MINUTES[3]) * 60_000) } : {}),
   };
   // Some come in two bands (their own dice, so the day's don't change).
@@ -120,11 +141,90 @@ export function scheduleRaid(state: GameState, day: number, rng: RngType, by: 'r
     if (lead) {
       raid.leadId = lead.person.id;
       lead.met = true;
-      noteMember(lead, day, 'Led a raid on the guild’s Depot.');
+      noteMember(lead, day, `Led a raid on the guild’s ${raid.outpost ? 'outpost' : 'Depot'}.`);
     }
   }
+  const wants = pickWant(state, raid, new Rng(`raid-wants:${seed}`));
+  if (wants) raid.wants = wants;
   state.depot.raid = raid;
   return raid;
+}
+
+/** Raiders always can come; the Reach's other bands once the guild knows a place they come from. */
+function pickBand(state: GameState, rng: Rng): RaidBand {
+  const known = new Set<string>();
+  for (const loc of LOCATIONS) {
+    if (!locationState(state, loc.id).discovered) continue;
+    for (const e of loc.encounters) for (const id of e.enemies) known.add(getEnemy(id).type);
+  }
+  const bands = Object.values(RAID_BANDS).filter((b) => b.weight > 0 && (!b.from || known.has(b.from)));
+  return rng.weightedBy(bands, (b) => b.weight).id;
+}
+
+/** Someone at the guild with raider blood on their hands, the most first. */
+function scoreTarget(state: GameState): Survivor | undefined {
+  let best: Survivor | undefined;
+  for (const s of state.survivors) {
+    const kills = s.counters.killsByEnemy.raider ?? 0;
+    if (kills >= RAID_SCORE_KILLS && (!best || kills > (best.counters.killsByEnemy.raider ?? 0))) best = s;
+  }
+  return best;
+}
+
+/** Prisoners of theirs the guild holds: Vulture lieutenants and captives. */
+function heldFor(state: GameState, band: RaidBand): { id: string; name: string }[] {
+  const from = band === 'vultures' ? 'vultures' : 'raiders';
+  const captives = state.captives.filter((c) => c.from === from).map((c) => ({ id: c.person.id, name: fullName(c.person) }));
+  const named = band === 'vultures' ? prisoners(state).map((m) => ({ id: m.person.id, name: fullName(m.person) })) : [];
+  return [...named, ...captives];
+}
+
+/** Raiders (and the Vultures) at the Depot sometimes come for something in particular (§9.8). */
+function pickWant(state: GameState, raid: DepotRaid, rng: Rng): RaidWant | undefined {
+  if (!RAID_BANDS[raid.by].talk || raid.outpost || !rng.chance(RAID_WANT_CHANCE)) return undefined;
+  const options: { weight: number; want: () => RaidWant }[] = [];
+  const parked = state.vehicles.filter((v) => !v.runId);
+  if (parked.length > 0)
+    options.push({
+      weight: 1,
+      want: () => {
+        const v = rng.pick(parked);
+        return { what: 'vehicle', vehicleId: v.id, name: vehicleName(v) };
+      },
+    });
+  const held = heldFor(state, raid.by);
+  if (held.length > 0)
+    options.push({
+      weight: 2,
+      want: () => {
+        const p = rng.pick(held);
+        return { what: 'prisoner', id: p.id, name: p.name };
+      },
+    });
+  const target = scoreTarget(state);
+  if (target) options.push({ weight: 1, want: () => ({ what: 'score', id: target.id, name: target.firstName, kills: target.counters.killsByEnemy.raider ?? 0 }) });
+  options.push({
+    weight: 1,
+    want: () => {
+      const resource = rng.weightedBy(['rations', 'meds', 'ammo'] as const, (r) => (r === 'rations' ? 2 : 1));
+      return { what: 'store', resource, amount: Math.max(RAID_WANT_MIN[resource], Math.ceil(state.resources[resource] * RAID_WANT_SHARE)) };
+    },
+  });
+  return rng.weightedBy(options, (o) => o.weight).want();
+}
+
+/** What they came for is still there to take. */
+function wantHere(state: GameState, raid: DepotRaid, want: RaidWant): boolean {
+  switch (want.what) {
+    case 'vehicle':
+      return state.vehicles.some((v) => v.id === want.vehicleId && !v.runId);
+    case 'prisoner':
+      return heldFor(state, raid.by).some((p) => p.id === want.id);
+    case 'score':
+      return state.survivors.some((s) => s.id === want.id && atDepot(s));
+    case 'store':
+      return true;
+  }
 }
 
 /** The next moment the raid moves on: its arrival, or the end of its wait. */
@@ -145,9 +245,10 @@ export function stepRaid(state: GameState, at: number): void {
   if (raid.until <= at) letRaidFight(state, raid.until);
 }
 
-/** At the gate: who is home and fit to fight is fixed now; with nobody, they walk in. */
+/** At the gate: who is home and fit to fight is fixed now; with nobody, they walk in. What they came for may be gone. */
 function arrive(state: GameState, raid: DepotRaid): void {
-  raid.defenders = state.survivors.filter(canDefend).map((s) => s.id);
+  raid.defenders = state.survivors.filter((s) => defends(raid, s)).map((s) => s.id);
+  if (raid.wants && !wantHere(state, raid, raid.wants)) raid.wants.missing = true;
   raid.enemies = raidEnemies(state, raid, raid.defenders.length);
   if (raid.waves === 2) raid.enemies2 = raidEnemies(state, raid, raid.defenders.length, 2);
   if (raid.defenders.length === 0) finish(state, raid, raid.arrive);
@@ -158,10 +259,15 @@ export function canDefend(s: Survivor): boolean {
   return canWork(s);
 }
 
-/** Those who fight: the defenders still home and fit. */
+/** Can hold this raid's gate: at the Depot anyone who can work, at an outpost those who live there and aren't laid up. */
+function defends(raid: DepotRaid, s: Survivor): boolean {
+  return raid.outpost ? s.outpost === raid.outpost && !laidUp(s) : canDefend(s);
+}
+
+/** Those who fight: the defenders still there and fit. */
 function fighters(state: GameState, raid: DepotRaid): Survivor[] {
   const ids = new Set(raid.defenders ?? []);
-  return state.survivors.filter((s) => ids.has(s.id) && canDefend(s));
+  return state.survivors.filter((s) => ids.has(s.id) && defends(raid, s));
 }
 
 /** The fight begins: those who fight are copied as they are, with the Depot's meds and ammo for them. */
@@ -170,7 +276,7 @@ function begin(state: GameState, raid: DepotRaid): boolean {
   const crew = fighters(state, raid);
   if (crew.length === 0) return false;
   // A copy without the raid itself in it.
-  const shell = structuredClone(runStart(state, { locationId: 'depot', crew: crew.map((s) => s.id), job: 'scout', meds: 0, ammo: 0, approach: 'balanced', retreat: 'never' }));
+  const shell = structuredClone(runStart(state, { locationId: raid.outpost ?? 'depot', crew: crew.map((s) => s.id), job: 'scout', meds: 0, ammo: 0, approach: 'balanced', retreat: 'never' }));
   delete shell.depot.raid;
   raid.start = shell;
   raid.marks = Object.fromEntries(crew.map((s) => [s.id, { traits: s.traits.map((t) => t.id), stress: s.stress, chronicle: s.chronicle.length }]));
@@ -178,7 +284,8 @@ function begin(state: GameState, raid: DepotRaid): boolean {
   const tower = workingLevel(state, 'watchtower');
   const lookouts = tower > 0 ? workingAt(state, 'watchtower') : [];
   raid.perch = lookouts.filter((s) => crew.includes(s) && s.equipment.weapon && itemDef(s.equipment.weapon).weaponType === 'ranged').map((s) => s.id);
-  raid.meds = state.resources.meds;
+  // An outpost has no Infirmary to draw on; its ammo comes from the Depot like everything else.
+  raid.meds = raid.outpost ? 0 : state.resources.meds;
   raid.ammo = state.resources.ammo;
   return true;
 }
@@ -401,28 +508,83 @@ export function raidToll(state: GameState, raid: DepotRaid): Partial<Resources> 
   return toll;
 }
 
-/** Whether the raiders at the gate can be talked to now: nothing said yet, and nobody's fighting. */
+/** Whether the raiders at the gate can be talked to now: a band that talks, nothing said yet, and nobody's fighting. */
 export function canTalk(state: GameState, now: number): boolean {
   const raid = raidAtGate(state);
-  return raid !== undefined && raid.took === undefined && raid.talk === undefined && now < raid.until;
+  return raid !== undefined && RAID_BANDS[raid.by].talk && raid.took === undefined && raid.talk === undefined && now < raid.until;
 }
 
-/** Pay them to go away: nobody gets hurt. The Vultures take it as a toll, and grow on it. */
+/** What it takes to make them go: what they came for, or a toll. `problem`: why it can't be paid. `refused`: they won't take anything for it. */
+export interface RaidPrice {
+  /** "the Pickup", "Ash Moreno", "40 rations", "20 scrap and 12 rations". */
+  text: string;
+  problem?: string;
+  refused?: boolean;
+}
+
+export function raidPrice(state: GameState, raid: DepotRaid): RaidPrice {
+  const want = raid.wants && !raid.wants.missing ? raid.wants : undefined;
+  if (!want) {
+    const toll = raidToll(state, raid);
+    return { text: costText(toll), ...(canAfford(state, toll) ? {} : { problem: 'The guild doesn’t have it.' }) };
+  }
+  switch (want.what) {
+    case 'vehicle':
+      return { text: `the ${want.name}`, ...(wantHere(state, raid, want) ? {} : { problem: `The ${want.name} isn’t here.` }) };
+    case 'prisoner':
+      return { text: want.name, ...(wantHere(state, raid, want) ? {} : { problem: `${want.name} isn’t held here any more.` }) };
+    case 'score':
+      return { text: want.name, refused: true, problem: `They won’t take anything for ${want.name}.` };
+    case 'store': {
+      const cost = { [want.resource]: want.amount };
+      return { text: costText(cost), ...(canAfford(state, cost) ? {} : { problem: 'The guild doesn’t have it.' }) };
+    }
+  }
+}
+
+/** Pay them to go away, with what they came for or a toll: nobody gets hurt. The Vultures take it as a toll, and grow on it. */
 export function payRaiders(state: GameState, now: number): void {
   const raid = untouched(state, now);
-  if (raid.talk) throw new Error('They’re past talking.');
-  const toll = raidToll(state, raid);
-  if (!canAfford(state, toll)) throw new Error(`The guild doesn’t have it: they want ${costText(toll)}.`);
-  payCost(state, toll);
-  raid.talk = { how: 'pay', paid: toll };
+  if (raid.talk || !RAID_BANDS[raid.by].talk) throw new Error('They’re past talking.');
+  const price = raidPrice(state, raid);
+  if (price.problem) throw new Error(price.problem);
   const day = dayAt(state, now);
+  const want = raid.wants && !raid.wants.missing ? raid.wants : undefined;
+  let paid: Partial<Resources> = {};
+  let gave: string | undefined;
+  if (want?.what === 'vehicle') {
+    state.vehicles = state.vehicles.filter((v) => v.id !== want.vehicleId);
+    gave = `the ${want.name}`;
+  } else if (want?.what === 'prisoner') {
+    giveBack(state, want.id, day, 'Handed back to the Vultures at the guild’s gate.');
+    gave = want.name;
+  } else {
+    paid = want?.what === 'store' ? { [want.resource]: want.amount } : raidToll(state, raid);
+    payCost(state, paid);
+  }
+  raid.talk = { how: 'pay', paid, ...(gave ? { gave } : {}) };
   const { name } = raidersName(state, raid);
   if (raid.by === 'vultures') {
     applyVultureNews(state, { standing: VULTURES_TOLL_STANDING, strength: VULTURES_TAKEN_STRENGTH, met: [], killed: [], captured: [], history: [] }, day, new Rng(`raid-after:${raid.seed}`));
   }
-  addGuildLog(state, day, `${name} came for the Depot. The guild paid them ${costText(toll)} to go away.`, ['raid']);
+  addGuildLog(state, day, `${name} came for ${raidPlace(raid)}. The guild ${gave ? `handed over ${gave}` : `paid them ${costText(paid)}`} to make them go away.`, ['raid', raid.id]);
   raid.ended = now;
   raid.end = 'paid';
+}
+
+/** One of theirs goes back to them: a captive, or a Vulture lieutenant. */
+function giveBack(state: GameState, id: string, day: number, note: string): void {
+  const captive = state.captives.find((c) => c.person.id === id);
+  if (captive) {
+    state.captives = state.captives.filter((c) => c !== captive);
+    return;
+  }
+  const m = vultureMember(state, id);
+  if (!m || m.status !== 'captured') return;
+  m.status = 'free';
+  const home = state.vultures.camps.find((c) => c.home) ?? state.vultures.camps[0];
+  if (home) m.campId = home.locationId;
+  noteMember(m, day, note);
 }
 
 /** Who'd do the talking: the best Nerve at the gate. */
@@ -471,7 +633,7 @@ export function stareDown(state: GameState, now: number): boolean {
   const { name, lower } = raidersName(state, raid);
   if (!result.success) return false;
   addChronicle(talker, day, `Stared down ${lower} at the gate.`, ['raid']);
-  addGuildLog(state, day, `${name} came for the Depot. ${talker.firstName} stared them down at the gate, and they went away.`, ['raid']);
+  addGuildLog(state, day, `${name} came for ${raidPlace(raid)}. ${talker.firstName} stared them down, and they went away.`, ['raid', raid.id]);
   raid.ended = now;
   raid.end = 'stared';
   return true;
@@ -488,10 +650,12 @@ function finish(state: GameState, raid: DepotRaid, at: number): void {
   const day = dayAt(state, at);
   const rng = new Rng(`raid-after:${raid.seed}`);
   const { name, lower } = raidersName(state, raid);
+  const place = raidPlace(raid);
   let held = false;
   const fought: Survivor[] = [];
+  let result: RaidFight | undefined;
   if (raid.start) {
-    const result = playRaid(state, raid, false);
+    result = playRaid(state, raid, false);
     held = result.end === 'won' || result.end === 'stalemate';
     for (const m of result.sim.members) {
       const i = state.survivors.findIndex((s) => s.id === m.s.id);
@@ -508,45 +672,127 @@ function finish(state: GameState, raid: DepotRaid, at: number): void {
   }
   const names = fought.map((s) => s.firstName);
   const led = raid.took !== undefined ? ' under your command' : '';
+  const where = raid.outpost ? place : 'the gate';
   if (held) {
     for (const s of fought) {
       addPractice(s, 'aim', 2, day);
-      addChronicle(s, day, `Held the gate against ${lower}.`, ['raid']);
+      addChronicle(s, day, `Held ${where} against ${lower}.`, ['raid']);
     }
     const bands = raid.waves === 2 ? ' both bands' : ' them';
-    addGuildLog(state, day, `${name} came for the Depot. ${listNames(names)} drove${bands} off${led}.`, ['raid']);
+    addGuildLog(state, day, `${name} came for ${place}. ${listNames(names)} drove${bands} off${led}.`, ['raid', raid.id]);
+    if (result) takeSpoils(state, raid, result, day, rng);
   } else {
-    for (const s of fought) addChronicle(s, day, `Fought ${lower} at the gate, and couldn’t keep them out.`, ['raid']);
-    breakIn(state, raid, day, rng, name, fought.length);
+    for (const s of fought) addChronicle(s, day, `Fought ${lower} at ${where}, and couldn’t keep them out.`, ['raid']);
+    if (raid.outpost) {
+      const outpost = findOutpost(state, raid.outpost);
+      if (outpost) outpostBroken(state, outpost, day, rng, { name, lower, dc: 0 }, fought.length > 0, [raid.id]);
+    } else breakIn(state, raid, day, rng, name, fought.length);
   }
   raid.ended = at;
   raid.end = held ? 'held' : 'broken';
 }
 
-/** Raiders inside: a share of the stores (less with a Watchtower, more with few or nobody home), maybe a vehicle, and a fright for all. */
+/**
+ * What a held raid leaves behind: whatever the beaten carried, now and then a
+ * weapon or armor off a raider, and sometimes one of them, left behind alive.
+ */
+function takeSpoils(state: GameState, raid: DepotRaid, result: RaidFight, day: number, rng: Rng): void {
+  const spoils: RaidSpoils = { found: { ...result.loot }, gear: [] };
+  for (const [r, n] of Object.entries(result.loot) as [ResourceId, number][]) state.resources[r] += n;
+  const won = result.end === 'won';
+  for (const e of result.enemies) {
+    const table = RAID_SPOILS[e.def.id];
+    if (!won || !e.dead || !table || !rng.chance(RAID_SPOILS_GEAR)) continue;
+    const item = createItem(state, rng.pick(table), rng.chance(0.3) ? 'rusty' : 'common');
+    state.stash.push(item);
+    spoils.gear.push(item.uid);
+  }
+  const human = raid.by === 'raiders' || raid.by === 'vultures';
+  if (won && human && rng.chance(RAID_CAPTIVE_CHANCE)) {
+    const captive = takeCaptive(state, raid.by === 'vultures' ? 'vultures' : 'raiders', day, rng);
+    spoils.captive = captive.person.id;
+  }
+  raid.spoils = spoils;
+  const bits: string[] = [];
+  if (Object.keys(spoils.found).length > 0) bits.push(costText(spoils.found));
+  if (spoils.gear.length > 0) bits.push(listNames(spoils.gear.map((uid) => withArticle(itemName(state.stash.find((i) => i.uid === uid)!)))));
+  if (bits.length > 0) addGuildLog(state, day, `They left behind ${listNames(bits)}.`, ['raid', raid.id]);
+  if (spoils.captive) {
+    const c = state.captives.find((x) => x.person.id === spoils.captive)!;
+    addGuildLog(state, day, `One of them was left behind alive: ${fullName(c.person)}, now held at the Depot.`, ['raid', raid.id, 'captive', c.person.id]);
+  }
+}
+
+/**
+ * They're inside the Depot. Each band goes for its own: raiders and the
+ * Vultures a share of the stores (less with a Watchtower, more with few or
+ * nobody home) and maybe a vehicle, a feral pack the rations, scrapbots scrap
+ * and tech, hollows the people. What they came for goes first. A fright for all.
+ */
 function breakIn(state: GameState, raid: DepotRaid, day: number, rng: Rng, name: string, defenders: number): void {
+  const band = RAID_BANDS[raid.by];
+  const want = raid.wants && !raid.wants.missing ? raid.wants : undefined;
   const tower = workingLevel(state, 'watchtower');
   const share = RAID_LOSS * (tower > 0 ? 0.5 : 1) * (defenders === 0 ? 1.5 : defenders === 1 ? 1.25 : 1);
   const taken: Partial<Resources> = {};
   // Hidden stores stay where they are.
   const found = raid.hidden ? 1 - RAID_HIDDEN_SHARE : 1;
-  for (const r of ['scrap', 'rations', 'ammo', 'gas'] as const) {
+  for (const [r, mult] of Object.entries(band.take) as [ResourceId, number][]) {
     const there = Math.floor(state.resources[r] * found);
-    const n = Math.min(raidCap(there), Math.floor(there * share));
+    // What they came for, they take twice over.
+    const more = want?.what === 'store' && want.resource === r ? 2 : 1;
+    const n = Math.min(there, Math.min(raidCap(there) * more, Math.floor(there * share * mult * more)));
     if (n > 0) {
       state.resources[r] -= n;
       taken[r] = n;
     }
   }
-  for (const s of state.survivors.filter(atDepot)) changeStress(s, 10, { rng, day, source: 'a raid' });
-  const parked = state.vehicles.filter((v) => !v.runId);
-  const theft = VEHICLE_THEFT_CHANCE * (tower > 0 ? 0.5 : 1) * (defenders === 0 ? 1.5 : 1);
-  const stolen = parked.length > 0 && rng.chance(theft) ? rng.pick(parked) : undefined;
+  if (want?.what === 'store' && band.take[want.resource] === undefined) {
+    const there = Math.floor(state.resources[want.resource] * found);
+    const n = Math.min(there, want.amount);
+    if (n > 0) {
+      state.resources[want.resource] -= n;
+      taken[want.resource] = n;
+    }
+  }
+  const home = state.survivors.filter(atDepot);
+  for (const s of home) changeStress(s, 10, { rng, day, source: 'a raid' });
+  let stolen: Vehicle | undefined;
+  if (want?.what === 'vehicle') stolen = state.vehicles.find((v) => v.id === want.vehicleId && !v.runId);
+  if (!stolen && band.vehicles) {
+    const parked = state.vehicles.filter((v) => !v.runId);
+    const theft = VEHICLE_THEFT_CHANCE * (tower > 0 ? 0.5 : 1) * (defenders === 0 ? 1.5 : 1);
+    if (parked.length > 0 && rng.chance(theft)) stolen = rng.pick(parked);
+  }
   if (stolen) state.vehicles = state.vehicles.filter((v) => v !== stolen);
+  // Hollows go for the people.
+  const hurt: Survivor[] = [];
+  if (band.hurt) {
+    for (const s of rng.shuffle([...home]).slice(0, band.hurt)) {
+      addTrait(s, 'wounded', { day, rng, source: `${band.lower} inside the Depot` });
+      addChronicle(s, day, `Hurt when ${band.lower} got into the Depot.`, ['raid']);
+      hurt.push(s);
+    }
+  }
+  // One of theirs set free; one they came for, beaten.
+  if (want?.what === 'prisoner') giveBack(state, want.id, day, 'Freed by the Vultures when they broke into the Depot.');
+  const marked = want?.what === 'score' ? home.find((s) => s.id === want.id) : undefined;
+  if (marked) {
+    addTrait(marked, 'wounded', { day, rng, source: `${band.lower} who came for them` });
+    addChronicle(marked, day, `Dragged out and beaten by ${band.lower} who came to settle a score.`, ['raid']);
+  }
   const lost = Object.keys(taken).length > 0 ? ` They got away with ${costText(taken)}.` : '';
   const drove = stolen ? ` They drove off in the ${vehicleName(stolen)}.` : '';
+  const freed = want?.what === 'prisoner' ? ` They took ${want.name} with them.` : '';
+  const beaten = marked ? ` They dragged ${marked.firstName} out and beat ${pronounForms(marked.pronouns).them}.` : '';
+  const people = hurt.length > 0 ? ` ${listNames(hurt.map((s) => s.firstName))} ${hurt.length === 1 ? 'was' : 'were'} hurt.` : '';
   const nobody = defenders === 0 ? ' Nobody was home to stop them.' : '';
-  addGuildLog(state, day, `${name} broke into the Depot.${nobody}${lost}${drove}`, ['raid', raid.id]);
+  addGuildLog(state, day, `${name} broke into the Depot.${nobody}${lost}${drove}${freed}${beaten}${people}`, ['raid', raid.id]);
+}
+
+/** "a Rusty Pipe", "an Old Machete". */
+function withArticle(name: string): string {
+  return `${/^[AEIOU]/i.test(name) ? 'an' : 'a'} ${name}`;
 }
 
 function listNames(names: string[]): string {

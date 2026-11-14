@@ -1,7 +1,9 @@
-import { getLocation, type GameState, type Survivor } from '../../engine/index.ts';
+import { useState } from 'react';
+import { decideCaptive, getLocation, type CaptiveAction, type GameState, type Survivor } from '../../engine/index.ts';
 import { Vitals } from '../components/Bars.tsx';
 import { Portrait } from '../components/Portrait.tsx';
-import { navigate } from '../hooks.ts';
+import { navigate, useAction } from '../hooks.ts';
+import { CAPTIVES_HELP, captiveRows, type CaptiveRow } from '../captives-view.ts';
 import { childRows, childrenSummary, type ChildRow } from '../family-view.ts';
 import { backIn, runOfSurvivor } from '../runs-view.ts';
 import { headlineTraits, nameWithNickname, originLine, rosterOrder, survivorStatus } from '../view.ts';
@@ -43,6 +45,7 @@ export function Roster({ state, day, now }: { state: GameState; day: number; now
           )}
         </div>
       )}
+      <Captives state={state} />
       <div className="panel memorial-link">
         <button type="button" className="btn" onClick={() => navigate({ screen: 'memorial' })}>
           Memorial Wall
@@ -95,6 +98,67 @@ function ChildRowView({ state, row }: { state: GameState; row: ChildRow }) {
           <span className="roster-traits">{row.growing}</span>
         </span>
       </button>
+    </li>
+  );
+}
+
+/** People a raid left behind, held at the Depot (§9.8). */
+function Captives({ state }: { state: GameState }) {
+  // What became of one: they may leave the list, so the line is kept here.
+  const [said, setSaid] = useState<string | null>(null);
+  const rows = captiveRows(state);
+  if (rows.length === 0 && !said) return null;
+  return (
+    <section className="panel" aria-labelledby="captives-title">
+      <h3 id="captives-title" className="panel-title">
+        Captives
+      </h3>
+      <p className="panel-help">{CAPTIVES_HELP}</p>
+      {said && (
+        <p className="vulture-meaning" role="status">
+          {said}
+        </p>
+      )}
+      {rows.length > 0 && (
+        <ul className="vulture-people">
+          {rows.map((r) => (
+            <CaptiveCard key={r.id} row={r} onDone={setSaid} />
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+function CaptiveCard({ row, onDone }: { row: CaptiveRow; onDone: (text: string) => void }) {
+  const { act, error } = useAction();
+  const decide = (action: CaptiveAction): void => {
+    let text = '';
+    if (act((s) => void (text = decideCaptive(s, row.id, action, Date.now()).text))) onDone(text);
+  };
+  return (
+    <li className="vulture-person">
+      <span className="vulture-portrait">
+        <Portrait survivor={row.person} size={64} decorative />
+      </span>
+      <span className="vulture-body">
+        <span className="roster-name">{row.name}</span>
+        <span className="roster-origin">{row.from}</span>
+        <span className="roster-traits">{row.questionProblem ?? row.question}</span>
+        <span className="roster-traits">{row.recruitProblem ?? row.recruit}</span>
+        <span className="prisoner-actions">
+          <button type="button" className="btn btn-small" disabled={row.questionProblem !== undefined} onClick={() => decide('question')}>
+            Question
+          </button>
+          <button type="button" className="btn btn-small" disabled={row.recruitProblem !== undefined} onClick={() => decide('recruit')}>
+            Ask to join
+          </button>
+          <button type="button" className="btn btn-small" onClick={() => decide('release')}>
+            Let go
+          </button>
+        </span>
+        {error && <span className="field-error">{error}</span>}
+      </span>
     </li>
   );
 }

@@ -166,6 +166,11 @@ const MIGRATIONS: Record<number, (save: Record<string, unknown>) => void> = {
   20: () => {
     // Raids at the gate (2.0.0): the Depot may have a raid coming, at the gate, or just fought. Older saves have none.
   },
+  21: (save) => {
+    // Raids that differ (2.1.0): captives held at the Depot.
+    const state = save as unknown as GameState;
+    state.captives ??= [];
+  },
 };
 
 export function serialize(state: GameState): string {

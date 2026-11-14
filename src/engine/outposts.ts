@@ -18,7 +18,6 @@ import {
   OUTPOST_TROUBLE_PER_DANGER,
   OUTPOST_WATCH_STRESS,
   OUTPOST_RAID_BASE,
-  OUTPOST_RAID_DC,
   OUTPOST_RAID_PER_DANGER,
   OUTPOST_REPAIR,
   OUTPOST_STAFF,
@@ -31,7 +30,8 @@ import { locationState } from './locations.ts';
 import { adjustRelationship, arePartners, becomePartners, relationshipLabel, romanceChance, traitAffinity } from './relationships.ts';
 import type { Rng } from './rng.ts';
 import { addTrait, expireConditions, mulTraitHook } from './traits.ts';
-import { RESOURCE_IDS, type GameState, type Outpost, type Resources, type Survivor } from './types.ts';
+import { RESOURCE_IDS, type DepotRaid, type GameState, type Outpost, type Resources, type Survivor } from './types.ts';
+import { scheduleRaid } from './depot/raids.ts';
 import { relayOutposts } from './projects.ts';
 
 export function findOutpost(state: GameState, locationId: string): Outpost | undefined {
@@ -282,28 +282,26 @@ export interface Raiders {
 export const RAIDERS: Raiders = { name: 'Raiders', lower: 'raiders', dc: 0 };
 
 /**
- * Raiders come for an outpost. Held (only if someone is there to hold it):
- * practice and a little stress. Broken: someone is hurt and the outpost is
- * damaged, or burns if it already was. Returns what happened.
+ * Raiders come for an outpost (§9.8): fought like a raid at the gate, with a
+ * notice and a wait, by whoever lives there. One raid at a time anywhere: if
+ * one is on already, these pass the outpost by.
  */
-export function raidOutpost(state: GameState, outpost: Outpost, day: number, rng: Rng, by: Raiders = RAIDERS): 'held' | 'damaged' | 'burned' {
+export function raidOutpost(state: GameState, outpost: Outpost, day: number, rng: Rng, by: 'raiders' | 'vultures' = 'raiders'): DepotRaid | undefined {
+  return scheduleRaid(state, day, rng, by, outpost.locationId);
+}
+
+/**
+ * Raiders broke into an outpost: a fright for those there, the outpost
+ * damaged, or burned if it already was (they go home). `fought`: the
+ * defenders fought it out, so their wounds are already theirs; with nobody
+ * fighting, someone there may be hurt.
+ */
+export function outpostBroken(state: GameState, outpost: Outpost, day: number, rng: Rng, by: Raiders, fought: boolean, tags: string[] = []): 'damaged' | 'burned' {
   const loc = getLocation(outpost.locationId);
   const staff = outpostStaff(state, outpost.locationId);
-  const fit = staff.filter((s) => !laidUp(s));
-  const best = Math.max(0, ...fit.map((s) => effectiveStat(s, 'aim')));
-  const roll = rollCheck(rng, best + Math.max(0, fit.length - 1), OUTPOST_RAID_DC + loc.danger + by.dc);
-
-  if (fit.length > 0 && roll.success) {
-    for (const s of fit) {
-      addPractice(s, 'aim', 2, day);
-      changeStress(s, 5, { rng, day, source: 'a raid' });
-    }
-    addGuildLog(state, day, `${by.name} came for the outpost at ${loc.name}. ${listNames(fit.map((s) => s.firstName))} drove them off.`, ['outpost', loc.id]);
-    return 'held';
-  }
-
   for (const s of staff) changeStress(s, 10, { rng, day, source: 'a raid' });
-  const hurt = fit.length > 0 ? rng.pick(fit) : undefined;
+  const fit = staff.filter((s) => !laidUp(s));
+  const hurt = !fought && fit.length > 0 ? rng.pick(fit) : undefined;
   if (hurt) {
     addTrait(hurt, 'wounded', { day, rng, source: `defending the outpost at ${loc.name}` });
     addChronicle(hurt, day, `Hurt holding the outpost at ${loc.name} against ${by.lower}.`, ['raid']);
@@ -316,11 +314,11 @@ export function raidOutpost(state: GameState, outpost: Outpost, day: number, rng
       addChronicle(s, day, `Fled home when ${by.lower} burned the outpost at ${loc.name}.`, ['raid']);
     }
     const who = staff.length > 0 ? ` ${listNames(staff.map((s) => s.firstName))} made it home.` : ' Nobody was there to stop them.';
-    addGuildLog(state, day, `${by.name} burned the outpost at ${loc.name}.${who}`, ['outpost', loc.id]);
+    addGuildLog(state, day, `${by.name} burned the outpost at ${loc.name}.${who}`, ['outpost', loc.id, ...tags]);
     return 'burned';
   }
   outpost.damaged = true;
-  addGuildLog(state, day, `${by.name} broke into the outpost at ${loc.name}.${hurt ? ` ${hurt.firstName} was hurt.` : ''} It sends home half until it's mended.`, ['outpost', loc.id]);
+  addGuildLog(state, day, `${by.name} broke into the outpost at ${loc.name}.${hurt ? ` ${hurt.firstName} was hurt.` : ''} It sends home half until it's mended.`, ['outpost', loc.id, ...tags]);
   return 'damaged';
 }
 
