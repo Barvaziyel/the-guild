@@ -297,7 +297,7 @@ export const LOCATIONS: readonly LocationDef[] = [
     id: 'the_glow',
     name: 'The Glow',
     biome: 'Crater',
-    description: 'Where one of the bombs fell. The ground is glass, the air tastes of metal, and nothing there is poor.',
+    description: 'Where one of the bombs fell. The ground is glass, the air tastes of metal, and nobody has dared pick it clean.',
     danger: 5,
     radiation: 3,
     durationMin: 150,
