@@ -91,6 +91,17 @@ describe('vehicles: planning', () => {
     assert.ok(driving.beats.length >= walking.beats.length - 1, 'about as many beats');
   });
 
+  test('setting out: onto a motorcycle, into a car, and one engine or several (2.8.6)', () => {
+    const { state, vehicles } = garage('board', ['motorcycle', 'car']);
+    const [bike, car] = vehicles;
+    const first = (plan: RunPlan) => simulateRun(state, plan, 'board', T0).beats[0]!.lines.map((l) => l.text).find((t) => /engine/i.test(t));
+    assert.equal(first({ ...testPlan(state, 'maple_street', {}, 2), vehicles: [bike!.id] }), 'The engine coughs and catches. Onto the Motorcycle and away.');
+    assert.equal(first({ ...testPlan(state, 'maple_street', {}, 3), vehicles: [car!.id] }), 'The engine coughs and catches. Into the Hatchback and away.');
+    assert.equal(first({ ...testPlan(state, 'maple_street', {}, 4), vehicles: [bike!.id, car!.id] }), 'Engines cough and catch. Onto the Motorcycle, into the Hatchback, and away.');
+    // Every kind says how they get on.
+    for (const v of VEHICLES) assert.ok(v.board === 'onto' || v.board === 'into', v.id);
+  });
+
   test('leaving fewer than three at home gets a warning', () => {
     const { state } = garage('thin', [], 4);
     assert.ok(!planWarnings(state, testPlan(state, 'maple_street', {}, 1)).some((w) => /fence|easy pickings/.test(w)));
