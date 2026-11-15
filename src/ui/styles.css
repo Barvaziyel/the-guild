@@ -4717,3 +4717,73 @@ p.is-bad {
 .story .field-error {
   color: #8f2f25;
 }
+
+/* ---------------------------------------------------------------- the "i" on a panel (2.8.4) */
+
+/* A panel title with a small button beside it. */
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.panel-head .panel-title {
+  margin-bottom: 0;
+}
+
+/* A round "i": 44 px to tap, smaller to look at. */
+.info-btn {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  margin: -0.5rem -0.5rem -0.5rem 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--bone-2);
+  cursor: pointer;
+}
+
+.info-btn span {
+  display: grid;
+  place-items: center;
+  width: 1.625rem;
+  height: 1.625rem;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  font-family: var(--text);
+  font-size: var(--step--1);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.info-btn:hover,
+.info-btn:focus-visible {
+  color: var(--bone);
+}
+
+/* What the stats mean. */
+.stat-help {
+  margin-top: 0.75rem;
+}
+
+.stat-help > div + div {
+  margin-top: 0.875rem;
+}
+
+.stat-help dt {
+  font-family: var(--stencil);
+  font-size: var(--step-1);
+  font-weight: 700;
+}
+
+.stat-help dd {
+  margin: 0.125rem 0 0;
+}
+
+.stat-help .stat-help-grows {
+  color: var(--bone-2);
+}

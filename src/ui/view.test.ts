@@ -3,6 +3,8 @@ import { describe, test } from 'node:test';
 import { STAT_MAX, STRESS_HIGH, becomePartners, getRelationship, practiceNeeded } from '../engine/index.ts';
 import { testGame, testSurvivor } from '../engine/test-utils.ts';
 import {
+  STATS_INTRO,
+  statHelp,
   chronicleByDay,
   daysSurvived,
   bonds,
@@ -78,6 +80,22 @@ describe('stats', () => {
     const nerve = rows.find((r) => r.id === 'nerve')!;
     assert.deepEqual([nerve.value, nerve.base, nerve.mod], [6, 5, 1]);
     assert.equal(rows.find((r) => r.id === 'wits')!.maxed, true);
+  });
+});
+
+describe('what the stats mean (2.8.4)', () => {
+  test('every stat says what it does and how it grows, in words, without numbers', () => {
+    const help = statHelp();
+    assert.deepEqual(help.map((h) => h.name), ['Grit', 'Brawn', 'Aim', 'Wits', 'Nerve']);
+    for (const h of [...help.flatMap((x) => [x.what, x.grows]), STATS_INTRO]) {
+      assert.match(h, /^[A-Z].*\.$/, h);
+      assert.doesNotMatch(h, /\d/, `no background numbers: ${h}`);
+    }
+    for (const h of help) assert.match(h.grows, /^Grows by .*Training Yard\.$/, h.name);
+    // Posts practice their building's stat: the Garden and Workshop Wits, the Firepit Nerve, the Watchtower Aim.
+    assert.match(help.find((h) => h.id === 'wits')!.grows, /Garden, Workshop, Infirmary or Radio Tower/);
+    assert.match(help.find((h) => h.id === 'nerve')!.grows, /Firepit/);
+    assert.match(help.find((h) => h.id === 'aim')!.grows, /Watchtower/);
   });
 });
 

@@ -57,7 +57,6 @@ function Over({ state, run, seen }: { state: GameState; run: Run; seen: FightVie
   const [told, setTold] = useState<number | undefined>(undefined);
   const all = end?.lines ?? (led ? (run.beats[led.fromBeat]?.lines ?? []) : []);
   const lines = !led ? [] : told === undefined ? fightEnd(all, before?.lines.length ?? 0) : all.slice(before?.lines.length ?? 0, told);
-  const more = (run.lead?.fights ?? []).some((f) => f.ended === undefined);
   const solo = run.plan.crew.length === 1;
   const who = solo ? (run.result.crew[0]?.firstName ?? 'They') : 'The crew';
   return (
@@ -73,10 +72,8 @@ function Over({ state, run, seen }: { state: GameState; run: Run; seen: FightVie
           ))}
         </ul>
       )}
-      <p>
-        {led ? `${who} goes on at ${place}.` : `${who} at ${place} isn\u2019t in a fight that needs you.`}{' '}
-        {more ? 'At the next fight there\u2019s a notice and a card on the Depot.' : 'When they stop at a fight, there\u2019s a notice and a card on the Depot.'}
-      </p>
+      {/* After a fight, the screen is about the fight: where the next card shows up isn't part of it (Aviel, 2.8.4). */}
+      {!led && <p>{`${who} at ${place.replace(/^The /, 'the ')} isn\u2019t in a fight that needs you.`}</p>}
       <div className="btn-row">
         <button type="button" className="btn" onClick={() => navigate({ screen: 'run', id: run.id })}>
           See the run
