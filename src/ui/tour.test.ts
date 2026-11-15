@@ -97,15 +97,18 @@ describe('tour', () => {
     const part = (id: string) => tourStep(id)!.part;
     assert.equal(part('corners'), 'depot');
     assert.equal(part('notices'), 'depot');
-    assert.equal(part('radio'), 'later');
+    assert.equal(part('radio'), 'runs', 'forks come up from the first runs, tower or not');
     const state = openGame('tour-text');
     const text = (id: string) => tourStep(id)!.text(state);
     assert.match(text('vultures'), /Around game day 40, about five real days in,/);
     assert.match(text('decisions'), /Leave it 24 hours/);
-    assert.match(text('radio'), /^With a Radio Tower, a crew that comes to a fork/);
+    assert.match(text('radio'), /^Now and then a crew comes to a fork/);
+    assert.doesNotMatch(text('radio'), /Radio Tower/, 'forks need no tower (2.8.2)');
+    assert.match(text('raids'), /with a Radio Tower, call a crew home/);
     assert.doesNotMatch(text('lead'), /call home|radio/i, 'leading a fight needs no tower');
     assert.doesNotMatch(text('gate'), /floor/, 'nobody joins without a bed');
     assert.match(text('corners'), /5 to 20 minutes/);
+    assert.doesNotMatch(text('plan'), /tries|trial|went down/, 'the tour says how risky, not how that is worked out');
     assert.match(text('build-first'), /^Besides what the first week asks for, good first goals: /);
   });
 

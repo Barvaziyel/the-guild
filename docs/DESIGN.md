@@ -296,7 +296,7 @@ The guild starts with 3 known locations (The Rail Yard, Maple Street, Kessler Fa
 
 **Two steps (2.2.0, Aviel: "crew step then settings step, which should be compact").** The planner first asks who goes (and in what), then the orders: how far in, the job, approach, when to pull out, meds and ammo, *Lead the fights*, and what to keep, all on one screen with *Send them* right under them. Each choice is a row of buttons with a line under it about the one picked. *Lead the fights* is there from the start and on by default (§7.13).
 
-The planner shows the duration, warnings (rivals or feuds in the crew, injuries, high stress, guns without ammo, tired from the last run) and a **simulated risk**. To get it, the engine quietly runs the same run with 50 different seeds and reports how often someone goes down or dies. The result is shown as Low, Moderate, High or Deadly.
+The planner shows the duration, warnings (rivals or feuds in the crew, injuries, high stress, guns without ammo, tired from the last run) and a **simulated risk**. To get it, the engine quietly runs the same run with 50 different seeds and counts how often someone goes down or dies. The player sees only the word: Low, Moderate, High or Deadly risk. Until 2.8.2 it also said "In 50 tries, someone went down 9 times. Nobody died."; Aviel: don't explain background calculations like that to the player.
 
 ### 7.3 Resolution
 
@@ -595,12 +595,12 @@ Step 18b, from the ideas in `claude/interactive-ideas.md` (Aviel, 2026-11-13: "Y
 
 **Forks.** Now and then a run comes to a fork: a choice the crew has to make, at most one a run. Forks are data (`content/forks.ts`), like events: each has who's there, what they find, what they say on the radio, two to four orders, and what each order leads to (checks, effects, extra time). A travel, hazard or discovery beat becomes a fork 20% of the time when one fits (about one scavenging run in seven, one scouting run in four); meeting the Vultures when they're wary or at war is always a fork (§7.11).
 
-**The call.** With a Radio Tower, whoever found it calls home:
+**The call.** Whoever found it calls home (crews carry a radio; until 2.8.2 this took a Radio Tower):
 - a notice on the phone, and a card on the run, on the Depot's Today tab and on the Runs tab;
 - the card shows what they found, what they say, and the orders;
 - they **wait on the radio for 30 real minutes**. Answered, they go on at once. Unanswered, the one on the radio decides by the crew's orders and their own traits (a Hothead goes through the raiders, a Cautious one leaves the door shut), and the run is 30 minutes longer for the wait.
 
-Without a Radio Tower the crew decides on the spot, the same way, and loses no time.
+Until 2.8.2 a crew without a Radio Tower decided on the spot, the same way, and lost no time. Aviel (2026-11-15): forks shouldn't need the tower, as fights don't since 2.2.0; the tour read as if the two contradicted each other, and the run log already had a crew "get on the radio" at a fight with no tower. The tower is still what brings calls for help, more people answering, outposts, and calling a crew home when raiders are seen.
 
 **How it's decided at departure.** The run is played once with nobody answering, then once for each order. The dice are seeded, so every replay is the same up to the fork. All of them are stored; the answer picks which future happens, and the rest of the run moves to start from the moment of the answer. Once the call is settled the other branches are dropped.
 

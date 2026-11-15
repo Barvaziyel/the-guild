@@ -558,11 +558,13 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
     thin: onTurf(state, plan.locationId) ? VULTURES_TURF_FINDS : 1,
     ...simVultures(state, plan),
     delay: 0,
-    radio: (state.buildings.radio_tower ?? 0) >= 1,
+    // Crews carry a radio: at a fork they call home, tower or not (Aviel, 2.8.2; it took a
+    // Radio Tower before). The tower is for calls for help, recruits, outposts, and calling
+    // a crew home when raiders are seen.
+    radio: true,
     ...(opts.answer !== undefined ? { answer: opts.answer, answerWait: opts.answerWait ?? 0 } : {}),
   };
-  // A led run stops at every fight and calls home (§7.13); it needs the radio.
-  // Any crew can be led (2.2.0); the Radio Tower is for forks and calling a crew home.
+  // A led run stops at every fight and calls home (§7.13). Any crew can be led (2.2.0).
   if (plan.lead) sim.lead = { plans: opts.fights ?? [], stops: [], ends: [] };
   // A rescue run carries the person who called for help, and what trouble they're in (§10.1).
   const call = state.rescue?.call;

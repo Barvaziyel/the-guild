@@ -138,7 +138,7 @@ export interface Sim {
   thin: number;
   /** ms added to every beat from here on: time spent at a fork, waiting on the radio or doing what was ordered (§7.12). */
   delay: number;
-  /** The guild has a Radio Tower, so the crew calls home at a fork. */
+  /** The crew calls home at a fork: always on a run (since 2.8.2; it took a Radio Tower before), never in a raid at the gate. */
   radio: boolean;
   /** A replay for one answer: the order the guild gives at the fork. */
   answer?: string;

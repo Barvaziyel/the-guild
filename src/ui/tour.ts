@@ -298,7 +298,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     text: (state) => {
       const place = easiestPlace(state);
       const first = place ? ` A good first run: three people scavenging ${place.name.replace(/^The /, 'the ')}.` : '';
-      return `First pick a crew of 1 to ${MAX_CREW}, then their orders: the job, how careful to be, when to pull out. Under the orders, trial runs show the risk: how often someone went down or died.${first}`;
+      return `First pick a crew of 1 to ${MAX_CREW}, then their orders: the job, how careful to be, when to pull out. Under the orders it says how risky the run is.${first}`;
     },
   },
   {
@@ -323,6 +323,15 @@ export const TOUR_STEPS: readonly TourStep[] = [
     target: 'lead',
     text: () =>
       `At a fight a crew stops and waits up to ${Math.round(LEAD_WAIT / 60_000)} minutes for your orders (switch it off here to let them fight alone). You see what each enemy means to do. Give each person a move and a target: blades reach only the front rank, shots anyone. Some fights come with a job, like holding a door. Nobody answers? They fight on their own.`,
+  },
+
+  {
+    id: 'radio',
+    part: 'runs',
+    title: 'On the radio',
+    route: () => ({ screen: 'runs' }),
+    text: () =>
+      `Now and then a crew comes to a fork: a sealed door, raiders on the road, the Vultures. They get on the radio: you get a notice and a card with their options, and they wait ${Math.round(RADIO_WAIT / 60_000)} minutes for your answer before deciding themselves.`,
   },
 
   // ---------------------------------------------------------------- building
@@ -365,7 +374,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     title: 'Raids',
     route: depot,
     text: () =>
-      `Raiders sometimes come for the Depot or an outpost, and so do ferals, hollows and scrapbots. A Watchtower may see them coming, in time to shore up the fence or hide stores. At the gate they wait ${Math.round(RAID_WAIT / 3_600_000)} hours for you: pay raiders off, stare them down, or fight. Only those home when they arrive can hold it.`,
+      `Raiders sometimes come for the Depot or an outpost, and so do ferals, hollows and scrapbots. A Watchtower may see them coming, in time to shore up the fence, hide stores or, with a Radio Tower, call a crew home. At the gate they wait ${Math.round(RAID_WAIT / 3_600_000)} hours for you: pay raiders off, stare them down, or fight. Only those home when they arrive can hold it.`,
   },
   {
     id: 'decisions',
@@ -377,14 +386,6 @@ export const TOUR_STEPS: readonly TourStep[] = [
   },
 
   // ---------------------------------------------------------------- later on
-  {
-    id: 'radio',
-    part: 'later',
-    title: 'On the radio',
-    route: () => ({ screen: 'runs' }),
-    text: () =>
-      `With a Radio Tower, a crew that comes to a fork (a sealed door, raiders on the road, the Vultures) calls home: you get a notice and a card with their options, and they wait ${Math.round(RADIO_WAIT / 60_000)} minutes for your answer before deciding themselves. Without a tower they decide on the spot. A tower also lets you call a crew home when raiders are seen.`,
-  },
   {
     id: 'vehicles',
     part: 'later',

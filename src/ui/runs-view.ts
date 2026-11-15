@@ -187,13 +187,12 @@ export function toggleCrew(crew: readonly string[], id: string, limit = MAX_CREW
   return crew.length >= limit ? [...crew] : [...crew, id];
 }
 
-/** "In 50 tries, someone went down 9 times. Nobody died." */
-export function riskText(risk: RiskEstimate): string {
-  const down = Math.round(risk.downed * risk.samples);
-  const dead = Math.round(risk.death * risk.samples);
-  const downText = down === 0 ? 'nobody went down' : `someone went down ${down === 1 ? 'once' : `${down} times`}`;
-  const deadText = dead === 0 ? 'Nobody died.' : dead === 1 ? 'Someone died once.' : `Someone died ${dead} times.`;
-  return `In ${risk.samples} tries, ${downText}. ${deadText}`;
+/**
+ * "Low risk.": the planner says how risky a run is and nothing about how
+ * that's worked out (Aviel, 2.8.2: no background numbers for the player).
+ */
+export function riskLine(risk: RiskEstimate): string {
+  return `${risk.label} risk.`;
 }
 
 // ---------------------------------------------------------------- locations
