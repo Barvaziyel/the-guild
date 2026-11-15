@@ -28,6 +28,7 @@ import {
   defaultPlan,
   formatDuration,
   radiationText,
+  paceNote,
   rationsNote,
   riskText,
   suggestedAmmo,
@@ -97,6 +98,7 @@ function PlannerForm({ state, locationId, step }: { state: GameState; locationId
   const assault = assaultChoice(state, locationId);
   const jobs = jobChoices(state, locationId, assault ? [...JOBS, assault] : JOBS);
   const fromOutpost = outpostPlanNote(state, plan);
+  const pace = paceNote(state, plan);
   const lead = leadChoice(state);
   const toggle = (id: string): void => {
     const crew = toggleCrew(plan.crew, id, limit);
@@ -308,6 +310,7 @@ function PlannerForm({ state, locationId, step }: { state: GameState; locationId
           <>
             <p>
               Away for {formatDuration(duration)}, back at {clockTime(now + duration)}. <span className="panel-help">{rationsNote(state, plan)}</span>
+              {pace && <span className="panel-help"> {pace}</span>}
               {fromOutpost && <span className="panel-help"> {fromOutpost}</span>}
             </p>
             {problems.length > 0 && (

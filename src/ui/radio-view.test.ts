@@ -69,6 +69,9 @@ describe('a crew on the radio', () => {
     assert.deepEqual(noticeRoute('r12'), { screen: 'run', id: 'r12' });
     assert.deepEqual(noticeRoute('radio-r12'), { screen: 'run', id: 'r12' });
     for (const id of ['dilemma-40', 'dilemma-due-40', 'rescue-41', 'rescue-due-41', 'baby-s3-120', 'grown-c2']) assert.deepEqual(noticeRoute(id), { screen: 'depot', tab: 'today' }, id);
+    // A search of the Depot's corners opens the Yard, not a run that isn't there (2.7.1).
+    assert.deepEqual(noticeRoute('corner-signal_box'), { screen: 'depot' });
+    assert.deepEqual(noticeRoute('something-new'), { screen: 'depot' });
   });
 
   test('titles read right inside a sentence', () => {

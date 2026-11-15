@@ -123,8 +123,9 @@ export function radioReportLine(report: RunReport): string | undefined {
 }
 
 /**
- * Where a tapped notice opens: a crew's run (due back, or on the radio), or the
- * Depot for everything that waits there (decisions, calls for help, babies, birthdays).
+ * Where a tapped notice opens: a crew's run (due back, or on the radio), the
+ * Depot's Today tab for what waits there (decisions, calls for help, babies,
+ * birthdays), and its Yard for the rest (the corners, 2.7.1).
  */
 export function noticeRoute(id: string): Route {
   // Raiders seen or at the gate open the raid (§9.8).
@@ -135,5 +136,8 @@ export function noticeRoute(id: string): Route {
   const radio = radioNoticeRun(id);
   if (radio) return { screen: 'run', id: radio };
   if (/^(dilemma|rescue|baby|grown)-/.test(id)) return { screen: 'depot', tab: 'today' };
-  return { screen: 'run', id };
+  // A crew due back: notices for runs carry the run's own id ("r12").
+  if (/^r\d+$/.test(id)) return { screen: 'run', id };
+  // Anything else (a search of the Depot's corners, §9.9) waits on the Yard.
+  return { screen: 'depot' };
 }
