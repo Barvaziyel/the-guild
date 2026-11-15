@@ -8,6 +8,7 @@
 import {
   CORNERS,
   DAY_MS,
+  cornersLeft,
   DILEMMA_DAYS,
   FIRST_WEEK,
   LOCATIONS,
@@ -141,9 +142,13 @@ export const TOUR_STEPS: readonly TourStep[] = [
     title: 'The Depot’s corners',
     route: () => ({ screen: 'depot' }),
     target: 'corners',
-    text: () => {
+    // Says how far the guild has got, for a tour shown again from Settings (2.8.3).
+    text: (state) => {
       const minutes = CORNERS.map((c) => c.minutes);
-      return `Nobody has been through the old depot yet. Under the yard, pick a corner and send someone who’s home to search it: ${Math.min(...minutes)} to ${Math.max(...minutes)} minutes, one at a time, and each holds something. Someone just back from a run can go; whoever is searching can’t go out.`;
+      const left = cornersLeft(state).length;
+      if (left === 0) return 'The old depot had corners nobody had been through, and this guild has searched them all, so their list under the yard is gone.';
+      const opening = left === CORNERS.length ? 'Nobody has been through the old depot yet.' : `${countOf(left, 'corner', 'corners')} of the old depot ${left === 1 ? 'is' : 'are'} still to search.`;
+      return `${opening} Under the yard, pick a corner and send someone who’s home to search it: ${Math.min(...minutes)} to ${Math.max(...minutes)} minutes, one at a time, and each holds something. Someone just back from a run can go; whoever is searching can’t go out.`;
     },
   },
   {
