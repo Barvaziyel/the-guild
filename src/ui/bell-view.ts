@@ -34,8 +34,12 @@ export const BELL_GROUPS: { id: BellGroup; title: string }[] = [
 /** Stress at which someone is close to breaking: a warning. */
 export const NEAR_BREAKING = Math.round(STRESS_MAX * 0.8);
 
-/** Everything that needs the player now, by group, the most pressing first in each. */
-export function bellItems(state: GameState, now: number): BellItem[] {
+/**
+ * Everything that needs the player now, by group, the most pressing first in
+ * each. While the tour is on (`touring`), the first week's note is hidden, so
+ * its line is too.
+ */
+export function bellItems(state: GameState, now: number, opts: { touring?: boolean } = {}): BellItem[] {
   const out: BellItem[] = [];
   const today: Route = { screen: 'depot', tab: 'today' };
 
@@ -50,7 +54,7 @@ export function bellItems(state: GameState, now: number): BellItem[] {
   if (call && !call.runId) out.push({ id: 'call', group: 'waiting', text: `A call for help from ${getLocation(call.locationId).name}.`, to: { screen: 'reach', id: call.locationId } });
   // The first week (§9.10): a step done, its reward not collected yet.
   const story = storyCard(state);
-  if (story?.met) out.push({ id: 'story', group: 'waiting', text: `${story.title}: done. The reward is waiting.`, to: { screen: 'depot' } });
+  if (story?.met && !opts.touring) out.push({ id: 'story', group: 'waiting', text: `${story.title}: done. The reward is waiting.`, to: { screen: 'depot' } });
 
   // At the gate.
   const recruits = state.depot.recruits.length;

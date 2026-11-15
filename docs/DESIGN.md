@@ -956,7 +956,7 @@ The other half of Aviel's pick for the first hours (§9.9): a short chain of thi
 
 - **One step at a time.** Each goal is read from the game as it is. Runs count from when the step began (a run before it doesn't count). When the goal is met, the reward waits to be collected. Collecting writes the step's ending in the news, then the next step begins.
 - **The end:** the first night on the air, a recorded voice: *"This is Haven. We have power, clean water, and room for you. All survivors welcome."* It plays on the hour, every hour, the same words. Nobody has heard of Haven or knows where it is. Finding it is a roadmap step of its own (§15).
-- **On screen:** a note pinned above the yard on the Depot's Yard tab, so a new player sees it on opening (paper, the one thing on the Depot that is): where it is in the week ("The first week · 3 of 8"), the setup, the goal with a count where there is one ("1 of 3"), a button to where it's done with the reward beside it (the Gear screen, the building, the planner for the place, the Reach, or down to the corners). Once the goal is met, *Collect*, and a line in the bell. After collecting, the note shows how it went and what came in until *Next*.
+- **On screen:** a note pinned above the yard on the Depot's Yard tab, so a new player sees it on opening (paper, the one thing on the Depot that is). It waits until the tour is over or skipped, and so does its line in the bell: in 2.8.0 a new guild opened on the note with the tour's card over it, two paper cards at once (Aviel, 2.8.1): where it is in the week ("The first week · 3 of 8"), the setup, the goal with a count where there is one ("1 of 3"), a button to where it's done with the reward beside it (the Gear screen, the building, the planner for the place, the Reach, or down to the corners). Once the goal is met, *Collect*, and a line in the bell. After collecting, the note shows how it went and what came in until *Next*.
 - **The motorcycle** is a real jump: otherwise it takes Workshop 2 and 50 scrap, 8 tech, a trader, or luck on a run. That's the point: something big at the end.
 - **How long it takes** (a bot that follows the note, 40 guilds each; it sends anyone free to the Rail Yard and searches corners with whoever's home):
 
@@ -968,7 +968,7 @@ The other half of Aviel's pick for the first hours (§9.9): a short chain of thi
 
   The Radio Tower's tech is the slowest part: the farm's 4 and the signal box's 5 cover it. Nobody went hungry; 1–3 deaths in 40 guilds over two days, as without the week.
 - **Old saves:** a guild no older than 14 game days gets the week from its first step, counting runs from when it came in (save 25). An older guild doesn't.
-- Tour: a step, *The first week*, between *The yard* and *The Depot's corners*.
+- Tour: the last step, *That's the tour*, says that when it closes, a note above the yard says what to do first. (2.8.0 had a step pointing at the note; with the note hidden during the tour, 2.8.1 dropped it.)
 
 ## 10. Recruitment
 

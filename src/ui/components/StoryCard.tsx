@@ -1,10 +1,12 @@
 import { claimStory, seenStory, type GameState } from '../../engine/index.ts';
-import { navigate, scrollBehavior, useAction } from '../hooks.ts';
+import { navigate, scrollBehavior, useAction, usePrefs } from '../hooks.ts';
+import { tourStep } from '../tour.ts';
 import { storyCard, storyEnding, type StoryCard as StoryCardView } from '../story-view.ts';
 
 /**
  * The first week (§9.10, 2.8.0), at the top of the Yard, above the drawing so
- * a new player sees it on opening: the step under way,
+ * a new player sees it on opening, once the tour is over (2.8.1: the two
+ * cards together were too much at the start): the step under way,
  * what it asks and what it gives, and how the last one went.
  */
 function go(where: NonNullable<StoryCardView['go']>): void {
@@ -14,13 +16,14 @@ function go(where: NonNullable<StoryCardView['go']>): void {
 
 export function StoryCard({ state }: { state: GameState }) {
   const { act, error } = useAction();
+  const touring = tourStep(usePrefs().tour) !== undefined;
   const ending = storyEnding(state);
   const card = storyCard(state);
-  if (!ending && !card) return null;
+  if (touring || (!ending && !card)) return null;
 
   if (ending) {
     return (
-      <section className="story is-done" data-tour="story" aria-labelledby="story-title" role="status">
+      <section className="story is-done" aria-labelledby="story-title" role="status">
         <p className="story-kicker">{ending.last ? 'The first week is done' : 'Done'}</p>
         <h3 id="story-title" className="story-title">
           {ending.title}
@@ -36,7 +39,7 @@ export function StoryCard({ state }: { state: GameState }) {
   }
 
   return (
-    <section className={`story${card!.met ? ' is-met' : ''}`} data-tour="story" aria-labelledby="story-title">
+    <section className={`story${card!.met ? ' is-met' : ''}`} aria-labelledby="story-title">
       <p className="story-kicker">{card!.kicker}</p>
       <h3 id="story-title" className="story-title">
         {card!.title}
