@@ -629,6 +629,8 @@ From the plan (§15), Aviel's answers 2026-11-13: fights on runs (Hit their camp
 - once you're in command, the fight has to be over by those 30 minutes; rounds you haven't given by then they fight on their own.
 The rest of the run goes on from the moment the fight ends, so a quick commander gets them home sooner.
 
+**Why it takes longer** (2.7.1). The planner says what slows a crew on foot under the time: "Slower on foot: Briar sets the pace (Cautious)." Only the slowest is named, since only the slowest counts, and a slowing trait that's still hidden isn't: "someone in the crew is slower than they let on." Aviel saw the Rail Yard take 11 minutes, not 10, with nothing saying why.
+
 **When they're due back** (2.5.1). The run itself keeps the half hour for every fight (nobody may answer), but the time the game tells you counts a fight still ahead as answered at once: a 10-minute Rail Yard run read 40 minutes, which looked wrong and gave away that a fight was coming (Aviel). Once the crew stops at a fight, its wait counts ("if nobody answers sooner"). The same goes for a radio call still ahead (§7.12).
 
 **How it stays decided.** A led run keeps a copy of what it set out with (the crew, and what the run reads of the guild). Each round you give is stored; the run is played again from that copy with your orders, up to the next round that needs you. Every replay is the same up to there because the dice are seeded. A fight you don't command plays exactly as before: the automatic fight is unchanged.
@@ -933,7 +935,7 @@ Aviel's new game had nothing to do but send a run and wait out the one-run-a-gam
 
   The check is d10 + the stat against 8 to 10. A dog moves on if the guild already has one.
 - **Searching:** one search at a time, by anyone at home who can work. Someone back from a run who's tired from it can go (§7.2). While searching they can't set out on a run or move to an outpost. The search ends when its time is up, through `advanceTime` like a crew coming home. Whoever searched gets a Chronicle line ("Searched the signal box at the Depot.") and the news gets the story. If they're gone before it ends, the corner waits for someone else.
-- **On screen:** under the yard on the Depot's Yard tab. It shows how many have been searched, the search under way, and the corners still to search: each with its time and the stat that helps, or why it's shut. Tapping one opens a sheet with what it is and who could go, the best at it first. When a search ends, a card says what turned up, with a line for the stores ("Ammo +6.") and any gear, until *Done*. There's a notice when it ends, and a line in the bell. Once every corner is searched, the panel goes.
+- **On screen:** under the yard on the Depot's Yard tab. It shows how many have been searched, the search under way, and the corners still to search: each with its time and the stat that helps, or why it's shut. Tapping one opens a sheet with what it is and who could go, the best at it first. When a search ends, a card says what turned up, with a line for the stores ("Ammo +6.") and any gear, until *Done*. There's a notice when it ends (tapping it opens the Yard; in 2.7.0 it opened "Run not found", 2.7.1), and a line in the bell. Once every corner is searched, the panel goes.
 - Old saves get the corners too, none searched (save 24).
 - Tour: a step, *The Depot's corners*, after *The yard*.
 

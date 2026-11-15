@@ -3,6 +3,7 @@ import { describe, test } from 'node:test';
 import { CORNERS, Rng, finishSearch, getCorner, startSearch } from '../engine/index.ts';
 import { T0, testGame } from '../engine/test-utils.ts';
 import { bellItems } from './bell-view.ts';
+import { noticeRoute } from './radio-view.ts';
 import { cornerNotices, cornerRows, cornerWakeTimes, cornersSummary, resultCard, searchLine, searchedLine, searcherChoices } from './corners-view.ts';
 
 const MIN = 60_000;
@@ -38,6 +39,8 @@ describe('the Depot’s corners on the Yard tab (2.7.0)', () => {
     const [n] = cornerNotices(state);
     assert.equal(n!.at, T0 + 10 * MIN);
     assert.equal(n!.title, `${a.firstName} is done searching`);
+    // Tapping it opens the Yard, where the corners are (it opened "Run not found" in 2.7.0).
+    assert.deepEqual(noticeRoute(n!.id), { screen: 'depot' });
   });
 
   test('what it found, until read: the story, the stores, the gear; and a line in the bell', () => {

@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { DAY_MS, LEAD_WAIT, LOCATIONS, MAX_CREW, Rng, amountOf, completeRun, dayAt, dayStart, startRun, type RiskEstimate } from '../engine/index.ts';
+import { DAY_MS, LEAD_WAIT, LOCATIONS, MAX_CREW, Rng, amountOf, completeRun, dayAt, dayStart, runDuration, startRun, type RiskEstimate } from '../engine/index.ts';
 import { clockTime } from './time.ts';
 import { T0, openGame, testGame, testPlan } from '../engine/test-utils.ts';
 import { DEPOT_SPOT, MAP_SPOTS, mapLabel, reachMap } from './reach-map.ts';
 import {
+  paceNote,
   rationsNote,
   backIn,
   changesByPerson,
@@ -61,6 +62,28 @@ describe('planning', () => {
     assert.deepEqual(plan.crew, []);
     assert.equal(plan.meds, 1);
     assert.equal(plan.retreat, 'downed');
+  });
+
+  test('says who slows the crew on foot, without naming a hidden trait (2.7.1)', () => {
+    const state = testGame('pace');
+    for (const s of state.survivors) s.traits = s.traits.filter((t) => t.id !== 'cautious' && t.id !== 'bad_leg');
+    const plan = testPlan(state, 'rail_yard', {}, 2);
+    const [a, b] = plan.crew.map((id) => state.survivors.find((s) => s.id === id)!);
+    assert.equal(paceNote(state, plan), undefined);
+    assert.equal(runDuration(state, plan), 10 * 60_000);
+
+    a!.traits.push({ id: 'cautious', gainedDay: 1 });
+    assert.equal(runDuration(state, plan), 11 * 60_000);
+    assert.equal(paceNote(state, plan), `Slower on foot: ${a!.firstName} sets the pace (Cautious).`);
+
+    // The slowest sets the pace, so only the slowest is named.
+    b!.traits.push({ id: 'bad_leg', gainedDay: 1 });
+    assert.equal(paceNote(state, plan), `Slower on foot: ${b!.firstName} sets the pace (Bad Leg).`);
+    assert.equal(paceNote(state, { ...plan, approach: 'sneaky' }), `Slower on foot: ${b!.firstName} sets the pace (Bad Leg), and sneaking takes longer.`);
+
+    b!.traits = b!.traits.filter((t) => t.id !== 'bad_leg');
+    a!.traits.find((t) => t.id === 'cautious')!.hidden = true;
+    assert.equal(paceNote(state, plan), 'Slower on foot: someone in the crew is slower than they let on.');
   });
 
   test('the crew never grows past the limit', () => {

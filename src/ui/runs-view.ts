@@ -16,6 +16,8 @@ import {
   getGear,
   getTrait,
   getVehicleDef,
+  mulTraitHook,
+  planVehicles,
   getLocation,
   itemName,
   vehicleName,
@@ -413,6 +415,33 @@ export function noticesFor(state: GameState): PlannedNotice[] {
     title: `${joinNames(runCrewNames(run))} ${run.plan.crew.length === 1 ? 'is' : 'are'} due back`,
     body: `The run to ${getLocation(run.plan.locationId).name} is over. Open the game to read what happened.`,
   }));
+}
+
+/**
+ * Why a run on foot takes longer than the place's walk (2.7.1): the slowest of
+ * the crew sets the pace, and sneaking takes longer. A slowing trait that's
+ * still hidden isn't named. Undefined when nothing slows them, or they ride.
+ */
+export function paceNote(state: GameState, plan: RunPlan): string | undefined {
+  if (planVehicles(state, plan).length > 0) return undefined;
+  let slowest: Survivor | undefined;
+  let pace = 1;
+  for (const id of plan.crew) {
+    const s = state.survivors.find((x) => x.id === id);
+    if (!s) continue;
+    const m = mulTraitHook(s, 'durationMult');
+    if (m > pace) [slowest, pace] = [s, m];
+  }
+  const parts: string[] = [];
+  if (slowest) {
+    const slowing = slowest.traits.filter((t) => (getTrait(t.id).hooks?.durationMult ?? 1) > 1);
+    const shown = slowing.filter((t) => !t.hidden).map((t) => getTrait(t.id).name);
+    parts.push(shown.length > 0 ? `${slowest.firstName} sets the pace (${shown.join(', ')})` : 'someone in the crew is slower than they let on');
+  }
+  if (plan.approach === 'sneaky') parts.push('sneaking takes longer');
+  if (parts.length === 0) return undefined;
+  const line = parts.join(', and ');
+  return `Slower on foot: ${line}.`;
 }
 
 /** The planner's line about rations: what's packed, and what happens when the Depot is short. */
