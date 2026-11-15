@@ -32,6 +32,7 @@ export { VEHICLES, type VehicleDef } from './vehicles.ts';
 export { LINE_STOPS, PROJECTS, getProject, type ProjectDef, type ProjectStage } from './projects.ts';
 export { ANIMALS, getAnimal, type AnimalDef } from './animals.ts';
 export { CORNERS, getCorner, type CornerDef, type CornerGift, type CornerOutcome } from './corners.ts';
+export { FIRST_WEEK, type StoryGift, type StoryGoal, type StoryStep } from './story.ts';
 export { RAID_BANDS, RAID_SPOILS, type RaidBandDef } from './raids.ts';
 
 const traitById = new Map<string, TraitDef>(TRAITS.map((t) => [t.id, t]));

@@ -1,4 +1,4 @@
-import { DAY_MS, RESCUE_FIRST_GAP, SAVE_VERSION, VULTURES_ARRIVE_DAY, VULTURES_LATE_ARRIVAL, YEAR_DAYS } from './constants.ts';
+import { DAY_MS, RESCUE_FIRST_GAP, SAVE_VERSION, STORY_OLD_SAVE_DAYS, VULTURES_ARRIVE_DAY, VULTURES_LATE_ARRIVAL, YEAR_DAYS } from './constants.ts';
 
 /** A small stable number from a string, for spreading birthdays over the year. */
 function hashText(text: string): number {
@@ -180,6 +180,19 @@ const MIGRATIONS: Record<number, (save: Record<string, unknown>) => void> = {
     // The Depot's corners (2.7.0): none searched yet, in an old guild too.
     const state = save as unknown as GameState;
     state.corners ??= { searched: [] };
+  },
+  24: (save) => {
+    // The first week (2.8.0): a guild still in its first two weeks or so gets it, counting from how things stand.
+    const state = save as unknown as GameState;
+    const day = Math.floor(Math.max(0, state.lastUpdate - state.createdAt) / DAY_MS) + 1;
+    if (state.story || day > STORY_OLD_SAVE_DAYS) return;
+    const at: Record<string, number> = {};
+    let runs = 0;
+    for (const [id, l] of Object.entries(state.locations)) {
+      if (l.runs > 0) at[id] = l.runs;
+      runs += l.runs;
+    }
+    state.story = { step: 0, base: { runs, at } };
   },
 };
 

@@ -4625,3 +4625,95 @@ p.is-bad {
 .corners-done {
   margin-top: 0.625rem;
 }
+
+/* ---------------------------------------------------------------- the first week (2.8.0) */
+
+/* A note pinned above the yard: the one paper thing on the Depot, so it reads as what to do next. */
+.story {
+  position: relative;
+  margin: 1.25rem 1rem 0.25rem;
+  padding: 1rem 1rem 0.875rem;
+  border-radius: 3px;
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 0 3px 0 rgb(0 0 0 / 0.3);
+}
+
+/* The pin. */
+.story::before {
+  content: '';
+  position: absolute;
+  top: -0.375rem;
+  left: 50%;
+  width: 0.875rem;
+  height: 0.875rem;
+  margin-left: -0.4375rem;
+  border-radius: 50%;
+  background: var(--rust);
+  box-shadow: inset -2px -2px 0 rgb(0 0 0 / 0.25);
+}
+
+.story p + p {
+  margin-top: 0.375rem;
+}
+
+.story-kicker {
+  color: var(--ink-2);
+  font-size: var(--step--1);
+}
+
+.story-title {
+  margin: 0 0 0.25rem;
+  font-family: var(--stencil);
+  font-size: var(--step-1);
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.story-goal {
+  font-weight: 700;
+}
+
+.story.is-met .story-goal {
+  color: #3f6a35;
+}
+
+/* The button, with the reward beside it (under it if it doesn't fit). */
+.story-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem 0.875rem;
+  margin-top: 0.75rem;
+}
+
+.story-foot .story-reward {
+  margin: 0;
+}
+
+.story-reward {
+  color: var(--ink-2);
+}
+
+.story-gives {
+  font-weight: 700;
+}
+
+.story .btn {
+  border-color: var(--ink-2);
+  color: var(--ink);
+}
+
+.story .btn-primary {
+  border-color: var(--rust);
+  background: var(--rust);
+  color: var(--bone);
+}
+
+.story.is-done .btn {
+  margin-top: 0.75rem;
+}
+
+.story .field-error {
+  color: #8f2f25;
+}
