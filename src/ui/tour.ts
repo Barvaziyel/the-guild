@@ -232,7 +232,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     route: (state) => firstSurvivorRoute(state, 'stats'),
     target: 'stats',
     text: () =>
-      'Five stats: Grit, Brawn, Aim, Wits and Nerve. Nobody spends points. People get better at what they actually do, on runs and at their posts.',
+      'Five stats: Grit, Brawn, Aim, Wits and Nerve. Nobody spends points. People get better at what they actually do, on runs and at their posts. The i beside Stats says what each one is for and how it grows.',
   },
   {
     id: 'bonds',

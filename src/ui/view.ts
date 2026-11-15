@@ -99,6 +99,52 @@ export function partnerLine(state: GameState, s: Survivor): string | undefined {
   return p ? `Together with ${p.firstName} ${p.lastName}.` : undefined;
 }
 
+
+/**
+ * What a stat is for and how it grows, for the "i" on a sheet's Stats panel
+ * (2.8.4, asked for by a playtester). Plain words, no numbers: the player
+ * isn't shown how things are worked out behind the scenes (UI rule 6).
+ */
+export interface StatHelp {
+  id: StatId;
+  name: string;
+  /** What it does. */
+  what: string;
+  /** How it grows. */
+  grows: string;
+}
+
+export const STATS_INTRO =
+  'Nobody spends points. People get better at what they actually do: each time a stat is put to the test, they practice it, and the bar under it fills toward the next point.';
+
+const STAT_HELP: Record<StatId, Omit<StatHelp, 'id' | 'name'>> = {
+  grit: {
+    what: 'Toughness. More health, and a better chance of shrugging off wounds, radiation and a blow that would kill.',
+    grows: 'Grows by coming through hazards, radiation and bad wounds on runs, and at the Training Yard.',
+  },
+  brawn: {
+    what: 'Strength. Harder blows with blades, clubs and fists, more loot carried home, and doors forced and rubble lifted.',
+    grows: 'Grows by fighting up close and forcing or lifting things on runs, and at the Training Yard.',
+  },
+  aim: {
+    what: 'Shooting. Hits with guns and bows, and hunts that bring food home.',
+    grows: 'Grows by shooting and hunting on runs, keeping watch on the Watchtower, and at the Training Yard.',
+  },
+  wits: {
+    what: 'Know-how. Better finds when scavenging, traps and ambushes seen in time, people patched up, and good work in the Garden, Workshop, Infirmary and Radio Tower.',
+    grows: 'Grows by scavenging, scouting and patching people up on runs, a post in the Garden, Workshop, Infirmary or Radio Tower, and at the Training Yard.',
+  },
+  nerve: {
+    what: 'Steadiness. Less stress from what they go through, a steadier crew, and a better chance of staring down raiders or talking round the Vultures.',
+    grows: 'Grows by facing trouble down on runs, a post at the Firepit, and at the Training Yard.',
+  },
+};
+
+/** Every stat's help, in the sheet's order. */
+export function statHelp(): StatHelp[] {
+  return STAT_IDS.map((id) => ({ id, name: statName(id), ...STAT_HELP[id] }));
+}
+
 /** Days from joining to death (or to `day` for the living), counting both ends. */
 export function daysSurvived(s: Survivor, day: number): number {
   return Math.max(1, (s.diedDay ?? s.leftDay ?? day) - s.joinedDay + 1);

@@ -28,6 +28,7 @@ import { outpostChoices } from '../outposts-view.ts';
 import { postLink, postValue, projectChoices } from '../projects-view.ts';
 import { BondBar, Meter, Vitals } from '../components/Bars.tsx';
 import { ItemDetails } from '../components/ItemDetails.tsx';
+import { Sheet } from '../components/Sheet.tsx';
 import { scoresToSettle } from '../stories-view.ts';
 import { Portrait } from '../components/Portrait.tsx';
 import { goBack, navigate, useAction, useServices } from '../hooks.ts';
@@ -50,6 +51,8 @@ import {
   statRows,
   survivorStatus,
   traitGroups,
+  STATS_INTRO,
+  statHelp,
 } from '../view.ts';
 
 interface Props {
@@ -314,11 +317,30 @@ function RenameForm({ survivor: s, onDone }: { survivor: Survivor; onDone: () =>
 
 function StatsPanel({ survivor: s, growing = false }: { survivor: Survivor; growing?: boolean }) {
   const d = derived(s);
+  // What each stat is for and how it grows, a tap away (2.8.4, asked for by a playtester).
+  const [help, setHelp] = useState(false);
   return (
     <section className="panel" aria-labelledby="stats-title" data-tour="stats">
-      <h3 id="stats-title" className="panel-title">
-        Stats
-      </h3>
+      <div className="panel-head">
+        <h3 id="stats-title" className="panel-title">
+          Stats
+        </h3>
+        <button type="button" className="info-btn" aria-label="What the stats mean" aria-haspopup="dialog" onClick={() => setHelp(true)}>
+          <span aria-hidden="true">i</span>
+        </button>
+      </div>
+      <Sheet open={help} title="What the stats mean" onClose={() => setHelp(false)}>
+        <p className="panel-help">{STATS_INTRO}</p>
+        <dl className="stat-help">
+          {statHelp().map((h) => (
+            <div key={h.id}>
+              <dt>{h.name}</dt>
+              <dd>{h.what}</dd>
+              <dd className="stat-help-grows">{h.grows}</dd>
+            </div>
+          ))}
+        </dl>
+      </Sheet>
       {growing && <p className="panel-help">What {pronounForms(s.pronouns).they} will bring to the guild at 16.</p>}
       <ul className="stats">
         {statRows(s).map((r) => (
