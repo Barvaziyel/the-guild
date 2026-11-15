@@ -939,6 +939,37 @@ Aviel's new game had nothing to do but send a run and wait out the one-run-a-gam
 - Old saves get the corners too, none searched (save 24).
 - Tour: a step, *The Depot's corners*, after *The yard*.
 
+### 9.10 The first week (2.8.0)
+
+The other half of Aviel's pick for the first hours (§9.9): a short chain of things to do, one at a time, each with a reward. Together they take a new guild through its first places, buildings and fights to a motorcycle, and end with the first word of Haven, the game's long goal (§15). The steps are data in `content/story.ts`; `story.ts` checks them and pays out.
+
+| Step | Goal | Reward |
+|---|---|---|
+| Kit them out | Hand out the gear in the stash: nothing left that would fill an empty slot on anyone | 6 ammo |
+| Get the Garden going | Garden level 2 | 8 rations |
+| A first run | A crew home from a run, anywhere | 5 scrap |
+| The old depot | Three corners of the Depot searched (§9.9) | 2 meds |
+| Smoke over Maple Street | A crew home from Maple Street | Whoever lit the fire, at the gate wanting to join |
+| The farm | A crew home from Kessler Farm | 10 rations, 4 tech (parts from the well pump) |
+| Wheels | The Workshop | A Motorcycle at 60% (it was under a tarp in the engine shed) and 8 gas |
+| Get on the air | The Radio Tower | 10 scrap, and the Haven broadcast |
+
+- **One step at a time.** Each goal is read from the game as it is. Runs count from when the step began (a run before it doesn't count). When the goal is met, the reward waits to be collected. Collecting writes the step's ending in the news, then the next step begins.
+- **The end:** the first night on the air, a recorded voice: *"This is Haven. We have power, clean water, and room for you. All survivors welcome."* It plays on the hour, every hour, the same words. Nobody has heard of Haven or knows where it is. Finding it is a roadmap step of its own (§15).
+- **On screen:** a note pinned above the yard on the Depot's Yard tab, so a new player sees it on opening (paper, the one thing on the Depot that is): where it is in the week ("The first week · 3 of 8"), the setup, the goal with a count where there is one ("1 of 3"), a button to where it's done with the reward beside it (the Gear screen, the building, the planner for the place, the Reach, or down to the corners). Once the goal is met, *Collect*, and a line in the bell. After collecting, the note shows how it went and what came in until *Next*.
+- **The motorcycle** is a real jump: otherwise it takes Workshop 2 and 50 scrap, 8 tech, a trader, or luck on a run. That's the point: something big at the end.
+- **How long it takes** (a bot that follows the note, 40 guilds each; it sends anyone free to the Rail Yard and searches corners with whoever's home):
+
+  | Check-ins | Week done (median) | Game day |
+  |---|---|---|
+  | Every 30 min | 5 real hours (5–10) | 2 |
+  | Every hour | 9 real hours (8–11) | 4 |
+  | Every 3 hours, 8:00 to 23:00 | 30 real hours (30–36); 1 in 40 not yet at 48 | 11 |
+
+  The Radio Tower's tech is the slowest part: the farm's 4 and the signal box's 5 cover it. Nobody went hungry; 1–3 deaths in 40 guilds over two days, as without the week.
+- **Old saves:** a guild no older than 14 game days gets the week from its first step, counting runs from when it came in (save 25). An older guild doesn't.
+- Tour: a step, *The first week*, between *The yard* and *The Depot's corners*.
+
 ## 10. Recruitment
 
 - **Where new people come from** (Aviel, 2026-11-12: fewer turning up at random, more from rescues and events). Most come from out in the Reach.
@@ -1169,7 +1200,8 @@ From the ideas in `claude/interactive-ideas.md`, and Aviel's own additions. The 
 | Strategy in fights, 3: goals besides fighting, where someone spends rounds on a job instead of fighting: hold the door, grab and go, get someone out, fix or open something | Aviel, 2026-11-14 | **done** (2.5.0) |
 | An energy plant: solar while the sun is up, gas at night or in winter, powering some things | His idea, 2026-11-13: "Need to think" | to think about |
 | A view of each outpost, like the yard: the place drawn with its outpost and the people who live there | His addition, 2026-11-14 | planned |
-| More to do at the start, to hook a new player. His new game (2026-11-14): equip the starting gear, upgrade the Garden, send a 10-minute run, then wait about 2.5 hours before that crew can go out again (one run a game day, §7.2). Ideas offered: fresh legs for the first runs, the Depot's own corners, things coming to you early, a first-week story, scouting trips | His addition, 2026-11-14: "Not sure how to do that though"; at 23:34 he picked the Depot's corners and a first-week story | corners **done** (2.7.0, §9.9); first-week story planned (§9.10) |
+| More to do at the start, to hook a new player. His new game (2026-11-14): equip the starting gear, upgrade the Garden, send a 10-minute run, then wait about 2.5 hours before that crew can go out again (one run a game day, §7.2). Ideas offered: fresh legs for the first runs, the Depot's own corners, things coming to you early, a first-week story, scouting trips | His addition, 2026-11-14: "Not sure how to do that though"; at 23:34 he picked the Depot's corners and a first-week story | **done**: the corners (2.7.0, §9.9), the first week (2.8.0, §9.10) |
+| **Haven**, the long goal for the whole game. The first week ends with its broadcast: a place with power, clean water and room for survivors, somewhere past the Reach. Finding where it is and getting there is the goal. **The twist:** by the time the guild reaches it, they've built a haven of their own at the Depot, and Haven turns out to be a trap, or not what it said. The guild is glad of what it built | Aviel, 2026-11-15: "at the end there is a twist, you already built your own haven at that point, and you find out that that haven is really a trap or something, but you're happy with what you built" | planned |
 
 Not picked: choosing the rooms before a scavenge, raids you see coming, feasts and gatherings, talking to people in the yard.
 

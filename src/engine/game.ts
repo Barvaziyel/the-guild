@@ -106,6 +106,8 @@ export function newGame(opts: NewGameOptions): GameState {
     vultures: newVultures(),
     captives: [],
     corners: { searched: [] },
+    // The first week (§9.10): nothing has been done yet, so it counts from nothing.
+    story: { step: 0, base: { runs: 0, at: {} } },
     relationships: {},
     stash: [],
     resources: { ...STARTING_RESOURCES },

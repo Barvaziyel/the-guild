@@ -27,6 +27,7 @@ export * from './family.ts';
 export * from './vultures.ts';
 export * from './captives.ts';
 export * from './corners.ts';
+export * from './story.ts';
 export * from './expedition/index.ts';
 export * from './depot/index.ts';
 export { newId } from './ids.ts';

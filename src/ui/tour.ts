@@ -17,6 +17,7 @@ import {
   dailyUpkeep,
   gardenYield,
   knownLocations,
+  storyStep,
   type BuildingId,
   type GameState,
 } from '../engine/index.ts';
@@ -183,6 +184,17 @@ export const TOUR_STEPS: readonly TourStep[] = [
     target: 'yard',
     text: () =>
       "The Yard shows the Depot as it is right now: who's at work, who's by the fire, who's resting, and who's at the gate. It darkens with the evening. Tap anyone or anything to see what it is.",
+  },
+  {
+    id: 'first-week',
+    part: 'people',
+    title: 'The first week',
+    route: () => ({ screen: 'depot' }),
+    target: 'story',
+    text: (state) =>
+      storyStep(state)
+        ? 'Above the yard, a note says what to do next. When it’s done, collect its reward and the next one comes up. Together they take a new guild through its first places, buildings and fights, and the last one is worth staying up for.'
+        : 'A new guild gets a note above the yard for its first week: what to do next, each with a reward. This guild is past that.',
   },
   {
     id: 'corners',

@@ -774,6 +774,33 @@ export interface CornerResult {
   seen?: boolean;
 }
 
+/** The first week (§9.10, 2.8.0). */
+export interface StoryState {
+  /** The step under way, by its index in the first week; past the last, the week is done. */
+  step: number;
+  /** What the step counts from. */
+  base: StoryBase;
+  /** How the last step went, for its card until read. */
+  last?: StoryEnding;
+}
+
+/** Runs home when a step began, in all and at each place (where there were any). */
+export interface StoryBase {
+  runs: number;
+  at: Record<string, number>;
+}
+
+export interface StoryEnding {
+  stepId: string;
+  title: string;
+  text: string;
+  /** What came into the stores. */
+  supplies?: Partial<Resources>;
+  /** Anything else: "a Motorcycle", "Ada Moss, at the gate". */
+  gifts?: string[];
+  seen?: boolean;
+}
+
 /** Someone calling for help over the radio (§10.1). */
 export interface RescueCall {
   id: string;
@@ -1106,6 +1133,8 @@ export interface GameState {
   captives: Captive[];
   /** The Depot's own corners (§9.9): which have been searched, and the search under way. */
   corners: CornerState;
+  /** The first week (§9.10): the step under way. Undefined for a guild that never had one (older than its first week when it came in). */
+  story?: StoryState;
   log: GuildLogEntry[];
   settings: {
     mercyMode: boolean;

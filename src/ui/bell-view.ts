@@ -13,6 +13,7 @@ import { raidCard } from './raid-view.ts';
 import { callCard } from './rescue-view.ts';
 import type { Route } from './route.ts';
 import { reportFirstNames, joinNames } from './runs-view.ts';
+import { storyCard } from './story-view.ts';
 
 export type BellGroup = 'waiting' | 'gate' | 'back' | 'warning';
 
@@ -47,6 +48,9 @@ export function bellItems(state: GameState, now: number): BellItem[] {
   if (dilemma) out.push({ id: 'dilemma', group: 'waiting', text: `Something to decide: ${dilemma.title.toLowerCase()}.`, to: today });
   const call = callCard(state, now);
   if (call && !call.runId) out.push({ id: 'call', group: 'waiting', text: `A call for help from ${getLocation(call.locationId).name}.`, to: { screen: 'reach', id: call.locationId } });
+  // The first week (§9.10): a step done, its reward not collected yet.
+  const story = storyCard(state);
+  if (story?.met) out.push({ id: 'story', group: 'waiting', text: `${story.title}: done. The reward is waiting.`, to: { screen: 'depot' } });
 
   // At the gate.
   const recruits = state.depot.recruits.length;
