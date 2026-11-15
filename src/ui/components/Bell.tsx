@@ -1,12 +1,14 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import type { GameState } from '../../engine/index.ts';
 import { bellGroups, bellItems } from '../bell-view.ts';
-import { navigate } from '../hooks.ts';
+import { navigate, usePrefs } from '../hooks.ts';
+import { tourStep } from '../tour.ts';
 
 /** The bell at the top (2.2.0): how many things need the player, and a list of them that opens where each is dealt with. */
 export function Bell({ state, now }: { state: GameState; now: number }) {
   const [open, setOpen] = useState(false);
-  const items = bellItems(state, now);
+  const touring = tourStep(usePrefs().tour) !== undefined;
+  const items = bellItems(state, now, { touring });
   const panelId = useId();
   const box = useRef<HTMLDivElement>(null);
 

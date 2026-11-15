@@ -4,6 +4,7 @@ import { FIRST_WEEK, claimStory, equipFromStash, getGear, seenStory, type GameSt
 import { T0, testGame } from '../engine/test-utils.ts';
 import { bellItems } from './bell-view.ts';
 import { giftsText, storyCard, storyEnding } from './story-view.ts';
+import { TOUR_STEPS } from './tour.ts';
 
 function at(state: GameState, id: string): void {
   state.story!.step = FIRST_WEEK.findIndex((s) => s.id === id);
@@ -47,6 +48,8 @@ describe('the first week on the Yard (2.8.0)', () => {
     const bell = bellItems(state, T0).find((i) => i.id === 'story')!;
     assert.equal(bell.text, 'Kit them out: done. The reward is waiting.');
     assert.deepEqual(bell.to, { screen: 'depot' });
+    // While the tour is on, the note is hidden, so the bell doesn't point at it (2.8.1).
+    assert.equal(bellItems(state, T0, { touring: true }).some((i) => i.id === 'story'), false);
 
     claimStory(state, T0);
     // How it went comes first; the next step waits until it's read.
@@ -87,6 +90,15 @@ describe('the first week on the Yard (2.8.0)', () => {
     assert.equal(giftsText([{ kind: 'supplies', change: { rations: 10, tech: 4 } }]), '10 rations and 4 tech');
     assert.equal(giftsText([{ kind: 'vehicle', defId: 'motorcycle', condition: 60 }, { kind: 'supplies', change: { gas: 8 } }]), 'a Motorcycle and 8 gas');
     assert.equal(giftsText([{ kind: 'wanderer' }]), 'someone at the gate');
+  });
+
+  test('the tour hands over to the note at its end, instead of pointing at it on the way (2.8.1)', () => {
+    const state = testGame('tour');
+    assert.equal(TOUR_STEPS.some((s) => s.target === 'story'), false);
+    const done = TOUR_STEPS.at(-1)!;
+    assert.match(done.text(state), /^When you close this, a note above the yard says what to do first/);
+    delete state.story;
+    assert.match(done.text(state), /^Send your first crew out/);
   });
 
   test('a guild without the week shows nothing', () => {

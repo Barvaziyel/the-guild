@@ -186,17 +186,6 @@ export const TOUR_STEPS: readonly TourStep[] = [
       "The Yard shows the Depot as it is right now: who's at work, who's by the fire, who's resting, and who's at the gate. It darkens with the evening. Tap anyone or anything to see what it is.",
   },
   {
-    id: 'first-week',
-    part: 'people',
-    title: 'The first week',
-    route: () => ({ screen: 'depot' }),
-    target: 'story',
-    text: (state) =>
-      storyStep(state)
-        ? 'Above the yard, a note says what to do next. When it’s done, collect its reward and the next one comes up. Together they take a new guild through its first places, buildings and fights, and the last one is worth staying up for.'
-        : 'A new guild gets a note above the yard for its first week: what to do next, each with a reward. This guild is past that.',
-  },
-  {
     id: 'corners',
     part: 'people',
     title: 'The Depot’s corners',
@@ -422,7 +411,11 @@ export const TOUR_STEPS: readonly TourStep[] = [
     part: 'time',
     title: "That's the tour",
     route: depot,
-    text: () => "Send your first crew out when you're ready. Settings can show this tour again.",
+    // The first week's note waits until the tour is over (2.8.1), so this step hands over to it.
+    text: (state) =>
+      storyStep(state)
+        ? 'When you close this, a note above the yard says what to do first: the first week, one thing at a time, each with a reward. Settings can show this tour again.'
+        : "Send your first crew out when you're ready. Settings can show this tour again.",
   },
 ];
 
