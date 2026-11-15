@@ -937,7 +937,7 @@ Aviel's new game had nothing to do but send a run and wait out the one-run-a-gam
 - **Searching:** one search at a time, by anyone at home who can work. Someone back from a run who's tired from it can go (§7.2). While searching they can't set out on a run or move to an outpost. The search ends when its time is up, through `advanceTime` like a crew coming home. Whoever searched gets a Chronicle line ("Searched the signal box at the Depot.") and the news gets the story. If they're gone before it ends, the corner waits for someone else.
 - **On screen:** under the yard on the Depot's Yard tab. It shows how many have been searched, the search under way, and the corners still to search: each with its time and the stat that helps, or why it's shut. Tapping one opens a sheet with what it is and who could go, the best at it first. When a search ends, a card says what turned up, with a line for the stores ("Ammo +6.") and any gear, until *Done*. There's a notice when it ends (tapping it opens the Yard; in 2.7.0 it opened "Run not found", 2.7.1), and a line in the bell. Once every corner is searched, the panel goes.
 - Old saves get the corners too, none searched (save 24).
-- Tour: a step, *The Depot's corners*, after *The yard*.
+- Tour: a step, *The Depot's corners*, after *The yard*. Shown again from Settings, it says how many are left, or that they've all been searched and the list is gone (2.8.3).
 
 ### 9.10 The first week (2.8.0)
 

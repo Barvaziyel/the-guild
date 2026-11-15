@@ -107,7 +107,14 @@ describe('tour', () => {
     assert.match(text('raids'), /with a Radio Tower, call a crew home/);
     assert.doesNotMatch(text('lead'), /call home|radio/i, 'leading a fight needs no tower');
     assert.doesNotMatch(text('gate'), /floor/, 'nobody joins without a bed');
-    assert.match(text('corners'), /5 to 20 minutes/);
+    assert.match(text('corners'), /^Nobody has been through the old depot yet\..*5 to 20 minutes/);
+    // Shown again later from Settings, it says how far the guild has got (2.8.3).
+    state.corners.searched.push('ticket_office', 'signal_box', 'water_tower');
+    assert.match(text('corners'), /^Five corners of the old depot are still to search\./);
+    state.corners.searched.push('freight_car', 'cellar', 'coal_bunker', 'stationmaster');
+    assert.match(text('corners'), /^One corner of the old depot is still to search\./);
+    state.corners.searched.push('engine_shed');
+    assert.match(text('corners'), /searched them all, so their list under the yard is gone\.$/);
     assert.doesNotMatch(text('plan'), /tries|trial|went down/, 'the tour says how risky, not how that is worked out');
     assert.match(text('build-first'), /^Besides what the first week asks for, good first goals: /);
   });
