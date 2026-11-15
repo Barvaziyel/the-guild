@@ -120,7 +120,7 @@ describe('forks in play', () => {
     }
   });
 
-  test('without a Radio Tower the crew decides on the spot and loses no time', () => {
+  test('without a Radio Tower the crew still calls home: crews carry a radio (Aviel, 2.8.2)', () => {
     let checked = 0;
     for (let i = 0; i < 3000 && checked < 10; i++) {
       const state = guild(`noradio-${i % 4}`, false);
@@ -128,11 +128,11 @@ describe('forks in play', () => {
       const run = simulateRun(state, plan, `nr${i}`, 0);
       if (!run.fork) continue;
       checked++;
-      assert.equal(run.fork.called, false);
+      assert.equal(run.fork.called, true);
       const lines = run.beats.flatMap((b) => b.lines.map((l) => l.text));
-      assert.ok(lines.some((t) => /makes the call|decides:/.test(t)));
-      assert.ok(!lines.some((t) => /on the radio|word from home/i.test(t)));
-      assert.ok(!run.beats.some((b) => b.title === 'No word from home'));
+      assert.ok(lines.some((t) => /gets on the radio to the Depot/.test(t)));
+      // Nobody answered in this simulation, so they waited, then made the call.
+      assert.ok(run.beats.some((b) => b.title === 'No word from home'));
     }
     assert.equal(checked, 10);
   });

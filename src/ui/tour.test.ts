@@ -15,6 +15,7 @@ import {
   TOUR_PARTS,
   TOUR_STEPS,
   firstBuildSuggestions,
+  proseDays,
   proseDuration,
   nextPartStepId,
   nextStepId,
@@ -71,7 +72,7 @@ describe('tour', () => {
     const plan = tourStep('plan')!;
     const route = plan.route(state);
     assert.equal(route.screen, 'plan');
-    assert.match(plan.text(state), /three people scavenging (The Rail Yard|Maple Street)\./);
+    assert.match(plan.text(state), /three people scavenging (the Rail Yard|Maple Street)\./);
   });
 
   test('the build suggestions follow what has been built', () => {
@@ -85,7 +86,30 @@ describe('tour', () => {
     build(state, 'infirmary', 1);
     const after = firstBuildSuggestions(state);
     assert.ok(!after.some((s) => s.includes('Infirmary')));
-    assert.ok(after.some((s) => s.includes('Workshop')), 'the next idea moves up');
+    // The first week asks for the Workshop itself, so it isn't suggested while that step is ahead (2.8.2).
+    assert.ok(!after.some((s) => s.includes('Workshop')));
+    delete state.story;
+    assert.ok(firstBuildSuggestions(state).some((s) => s.includes('Workshop')), 'without the week, the next idea moves up');
+  });
+
+  test('the parts run from the Depot to what comes later, and the text matches the game (2.8.2)', () => {
+    assert.deepEqual(TOUR_PARTS.map((p) => p.title), ['The Depot', 'Supplies and food', 'Your people', 'Runs', 'Building', 'Raids and decisions', 'Later on']);
+    const part = (id: string) => tourStep(id)!.part;
+    assert.equal(part('corners'), 'depot');
+    assert.equal(part('notices'), 'depot');
+    assert.equal(part('radio'), 'runs', 'forks come up from the first runs, tower or not');
+    const state = openGame('tour-text');
+    const text = (id: string) => tourStep(id)!.text(state);
+    assert.match(text('vultures'), /Around game day 40, about five real days in,/);
+    assert.match(text('decisions'), /Leave it 24 hours/);
+    assert.match(text('radio'), /^Now and then a crew comes to a fork/);
+    assert.doesNotMatch(text('radio'), /Radio Tower/, 'forks need no tower (2.8.2)');
+    assert.match(text('raids'), /with a Radio Tower, call a crew home/);
+    assert.doesNotMatch(text('lead'), /call home|radio/i, 'leading a fight needs no tower');
+    assert.doesNotMatch(text('gate'), /floor/, 'nobody joins without a bed');
+    assert.match(text('corners'), /5 to 20 minutes/);
+    assert.doesNotMatch(text('plan'), /tries|trial|went down/, 'the tour says how risky, not how that is worked out');
+    assert.match(text('build-first'), /^Besides what the first week asks for, good first goals: /);
   });
 
   test('Next walks every step, then ends', () => {
@@ -99,21 +123,22 @@ describe('tour', () => {
   });
 
   test('skipping a part goes to the start of the next part, and past the last part ends the tour', () => {
-    assert.equal(nextPartStepId('welcome'), 'garden');
+    assert.equal(nextPartStepId('welcome'), 'supplies');
     assert.equal(nextPartStepId('roster'), 'reach');
-    assert.equal(nextPartStepId('days'), null);
+    assert.equal(nextPartStepId('days'), 'supplies');
+    assert.equal(nextPartStepId('vultures'), null);
   });
 
   test('the card says where in the tour you are', () => {
     const state = openGame('tour-card');
     const first = tourCard(state, 'welcome')!;
-    assert.equal(first.where, 'Supplies: 1 of 5');
+    assert.equal(first.where, 'The Depot: 1 of 6');
     assert.equal(first.partOf, `Part 1 of ${TOUR_PARTS.length}`);
     assert.equal(first.last, false);
     assert.equal(first.lastInPart, false);
-    const gate = tourCard(state, 'gate')!;
-    assert.equal(gate.where, 'Recruits', 'a one-step part has no count');
-    assert.equal(gate.lastInPart, true);
+    const decisions = tourCard(state, 'decisions')!;
+    assert.equal(decisions.where, 'Raids and decisions: 2 of 2');
+    assert.equal(decisions.lastInPart, true);
     assert.equal(tourCard(state, 'done')!.last, true);
     assert.equal(tourCard(state, 'gone'), null);
   });
@@ -125,6 +150,8 @@ test('durations read as prose', () => {
   assert.equal(proseDuration(90), '1½ hours');
   assert.equal(proseDuration(150), '2½ hours');
   assert.equal(proseDuration(180), '3 hours');
+  assert.equal(proseDays(5), 'five real days');
+  assert.equal(proseDays(0.4), 'a real day');
 });
 
 describe('the tour and a new guild', () => {

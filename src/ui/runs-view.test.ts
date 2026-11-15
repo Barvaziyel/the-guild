@@ -23,7 +23,7 @@ import {
   outcomeHeadline,
   outcomeTone,
   reportItems,
-  riskText,
+  riskLine,
   runOfSurvivor,
   runProgress,
   suggestedAmmo,
@@ -47,11 +47,11 @@ describe('words and times', () => {
     assert.equal(formatCountdown(-5), '0:00');
   });
 
-  test('risk is told as what happened in trial runs', () => {
-    const risk = (downed: number, death: number): RiskEstimate => ({ label: 'Low', downed, death, cutShort: 0, samples: 50 });
-    assert.equal(riskText(risk(0, 0)), 'In 50 tries, nobody went down. Nobody died.');
-    assert.equal(riskText(risk(0.02, 0.02)), 'In 50 tries, someone went down once. Someone died once.');
-    assert.equal(riskText(risk(0.18, 0.04)), 'In 50 tries, someone went down 9 times. Someone died 2 times.');
+  test('risk is told as a word, without the numbers behind it (Aviel, 2.8.2)', () => {
+    const risk = (label: RiskEstimate['label'], downed: number, death: number): RiskEstimate => ({ label, downed, death, cutShort: 0, samples: 50 });
+    assert.equal(riskLine(risk('Low', 0, 0)), 'Low risk.');
+    assert.equal(riskLine(risk('Moderate', 0.18, 0.04)), 'Moderate risk.');
+    assert.doesNotMatch(riskLine(risk('Deadly', 0.7, 0.2)), /\d|tries/);
   });
 });
 

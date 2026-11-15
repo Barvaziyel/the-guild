@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { DAY_MS, HUNGER_STRESS, MAX_REPORTS, SAVE_VERSION } from '../constants.ts';
+import { DAY_MS, HUNGER_STRESS, MAX_REPORTS, RADIO_WAIT, SAVE_VERSION } from '../constants.ts';
 import { newGame } from '../game.ts';
 import { locationState } from '../locations.ts';
 import { adjustRelationship, becomePartners } from '../relationships.ts';
@@ -113,7 +113,8 @@ describe('run lifecycle', () => {
     for (const id of plan.crew) assert.equal(state.survivors.find((s) => s.id === id)!.status, 'away');
     assert.equal(state.survivors[3]!.status, 'ready');
     assert.deepEqual(state.runs, [run]);
-    assert.ok(run.returnAt > T0 && run.returnAt <= T0 + runDuration(before, plan));
+    // A fork on the way adds the half hour they wait on the radio if nobody answers (any crew since 2.8.2).
+    assert.ok(run.returnAt > T0 && run.returnAt <= T0 + runDuration(before, plan) + (run.radio ? RADIO_WAIT : 0));
     assert.notDeepEqual(state.rng, before.rng, 'the seed came from the game rng');
     // Away survivors are untouched until the crew is back.
     assert.deepEqual(

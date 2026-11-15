@@ -30,7 +30,7 @@ import {
   radiationText,
   paceNote,
   rationsNote,
-  riskText,
+  riskLine,
   suggestedAmmo,
   toggleCrew,
 } from '../runs-view.ts';
@@ -343,7 +343,7 @@ function RiskLine({ risk }: { risk: RiskEstimate | null }) {
   if (!risk) return <p className="risk-text">Weighing the odds&hellip;</p>;
   return (
     <p className="risk-text">
-      <strong className={`risk-label risk-${risk.label.toLowerCase()}`}>{risk.label} risk.</strong> {riskText(risk)}
+      <strong className={`risk-label risk-${risk.label.toLowerCase()}`}>{riskLine(risk)}</strong>
     </p>
   );
 }
