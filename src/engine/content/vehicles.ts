@@ -8,6 +8,8 @@ import type { Resources } from '../types.ts';
 export interface VehicleDef {
   id: string;
   name: string;
+  /** How the crew gets on board, in the run log: "Onto the Motorcycle and away." (2.8.6) */
+  board: 'onto' | 'into';
   description: string;
   seats: number;
   /** Extra loads it carries home, on top of what the crew carries. */
@@ -32,6 +34,7 @@ export const VEHICLES: readonly VehicleDef[] = [
   {
     id: 'motorcycle',
     name: 'Motorcycle',
+    board: 'onto',
     description: 'Two seats if nobody minds, a rack for a couple of sacks, and an engine you can hear two streets away.',
     seats: 2,
     cargo: 4,
@@ -46,6 +49,7 @@ export const VEHICLES: readonly VehicleDef[] = [
   {
     id: 'car',
     name: 'Hatchback',
+    board: 'into',
     description: 'Five seats, a boot that takes more than it should, and a rattle nobody can find.',
     seats: 5,
     cargo: 10,
@@ -60,6 +64,7 @@ export const VEHICLES: readonly VehicleDef[] = [
   {
     id: 'pickup',
     name: 'Pickup Truck',
+    board: 'into',
     description: 'Three up front, two in the bed, and room behind them for half a scrapyard.',
     seats: 5,
     cargo: 20,
@@ -73,6 +78,7 @@ export const VEHICLES: readonly VehicleDef[] = [
   {
     id: 'van',
     name: 'Cargo Van',
+    board: 'into',
     description: 'Eight if they squeeze, and a long box for whatever the Reach gives up. Thirsty, and loud with it.',
     seats: 8,
     cargo: 24,

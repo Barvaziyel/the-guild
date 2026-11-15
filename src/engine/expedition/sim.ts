@@ -573,9 +573,11 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
   startBeat(sim, 'depart', 'Setting Out');
   say(sim, flavor(sim, DEPART_LINES));
   if (sim.rides.length > 0) {
-    const names = sim.rides.map((r) => `the ${r.def.name}`);
-    const list = names.length === 1 ? names[0]! : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]!}`;
-    say(sim, `Engines cough and catch. Into ${list} and away.`);
+    // "The engine coughs and catches. Onto the Motorcycle and away." (2.8.6: it said "Engines" and "into" for a motorcycle.)
+    const boarded = sim.rides.map((r) => `${r.def.board} the ${r.def.name}`);
+    const where = boarded.length === 1 ? `${boarded[0]!} and away` : `${boarded.join(', ')}, and away`;
+    const engines = sim.rides.length === 1 ? 'The engine coughs and catches.' : 'Engines cough and catch.';
+    say(sim, `${engines} ${where.charAt(0).toUpperCase()}${where.slice(1)}.`);
   }
   // Short of rations, the crew goes anyway; whoever has none goes hungry.
   for (const s of hungryCrew(state, plan)) {
