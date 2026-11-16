@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useState } from 'react';
 import { advanceTime, dayAt, dueRuns, getLocation, nextDayAt, searchDue, type AdvanceResult, type DepotSummary, type GameState } from '../engine/index.ts';
-import { mergeSummaries } from './depot-view.ts';
+import { mergeSummaries, nextDayView } from './depot-view.ts';
 import { TourCard } from './components/TourCard.tsx';
 import { navigate, savedScroll, useHash, useNow, usePrefs, useRoute, useServices, useSnapshot } from './hooks.ts';
 import { tabFor, type Route, type TabScreen } from './route.ts';
@@ -231,12 +231,18 @@ function ReturnToast({ state, reportId, more, onClose }: { state: GameState; rep
 }
 
 function TopBar({ state, day, now }: { state: GameState; day: number; now: number }) {
+  const next = nextDayView(state, now);
   return (
     <header className="topbar">
       <div className="topbar-title">
         <h1 className="guild-name">{state.guildName}</h1>
         <div className="topbar-right">
-          <span className="day">Day {day}</span>
+          <p className="day-block" data-tour="day">
+            <span className="day">Day {day}</span>
+            <span className="day-next" aria-label={next.label}>
+              {next.line}
+            </span>
+          </p>
           <Bell state={state} now={now} />
         </div>
       </div>

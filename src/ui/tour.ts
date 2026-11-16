@@ -173,9 +173,10 @@ export const TOUR_STEPS: readonly TourStep[] = [
     part: 'depot',
     title: 'Days pass',
     route: depot,
+    target: 'day',
     text: () => {
       const hours = Math.round(DAY_MS / 3_600_000);
-      return `A day passes every ${hours === 1 ? 'hour' : `${hours} real hours`}, open or closed: the Garden grows, people eat, heal and rest, and visitors come and go. When you come back, the last ${MAX_CATCHUP_DAYS} days you missed are played; any before that are skipped.`;
+      return `A day passes every ${hours === 1 ? 'hour' : `${hours} real hours`}, open or closed: the Garden grows, people eat, heal and rest, and visitors come and go. Under the day up top is when the next one starts. When you come back, the last ${MAX_CATCHUP_DAYS} days you missed are played; any before that are skipped.`;
     },
   },
 

@@ -4,6 +4,8 @@
  */
 import {
   DAY_MS,
+  dayAt,
+  nextDayAt,
   BUILDING_IDS,
   MAX_BUILDING_LEVEL,
   RESOURCE_IDS,
@@ -64,6 +66,8 @@ import {
   type Survivor,
 } from '../engine/index.ts';
 import { itemStats } from './view.ts';
+import { formatDuration } from './runs-view.ts';
+import { clockTime } from './time.ts';
 
 const sum = (xs: readonly number[]): number => xs.reduce((a, b) => a + b, 0);
 
@@ -424,4 +428,14 @@ export function newMouthNote(state: GameState): string | undefined {
 
 function joinList(xs: readonly string[]): string {
   return xs.length <= 1 ? (xs[0] ?? '') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`;
+}
+
+/**
+ * Under the day number up top: when the next Depot day starts (Aviel, 2.8.8).
+ * `line` is what shows, `label` says it in full for a screen reader.
+ */
+export function nextDayView(state: GameState, now: number): { line: string; label: string } {
+  const at = nextDayAt(state, now);
+  const next = dayAt(state, now) + 1;
+  return { line: `Day ${next} in ${formatDuration(Math.max(at - now, 0))}`, label: `Day ${next} starts at ${clockTime(at)}` };
 }

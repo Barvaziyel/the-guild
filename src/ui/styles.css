@@ -135,6 +135,20 @@ button {
   white-space: nowrap;
 }
 
+/* The day number, and under it when the next one starts (2.8.8). */
+.day-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.1;
+}
+
+.day-next {
+  color: var(--bone-3);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
 .resources {
   display: grid;
   grid-template-columns: repeat(3, max-content);
