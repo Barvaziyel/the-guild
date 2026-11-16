@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useState } from 'react';
 import { advanceTime, dayAt, dueRuns, getLocation, nextDayAt, searchDue, type AdvanceResult, type DepotSummary, type GameState } from '../engine/index.ts';
-import { mergeSummaries } from './depot-view.ts';
+import { mergeSummaries, nextDayView } from './depot-view.ts';
 import { TourCard } from './components/TourCard.tsx';
 import { navigate, savedScroll, useHash, useNow, usePrefs, useRoute, useServices, useSnapshot } from './hooks.ts';
 import { tabFor, type Route, type TabScreen } from './route.ts';
@@ -230,13 +230,29 @@ function ReturnToast({ state, reportId, more, onClose }: { state: GameState; rep
   );
 }
 
+/** The day's dial (option B, Aviel 2.8.8): a ring that fills as the day goes. */
+const DIAL_R = 11;
+const DIAL_C = 2 * Math.PI * DIAL_R;
+
 function TopBar({ state, day, now }: { state: GameState; day: number; now: number }) {
+  const next = nextDayView(state, now);
   return (
     <header className="topbar">
       <div className="topbar-title">
         <h1 className="guild-name">{state.guildName}</h1>
         <div className="topbar-right">
-          <span className="day">Day {day}</span>
+          <p className="day-block" data-tour="day">
+            <svg className="day-dial" viewBox="0 0 30 30" aria-hidden="true">
+              <circle className="day-dial-track" cx="15" cy="15" r={DIAL_R} />
+              <circle className="day-dial-fill" cx="15" cy="15" r={DIAL_R} strokeDasharray={DIAL_C} strokeDashoffset={DIAL_C * (1 - next.progress)} transform="rotate(-90 15 15)" />
+            </svg>
+            <span className="day-text">
+              <span className="day">Day {day}</span>
+              <span className="day-next" aria-label={next.label}>
+                {next.line}
+              </span>
+            </span>
+          </p>
           <Bell state={state} now={now} />
         </div>
       </div>
