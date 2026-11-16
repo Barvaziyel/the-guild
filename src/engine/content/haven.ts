@@ -3,8 +3,11 @@
  * Aviel, 2026-11-16: the guild finds out about Haven bit by bit, through runs
  * to different places (and a couple of buildings), with hints heard by chance
  * often enough to keep it interesting, all kept in a Haven tab. At the end the
- * guild learns what Haven is: slavers. The clues mostly sound good and grow
- * darker; the hints go the same way.
+ * guild learns what Haven is (Aviel, 2026-11-16): people who mean to make the
+ * next kind of human, and cut up whoever comes to try. Their failures caused
+ * the Burn, and the Hollows are their failures still. The clues mostly sound
+ * good and grow darker; the hints go the same way. Nothing says it outright:
+ * the guild hears the truth at the gate.
  */
 import type { BuildingId, HavenHintSource } from '../types.ts';
 
@@ -102,7 +105,7 @@ export const HAVEN_CLUES: readonly HavenClue[] = [
     where: { kind: 'run', locationId: 'checkpoint_bravo', depth: 1 },
     after: ['dropped_radio'],
     find: 'In the guard booth at the barrier, {a.first} finds a clipboard someone left behind.',
-    text: 'HAVEN INTAKE, printed at the top. Names, ages, and a tick or a cross by each. Most have ticks. Three names near the bottom have a feather drawn beside them: Vultures.',
+    text: 'HAVEN INTAKE, printed at the top. Names, ages, blood types, and a tick or a cross by each. Most have ticks. Three names near the bottom have a feather drawn beside them: Vultures.',
     learned: 'Haven keeps a list of everyone it takes in. Three of the names are Vultures.',
   },
   {
@@ -112,7 +115,7 @@ export const HAVEN_CLUES: readonly HavenClue[] = [
     where: { kind: 'run', locationId: 'st_judes', depth: 1 },
     after: ['flyer'],
     find: 'On a ward where the dust has been disturbed, {a.first} finds a stack of forms on a trolley.',
-    text: 'Medical forms, half filled in, on the same paper as the flyer. Height, weight, teeth. At the bottom of each, one word circled. Most say KEEP.',
+    text: 'Medical forms, half filled in, on the same paper as the flyer. Height, weight, blood type, and an outline of a body with every old break and scar marked on it. At the bottom of each, one word circled: CANDIDATE, or DONOR.',
     learned: 'Haven looks people over when they arrive.',
   },
   {
@@ -142,7 +145,7 @@ export const HAVEN_CLUES: readonly HavenClue[] = [
     where: { kind: 'run', locationId: 'the_glow', depth: 1 },
     after: ['intake_list'],
     find: 'Near the crater rim, under a slab of fused glass, {a.first} finds what’s left of someone, and a notebook sealed in a plastic bag.',
-    text: 'Most of the pages are burned through. One isn’t: a careful drawing of the dam from the inside, with the north gate, the turbine hall, long sheds by the water, and a way out along the spillway marked with a cross. Under it, pressed hard into the paper: “Not the north gate. Never the north gate.”',
+    text: 'Most of the pages are burned through. One isn’t: a careful drawing of the dam from the inside, with the north gate, the turbine hall, a long building marked WARDS, a room with a row of tables in it, and a way out along the spillway marked with a cross. Under it, pressed hard into the paper: “Not the north gate. Never the north gate.”',
     learned: 'Someone got out of Haven along the spillway and ran through the Glow. They drew the inside of the dam.',
   },
   {
@@ -169,8 +172,8 @@ export const HAVEN_CLUES: readonly HavenClue[] = [
 /**
  * The Vultures' word (§9.11): once the guild has the intake list and the
  * Vultures are in the Reach, one of theirs comes to the fence about the three
- * names. It's what brings them along at the end (Aviel: rivals or not, both
- * hate slavers). It comes to the Depot on a Depot day, not from a run.
+ * names. It's what brings them along at the end (Aviel: they think Haven is
+ * vile too). It comes to the Depot on a Depot day, not from a run.
  */
 export const HAVEN_VULTURES = {
   id: 'vultures_word',
@@ -209,12 +212,14 @@ export const HAVEN_HINTS: readonly HavenHint[] = [
   { id: 'shoes', from: 'run', tier: 3, text: '{a.first} picks up a child’s shoe at the side of the highway. Further on, the other one.' },
   { id: 'scrubbed', from: 'run', tier: 4, text: 'Scratched into a wall at a crossroads: DON’T ANSWER IT. Someone has tried to scrub it off.' },
   { id: 'graves', from: 'run', tier: 5, text: 'A row of graves by the highway, each with a strip of white cloth tied to the marker. No names. Too many for a family.' },
-  { id: 'chain', from: 'run', tier: 6, text: 'In the weeds by the highway, {a.first} finds a length of chain cut through, and a tin tag stamped with a number.' },
+  { id: 'bracelet', from: 'run', tier: 6, text: 'In the weeds by the highway, {a.first} finds a plastic hospital bracelet, cut off. There’s no name on it, only a number.' },
+  { id: 'seam', from: 'run', tier: 6, text: '{a.first} gets a close look at a dead Hollow. Across its chest runs a row of old stitches, neat as a seam.' },
   { id: 'runner', from: 'run', tier: 7, text: 'Someone runs past going west, barefoot, and won’t stop or say a word. When {a.first} calls after them they run faster.' },
   { id: 'convoy_stops', from: 'run', tier: 4, text: 'From a rooftop, {a.first} watches a white truck stop on the highway. Men get out and look around for a long time, then drive on without anyone.' },
   { id: 'cage_truck', from: 'run', tier: 7, text: 'A white truck lies burned out on the hard shoulder. The back of it is a cage, and the door locks from the outside.' },
   { id: 'tally', from: 'run', tier: 8, text: 'On a road sign someone has scratched a tally, dozens of strokes in fives, and under it: HAVEN TOOK.' },
-  { id: 'tag_2041', from: 'run', tier: 9, text: 'In the ashes of an old campfire, {a.first} finds another tin tag on its cord. Number 2041.' },
+  { id: 'tag_2041', from: 'run', tier: 9, text: 'In the ashes of an old campfire, {a.first} finds another hospital bracelet. Number 2041.' },
+  { id: 'unloading', from: 'run', tier: 8, text: '{a.first} meets a scavenger who swears she saw a white truck at the edge of the Glow, unloading. “Whatever got out walked straight in,” she says. “Didn’t even look back.”' },
   // A newcomer, when they join.
   { id: 'cousin', from: 'gate', tier: 0, text: '{a.first}’s cousin answered the broadcast in the spring. {a.They} {a.is} sure he’s warm and fed by now.' },
   { id: 'coast', from: 'gate', tier: 0, text: '{a.first} says everyone on the coast has heard the broadcast. Half of them have gone.' },
@@ -224,14 +229,15 @@ export const HAVEN_HINTS: readonly HavenHint[] = [
   { id: 'old_left', from: 'gate', tier: 5, text: '{a.first} says Haven doesn’t take everyone. Old people and the sick get left at the fire.' },
   { id: 'counted', from: 'gate', tier: 7, text: '{a.first} won’t talk about the east. {a.They} only asked, twice, whether the guild counts its people.' },
   { id: 'sister_letter', from: 'gate', tier: 3, text: '{a.first} carries a letter from {a.their} sister in Haven, all about the hot water and the gardens. It isn’t in her handwriting.' },
-  { id: 'scarred', from: 'gate', tier: 9, text: '{a.first} has a pale band of scar around one wrist and won’t say where it came from.' },
+  { id: 'scarred', from: 'gate', tier: 9, text: '{a.first} has a long scar from {a.their} collarbone down, far too neat for a field doctor, and won’t say where it came from.' },
   // A trader at the gate.
   { id: 'buys', from: 'trader', tier: 0, text: 'A trader says Haven’s convoys buy anything, and pay in tools that work.' },
   { id: 'highway', from: 'trader', tier: 1, text: 'A trader won’t take the highway east any more. Too many trucks, she says, and they don’t stop for anyone.' },
-  { id: 'rope', from: 'trader', tier: 2, text: 'A trader sold Haven’s people a cartload of rope and wire last month. “What does anyone need that much rope for, in paradise?”' },
+  { id: 'thread', from: 'trader', tier: 2, text: 'A trader sold Haven’s people every needle and reel of thread she had, the good surgical kind. “Somebody out there does a lot of sewing.”' },
   { id: 'red_hand_paid', from: 'trader', tier: 4, text: 'A trader says Red Hand have been rich since they started dealing with Haven. He wouldn’t say in what.' },
   { id: 'twenty_years', from: 'trader', tier: 6, text: 'A trader has been on the roads twenty years. She’s never met anyone who came back from Haven.' },
   { id: 'stopped_selling', from: 'trader', tier: 5, text: 'A trader has stopped selling to Haven’s convoys. She won’t say why, only that she has children.' },
+  { id: 'unfinished', from: 'trader', tier: 6, text: 'A trader says Haven’s drivers talk like preachers. They kept calling her “unfinished”, and she didn’t like how they looked at her.' },
   { id: 'boots', from: 'trader', tier: 8, text: 'A trader says Haven paid her once in boots: good boots, all different sizes, some still laced.' },
   // The radio at night (with a Radio Tower).
   { id: 'children', from: 'radio', tier: 0, text: 'Late at night, between broadcasts, the Haven band plays a song: children singing, a little out of tune.' },
@@ -240,6 +246,8 @@ export const HAVEN_HINTS: readonly HavenHint[] = [
   { id: 'not_fit', from: 'radio', tier: 4, needs: 'dropped_radio', text: 'On the convoy band, faint: “Nine head off the coast road. Two not fit.” A pause. “Leave those.”' },
   { id: 'full', from: 'radio', tier: 7, needs: 'convoy_band', text: 'On the convoy band: “North gate, open up. We’re full, and they’re loud tonight.”' },
   { id: 'roll_call', from: 'radio', tier: 6, needs: 'convoy_band', text: 'On the convoy band, late at night, a voice reads numbers, slowly, for a long time. Every so often another voice says “present.”' },
+  { id: 'be_more', from: 'radio', tier: 5, text: 'The broadcast has another new line, in the same calm voice: “At Haven, you can be more than you are.”' },
+  { id: 'for_the_glass', from: 'radio', tier: 8, needs: 'convoy_band', text: 'On the convoy band: “Two more for the glass tonight. Neither one took.”' },
   { id: 'same_breath', from: 'radio', tier: 8, text: 'Someone at the Depot is sure now that the broadcast is a recording: the same little breath before “clean water”, every hour, for months.' },
   // Talk at the fire.
   { id: 'shower', from: 'fire', tier: 0, text: 'At the fire, {a.first} says {a.they}’d give anything for a hot shower before {a.they} dies. Haven has hot water, surely.' },
@@ -253,8 +261,9 @@ export const HAVEN_HINTS: readonly HavenHint[] = [
   { id: 'bars', from: 'captive', tier: 1, text: '{a.first}, held at the Depot, saw Haven’s trucks once: armour plate, and bars on the back windows. “To keep raiders out,” {a.they} says, not sounding sure.' },
   { id: 'list', from: 'captive', tier: 5, text: '{a.first}, held at the Depot, spits when Haven comes up. “You want to end up on a list?”' },
   { id: 'red_hand_truck', from: 'captive', tier: 7, text: '{a.first}, held at the Depot, drove a truck to Haven for Red Hand once. {a.They} didn’t like the sound from the back.' },
+  { id: 'strong_ones', from: 'captive', tier: 8, text: '{a.first}, held at the Depot, says Red Hand only ever sold Haven the strong ones. “They said they were building something.”' },
   // The Vultures, once they're in the Reach.
   { id: 'gone', from: 'vultures', tier: 2, text: 'A Vulture on the road says they’ve lost people to Haven. Not dead, she says. Gone.' },
-  { id: 'owned', from: 'vultures', tier: 6, text: 'A Vulture says there’s one thing her lot and the guild would agree on, whatever else: nobody should be owned.' },
+  { id: 'the_best', from: 'vultures', tier: 6, text: 'A Vulture says the three they lost to Haven were the strongest they had. “Haven only takes the best,” she says. “So why does nobody ever come back?”' },
   { id: 'waiting', from: 'vultures', tier: 9, text: 'A Vulture on the road asks whether it’s true the guild knows the way now. She looks like she’s been waiting a long time to ask.' },
 ];
