@@ -63,6 +63,8 @@ export interface StoryEndingCard {
   gifts?: string;
   /** The week is over: this was its last step. */
   last: boolean;
+  /** After the broadcast: where Haven goes from here (§9.11). */
+  haven?: string;
 }
 
 /** How the last step went, until read. */
@@ -76,6 +78,7 @@ export function storyEnding(state: GameState): StoryEndingCard | undefined {
     ...(supplies ? { supplies } : {}),
     ...(e.gifts && e.gifts.length > 0 ? { gifts: `${supplies ? 'And ' : ''}${e.gifts.join(', ')}.`.replace(/^a /, 'A ') } : {}),
     last: state.story!.step >= FIRST_WEEK.length,
+    ...(state.story!.step >= FIRST_WEEK.length && state.haven ? { haven: 'Whatever the guild finds out about Haven goes in the new Haven tab, with the first leads to follow.' } : {}),
   };
 }
 

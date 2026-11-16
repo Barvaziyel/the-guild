@@ -6,9 +6,24 @@
 import type { BuildingId, Quality, RelationshipLabel, ResourceId, Resources } from './types.ts';
 
 /** Save format version. Bump together with a migration in save.ts. */
-export const SAVE_VERSION = 25;
+export const SAVE_VERSION = 26;
 /** A guild this many game days old or younger, coming in from an older version, gets the first week too (§9.10). */
 export const STORY_OLD_SAVE_DAYS = 14;
+
+// ---------------------------------------------------------------- Haven (§9.11)
+
+/** A run following a lead finds it this often on the first try... */
+export const HAVEN_FIND_CHANCE = 0.4;
+/** ...and this much more often for each run there that came back without it. */
+export const HAVEN_FIND_TRY = 0.25;
+/** A scouting run looks harder. */
+export const HAVEN_FIND_SCOUT = 0.15;
+/** At least this many game days between hints, so they don't all come at once (Aviel: common, but not a flood). */
+export const HAVEN_HINT_GAP = 3;
+/** How often each place a hint comes from turns one up (when the gap allows). */
+export const HAVEN_HINT_CHANCE = { run: 0.2, gate: 0.6, trader: 0.6, day: 0.12 } as const;
+/** How often the Vultures' word comes, a Depot day, once it can. */
+export const HAVEN_VULTURES_CHANCE = 0.3;
 
 // ---------------------------------------------------------------- time
 

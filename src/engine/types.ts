@@ -533,6 +533,16 @@ export interface RunSummary {
   found?: FoundNews[];
   /** What the run did to the Vultures (§7.11). */
   vultures?: VultureNews;
+  /** What the crew turned up about Haven (§9.11). */
+  haven?: HavenNews;
+}
+
+/** What a run turned up about Haven (§9.11): a clue it was looking for, or a hint on the way. */
+export interface HavenNews {
+  /** A lead followed: the clue's id, and whether they found it (if not, it counts as a try). */
+  lead?: { clue: string; found: boolean; by?: string };
+  /** Something heard or seen on the way: a hint, as it was heard. */
+  hint?: { id: string; text: string };
 }
 
 /** Someone a crew found out there, and who found them. */
@@ -783,6 +793,46 @@ export interface StoryState {
   /** How the last step went, for its card until read. */
   last?: StoryEnding;
 }
+
+/**
+ * Haven (§9.11): the long goal, from the broadcast at the end of the first
+ * week. What the guild has found and heard about it, in order.
+ */
+export interface HavenState {
+  /** The game day the broadcast was first heard. */
+  day: number;
+  /** Clues found, in the order they were found. */
+  found: HavenFound[];
+  /** Runs that followed a lead and came back without it, by clue id. */
+  tries: Record<string, number>;
+  /** Hints heard, in order. */
+  heard: HavenHeard[];
+  /** The game day of the last hint, so they don't all come at once. */
+  lastHint?: number;
+  /** Found and heard when the player last opened the Haven tab: anything past these is new. */
+  seen: { found: number; heard: number };
+}
+
+export interface HavenFound {
+  id: string;
+  day: number;
+  /** Who found it (a survivor id), and where. Missing for what came to the Depot (the Vultures' word). */
+  by?: string;
+  at?: string;
+}
+
+export interface HavenHeard {
+  id: string;
+  day: number;
+  /** As it was heard, with the names filled in. */
+  text: string;
+  /** Where it came from (§9.11): a run, a newcomer, a trader, the radio, the fire, a captive, the Vultures. */
+  source: HavenHintSource;
+  /** The place, for a hint on a run. */
+  at?: string;
+}
+
+export type HavenHintSource = 'run' | 'gate' | 'trader' | 'radio' | 'fire' | 'captive' | 'vultures';
 
 /** Runs home when a step began, in all and at each place (where there were any). */
 export interface StoryBase {
@@ -1135,6 +1185,8 @@ export interface GameState {
   corners: CornerState;
   /** The first week (§9.10): the step under way. Undefined for a guild that never had one (older than its first week when it came in). */
   story?: StoryState;
+  /** Haven (§9.11), from the broadcast on. Missing before it. */
+  haven?: HavenState;
   log: GuildLogEntry[];
   settings: {
     mercyMode: boolean;

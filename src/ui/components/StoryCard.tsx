@@ -31,9 +31,22 @@ export function StoryCard({ state }: { state: GameState }) {
         <p>{ending.text}</p>
         {ending.supplies && <p className="story-gives">{ending.supplies}</p>}
         {ending.gifts && <p className="story-gives">{ending.gifts}</p>}
-        <button type="button" className="btn" onClick={() => act((s) => seenStory(s))}>
-          {ending.last ? 'Done' : 'Next'}
-        </button>
+        {ending.haven && <p>{ending.haven}</p>}
+        {ending.haven ? (
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => {
+              if (act((s) => seenStory(s))) navigate({ screen: 'haven' });
+            }}
+          >
+            Open Haven
+          </button>
+        ) : (
+          <button type="button" className="btn" onClick={() => act((s) => seenStory(s))}>
+            {ending.last ? 'Done' : 'Next'}
+          </button>
+        )}
       </section>
     );
   }

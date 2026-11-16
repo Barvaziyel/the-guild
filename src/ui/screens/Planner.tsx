@@ -41,6 +41,7 @@ import { assaultChoice } from '../vultures-view.ts';
 import { toggleVehicle, vehicleChoices, vehicleNote } from '../vehicles-view.ts';
 import { clockTime } from '../time.ts';
 import { leadChoice } from '../fight-view.ts';
+import { planLeadLine } from '../haven-view.ts';
 
 export function Planner({ state, locationId, step }: { state: GameState; locationId: string; step: 'crew' | 'orders' }) {
   const loc = findLocation(locationId);
@@ -99,6 +100,7 @@ function PlannerForm({ state, locationId, step }: { state: GameState; locationId
   const jobs = jobChoices(state, locationId, assault ? [...JOBS, assault] : JOBS);
   const fromOutpost = outpostPlanNote(state, plan);
   const pace = paceNote(state, plan);
+  const havenLead = planLeadLine(state, plan);
   const lead = leadChoice(state);
   const toggle = (id: string): void => {
     const crew = toggleCrew(plan.crew, id, limit);
@@ -313,6 +315,7 @@ function PlannerForm({ state, locationId, step }: { state: GameState; locationId
               {pace && <span className="panel-help"> {pace}</span>}
               {fromOutpost && <span className="panel-help"> {fromOutpost}</span>}
             </p>
+            {havenLead && <p className="haven-plan-line">{havenLead}</p>}
             {problems.length > 0 && (
               <ul className="problems">
                 {problems.map((p) => (

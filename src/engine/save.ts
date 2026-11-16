@@ -10,7 +10,7 @@ import { addGuildLog } from './chronicle.ts';
 import { buildingName, defaultPosts, initialBuildings, trimPosts } from './depot/buildings.ts';
 import { fullName } from './text.ts';
 import { initialLocations } from './locations.ts';
-import { FIRST_NAMES } from './content/index.ts';
+import { FIRST_NAMES, FIRST_WEEK } from './content/index.ts';
 import { orientationFor } from './generator.ts';
 import type { GameState, Pronouns, Survivor } from './types.ts';
 import { newVultures } from './vultures.ts';
@@ -193,6 +193,12 @@ const MIGRATIONS: Record<number, (save: Record<string, unknown>) => void> = {
       runs += l.runs;
     }
     state.story = { step: 0, base: { runs, at } };
+  },
+  25: (save) => {
+    // Haven (2.9.0): a guild past its first week has heard the broadcast already. Without the week, a Depot day starts it once there's a Radio Tower.
+    const state = save as unknown as GameState;
+    if (state.haven || !state.story || state.story.step < FIRST_WEEK.length) return;
+    state.haven = { day: state.depot.lastDay, found: [], tries: {}, heard: [], seen: { found: 0, heard: 0 } };
   },
 };
 

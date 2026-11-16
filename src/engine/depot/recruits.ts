@@ -13,6 +13,7 @@ import type { Candidate, GameState, Survivor } from '../types.ts';
 import { STAT_IDS } from '../types.ts';
 import { bunksCap, hasFreeBunk, workingLevel } from './buildings.ts';
 import { vulturesGet, vulturesTake } from '../vultures.ts';
+import { gateHint } from '../haven.ts';
 
 /** The day's chance that someone answers the radio. */
 export function radioAnswerChance(state: GameState): number {
@@ -79,13 +80,13 @@ export function takeIn(state: GameState, candidateId: string, rng: Rng, day: num
   if (c!.rescued) {
     // Brought home by a rescue run and waiting for a bed (§10.1).
     joinRescued(state, s, state.survivors.find((x) => x.id === c!.rescued!.by), c!.rescued.locationId, rng, day);
-    return s;
-  }
-  if (c!.found) {
+  } else if (c!.found) {
     // Found out there by a crew and waiting for a bed (§10).
     joinFound(state, s, state.survivors.find((x) => x.id === c!.found!.by), c!.found.locationId, rng, day);
-    return s;
+  } else {
+    recruit(state, s, rng, day, c!.wanderer ? 'Came in off the road and stayed.' : 'Answered the radio and joined the guild.');
   }
-  recruit(state, s, rng, day, c!.wanderer ? 'Came in off the road and stayed.' : 'Answered the radio and joined the guild.');
+  // Someone new brings news from the roads, Haven's too (§9.11).
+  gateHint(state, s, day);
   return s;
 }

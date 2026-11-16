@@ -7,6 +7,7 @@
  * is collected from the card.
  */
 import type { BuildingId, Resources } from '../types.ts';
+import { HAVEN_BROADCAST } from './haven.ts';
 
 export type StoryGoal =
   /** Nothing in the stash that would fill an empty slot on anyone: the starting gear handed out. */
@@ -111,7 +112,7 @@ export const FIRST_WEEK: readonly StoryStep[] = [
     goalText: 'Build the Radio Tower',
     goal: { kind: 'building', building: 'radio_tower', level: 1 },
     // The lead to the long goal (Aviel, 2026-11-15): Haven. Finding it is a roadmap step of its own (§15).
-    done: 'The first night on the air is mostly static. Then a woman’s voice, calm and clear: “This is Haven. We have power, clean water, and room for you. All survivors welcome.” It comes again on the hour, every hour, the same words. Nobody here has heard of Haven, or knows where it is. Everyone is listening now.',
+    done: `The first night on the air is mostly static. Then a woman’s voice, calm and clear: “${HAVEN_BROADCAST}” It comes again on the hour, every hour, the same words. Nobody here has heard of Haven, or knows where it is. Everyone is listening now.`,
     gives: [{ kind: 'supplies', change: { scrap: 10 } }],
   },
 ];
