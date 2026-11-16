@@ -66,3 +66,14 @@ describe('expedition content integrity', () => {
     }
   });
 });
+
+describe('what attacks them, in a sentence', () => {
+  test('a verb after the group agrees with one of them or several (2.8.9)', () => {
+    for (const [type, lines] of Object.entries(COMBAT_INTROS)) {
+      for (const line of lines) {
+        // A bare plural verb after {Group} reads wrong for "A Scrap Drone": it takes {s}, {are} or {have}.
+        assert.doesNotMatch(line, /\{Group\} (are|have|step|shamble|roll)(?=[ .,])/, `${type}: ${line}`);
+      }
+    }
+  });
+});

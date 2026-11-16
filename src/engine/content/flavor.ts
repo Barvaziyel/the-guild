@@ -30,26 +30,31 @@ export const DEPART_LINES: CrewLines = {
   ],
 };
 
+/**
+ * {group} is who they are ("a Raider", "three Rad-Hounds"); a verb after it
+ * agrees through {s}, {are} and {have}, so one of them "rolls into view" and
+ * a pack "roll into view" (2.8.9).
+ */
 export const COMBAT_INTROS: Record<EnemyType, readonly string[]> = {
   feral: [
     'A low growl, then another. {Group}, coming in fast.',
-    'Eyes shine in the undergrowth. {Group} have caught the scent.',
+    'Eyes shine in the undergrowth. {Group} {have} caught the scent.',
     'Something moves at the edge of sight. Then it stops pretending: {group}.',
   ],
   raider: [
-    '{Group} step out from cover, weapons already up.',
+    '{Group} step{s} out from cover, weapons already up.',
     'A whistle from the rooftops. {Group}, and they want the packs.',
-    'Voices ahead, then silence. {Group} are already looking this way.',
+    'Voices ahead, then silence. {Group} {are} already looking this way.',
   ],
   hollow: [
-    'A wet, dragging sound. {Group} shamble out of the dark.',
+    'A wet, dragging sound. {Group} shamble{s} out of the dark.',
     'What looked like bodies starts to get up. {Group}.',
     'A smell like burnt hair arrives first. Then {group}.',
   ],
   scrapbot: [
     'A red light blinks on. "PRESENT IDENTIFICATION." {Group}.',
     'Servos whine somewhere ahead. {Group}, still on patrol after forty years.',
-    'A speaker crackles: "THIS AREA IS RESTRICTED." {Group} roll into view.',
+    'A speaker crackles: "THIS AREA IS RESTRICTED." {Group} roll{s} into view.',
   ],
 };
 
@@ -143,6 +148,16 @@ export const SCAVENGE_NOTHING = [
 export const POCKET_CAUGHT = [
   '{b.first} catches {a.first} slipping something into {a.their} own pocket. Words are exchanged.',
   '{b.first} sees {a.first} palm part of the haul. It gets ugly.',
+] as const;
+
+/**
+ * Pocketed and nobody saw (2.8.9): the log still says where it went, without
+ * naming anyone, so a find that never reaches the packs isn't a mystery.
+ * {res} is what went missing, as an amount: "1 tech".
+ */
+export const POCKET_UNSEEN = [
+  'Somewhere between the finding and the packing, {res} goes missing.',
+  'By the time the packs are closed, {res} is nowhere to be found.',
 ] as const;
 
 export const TRAVEL_FIND = [

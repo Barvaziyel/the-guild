@@ -68,3 +68,33 @@ describe('falling out', () => {
     assert.equal(blamed, 3);
   });
 });
+
+describe('sticky fingers', () => {
+  test('a find that never reaches the packs says so, whether anyone saw it go or not (2.8.9)', () => {
+    let unseen = 0;
+    for (let i = 0; i < 400; i++) {
+      const state = openGame(`pocket-${i}`);
+      for (const s of state.survivors) addTrait(s, 'greedy', { day: 1, silent: true, force: true });
+      const sim = simulateRun(state, testPlan(state, 'rail_yard', { job: 'scavenge' }, 2), `p${i}`, T0);
+      const text = lines(sim);
+      // What the log says was found, less what it says went missing or was palmed, is what came home.
+      const found: Record<string, number> = {};
+      for (const t of text) {
+        const m = /(?:turns up|finds little:) (\d+) (\w+)\./.exec(t);
+        if (m) found[m[2]!] = (found[m[2]!] ?? 0) + Number(m[1]);
+      }
+      const gone = text.filter((t) => /goes missing\.|is nowhere to be found\./.test(t)).length;
+      // More than they could carry, and the log says how much was left (1.6.2).
+      const left = text.reduce((n, t) => n + Number(/leave (\d+) loads? behind/.exec(t)?.[1] ?? 0), 0);
+      const caught = text.filter((t) => /pocket\. Words are exchanged|palm part of the haul/.test(t)).length;
+      // Out of reach of what attacked them, they drop a third of the haul, and the log says so (2.3.0).
+      if (text.some((t) => /dropping a third of what they found/.test(t))) continue;
+      unseen += gone;
+      const scavenged = Object.values(found).reduce((a, b) => a + b, 0);
+      const home = Object.values(sim.result.loot).reduce((a, b) => a + b, 0);
+      // Travel finds add scrap the scavenging lines don't count, so home can be more; never less without a line.
+      assert.ok(home >= scavenged - gone - caught - left, `run ${i}: found ${scavenged}, home ${home}, gone ${gone}, caught ${caught}\n${text.join('\n')}`);
+    }
+    assert.ok(unseen > 5, `unseen pocketing happens (${unseen})`);
+  });
+});
