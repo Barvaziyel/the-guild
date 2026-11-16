@@ -327,6 +327,21 @@ export function fightEnd(lines: readonly LogLine[], shown: number): LogLine[] {
   return after.length > 0 ? after : lines.slice(-4);
 }
 
+/**
+ * Where the stage plays a commanded fight's end from: the fight as the player
+ * last saw it, if that was this fight and the end came after it. Undefined
+ * otherwise, and the stage just shows the end.
+ */
+export function endFrom(seen: FightView | undefined, end: FightView | undefined): FightView | undefined {
+  return seen && end && seen.enemies.length === end.enemies.length && seen.acts.length <= end.acts.length ? seen : undefined;
+}
+
+/** The lines under a fight's end: in step with the stage while it plays the last round (`told`), all of them once it's done. */
+export function endLines(lines: readonly LogLine[], before: FightView | undefined, told: number | undefined): LogLine[] {
+  const shown = before?.lines.length ?? 0;
+  return told === undefined ? fightEnd(lines, shown) : lines.slice(shown, told);
+}
+
 /** "18 of 24": a bar's share, 0 to 1. */
 export function hpShare(hp: number, max: number): number {
   return max > 0 ? Math.max(0, Math.min(1, hp / max)) : 0;

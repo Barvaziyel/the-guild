@@ -195,6 +195,8 @@ describe('at the gate, before the fight', () => {
       }
       const between = regroupView(state, now);
       if (!between) continue;
+      assert.ok(between.fight?.over, 'the first band’s fight as it ended, for the stage');
+      assert.equal(between.title, between.fight.over === 'stalemate' ? 'The first band pulls back' : 'The first band is beaten');
       assert.match(between.against, /^Coming up the road: .+\.$/);
       assert.ok(between.people.every((p) => (p.can ? /^\d+\/\d+ HP/.test(p.state) : p.state === 'Down')));
       return;

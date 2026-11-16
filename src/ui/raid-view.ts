@@ -29,6 +29,7 @@ import {
   recallPreview,
   stareOdds,
   type DepotRaid,
+  type FightView,
   type GameState,
   type Run,
 } from '../engine/index.ts';
@@ -302,11 +303,15 @@ export function gateView(state: GameState, now: number): GateView | undefined {
 // ---------------------------------------------------------------- between the bands
 
 export interface RegroupView {
+  /** "The first band is beaten", or pulls back from a fight neither side could finish. */
+  title: string;
   /** "Coming up the road: two Raider Scavs." */
   against: string;
   /** The patching up. */
   lines: string[];
   people: { id: string; name: string; state: string; can: boolean }[];
+  /** The first band's fight as it ended: its last round plays on the stage. */
+  fight?: FightView;
 }
 
 /** The first band beaten under command, the second coming: who's fit to meet it. Undefined otherwise. */
@@ -314,9 +319,11 @@ export function regroupView(state: GameState, now: number): RegroupView | undefi
   const at = raidRegroup(state, now);
   if (!at) return undefined;
   return {
+    title: at.fight?.over === 'stalemate' ? 'The first band pulls back' : 'The first band is beaten',
     against: `Coming up the road: ${at.against}.`,
     lines: at.lines.map((l) => l.text),
     people: at.people.map((p) => ({ id: p.id, name: p.name, state: p.down ? 'Down' : `${p.hp}/${p.maxHp} HP${p.fought ? '' : ', fresh'}`, can: !p.down })),
+    ...(at.fight ? { fight: at.fight } : {}),
   };
 }
 

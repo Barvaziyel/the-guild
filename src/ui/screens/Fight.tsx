@@ -4,7 +4,7 @@ import { tapOnStage } from '../battle-view.ts';
 import { Meter } from '../components/Bars.tsx';
 import { BattleStage } from '../components/BattleStage.tsx';
 import { Sheet } from '../components/Sheet.tsx';
-import { crewChips, fightCard, fightEnd, fightStatus, jobPanel, livePicks, needsTarget, nerveLine, orderHint, roundOrders, targetName, theirMoves, tickerLines, whatTheyAre, withRanks, type Picks, type Ranks } from '../fight-view.ts';
+import { crewChips, endFrom, endLines, fightCard, fightStatus, jobPanel, livePicks, needsTarget, nerveLine, orderHint, roundOrders, targetName, theirMoves, tickerLines, whatTheyAre, withRanks, type Picks, type Ranks } from '../fight-view.ts';
 import { goBack, navigate, useAction, useNow } from '../hooks.ts';
 
 /** A fight on a led run, under the player's command (§7.13). */
@@ -53,10 +53,10 @@ function Over({ state, run, seen }: { state: GameState; run: Run; seen: FightVie
   const led = [...(run.lead?.fights ?? [])].reverse().find((f) => f.took !== undefined && f.ended !== undefined);
   const end = useMemo(() => (led ? lastFought(state, run.id) : undefined), [state, run.id, led]);
   // The last round plays out on the stage when the player watched the round before it.
-  const before = seen && end && seen.enemies.length === end.enemies.length && seen.acts.length <= end.acts.length ? seen : undefined;
+  const before = endFrom(seen, end);
   const [told, setTold] = useState<number | undefined>(undefined);
   const all = end?.lines ?? (led ? (run.beats[led.fromBeat]?.lines ?? []) : []);
-  const lines = !led ? [] : told === undefined ? fightEnd(all, before?.lines.length ?? 0) : all.slice(before?.lines.length ?? 0, told);
+  const lines = led ? endLines(all, before, told) : [];
   const solo = run.plan.crew.length === 1;
   const who = solo ? (run.result.crew[0]?.firstName ?? 'They') : 'The crew';
   return (
