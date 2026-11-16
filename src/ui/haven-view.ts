@@ -90,7 +90,14 @@ export function havenView(state: GameState, seen: { found: number; heard: number
   const found = haven.found.map((f, i) => {
     const who = f.by ? state.survivors.find((s) => s.id === f.by)?.firstName ?? state.memorial.find((m) => m.id === f.by)?.firstName : undefined;
     const where = f.at ? ` at ${placeIn(f.at)}` : '';
-    const line = who ? `Found by ${who}${where}, day ${f.day}.` : f.at ? `Found${where}, day ${f.day}.` : `Day ${f.day}.`;
+    // What came to the Depot rather than on a run: the Vultures at the fence, or a building's clue worked out.
+    const line = who
+      ? `Found by ${who}${where}, day ${f.day}.`
+      : f.at
+        ? `Found${where}, day ${f.day}.`
+        : f.id === HAVEN_VULTURES.id
+          ? `At the fence, day ${f.day}.`
+          : `Worked out at the Depot, day ${f.day}.`;
     return { id: f.id, title: title(f.id), text: text(f.id), line, isNew: i >= seen.found };
   });
   const heard = haven.heard.map((h, i) => ({ text: h.text, line: `${heardFrom(h)}, day ${h.day}.`, isNew: i >= seen.heard }));
@@ -190,3 +197,72 @@ export function havenReady(state: GameState): string[] {
 function lower(title: string): string {
   return title.charAt(0).toLowerCase() + title.slice(1);
 }
+
+// ---------------------------------------------------------------- the road (2.9.0, Aviel: "make it look better")
+
+/** A clue on the road: found, a lead open now, or still unknown. */
+export type RoadStop = 'found' | 'open' | 'unknown';
+
+export interface RoadView {
+  /** One a clue, found ones first (in the order found), then the open leads, then the rest. */
+  stops: RoadStop[];
+  found: number;
+  total: number;
+  /** The far end: "Haven?" until they know where it is. */
+  end: string;
+  /** Under the map, in the notebook's hand: "6 of 13 found." or "The road is open." */
+  line: string;
+  roadOpen: boolean;
+}
+
+/** The hand-drawn road from the Depot to Haven at the top of the tab: how far along the guild is. */
+export function roadView(state: GameState): RoadView | undefined {
+  const haven = state.haven;
+  if (!haven) return undefined;
+  const total = HAVEN_CLUES.length;
+  const found = HAVEN_CLUES.filter((c) => haven.found.some((f) => f.id === c.id)).length;
+  const open = havenLeads(state).length;
+  const stops: RoadStop[] = [...Array<RoadStop>(found).fill('found'), ...Array<RoadStop>(open).fill('open'), ...Array<RoadStop>(total - found - open).fill('unknown')];
+  const roadOpen = havenRoadOpen(state);
+  const known = haven.found.some((f) => f.id === 'bearing');
+  return {
+    stops,
+    found,
+    total,
+    end: known ? 'Corwin Dam' : 'Haven?',
+    line: roadOpen ? 'The road is open.' : `${found} of ${total} found.`,
+    roadOpen,
+  };
+}
+
+/** Where the stops sit on the 340 × 120 map: a wandering road, left to right, the same every time. */
+export function roadPoints(stops: number): { x: number; y: number }[] {
+  const pts = [{ x: 22, y: 86 }];
+  for (let i = 0; i < stops; i++) {
+    const t = (i + 1) / (stops + 1);
+    // Climbing gently east toward Haven, with a lazy bend or two, like a road on a map.
+    pts.push({ x: Math.round(22 + t * 284), y: Math.round(84 - 30 * t + 11 * Math.sin(t * 9.5 + 0.3)) });
+  }
+  pts.push({ x: 312, y: 44 });
+  return pts;
+}
+
+/** A smooth line through points (Catmull-Rom as cubic Béziers), as an SVG path. */
+export function smoothPath(points: readonly { x: number; y: number }[]): string {
+  if (points.length === 0) return '';
+  const p = points;
+  let d = `M${p[0]!.x} ${p[0]!.y}`;
+  for (let i = 0; i < p.length - 1; i++) {
+    const a = p[Math.max(0, i - 1)]!;
+    const b = p[i]!;
+    const c = p[i + 1]!;
+    const e = p[Math.min(p.length - 1, i + 2)]!;
+    const c1 = { x: b.x + (c.x - a.x) / 6, y: b.y + (c.y - a.y) / 6 };
+    const c2 = { x: c.x - (e.x - b.x) / 6, y: c.y - (e.y - b.y) / 6 };
+    d += ` C${c1.x.toFixed(1)} ${c1.y.toFixed(1)} ${c2.x.toFixed(1)} ${c2.y.toFixed(1)} ${c.x} ${c.y}`;
+  }
+  return d;
+}
+
+/** How many hints the Heard page shows before "Older": the rest fold away, so the tab stays short. */
+export const HEARD_SHOWN = 6;

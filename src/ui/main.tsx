@@ -1,4 +1,5 @@
 import '@fontsource-variable/big-shoulders-stencil/wght.css';
+import '@fontsource-variable/caveat/wght.css';
 import '@fontsource/atkinson-hyperlegible-next/latin-400.css';
 import '@fontsource/atkinson-hyperlegible-next/latin-400-italic.css';
 import '@fontsource/atkinson-hyperlegible-next/latin-700.css';

@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { FIRST_WEEK, claimStory, newGame, startHaven, type GameState } from '../engine/index.ts';
+import { FIRST_WEEK, HAVEN_CLUES, claimStory, newGame, startHaven, type GameState } from '../engine/index.ts';
 import { bellItems } from './bell-view.ts';
-import { havenReady, havenView, leadPlaces, placeLeadLine, planLeadLine, reportHavenLine } from './haven-view.ts';
+import { havenReady, havenView, leadPlaces, placeLeadLine, planLeadLine, reportHavenLine, roadPoints, roadView, smoothPath } from './haven-view.ts';
 import { storyEnding } from './story-view.ts';
 
 const T0 = Date.UTC(2026, 10, 16, 8);
@@ -132,5 +132,50 @@ describe('leads elsewhere', () => {
     const card = storyEnding(state)!;
     assert.ok(card.last);
     assert.match(card.haven!, /Haven tab/);
+  });
+});
+
+describe('the road at the top of the tab', () => {
+  test('a stop a clue: found first, then open leads, then the rest; the far end unnamed until the bearing', () => {
+    const state = heard('road-map');
+    let road = roadView(state)!;
+    assert.equal(road.total, HAVEN_CLUES.length);
+    assert.deepEqual(road.stops.slice(0, 4), ['open', 'open', 'open', 'unknown']);
+    assert.equal(road.line, `0 of ${HAVEN_CLUES.length} found.`);
+    assert.equal(road.end, 'Haven?');
+    find(state, 'kessler_note', 'logbook');
+    road = roadView(state)!;
+    assert.deepEqual(road.stops.slice(0, 2), ['found', 'found']);
+    assert.equal(road.stops.filter((s) => s === 'open').length, havenView(state)!.leads.length);
+    assert.equal(road.line, `2 of ${HAVEN_CLUES.length} found.`);
+    find(state, 'bearing');
+    assert.equal(roadView(state)!.end, 'Corwin Dam');
+    find(state, 'gate_code', 'notebook');
+    assert.equal(roadView(state)!.line, 'The road is open.');
+    assert.ok(roadView(state)!.roadOpen);
+  });
+
+  test('the Vultures’ word isn’t a stop on the road', () => {
+    const state = heard('road-vultures');
+    state.haven!.found.push({ id: 'vultures_word', day: 4 });
+    assert.equal(roadView(state)!.found, 0);
+  });
+
+  test('the map: the Depot, a stop a clue, Haven, all on the paper', () => {
+    const pts = roadPoints(HAVEN_CLUES.length);
+    assert.equal(pts.length, HAVEN_CLUES.length + 2);
+    for (const p of pts) assert.ok(p.x > 10 && p.x < 330 && p.y > 20 && p.y < 100, `${p.x},${p.y}`);
+    for (let i = 1; i < pts.length; i++) assert.ok(pts[i]!.x > pts[i - 1]!.x, 'left to right');
+    const d = smoothPath(pts);
+    assert.match(d, /^M22 86 C/);
+    assert.equal((d.match(/C/g) ?? []).length, pts.length - 1);
+  });
+});
+
+describe('the scraps', () => {
+  test('what came to the Depot says so', () => {
+    const state = heard('scrap-lines');
+    state.haven!.found.push({ id: 'vultures_word', day: 30 }, { id: 'convoy_band', day: 31 });
+    assert.deepEqual(havenView(state)!.found.map((f) => f.line), ['Worked out at the Depot, day 31.', 'At the fence, day 30.']);
   });
 });

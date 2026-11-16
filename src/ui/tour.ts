@@ -438,7 +438,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     route: (state) => (state.haven ? { screen: 'haven' } : { screen: 'depot' }),
     text: (state) =>
       state.haven
-        ? 'The long goal: find Haven. This tab keeps what the guild knows, the leads to follow (a run there might turn one up, or a building), what crews found, and what was heard on the roads.'
+        ? 'The long goal: find Haven. This tab is the guild’s notebook on it. The road at the top fills in as clues turn up; under it are what you know, the leads to follow (a run there might turn one up, or a building), what crews found, and what was heard on the roads.'
         : 'The long goal comes over the radio at the end of the first week. From then on a Haven tab keeps what the guild learns about it: leads to follow on runs, what crews find, and what people hear on the roads.',
   },
   {
