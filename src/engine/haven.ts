@@ -7,13 +7,28 @@
  * content/haven.ts. Every roll here has its own dice, so nothing else in a
  * run or a Depot day comes out differently for it.
  */
-import { addGuildLog } from './chronicle.ts';
-import { HAVEN_FIND_CHANCE, HAVEN_FIND_SCOUT, HAVEN_FIND_TRY, HAVEN_HINT_CHANCE, HAVEN_HINT_GAP, HAVEN_VULTURES_CHANCE } from './constants.ts';
-import { HAVEN_BROADCAST, HAVEN_CLUES, HAVEN_HINTS, HAVEN_ROAD, HAVEN_VULTURES, type HavenClue, type HavenHint } from './content/haven.ts';
+import { addChronicle, addGuildLog } from './chronicle.ts';
+import {
+  HAVEN_DREAMER_CHANCE,
+  HAVEN_DREAMER_CLUES,
+  HAVEN_DREAMER_GUILD,
+  HAVEN_DREAMER_KNOWN,
+  HAVEN_DREAMER_WAIT,
+  HAVEN_FIND_CHANCE,
+  HAVEN_FIND_SCOUT,
+  HAVEN_FIND_TRY,
+  HAVEN_HINT_CHANCE,
+  HAVEN_HINT_GAP,
+  HAVEN_VULTURES_CHANCE,
+} from './constants.ts';
+import { HAVEN_BROADCAST, HAVEN_CLUES, HAVEN_DREAMER, HAVEN_HINTS, HAVEN_ROAD, HAVEN_VULTURES, type HavenClue, type HavenHint } from './content/haven.ts';
 import { getLocation } from './content/index.ts';
 import { atDepot } from './depot/buildings.ts';
+import { childrenOf } from './family.ts';
 import { dayAt } from './game.ts';
+import { leaveGuild } from './leaving.ts';
 import { planDepth } from './locations.ts';
+import { partnerOf } from './relationships.ts';
 import { Rng } from './rng.ts';
 import { fillRoles } from './text.ts';
 import type { GameState, HavenFound, HavenHeard, HavenHintSource, HavenNews, HavenState, RunPlan, Survivor } from './types.ts';
@@ -32,6 +47,11 @@ export function getClue(id: string): HavenClue {
 
 export function clueFound(state: GameState, id: string): boolean {
   return state.haven?.found.some((f) => f.id === id) ?? false;
+}
+
+/** Clues found, not counting what's filed with them without being one (the Vultures' word, a goodbye). */
+export function cluesKnown(state: GameState): number {
+  return state.haven?.found.filter((f) => f.id !== HAVEN_VULTURES.id && f.id !== HAVEN_DREAMER.id).length ?? 0;
 }
 
 /** A clue the guild can go after now: not found yet, and everything it follows on from is. */
@@ -97,6 +117,8 @@ export interface RunHaven {
   tries: number;
   /** Hints a run could come across now, the earliest first. Empty while one came too recently. */
   hints: HavenHint[];
+  /** The one who goes is on this run, ready to (§9.11). */
+  dreamer?: string;
 }
 
 export function runHaven(state: GameState, plan: RunPlan, departAt: number): RunHaven | undefined {
@@ -107,15 +129,24 @@ export function runHaven(state: GameState, plan: RunPlan, departAt: number): Run
     ...(clue ? { clue } : {}),
     tries: clue ? (state.haven.tries[clue.id] ?? 0) : 0,
     hints: hintDue(state, day) ? hintsFrom(state, 'run') : [],
+    ...(dreamerGoes(state, plan) ? { dreamer: state.haven.dreamer!.id } : {}),
   };
+}
+
+/** Ready to go, and on a run with someone else along. */
+function dreamerGoes(state: GameState, plan: RunPlan): boolean {
+  const d = state.haven?.dreamer;
+  return !!d && d.ready !== undefined && d.gone === undefined && plan.crew.includes(d.id) && plan.crew.length >= 2;
 }
 
 /**
  * At the end of a run that made it there and back: did they find what they
  * went for, and did anyone come across a hint on the way? Its own dice.
- * `crew` are the ones standing; the finder is whoever's sharpest.
+ * `crew` are the ones alive; the finder is whoever's sharpest. `up` are the
+ * ones on their feet: the one who goes walks off from the road home if they
+ * are, with someone else there to see it.
  */
-export function playRunHaven(look: RunHaven, seed: string, crew: Survivor[], scouting: boolean, wits: (s: Survivor) => number): HavenNews | undefined {
+export function playRunHaven(look: RunHaven, seed: string, crew: Survivor[], scouting: boolean, wits: (s: Survivor) => number, up: string[] = []): HavenNews | undefined {
   if (crew.length === 0) return undefined;
   const rng = new Rng(`haven:${seed}`);
   const news: HavenNews = {};
@@ -128,7 +159,8 @@ export function playRunHaven(look: RunHaven, seed: string, crew: Survivor[], sco
     const hint = pickHint(look.hints, rng);
     news.hint = { id: hint.id, text: fillRoles(hint.text, { a: rng.pick(crew) }) };
   }
-  return news.lead || news.hint ? news : undefined;
+  if (look.dreamer && up.includes(look.dreamer) && up.length >= 2) news.ran = { id: look.dreamer, saw: up.filter((id) => id !== look.dreamer) };
+  return news.lead || news.hint || news.ran ? news : undefined;
 }
 
 /** The run's line when they find the clue. */
@@ -147,6 +179,11 @@ export function applyHavenNews(state: GameState, news: HavenNews | undefined, lo
   if (news.hint && !haven.heard.some((h) => h.id === news.hint!.id)) {
     hear(state, { id: news.hint.id, day, text: news.hint.text, source: 'run', at: locationId }, false);
   }
+  const ran = news.ran;
+  if (ran && haven.dreamer?.id === ran.id && haven.dreamer.gone === undefined) {
+    const s = state.survivors.find((x) => x.id === ran.id);
+    if (s) goEast(state, s, day, locationId, ran.saw);
+  }
 }
 
 // ---------------------------------------------------------------- hints
@@ -161,7 +198,7 @@ function hintDue(state: GameState, day: number): boolean {
 function hintsFrom(state: GameState, from: HavenHintSource): HavenHint[] {
   const haven = state.haven!;
   const heard = new Set(haven.heard.map((h) => h.id));
-  const known = haven.found.filter((f) => f.id !== HAVEN_VULTURES.id).length;
+  const known = cluesKnown(state);
   return HAVEN_HINTS.filter((h) => h.from === from && !heard.has(h.id) && h.tier <= known && (!h.needs || clueFound(state, h.needs)));
 }
 
@@ -215,6 +252,7 @@ export function playHavenDay(state: GameState, day: number): void {
     addGuildLog(state, day, `On the radio, a woman’s voice, calm and clear: “${HAVEN_BROADCAST}” It comes again every hour. Nobody here has heard of Haven.`, ['haven']);
     return;
   }
+  if (playDreamer(state, day)) return;
   const rng = new Rng(`haven:${state.seed}:day:${day}`);
   if (!clueFound(state, HAVEN_VULTURES.id) && HAVEN_VULTURES.after.every((id) => clueFound(state, id)) && state.vultures.arrived && rng.chance(HAVEN_VULTURES_CHANCE)) {
     file(state, HAVEN_VULTURES.id, day);
@@ -233,6 +271,74 @@ export function playHavenDay(state: GameState, day: number): void {
   const { from, person } = rng.pick(open);
   const hint = pickHint(hintsFrom(state, from), rng);
   hear(state, { id: hint.id, day, text: person ? fillRoles(hint.text, { a: person }) : hint.text, source: from }, true);
+}
+
+// ---------------------------------------------------------------- the one who goes
+
+/** Could be the one (§9.11): at the Depot, in the guild a while, with no partner or child to keep them. */
+function couldGo(state: GameState, s: Survivor, day: number): boolean {
+  return atDepot(s) && day - s.joinedDay >= HAVEN_DREAMER_KNOWN && !partnerOf(state, s.id) && childrenOf(state, s.id).length === 0;
+}
+
+/**
+ * The one who goes, on a Depot day (§9.11): picked once the guild knows
+ * enough and is big enough; a line about them at the fire now and then; ready
+ * when the last is heard (or the road is open); and if they're kept off runs
+ * too long after that, gone in the night. Its own dice. True when something
+ * happened that takes the day's hint.
+ */
+function playDreamer(state: GameState, day: number): boolean {
+  const haven = state.haven!;
+  let d = haven.dreamer;
+  // Dead, or gone another way, before it came to it: it may get hold of someone else.
+  if (d && d.gone === undefined && !state.survivors.some((s) => s.id === d!.id)) {
+    delete haven.dreamer;
+    d = undefined;
+  }
+  if (d?.gone !== undefined) return false;
+  const known = cluesKnown(state);
+  const rng = new Rng(`haven:${state.seed}:dreamer:${day}`);
+  if (!d) {
+    if (known < HAVEN_DREAMER_CLUES || state.survivors.length < HAVEN_DREAMER_GUILD) return false;
+    const pool = state.survivors.filter((s) => couldGo(state, s, day));
+    if (pool.length === 0) return false;
+    d = haven.dreamer = { id: rng.pick(pool).id, day };
+  }
+  const s = state.survivors.find((x) => x.id === d!.id)!;
+  if (d.ready === undefined) {
+    const next = HAVEN_DREAMER.lines.find((l) => !haven.heard.some((h) => h.id === l.id));
+    if (!next || havenRoadOpen(state)) {
+      d.ready = day;
+      return false;
+    }
+    if (next.tier > known || !atDepot(s) || !hintDue(state, day) || !rng.chance(HAVEN_DREAMER_CHANCE)) return false;
+    hear(state, { id: next.id, day, text: fillRoles(next.text, { a: s }), source: 'fire' }, true);
+    if (next === HAVEN_DREAMER.lines.at(-1)) d.ready = day;
+    return true;
+  }
+  if (day - d.ready < HAVEN_DREAMER_WAIT || s.status === 'away') return false;
+  goEast(state, s, day);
+  return true;
+}
+
+/** They go: from the road home (`at`, with who saw it), or from home in the night. */
+function goEast(state: GameState, s: Survivor, day: number, at?: string, saw: string[] = []): void {
+  const haven = state.haven!;
+  haven.dreamer!.gone = day;
+  haven.found.push({ id: HAVEN_DREAMER.id, day, ...(at ? { at } : {}) });
+  if (!at) addGuildLog(state, day, fillRoles(HAVEN_DREAMER.night, { a: s }), ['haven', s.id]);
+  for (const id of saw) {
+    const o = state.survivors.find((x) => x.id === id);
+    if (o) addChronicle(o, day, fillRoles(HAVEN_DREAMER.saw, { a: s }), ['haven', s.id]);
+  }
+  leaveGuild(state, s, day, HAVEN_DREAMER.reason, new Rng(`haven:${state.seed}:gone`));
+}
+
+/** The one who went (§9.11), wherever they are now. */
+export function havenDreamer(state: GameState): Survivor | undefined {
+  const id = state.haven?.dreamer?.id;
+  if (!id) return undefined;
+  return state.survivors.find((s) => s.id === id) ?? state.departed.find((s) => s.id === id) ?? state.memorial.find((s) => s.id === id);
 }
 
 /** The player has looked at the Haven tab: what's there now isn't new. */

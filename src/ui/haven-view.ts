@@ -7,12 +7,15 @@ import {
   DEPTH_NAMES,
   HAVEN_BROADCAST,
   HAVEN_CLUES,
+  HAVEN_DREAMER,
   HAVEN_VULTURES,
   buildingDef,
+  fillRoles,
   clueReady,
   depthOpen,
   getClue,
   getLocation,
+  havenDreamer,
   havenLeads,
   havenRoadOpen,
   knownLocations,
@@ -84,10 +87,18 @@ function placeIn(id: string): string {
 export function havenView(state: GameState, seen: { found: number; heard: number } = { found: Infinity, heard: Infinity }): HavenView | undefined {
   const haven = state.haven;
   if (!haven) return undefined;
-  const title = (id: string): string => (id === HAVEN_VULTURES.id ? HAVEN_VULTURES.title : getClue(id).title);
-  const text = (id: string): string => (id === HAVEN_VULTURES.id ? HAVEN_VULTURES.text : getClue(id).text);
-  const learned = (id: string): string => (id === HAVEN_VULTURES.id ? HAVEN_VULTURES.learned : getClue(id).learned);
+  // The one who went (§9.11): their goodbye is filed with the clues, in their name.
+  const gone = havenDreamer(state);
+  const them = (t: string): string => (gone ? fillRoles(t, { a: gone }) : t);
+  const title = (id: string): string => (id === HAVEN_VULTURES.id ? HAVEN_VULTURES.title : id === HAVEN_DREAMER.id ? them(HAVEN_DREAMER.title) : getClue(id).title);
+  const learned = (id: string): string => (id === HAVEN_VULTURES.id ? HAVEN_VULTURES.learned : id === HAVEN_DREAMER.id ? them(HAVEN_DREAMER.learned) : getClue(id).learned);
+  const text = (f: { id: string; at?: string }): string =>
+    f.id === HAVEN_VULTURES.id ? HAVEN_VULTURES.text : f.id === HAVEN_DREAMER.id ? them(f.at ? HAVEN_DREAMER.said : HAVEN_DREAMER.note) : getClue(f.id).text;
   const found = haven.found.map((f, i) => {
+    if (f.id === HAVEN_DREAMER.id) {
+      const line = f.at ? `On the way home from ${placeIn(f.at)}, day ${f.day}.` : `Gone in the night, day ${f.day}.`;
+      return { id: f.id, title: title(f.id), text: text(f), line, isNew: i >= seen.found };
+    }
     const who = f.by ? state.survivors.find((s) => s.id === f.by)?.firstName ?? state.memorial.find((m) => m.id === f.by)?.firstName : undefined;
     const where = f.at ? ` at ${placeIn(f.at)}` : '';
     // What came to the Depot rather than on a run: the Vultures at the fence, or a building's clue worked out.
@@ -98,7 +109,7 @@ export function havenView(state: GameState, seen: { found: number; heard: number
         : f.id === HAVEN_VULTURES.id
           ? `At the fence, day ${f.day}.`
           : `Worked out at the Depot, day ${f.day}.`;
-    return { id: f.id, title: title(f.id), text: text(f.id), line, isNew: i >= seen.found };
+    return { id: f.id, title: title(f.id), text: text(f), line, isNew: i >= seen.found };
   });
   const heard = haven.heard.map((h, i) => ({ text: h.text, line: `${heardFrom(h)}, day ${h.day}.`, isNew: i >= seen.heard }));
   return {
@@ -187,6 +198,12 @@ export function reportHavenLine(news: { lead?: { clue: string; found: boolean; b
   if (!lead.found) return `For Haven: no sign of ${t} this time.`;
   const who = lead.by ? names[lead.by] : undefined;
   return who ? `For Haven: ${who} found ${t}.` : `For Haven: found ${t}.`;
+}
+
+/** "Rook went east to Haven, alone.": the one the broadcast pulled in, walking off from the road home. */
+export function reportGoneLine(news: { ran?: { id: string } } | undefined, names: Record<string, string>): string | undefined {
+  const id = news?.ran?.id;
+  return id ? `${names[id] ?? 'One of them'} went east to Haven, alone.` : undefined;
 }
 
 /** Building clues ready to work out: something on the Haven tab waits for the player. */

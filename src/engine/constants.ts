@@ -24,6 +24,19 @@ export const HAVEN_HINT_GAP = 3;
 export const HAVEN_HINT_CHANCE = { run: 0.2, gate: 0.6, trader: 0.6, day: 0.12 } as const;
 /** How often the Vultures' word comes, a Depot day, once it can. */
 export const HAVEN_VULTURES_CHANCE = 0.3;
+/**
+ * The one who goes (§9.11, Aviel): one of the guild starts listening once it
+ * has found this many clues, and only in a guild of at least this many, so
+ * losing them doesn't leave it helpless.
+ */
+export const HAVEN_DREAMER_CLUES = 3;
+export const HAVEN_DREAMER_GUILD = 5;
+/** Grown and in the guild this many game days at least (a real day): someone the player knows. */
+export const HAVEN_DREAMER_KNOWN = 8;
+/** How often a line about them is heard at the fire, a Depot day, when one is due and they're home. */
+export const HAVEN_DREAMER_CHANCE = 0.35;
+/** Ready to go and not sent on a run for this many game days (a real day), they slip away at night. */
+export const HAVEN_DREAMER_WAIT = 8;
 
 // ---------------------------------------------------------------- time
 

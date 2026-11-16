@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { FIRST_WEEK, HAVEN_CLUES, claimStory, newGame, startHaven, type GameState } from '../engine/index.ts';
+import { FIRST_WEEK, HAVEN_CLUES, HAVEN_DREAMER, claimStory, newGame, startHaven, type GameState } from '../engine/index.ts';
 import { bellItems } from './bell-view.ts';
-import { havenReady, havenView, leadPlaces, placeLeadLine, planLeadLine, reportHavenLine, roadPoints, roadView, smoothPath } from './haven-view.ts';
+import { havenReady, havenView, leadPlaces, placeLeadLine, planLeadLine, reportGoneLine, reportHavenLine, roadPoints, roadView, smoothPath } from './haven-view.ts';
 import { storyEnding } from './story-view.ts';
 
 const T0 = Date.UTC(2026, 10, 16, 8);
@@ -177,5 +177,46 @@ describe('the scraps', () => {
     const state = heard('scrap-lines');
     state.haven!.found.push({ id: 'vultures_word', day: 30 }, { id: 'convoy_band', day: 31 });
     assert.deepEqual(havenView(state)!.found.map((f) => f.line), ['Worked out at the Depot, day 31.', 'At the fence, day 30.']);
+  });
+});
+
+describe('the one who went (§9.11)', () => {
+  /** Someone who walked off east: from the road home from Maple Street, or (`night`) from their bunk. */
+  function went(night = false): { state: GameState; first: string } {
+    const state = heard('went');
+    find(state, 'logbook', 'flyer', 'kessler_note');
+    const s = state.survivors[0]!;
+    state.survivors.splice(0, 1);
+    s.status = 'left';
+    state.departed.push(s);
+    state.haven!.dreamer = { id: s.id, day: 10, ready: 15, gone: 20 };
+    state.haven!.found.push({ id: HAVEN_DREAMER.id, day: 20, ...(night ? {} : { at: 'maple_street' }) });
+    return { state, first: s.firstName };
+  }
+
+  test('their goodbye is with what was found, and what we know says where they went', () => {
+    const { state, first } = went();
+    const v = havenView(state, { found: 3, heard: 0 })!;
+    assert.deepEqual(v.found[0], {
+      id: HAVEN_DREAMER.id,
+      title: `${first}’s goodbye`,
+      text: `“I’m going to Haven. Don’t come after me. When I’m settled I’ll send for all of you, I promise.” Then ${first} walked east along the old highway, and didn’t look back.`,
+      line: 'On the way home from Maple Street, day 20.',
+      isNew: true,
+    });
+    assert.equal(v.known.at(-1), `${first} went east to answer the broadcast, alone.`);
+    assert.equal(roadView(state)!.found, 3, 'a goodbye isn’t a clue');
+  });
+
+  test('gone in the night, it’s the note on the bunk', () => {
+    const { state } = went(true);
+    const v = havenView(state)!;
+    assert.equal(v.found[0]!.line, 'Gone in the night, day 20.');
+    assert.match(v.found[0]!.text, /^Left on (his|her) bunk: “Gone to Haven\./);
+  });
+
+  test('the run’s report says it', () => {
+    assert.equal(reportGoneLine({ ran: { id: 'a' } }, { a: 'Rook' }), 'Rook went east to Haven, alone.');
+    assert.equal(reportGoneLine(undefined, {}), undefined);
   });
 });

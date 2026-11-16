@@ -39,7 +39,7 @@ import {
 import { clockTime } from '../time.ts';
 import { foundLines, rescueLine, rescuedWhere } from '../rescue-view.ts';
 import { vultureReportLines } from '../vultures-view.ts';
-import { reportHavenLine } from '../haven-view.ts';
+import { reportGoneLine, reportHavenLine } from '../haven-view.ts';
 import { followedHome } from '../animals-view.ts';
 import { findAnySurvivor } from '../view.ts';
 
@@ -212,6 +212,14 @@ function Report({ state, report }: { state: GameState; report: RunReport }) {
                 See it
               </button>
             )}
+          </p>
+        )}
+        {reportGoneLine(s.haven, names) && (
+          <p>
+            {reportGoneLine(s.haven, names)}{' '}
+            <button type="button" className="link" onClick={() => navigate({ screen: 'haven', tab: 'found' })}>
+              See it
+            </button>
           </p>
         )}
         {vultureReportLines(state, s).map((line) => (

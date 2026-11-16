@@ -543,6 +543,8 @@ export interface HavenNews {
   lead?: { clue: string; found: boolean; by?: string };
   /** Something heard or seen on the way: a hint, as it was heard. */
   hint?: { id: string; text: string };
+  /** The one the broadcast pulled in went east from the road home (§9.11), and who saw them go. */
+  ran?: { id: string; saw: string[] };
 }
 
 /** Someone a crew found out there, and who found them. */
@@ -811,6 +813,24 @@ export interface HavenState {
   lastHint?: number;
   /** Found and heard when the player last opened the Haven tab: anything past these is new. */
   seen: { found: number; heard: number };
+  /**
+   * The one of the guild the broadcast pulls in (§9.11, Aviel): picked partway
+   * through the hunt, heard talking about Haven at the fire, then gone east
+   * alone on a run home. At Haven's gate they get out and run to the guild,
+   * and are shot (Haven, part 2).
+   */
+  dreamer?: HavenDreamer;
+}
+
+export interface HavenDreamer {
+  /** A survivor id (in `state.departed` once gone). */
+  id: string;
+  /** The game day they were picked. */
+  day: number;
+  /** The game day they were ready to go: every line about them heard, or the road open. */
+  ready?: number;
+  /** The game day they went. */
+  gone?: number;
 }
 
 export interface HavenFound {

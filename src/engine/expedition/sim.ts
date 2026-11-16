@@ -47,7 +47,7 @@ import { itemDef, itemName, sumGearHook } from '../gear.ts';
 import { addFlag, adjustRelationship, getRelationship, labelFor, pairKey, relationshipLabel, traitAffinity } from '../relationships.ts';
 import { Rng } from '../rng.ts';
 import { carryCapacity, maxHp } from '../stats.ts';
-import { amountOf, fullName, pronounForms } from '../text.ts';
+import { amountOf, fillRoles, fullName, pronounForms } from '../text.ts';
 import { addTrait, maxTraitHook, revealTrait, sumTraitHook } from '../traits.ts';
 import type {
   Beat,
@@ -100,6 +100,7 @@ import { outpostNear } from '../outposts.ts';
 import { seating } from '../vehicles.ts';
 import { earnNickname, nameWeapon, nemesisNewsList, takenNames } from './stories.ts';
 import { findLine, getClue, havenForRun, playRunHaven, runHaven } from '../haven.ts';
+import { HAVEN_DREAMER } from '../content/haven.ts';
 import { resolveWounds } from './wounds.ts';
 import { rescueBeat, rescueNews } from './rescue.ts';
 import { vulturesBeat } from './vultures.ts';
@@ -620,7 +621,14 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
   const havenLook = runHaven(state, plan, departAt);
   const haven =
     havenLook && outcome !== 'lost'
-      ? playRunHaven(outcome === 'completed' ? havenLook : { tries: 0, hints: havenLook.hints }, seed, alive(sim).map((m) => m.s), plan.job === 'scout', (s) => s.stats.wits)
+      ? playRunHaven(
+          outcome === 'completed' ? havenLook : { tries: 0, hints: havenLook.hints, ...(havenLook.dreamer ? { dreamer: havenLook.dreamer } : {}) },
+          seed,
+          alive(sim).map((m) => m.s),
+          plan.job === 'scout',
+          (s) => s.stats.wits,
+          standing(sim).map((m) => m.s.id),
+        )
       : undefined;
   if (haven?.lead?.found) {
     startBeat(sim, 'discovery', 'For Haven');
@@ -629,6 +637,11 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
   if (haven?.hint) {
     startBeat(sim, 'travel', 'On the road');
     say(sim, haven.hint.text);
+  }
+  // The one Haven's broadcast pulled in walks off east (§9.11). They're still counted with the crew for the rest of the run, so nothing else changes.
+  if (haven?.ran) {
+    startBeat(sim, 'travel', 'The highway east');
+    say(sim, fillRoles(HAVEN_DREAMER.run, { a: sim.members.find((m) => m.s.id === haven.ran!.id)!.s }), { tone: 'bad' });
   }
   sim.offset =
     sim.walkingFrom !== undefined

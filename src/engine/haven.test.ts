@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { BUILDINGS, FIRST_WEEK, HAVEN_CLUES, HAVEN_HINTS, HAVEN_ROAD, HAVEN_VULTURES, LOCATIONS } from './content/index.ts';
-import { DAY_MS, HAVEN_HINT_GAP } from './constants.ts';
+import { BUILDINGS, FIRST_WEEK, HAVEN_CLUES, HAVEN_DREAMER, HAVEN_HINTS, HAVEN_ROAD, HAVEN_VULTURES, LOCATIONS } from './content/index.ts';
+import { DAY_MS, HAVEN_DREAMER_CLUES, HAVEN_DREAMER_GUILD, HAVEN_DREAMER_WAIT, HAVEN_HINT_GAP } from './constants.ts';
+import { startRun } from './expedition/runs.ts';
+import { becomePartners } from './relationships.ts';
 import { advanceTime } from './depot/time.ts';
 import { takeIn } from './depot/recruits.ts';
 import { simulateRun } from './expedition/sim.ts';
@@ -9,6 +11,7 @@ import { dayAt } from './game.ts';
 import {
   applyHavenNews,
   clueFound,
+  cluesKnown,
   clueReady,
   findChance,
   gateHint,
@@ -23,9 +26,10 @@ import {
   workOutClue,
 } from './haven.ts';
 import { Rng } from './rng.ts';
+import { fillRoles } from './text.ts';
 import { deserialize, serialize } from './save.ts';
 import { claimStory } from './story.ts';
-import { T0, testGame } from './test-utils.ts';
+import { T0, openGame, testGame, testSurvivor } from './test-utils.ts';
 import type { GameState, RunPlan } from './types.ts';
 import { addWanderer } from './depot/recruits.ts';
 
@@ -330,5 +334,176 @@ describe('Haven: in play', () => {
     for (let d = 1; d <= 60; d++) advanceTime(state, T0 + d * DAY_MS);
     assert.ok(dayAt(state, T0 + 60 * DAY_MS) > 60);
     assert.ok(state.haven!.heard.length > 0, 'the radio or the fire');
+  });
+});
+
+describe('Haven: the one who goes (§9.11)', () => {
+  /** A guild of six that has heard it, has known its people a while, and has found `clues` clues. */
+  function guild(seed: string, clues = HAVEN_DREAMER_CLUES): GameState {
+    const state = openGame(seed);
+    state.survivors.push(testSurvivor('extra0', { firstName: 'Wren' }), testSurvivor('extra1', { firstName: 'Ash', pronouns: 'he' }));
+    for (const s of state.survivors) s.joinedDay = 0;
+    startHaven(state, 1);
+    find(state, ...HAVEN_CLUES.slice(0, clues).map((c) => c.id));
+    return state;
+  }
+
+  /** Ready to go: someone picked, every line about them heard. */
+  function ready(state: GameState, index = 0): string {
+    const id = state.survivors[index]!.id;
+    state.haven!.dreamer = { id, day: 5, ready: 6 };
+    return id;
+  }
+
+  test('the content: three lines in order, each once, and nothing left unfilled', () => {
+    const tiers = HAVEN_DREAMER.lines.map((l) => l.tier);
+    assert.deepEqual(tiers, [...tiers].sort((a, b) => a - b));
+    assert.equal(tiers[0], HAVEN_DREAMER_CLUES, 'the first comes as soon as they start listening');
+    for (const l of HAVEN_DREAMER.lines) assert.ok(!HAVEN_HINTS.some((h) => h.id === l.id), l.id);
+    const someone = testSurvivor('d', { firstName: 'Rook', pronouns: 'he' });
+    for (const t of [...HAVEN_DREAMER.lines.map((l) => l.text), HAVEN_DREAMER.run, HAVEN_DREAMER.night, HAVEN_DREAMER.title, HAVEN_DREAMER.said, HAVEN_DREAMER.note, HAVEN_DREAMER.learned, HAVEN_DREAMER.saw]) {
+      const filled = fillRoles(t, { a: someone });
+      assert.doesNotMatch(filled, /[{}]/, t);
+    }
+  });
+
+  test('nobody listens before the guild knows a little, or while it’s small', () => {
+    const early = guild('early', HAVEN_DREAMER_CLUES - 1);
+    for (let d = 10; d < 60; d++) playHavenDay(early, d);
+    assert.equal(early.haven!.dreamer, undefined);
+    const small = guild('small');
+    small.survivors.length = HAVEN_DREAMER_GUILD - 1;
+    for (let d = 10; d < 60; d++) playHavenDay(small, d);
+    assert.equal(small.haven!.dreamer, undefined);
+    const now = guild('now');
+    playHavenDay(now, 10);
+    assert.ok(now.survivors.some((s) => s.id === now.haven!.dreamer?.id));
+    assert.equal(cluesKnown(now), HAVEN_DREAMER_CLUES);
+  });
+
+  test('never someone new, or with a partner or a child', () => {
+    for (let i = 0; i < 20; i++) {
+      const state = guild(`who-${i}`);
+      const [a, b, c] = state.survivors;
+      becomePartners(state, a!, b!, 2);
+      for (const s of state.survivors.slice(3)) s.joinedDay = 9; // new on day 10
+      playHavenDay(state, 10);
+      assert.equal(state.haven!.dreamer?.id, c!.id, 'the only one it can be');
+    }
+  });
+
+  test('three lines at the fire name them, one at a time and in order; then, kept home, they go in the night', () => {
+    let gone = 0;
+    for (let i = 0; i < 10; i++) {
+      const state = guild(`lines-${i}`, 8);
+      let day = 10;
+      for (; day < 400 && state.haven!.dreamer?.gone === undefined; day++) playHavenDay(state, day);
+      const d = state.haven!.dreamer!;
+      const who = state.departed.find((s) => s.id === d.id) ?? state.survivors.find((s) => s.id === d.id)!;
+      const lines = state.haven!.heard.filter((h) => h.id.startsWith('dreamer_'));
+      assert.deepEqual(lines.map((h) => h.id), HAVEN_DREAMER.lines.map((l) => l.id));
+      for (const h of lines) {
+        assert.equal(h.source, 'fire');
+        assert.ok(h.text.includes(who.firstName), h.text);
+      }
+      for (let j = 1; j < state.haven!.heard.length; j++) assert.ok(state.haven!.heard[j]!.day - state.haven!.heard[j - 1]!.day >= HAVEN_HINT_GAP, 'they keep the hints’ gap');
+      assert.equal(d.ready, lines.at(-1)!.day);
+      if (d.gone === undefined) continue;
+      gone++;
+      assert.ok(d.gone - d.ready! >= HAVEN_DREAMER_WAIT);
+      assert.ok(!state.survivors.includes(who) && who.status === 'left');
+      assert.equal(who.leftReason, HAVEN_DREAMER.reason);
+      assert.deepEqual(state.haven!.found.at(-1), { id: HAVEN_DREAMER.id, day: d.gone });
+      assert.ok(state.log.some((l) => l.text.startsWith(`In the night, ${who.firstName} slipped away`)));
+      assert.equal(cluesKnown(state), 8, 'a goodbye isn’t a clue');
+    }
+    assert.equal(gone, 10);
+  });
+
+  test('the lines wait for what the guild knows', () => {
+    const state = guild('wait');
+    for (let d = 10; d < 300; d++) playHavenDay(state, d);
+    const lines = state.haven!.heard.filter((h) => h.id.startsWith('dreamer_')).map((h) => h.id);
+    assert.deepEqual(lines, ['dreamer_radio']);
+    assert.equal(state.haven!.dreamer!.ready, undefined);
+    // Once the road is open, they don't wait for the rest.
+    find(state, ...HAVEN_ROAD);
+    playHavenDay(state, 300);
+    assert.equal(state.haven!.dreamer!.ready, 300);
+  });
+
+  test('ready, on a run with someone else, they walk off east on the way home; the rest of the run comes out the same', () => {
+    let ran = 0;
+    for (let i = 0; i < 30; i++) {
+      const withIt = guild(`walk-${i}`);
+      const without = guild(`walk-${i}`);
+      const id = ready(withIt);
+      const a = simulateRun(withIt, plan(withIt, 'maple_street'), `w-${i}`, T0 + DAY_MS);
+      const b = simulateRun(without, plan(without, 'maple_street'), `w-${i}`, T0 + DAY_MS);
+      assert.deepEqual(a.beats.filter((x) => x.title !== 'The highway east'), b.beats);
+      assert.deepEqual(a.result.loot, b.result.loot);
+      assert.equal(a.returnAt, b.returnAt);
+      const left = a.result.haven?.ran;
+      if (!left) continue;
+      ran++;
+      assert.equal(left.id, id);
+      // Those on their feet see them go (someone knocked down doesn't).
+      assert.ok(left.saw.length >= 1 && !left.saw.includes(id) && left.saw.every((x) => plan(withIt, 'maple_street').crew.includes(x)));
+      const beat = a.beats.find((x) => x.title === 'The highway east')!;
+      assert.match(beat.lines[0]!.text, new RegExp(`^Where the old highway turns east, ${withIt.survivors[0]!.firstName} stops`));
+    }
+    assert.ok(ran >= 25, `${ran} of 30`);
+  });
+
+  test('alone, they don’t go: there’s nobody to see it', () => {
+    for (let i = 0; i < 20; i++) {
+      const state = guild(`solo-${i}`);
+      ready(state);
+      const sim = simulateRun(state, { ...plan(state, 'maple_street'), crew: [state.survivors[0]!.id] }, `so-${i}`, T0 + DAY_MS);
+      assert.equal(sim.result.haven?.ran, undefined);
+    }
+  });
+
+  test('home again, they’ve left the guild with what they carried, the goodbye is filed, and the crew remembers it', () => {
+    let checked = 0;
+    for (let i = 0; i < 10 && checked < 3; i++) {
+      const state = guild(`home-${i}`);
+      const id = ready(state);
+      const run = startRun(state, plan(state, 'maple_street'), T0 + 1000);
+      advanceTime(state, run.returnAt + 1000);
+      const news = state.reports[0]!.summary.haven?.ran;
+      if (!news) continue;
+      checked++;
+      const who = state.departed.find((s) => s.id === id)!;
+      assert.ok(who && !state.survivors.some((s) => s.id === id));
+      assert.equal(who.chronicle.at(-1)!.text, HAVEN_DREAMER.reason);
+      const day = state.haven!.dreamer!.gone!;
+      assert.deepEqual(state.haven!.found.at(-1), { id: HAVEN_DREAMER.id, day, at: 'maple_street' });
+      for (const o of news.saw) assert.ok(state.survivors.find((s) => s.id === o)!.chronicle.some((c) => c.text === `Watched ${who.firstName} walk east to Haven, and couldn’t stop ${who.pronouns === 'he' ? 'him' : 'her'}.`));
+      // Gone means gone: nothing more about them.
+      const heard = state.haven!.heard.length;
+      for (let d = day + 1; d < day + 40; d++) playHavenDay(state, d);
+      assert.ok(!state.haven!.heard.slice(heard).some((h) => h.id.startsWith('dreamer_')));
+      assert.equal(state.haven!.dreamer!.id, id);
+    }
+    assert.equal(checked, 3);
+  });
+
+  test('if they die first, it may get hold of someone else', () => {
+    const state = guild('died');
+    playHavenDay(state, 10);
+    const first = state.haven!.dreamer!.id;
+    const s = state.survivors.find((x) => x.id === first)!;
+    state.survivors.splice(state.survivors.indexOf(s), 1);
+    s.status = 'dead';
+    state.memorial.push(s);
+    playHavenDay(state, 11);
+    assert.ok(state.haven!.dreamer && state.haven!.dreamer.id !== first);
+  });
+
+  test('it all survives a save', () => {
+    const state = guild('save', 8);
+    for (let d = 10; d < 400 && state.haven!.dreamer?.gone === undefined; d++) playHavenDay(state, d);
+    assert.deepEqual(deserialize(serialize(state)).haven, state.haven);
   });
 });

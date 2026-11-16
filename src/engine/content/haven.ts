@@ -3,11 +3,12 @@
  * Aviel, 2026-11-16: the guild finds out about Haven bit by bit, through runs
  * to different places (and a couple of buildings), with hints heard by chance
  * often enough to keep it interesting, all kept in a Haven tab. At the end the
- * guild learns what Haven is (Aviel, 2026-11-16): people who mean to make the
- * next kind of human, and cut up whoever comes to try. Their failures caused
- * the Burn, and the Hollows are their failures still. The clues mostly sound
- * good and grow darker; the hints go the same way. Nothing says it outright:
- * the guild hears the truth at the gate.
+ * guild learns what Haven is (Aviel, 2026-11-16): a cult that grew up after the
+ * bombs around a doctor from St. Jude's, who means to make the next kind of
+ * human and cuts up whoever comes to try, with the Glow's radiation. The
+ * Hollows out of the Glow are their failures. The clues mostly sound good and
+ * grow darker; the hints go the same way. Nothing says it outright: the guild
+ * hears the truth at the gate, from one of its own who went (HAVEN_DREAMER).
  */
 import type { BuildingId, HavenHintSource } from '../types.ts';
 
@@ -115,8 +116,8 @@ export const HAVEN_CLUES: readonly HavenClue[] = [
     where: { kind: 'run', locationId: 'st_judes', depth: 1 },
     after: ['flyer'],
     find: 'On a ward where the dust has been disturbed, {a.first} finds a stack of forms on a trolley.',
-    text: 'Medical forms, half filled in, on the same paper as the flyer. Height, weight, blood type, and an outline of a body with every old break and scar marked on it. At the bottom of each, one word circled: CANDIDATE, or DONOR.',
-    learned: 'Haven looks people over when they arrive.',
+    text: 'Medical forms, half filled in, on the same paper as the flyer. Height, weight, blood type, and an outline of a body with every old break and scar marked on it. At the bottom of each, one word circled: CANDIDATE, or DONOR. Every one is signed in the same neat hand: Dr. M. Marr.',
+    learned: 'Haven looks people over when they arrive. Their doctor worked at St. Jude’s.',
   },
   {
     id: 'ledger',
@@ -183,6 +184,39 @@ export const HAVEN_VULTURES = {
   learned: 'The Vultures lost three people to Haven. When the guild goes, they want to come.',
 };
 
+/**
+ * The one who goes (§9.11). Aviel, 2026-11-16: "One of our own gets influenced
+ * by the news of haven and runs away to join them alone on some run one time.
+ * This is the one who escapes and is shot when you approach." Once the guild
+ * has found a few clues, one of its people (grown, known a while, with no
+ * partner or child to keep them) starts listening. Three lines about them are
+ * heard at the fire as it gets hold of them; then, on the way home from a run
+ * with someone else along, they walk off east. Kept away from runs, they go at
+ * night. Their goodbye is filed with what the guild has found.
+ */
+export const HAVEN_DREAMER = {
+  id: 'dreamer_goodbye',
+  /** Heard at the fire, {a} the one, each once the guild has found as many clues as its tier. */
+  lines: [
+    { id: 'dreamer_radio', tier: 3, text: 'Most nights now {a.first} sits up by the radio, listening to the broadcast with the sound turned low.' },
+    { id: 'dreamer_talk', tier: 5, text: 'At the fire, {a.first} talks about Haven for a long time: hot water, real beds, a doctor who stayed. When somebody laughs, {a.they} doesn’t laugh with them.' },
+    { id: 'dreamer_pack', tier: 7, text: '{a.first} has been putting food aside, a little each day, and {a.their} pack sits ready by the door. “Just in case,” {a.they} says, and won’t look at anyone.' },
+  ],
+  /** The run's last beat, on the way home. */
+  run: 'Where the old highway turns east, {a.first} stops and won’t go any further. “I’m going to Haven. Don’t come after me. When I’m settled I’ll send for all of you, I promise.” Nobody can talk {a.them} out of it. The last anyone sees of {a.them} is {a.their} back, walking east.',
+  /** Kept home: the news, the morning after. */
+  night: 'In the night, {a.first} slipped away with {a.their} pack. On {a.their} bunk, a note: “Gone to Haven. Don’t come after me. When I’m settled I’ll send for all of you, I promise.”',
+  title: '{a.first}’s goodbye',
+  /** The scrap, after the road home or the night. */
+  said: '“I’m going to Haven. Don’t come after me. When I’m settled I’ll send for all of you, I promise.” Then {a.first} walked east along the old highway, and didn’t look back.',
+  note: 'Left on {a.their} bunk: “Gone to Haven. Don’t come after me. When I’m settled I’ll send for all of you, I promise.”',
+  learned: '{a.first} went east to answer the broadcast, alone.',
+  /** Their last line in the guild's Chronicle. */
+  reason: 'Went east alone, to Haven.',
+  /** For the ones who watched them go. */
+  saw: 'Watched {a.first} walk east to Haven, and couldn’t stop {a.them}.',
+};
+
 /** Clues that, found, open the road (the journey itself is the next roadmap step). */
 export const HAVEN_ROAD: readonly string[] = ['bearing', 'gate_code', 'notebook'];
 
@@ -226,6 +260,7 @@ export const HAVEN_HINTS: readonly HavenHint[] = [
   { id: 'waited', from: 'gate', tier: 1, text: '{a.first} once waited three nights by the highway with a fire lit. Nobody came, so {a.they} came here instead.' },
   { id: 'lights', from: 'gate', tier: 2, text: '{a.first} saw Haven’s lights once from a hill, far off in the east. Electric light, a whole row of it, all night.' },
   { id: 'brother', from: 'gate', tier: 4, text: '{a.first}’s brother went to Haven and said he’d send for {a.them}. That was two years ago.' },
+  { id: 'doctor', from: 'gate', tier: 4, needs: 'intake_forms', text: '{a.first} knows the name Marr. A doctor at St. Jude’s before the bombs, who stayed when everyone else ran. “Saved my mother’s life,” {a.they} says. “If Marr runs Haven, it’s in good hands.”' },
   { id: 'old_left', from: 'gate', tier: 5, text: '{a.first} says Haven doesn’t take everyone. Old people and the sick get left at the fire.' },
   { id: 'counted', from: 'gate', tier: 7, text: '{a.first} won’t talk about the east. {a.They} only asked, twice, whether the guild counts its people.' },
   { id: 'sister_letter', from: 'gate', tier: 3, text: '{a.first} carries a letter from {a.their} sister in Haven, all about the hot water and the gardens. It isn’t in her handwriting.' },
