@@ -11,6 +11,7 @@ import { emptySummary, playDepotDay, type DepotSummary } from './day.ts';
 import { expireOffers, rollDepotEvents } from './events.ts';
 import { refreshRecruits } from './recruits.ts';
 import { playDilemmaDay } from '../dilemmas.ts';
+import { playHavenDay } from '../haven.ts';
 import { playRescueDay } from '../rescue.ts';
 import { playFamilyDay } from '../family.ts';
 import { playVulturesDay } from '../vultures.ts';
@@ -71,6 +72,8 @@ export function advanceTime(state: GameState, now: number): AdvanceResult {
       playVulturesDay(state, day, rng);
       playCaptivesDay(state, day, rng);
     });
+    // Haven (§9.11) rolls its own dice, so the day's others come out the same.
+    playHavenDay(state, day);
     state.depot.lastDay = day;
   }
   if (today > state.depot.lastDay) state.depot.lastDay = today;

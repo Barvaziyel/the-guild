@@ -410,6 +410,15 @@ The wounded can't be sent on runs until they heal. If an ally's help lifted the 
 
   - A Medkit in the crew cuts deaths by 60–90% at danger 3 and 35–65% at danger 4–5.
   - Never retreating and attacking aggressively at danger 4–5 costs a life every 6–8 runs.
+- **Rechecked in 2.9.0** (1,500 runs each, crews of 3 scavenging, Balanced, pulling out when someone is down): hollows that get up (2.4.0) made the Glow deadlier for a crew without Medkits.
+
+  | Crew in the Glow | Runs finished | Someone goes down | Deaths |
+  |---|---|---|---|
+  | Seasoned (below), no Medkit | 42% | 58% | 1 per 37 runs |
+  | Seasoned, a Medkit each | 42% | 58% | 1 per 250 |
+  | A month in: +2 to every stat, a Prime Hunting Rifle, Solid Riot Gear and a Medkit each | 74% | 26% | 1 per 1,500 |
+
+  So once a crew is geared up the Glow is dangerous, not impossible, and Medkits make most of the difference. That's the crew the story's clue in the Glow (§9.11) is meant for; it takes them two to four runs.
 - **Gear matters, but danger 4–5 stay dangerous** (1.6.1). A *seasoned* crew has +1 to every stat (about two real weeks of growth), a Solid Hunting Rifle and a Solid Scrap Vest each, ammo and a Medkit. Over 300 runs each:
 
   | Danger | Runs finished | Deaths |
@@ -955,7 +964,7 @@ The other half of Aviel's pick for the first hours (§9.9): a short chain of thi
 | Get on the air | The Radio Tower | 10 scrap, and the Haven broadcast |
 
 - **One step at a time.** Each goal is read from the game as it is. Runs count from when the step began (a run before it doesn't count). When the goal is met, the reward waits to be collected. Collecting writes the step's ending in the news, then the next step begins.
-- **The end:** the first night on the air, a recorded voice: *"This is Haven. We have power, clean water, and room for you. All survivors welcome."* It plays on the hour, every hour, the same words. Nobody has heard of Haven or knows where it is. Finding it is a roadmap step of its own (§15).
+- **The end:** the first night on the air, a recorded voice: *"This is Haven. We have power, clean water, and room for you. All survivors welcome."* It plays on the hour, every hour, the same words. Nobody has heard of Haven or knows where it is. From there, Haven (§9.11): the card says the Haven tab now keeps what the guild finds out, and opens it.
 - **On screen:** a note pinned above the yard on the Depot's Yard tab, so a new player sees it on opening (paper, the one thing on the Depot that is). It waits until the tour is over or skipped, and so does its line in the bell: in 2.8.0 a new guild opened on the note with the tour's card over it, two paper cards at once (Aviel, 2.8.1): where it is in the week ("The first week · 3 of 8"), the setup, the goal with a count where there is one ("1 of 3"), a button to where it's done with the reward beside it (the Gear screen, the building, the planner for the place, the Reach, or down to the corners). Once the goal is met, *Collect*, and a line in the bell. After collecting, the note shows how it went and what came in until *Next*.
 - **The motorcycle** is a real jump: otherwise it takes Workshop 2 and 50 scrap, 8 tech, a trader, or luck on a run. That's the point: something big at the end.
 - **How long it takes** (a bot that follows the note, 40 guilds each; it sends anyone free to the Rail Yard and searches corners with whoever's home):
@@ -969,6 +978,70 @@ The other half of Aviel's pick for the first hours (§9.9): a short chain of thi
   The Radio Tower's tech is the slowest part: the farm's 4 and the signal box's 5 cover it. Nobody went hungry; 1–3 deaths in 40 guilds over two days, as without the week.
 - **Old saves:** a guild no older than 14 game days gets the week from its first step, counting runs from when it came in (save 25). An older guild doesn't.
 - Tour: the last step, *That's the tour*, says that when it closes, a note above the yard says what to do first. (2.8.0 had a step pointing at the note; with the note hidden during the tour, 2.8.1 dropped it.)
+
+### 9.11 Haven (2.9.0)
+
+The long goal (§15), from the broadcast that ends the first week. Aviel, 2026-11-16, after reaching the broadcast within a day: it has to be clear that the story is now about finding out about Haven and getting there, with hints throughout and the goal made plain. The pieces are his:
+- **Clues are found on runs** to different places, not like the first week's tasks; a couple are buildings too ("you can also have build goals").
+- **A tab of its own**, there once the broadcast is heard, holds everything known.
+- **Hints by chance in different situations**, "common enough that it makes you interested in finding out more".
+- **It takes about five weeks** to the last trip, ending around when the Depot is finished.
+- **The truth** (Aviel, 2026-11-16, replacing slavers: "It's better than slavers"): Haven began after the bombs, a cult around a doctor from St. Jude's Hospital (Dr. M. Marr in the clues) who believes in making the next kind of human. Whoever answers the broadcast is taken in, cut up and experimented on, with the Glow's radiation, to raise them to something higher. Haven didn't cause the Burn (Aviel, correcting the first telling: "they didn't cause the bombs to drop"), but the Hollows that come out of the Glow are its failures, left there by the white trucks. The broadcast is bait, and the "intake" sorts candidates from donors. The clues and hints start out sounding wonderful and darken as the guild learns more (hospital bracelets, surgical thread, stitches on a dead Hollow, "two more for the glass"); nothing says it outright before the end.
+- **One of the guild goes** (Aviel: "One of our own gets influenced by the news of haven and runs away to join them alone on some run one time. This is the one who escapes and is shot when you approach"). See *The one who goes* below.
+- **The Vultures join the guild at the end:** rivals or not, they think Haven is vile too. They lost three of their own to Haven, and once the guild finds the list with their names, one of theirs comes to the fence: "When you go, send for us."
+- **The end** (the next step, not this one): everyone fit sets out and fights on the way under command. **The truth comes at the gate**: just as they arrive, the one who went gets out, runs to them shouting what Haven really is, and is shot by a sniper in front of them (they go from the departed to the Memorial Wall). Then a big fight beside the Vultures, against a giant stitched together from many people (four arms, three legs, two heads). Then an ending scene, a Chronicle line for everyone who went, home with whoever they freed, and the game goes on. The guild is glad of the haven it built.
+
+**Clues.** Thirteen, in `content/haven.ts`, each with a lead (where it should be, and why anyone thinks so), what it says, and a line for *What we know*. Each opens when the clues it follows on from are found, so there are usually two or three leads open at once. Eleven are found on runs to a place, at a level of it (§7.10); two are worked out from the Haven tab once a building is up. One the road needs is in the Glow (Aviel: "There should be a clue you need that can only be got by going in the danger 5 location"): a geared crew comes back from there most of the time, so it's dangerous, not impossible (§7.5).
+
+| Clue | Where | After | What it tells them |
+|---|---|---|---|
+| The engineer's logbook | Hilltop Radio Station (danger 2) | the broadcast | The signal comes from the east, past the edge of the Reach |
+| A flyer in the tunnels | The Old Metro (2) | the broadcast | Wait by the highway with a fire lit, and Haven comes for you |
+| A note on the Kesslers' door | Kessler Farm (2) | the broadcast | Whole families have gone; white trucks come for them |
+| Letters nobody collected | Maple Street (1) | the Kesslers' note | Nobody who went has ever written back |
+| A convoy's dropped radio | The Water Plant (3) | the logbook | The trucks stop there; the drivers have a band of their own |
+| The convoy band | Radio Tower level 2: *Listen in* | the radio | They bring people in by a north gate, counted in heads |
+| The intake list | Checkpoint Bravo (4) | the radio | A list of everyone taken in; three of the names are Vultures |
+| Forms from St. Jude's | St. Jude's Hospital (3) | the flyer | Haven looks people over when they arrive: every break and scar, and CANDIDATE or DONOR. Signed by Dr. M. Marr, who worked at St. Jude's |
+| Red Hand's ledger | Red Hand Camp (4) | the list | Red Hand sells Haven something, and is paid well |
+| The driver's map | Blackwater Swamp, deeper in (4) | the list | The trucks take the old highway east, two days out |
+| The runaway's notebook | The Glow (5) | the list (a name crossed out: "ran, Glow road") | Someone got out along the spillway and drew the inside of the dam (wards, a room of tables): "Not the north gate. Never the north gate." |
+| A bearing on Haven | Radio Tower level 3: *Take a bearing* | the map | Haven is at Corwin Dam |
+| The gate code | The Water Plant, deeper in (4) | the convoy band and the list | "Shepherd", and two flashes, at the north gate |
+
+- **Finding one.** A crew that makes it there and back (a run that turns back early doesn't count) looks for it: 40% on the first try, 25% more for each crew that came back without it, 15% more when scouting. Whoever's sharpest (Wits) finds it; the run's log has it, and the report names them. The rolls have their own dice, so a run comes out the same as it would without Haven but for what it turned up. The Vultures' word comes to the Depot on a Depot day (30% a day) once the list is found and they're in the Reach.
+- **The road** is open once they have the bearing, the gate code and the runaway's notebook: *They know where Haven is, and how to get in.*
+
+**The one who goes.** Once the guild has found 3 clues and has at least 5 people, one of them starts listening: someone at the Depot, in the guild a real day or more, with no partner or child to keep them (picked on Haven's own dice). Three lines about them are heard at the fire, as hints, each once the guild has found as many clues as its tier (3, 5, 7), 35% a Depot day when one is due and they're home: up late by the radio; talking about hot water and "a doctor who stayed"; a pack by the door, "just in case". After the third (or once the road is open) they're ready. The next run they're on with someone else along, they walk off where the old highway turns east, on the way home: a beat of its own (*The highway east*), "Rook went east to Haven, alone." in the report, and *Watched Rook walk east to Haven* in the Chronicle of whoever saw it. They're still counted with the crew for the rest of the run, so nothing else in it changes. Kept off runs a real day after they're ready, they slip away at night and leave a note. Either way they leave the guild with what they carry, like walking out (§9.5), the Memorial Wall's *Gone their own way* says "Went east alone, to Haven.", and their goodbye is filed in the Haven tab with what was found ("Rook's goodbye"), with a line in *What we know*. If they die before it comes to it, it may get hold of someone else. A guild that never reaches 5 people loses nobody this way; part 2 needs a stand-in for the gate then (one of the Vultures' three).
+
+**Hints.** Fifty-eight, in `content/haven.ts` (and the three about the one who goes), from seven places: on a run (a line in the report), from someone new when they're taken in, a trader at the gate, the radio at night (with a Radio Tower), talk at the fire, a captive, and the Vultures once they're in the Reach. Each is heard once. A hint can be heard only once the guild has found as many clues as its tier, so they darken in order (the earliest tier available comes first); a few need a particular clue (the convoy band's talk needs the dropped radio). At most one every 3 game days; when that allows, a run brings one 20% of the time, a newcomer or a trader 60%, and a Depot day 12% (from the radio, the fire, a captive or the Vultures, whichever has one to tell). Hints the player didn't see come up go in the news.
+
+**On screen.**
+- **The Haven tab** in the tab bar (six tabs then, a little smaller), with a count of what's new, or *!* when a building clue is ready. It's the guild's notebook on Haven (Aviel: more organized, since it gets long, and "make it look like handwriting... something cool"): paper on the steel, notes in a pen hand (Caveat, bundled like the other fonts), buttons and small print in the usual face.
+  - **The road** at the top: a hand-drawn map from the Depot to "Haven?" ("Corwin Dam" once the bearing is taken), a stop a clue. It's inked as far as the clues found, with a rust ring for each open lead and pencil dots for what's still unknown, and a key and "5 of 13 found." under it ("The road is open." at the end). Then the broadcast, quietly.
+  - **Leads:** *What we know* on a ruled page (a line a clue), then each lead on an index card taped to the page: where (the place and level, or the building), why, and a button: *Plan a run there*; when nobody has found the place yet, where a road leads there from ("scouting there is the best way to find it") and *Plan a run to* that place; *See the place* when the level isn't open, *See the Buildings*, or *Listen in* / *Take a bearing* when the building is up (first in the list, and in the bell). After a failed try: "One crew looked and came back without it. Scouting looks harder."
+  - **Found:** the clues as scraps of paper, two to a row, newest first, with who found them, where and when (or "At the fence", "Worked out at the Depot"); new ones are circled in red pencil. Tap one to read it in full on a sheet.
+  - **Heard:** the hints on a ruled page, newest first, with where each came from; the newest six show and the rest fold under *Older*.
+  - Tabs show how many each part holds, with a dot when something's new.
+- A place with a lead is tagged *Lead for Haven* on the Reach, and its panel says what's there (tap for the Haven tab). The planner says so too: "A lead for Haven here: the engineer's logbook. If the crew gets there, they'll look for it." A report says who found it, or "no sign of it this time."
+- The first week's last card says the new Haven tab keeps what the guild finds out, and its button is *Open Haven*.
+- Tour: a step *Haven* at the end of *Later on*: before the broadcast, that the long goal comes over the radio and gets a tab; after, what the tab holds.
+- **Old saves:** a guild past its first week has heard it (save 26). A guild older than the first week (§9.10) hears it on the first Depot day it has a Radio Tower.
+
+**How long it takes** (a bot that plays like a person and sends one crew a check-in after a lead it could manage; 12 guilds each, real days, median):
+
+| | Engaged (six check-ins) | Casual (four) |
+|---|---|---|
+| First four clues | 2–4 | 3–9 |
+| The dropped radio, the forms | 10–11 | 12 |
+| The list, the ledger, the Vultures' word | 18 | 20–22 |
+| The runaway's notebook (the Glow, once a crew is at ease at danger 4) | 19 (12 of 12) | 24 (11 of 12) |
+| The convoy band (Radio Tower 2) | 23 (10 of 12 by day 35) | 30 (9 of 12) |
+| The driver's map, the gate code | 26–27 (9–10 of 12) | 31 (1–3 of 12) |
+| The bearing (Radio Tower 3): the road open | 33 (5 of 12 by day 35) | later |
+| Hints heard by day 7, 14, 21, 28, 35 | 8, 18, 27, 34, 39 | 8, 17, 25, 31, 36 |
+
+Radio Tower 3 is one of the last buildings, so the road opens about when the Depot is done, as Aviel asked. Deaths and hunger are as without Haven, the trips into the Glow included.
 
 ## 10. Recruitment
 
@@ -1050,7 +1123,7 @@ With a Radio Tower, now and then someone calls for help from a known place; `res
    - **Run report:** what came home, deaths, places found, the beat-by-beat log with the dice under each line, then what changed for each person. For example: *"Mara gained Rad-Hardened"*, *"Dex & Ava are now Friends"*, and the loot. It opens in place of the countdown when the crew gets back.
 7. **Memorial Wall:** faded portraits with the day and cause of death; tap one for their sheet and Chronicle. Opened from the bottom of the roster. *Built (PR 5).* Since 1.9.0, *Gone their own way* below lists those who walked out (§9.5), and their sheets say when and why.
 8. **Settings:** mercy mode, notices when crews come back (and when something needs deciding, since 1.7.0), portrait wobble, the tour, export and import save, load the backup copy, start a new guild, developer shortcuts and fast-forward (§11, §13). *Built (PR 5, 6, 10).*
-9. **The tour** (PR 10). A new guild starts with it, and Settings can show it again. A card pinned above the tab bar walks through 32 short steps in 7 parts: the Depot (the yard, its corners, the bell, notices, days passing), supplies and food, your people (with gear and new people), runs (with leading the fights), building, raids and decisions, and later on (the radio, vehicles, further out, projects, the Vultures). In 2.8.2 Aviel found steps out of date or in odd places (the corners under people; the radio step read as if fights still needed the tower), so each was checked against the game and the parts reordered: what's on the Depot first, and what a new guild won't meet for a while last. Each step opens its screen and outlines what it's talking about, with live numbers where they help (what the Garden grows, what the first buildings cost). *Next*, *Skip this part* and *Skip tour* are always there. Opening the game mid-tour (from a notice, say) stays where it opened; the next step moves on from there.
+9. **The tour** (PR 10). A new guild starts with it, and Settings can show it again. A card pinned above the tab bar walks through 33 short steps in 7 parts: the Depot (the yard, its corners, the bell, notices, days passing), supplies and food, your people (with gear and new people), runs (with leading the fights), building, raids and decisions, and later on (the radio, vehicles, further out, projects, the Vultures, Haven). In 2.8.2 Aviel found steps out of date or in odd places (the corners under people; the radio step read as if fights still needed the tower), so each was checked against the game and the parts reordered: what's on the Depot first, and what a new guild won't meet for a while last. Each step opens its screen and outlines what it's talking about, with live numbers where they help (what the Garden grows, what the first buildings cost). *Next*, *Skip this part* and *Skip tour* are always there. Opening the game mid-tour (from a notice, say) stays where it opened; the next step moves on from there.
 10. **Gear** (1.1.1). The stash by slot (weapons, armor, tools, trinkets), each piece with a *Give* button that lists everyone: those at the Depot can take it, those out on a run can't yet. Since 1.8.0, a *Spare gear* panel above it takes the Rusty and Common weapons and armor apart at once, and each *Give* list ends with *Take apart* and what it gives (§9.4). Below, what each person carries; tap someone for their sheet. Opened from the Depot's Gear panel, from the stash line on a survivor's sheet, and from a run report that found gear.
 11. **Vehicles** (1.4.0). Each vehicle with what it does, a condition bar, where it is, and *Repair* with its cost; below, what the Workshop can build. Opened from the Depot's Vehicles panel (which says what the guild has, or how to get one), the Workshop and a report that found one. The planner lists the vehicles above the crew, with seats, condition, and the gas the trip needs; the crew limit follows the seats. Reports say what became of each vehicle taken. The resource bar shows gas, in two rows of three on a phone.
 12. **The yard** (1.5.0). A tab on the Depot screen (since 2.2.0 the first, and the one it opens on) with the Depot drawn as it is right now, in the portraits' style.
@@ -1060,7 +1133,7 @@ With a Radio Tower, now and then someone calls for help from a known place; `res
     - **Taps:** tapping someone or something picks it (it's drawn again on top, glowing) and the line under the drawing says who or what it is, with a button to open their sheet, the building, the recruits, the vehicles, or the trader's offer.
     - Code: `src/scene/` draws it (plain TypeScript, no dependencies, like `src/portrait/`); `src/ui/yard-view.ts` works out who is where.
 
-**Navigation.** Tabs along the bottom: Depot, Roster, Reach, Runs, Settings.
+**Navigation.** Tabs along the bottom: Depot, Roster, Reach, Runs, Settings, and Haven before Settings once the broadcast is heard (§9.11).
 
 **The day up top.** The day number sits at the top of every screen, by the bell. Aviel asked for a way to see there when the next day starts (2.8.8); of three mockups he picked a dial: a ring beside the day fills as the day goes, and under the day is the countdown, "Next in 2 h 13 min" (the first try, a line squeezed under the number, was "ugly and cramped"). A screen reader hears the clock time instead: "Day 22 starts at 1:35 PM". The tour's *Days pass* step outlines it.
 
@@ -1203,7 +1276,9 @@ From the ideas in `claude/interactive-ideas.md`, and Aviel's own additions. The 
 | An energy plant: solar while the sun is up, gas at night or in winter, powering some things | His idea, 2026-11-13: "Need to think" | to think about |
 | A view of each outpost, like the yard: the place drawn with its outpost and the people who live there | His addition, 2026-11-14 | planned |
 | More to do at the start, to hook a new player. His new game (2026-11-14): equip the starting gear, upgrade the Garden, send a 10-minute run, then wait about 2.5 hours before that crew can go out again (one run a game day, §7.2). Ideas offered: fresh legs for the first runs, the Depot's own corners, things coming to you early, a first-week story, scouting trips | His addition, 2026-11-14: "Not sure how to do that though"; at 23:34 he picked the Depot's corners and a first-week story | **done**: the corners (2.7.0, §9.9), the first week (2.8.0, §9.10) |
-| **Haven**, the long goal for the whole game. The first week ends with its broadcast: a place with power, clean water and room for survivors, somewhere past the Reach. Finding where it is and getting there is the goal. **The twist:** by the time the guild reaches it, they've built a haven of their own at the Depot, and Haven turns out to be a trap, or not what it said. The guild is glad of what it built | Aviel, 2026-11-15: "at the end there is a twist, you already built your own haven at that point, and you find out that that haven is really a trap or something, but you're happy with what you built" | planned |
+| **Haven**, the long goal for the whole game. The first week ends with its broadcast: a place with power, clean water and room for survivors, somewhere past the Reach. Finding where it is and getting there is the goal. **The twist:** by the time the guild reaches it, they've built a haven of their own at the Depot, and Haven turns out to be a trap, or not what it said. The guild is glad of what it built | Aviel, 2026-11-15: "at the end there is a twist, you already built your own haven at that point, and you find out that that haven is really a trap or something, but you're happy with what you built" | |
+| Haven, part 1: finding it. Clues found on runs to different places and two from buildings, hints by chance from all over, a Haven tab, about five weeks (§9.11) | Aviel, 2026-11-16: the story is now about finding out about Haven and getting there; clues from runs at different places (and build goals too), "all the information you have so far should live in a new tab", hints "common enough that it makes you interested". The truth (his, later the same day): a cult around a doctor from St. Jude's, started after the bombs, cuts people up to make the next kind of human, with the Glow's radiation; the Hollows are its failures. One of the guild goes east to join them | **done** (2.9.0) |
+| Haven, part 2: the journey. Everyone fit sets out; fights on the way under command; at the gate, the one of the guild who went east gets out, shouts the truth and is shot by a sniper; the Vultures join, since they think it's vile too; a big fight against a giant stitched from many people (four arms, three legs, two heads; it needs a drawing in `fighters.ts`); an ending scene, Chronicle lines, whoever they freed comes home; the game goes on | Aviel, 2026-11-16: "Haven is really a place where they believe in creating the next evolution of humans... The end fight you have to fight this giant Frankenstein... you only find out once you get there"; "One of our own... runs away to join them... This is the one who escapes and is shot when you approach" | planned |
 
 Not picked: choosing the rooms before a scavenge, raids you see coming, feasts and gatherings, talking to people in the yard.
 

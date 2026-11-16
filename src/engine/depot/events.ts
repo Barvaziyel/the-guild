@@ -51,6 +51,7 @@ import { dogDefense, strayArrives } from '../animals.ts';
 import { RAIDERS, type Raiders } from '../outposts.ts';
 import { openRaid, scheduleRaid } from './raids.ts';
 import { changeStanding, freeLieutenants, noteMember, tradeCut, vultureBand, vultureBoss, vulturesActive } from '../vultures.ts';
+import { traderHint } from '../haven.ts';
 
 type EventKind = 'wanderer' | 'trader' | 'raid' | 'celebration' | 'sickness' | 'stray' | 'vultureRaid' | 'vultureTrader';
 
@@ -108,6 +109,8 @@ const HANDLERS: Record<EventKind, (state: GameState, day: number, rng: Rng, home
     const offer = makeOffer(state, day, rng);
     state.depot.offers.push(offer);
     addGuildLog(state, day, `A trader caravan stopped at the gate: ${offerText(offer)}.`, ['trade', offer.id]);
+    // Traders hear everything on the roads, Haven too (§9.11).
+    traderHint(state, day);
   },
 
   // Raiders set out for the gate, to arrive later in the day (§9.8).

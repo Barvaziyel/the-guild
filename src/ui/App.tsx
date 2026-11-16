@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useState } from 'react';
-import { advanceTime, dayAt, dueRuns, getLocation, nextDayAt, searchDue, type AdvanceResult, type DepotSummary, type GameState } from '../engine/index.ts';
+import { advanceTime, dayAt, dueRuns, getLocation, havenNew, nextDayAt, searchDue, type AdvanceResult, type DepotSummary, type GameState } from '../engine/index.ts';
 import { mergeSummaries, nextDayView } from './depot-view.ts';
 import { TourCard } from './components/TourCard.tsx';
 import { navigate, savedScroll, useHash, useNow, usePrefs, useRoute, useServices, useSnapshot } from './hooks.ts';
@@ -21,6 +21,8 @@ import { Vehicles } from './screens/Vehicles.tsx';
 import { LoadError } from './screens/LoadError.tsx';
 import { Memorial } from './screens/Memorial.tsx';
 import { Vultures } from './screens/Vultures.tsx';
+import { Haven } from './screens/Haven.tsx';
+import { havenReady } from './haven-view.ts';
 import { Planner } from './screens/Planner.tsx';
 import { Reach } from './screens/Reach.tsx';
 import { Recruits } from './screens/Recruits.tsx';
@@ -104,6 +106,9 @@ export function App() {
     case 'vultures':
       screen = <Vultures state={s} />;
       break;
+    case 'haven':
+      screen = <Haven state={s} tab={route.tab ?? 'leads'} />;
+      break;
     case 'fight':
       screen = <Fight key={route.id} state={s} id={route.id} />;
       break;
@@ -122,7 +127,13 @@ export function App() {
       <main className="screen">{screen}</main>
       {time.current && <ReturnToast state={s} reportId={time.current} more={time.more} onClose={time.dismiss} />}
       {touring && tour && <TourCard state={s} stepId={tour} />}
-      <TabBar current={tabFor(route)} unread={unreadCount(s)} deciding={s.dilemmas.active !== undefined || raidAlert(s)} calling={anyoneCalling(s, now) || anyoneFighting(s, now)} />
+      <TabBar
+        current={tabFor(route)}
+        unread={unreadCount(s)}
+        deciding={s.dilemmas.active !== undefined || raidAlert(s)}
+        calling={anyoneCalling(s, now) || anyoneFighting(s, now)}
+        haven={s.haven ? { new: route.screen === 'haven' ? 0 : havenNew(s), ready: havenReady(s).length > 0 } : undefined}
+      />
     </div>
   );
 }
@@ -272,13 +283,16 @@ const TABS: { screen: TabScreen; label: string }[] = [
   { screen: 'roster', label: 'Roster' },
   { screen: 'reach', label: 'Reach' },
   { screen: 'runs', label: 'Runs' },
+  { screen: 'haven', label: 'Haven' },
   { screen: 'settings', label: 'Settings' },
 ];
 
-function TabBar({ current, unread, deciding, calling }: { current: TabScreen; unread: number; deciding: boolean; calling: boolean }) {
+/** `haven`: the Haven tab is there once the broadcast is heard (§9.11), with what's new on it. */
+function TabBar({ current, unread, deciding, calling, haven }: { current: TabScreen; unread: number; deciding: boolean; calling: boolean; haven: { new: number; ready: boolean } | undefined }) {
+  const tabs = TABS.filter((t) => t.screen !== 'haven' || haven);
   return (
-    <nav className="tabbar" aria-label="Screens">
-      {TABS.map((t) => (
+    <nav className={`tabbar${tabs.length > 5 ? ' is-six' : ''}`} aria-label="Screens">
+      {tabs.map((t) => (
         <button
           key={t.screen}
           type="button"
@@ -300,6 +314,16 @@ function TabBar({ current, unread, deciding, calling }: { current: TabScreen; un
           {t.screen === 'depot' && deciding && (
             <span className="badge" aria-label=", something needs you">
               !
+            </span>
+          )}
+          {t.screen === 'haven' && haven?.ready && (
+            <span className="badge" aria-label=", something to work out">
+              !
+            </span>
+          )}
+          {t.screen === 'haven' && !haven?.ready && (haven?.new ?? 0) > 0 && (
+            <span className="badge" aria-label={`${haven!.new} new`}>
+              {haven!.new}
             </span>
           )}
         </button>

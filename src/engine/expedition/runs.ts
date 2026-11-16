@@ -24,6 +24,7 @@ import { gasNeeded, planVehicles, vehicleName } from '../vehicles.ts';
 import { addStory, applyNemesisNews, takenNames } from './stories.ts';
 import { answerCall, applyRescue, bringHomeFound } from '../rescue.ts';
 import { applyVultureNews } from '../vultures.ts';
+import { applyHavenNews } from '../haven.ts';
 import { animalsFollowHome, rehomeAnimals } from '../animals.ts';
 import { parentGone } from '../family.ts';
 
@@ -547,6 +548,8 @@ export function completeRun(state: GameState, runId: string, now: number): RunRe
   if (result.vultures) applyVultureNews(state, result.vultures, day, rng);
   if (result.animals) animalsFollowHome(state, result.animals, day, loc.name);
   for (const f of result.found ?? []) bringHomeFound(state, run, f, day, rng);
+  // What they turned up about Haven (§9.11).
+  applyHavenNews(state, result.haven, loc.id, day);
 
   for (const res of RESOURCE_IDS) state.resources[res] += result.loot[res];
   state.resources.meds += result.medsLeft;

@@ -39,6 +39,7 @@ import {
 import { clockTime } from '../time.ts';
 import { foundLines, rescueLine, rescuedWhere } from '../rescue-view.ts';
 import { vultureReportLines } from '../vultures-view.ts';
+import { reportGoneLine, reportHavenLine } from '../haven-view.ts';
 import { followedHome } from '../animals-view.ts';
 import { findAnySurvivor } from '../view.ts';
 
@@ -203,6 +204,24 @@ function Report({ state, report }: { state: GameState; report: RunReport }) {
         <p>{loot.length > 0 ? `Brought home ${loot.join(', ')}.` : 'Brought nothing home.'}</p>
         {radioReportLine(report) && <p className="summary-radio">{radioReportLine(report)}</p>}
         {leadReportLine(report) && <p className="summary-radio">{leadReportLine(report)}</p>}
+        {reportHavenLine(s.haven, names) && (
+          <p className={s.haven?.lead?.found ? 'summary-found' : undefined}>
+            {reportHavenLine(s.haven, names)}{' '}
+            {s.haven?.lead?.found && (
+              <button type="button" className="link" onClick={() => navigate({ screen: 'haven', tab: 'found' })}>
+                See it
+              </button>
+            )}
+          </p>
+        )}
+        {reportGoneLine(s.haven, names) && (
+          <p>
+            {reportGoneLine(s.haven, names)}{' '}
+            <button type="button" className="link" onClick={() => navigate({ screen: 'haven', tab: 'found' })}>
+              See it
+            </button>
+          </p>
+        )}
         {vultureReportLines(state, s).map((line) => (
           <p key={line} className="summary-found">
             {line}{' '}

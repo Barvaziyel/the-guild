@@ -7,6 +7,7 @@
 import { addGuildLog } from './chronicle.ts';
 import { FIRST_WEEK, type StoryGift, type StoryGoal, type StoryStep } from './content/story.ts';
 import { addWanderer } from './depot/recruits.ts';
+import { startHaven } from './haven.ts';
 import { dayAt, withRng } from './game.ts';
 import type { Rng } from './rng.ts';
 import { getGear, getVehicleDef } from './content/index.ts';
@@ -106,7 +107,11 @@ export function claimStory(state: GameState, now: number): StoryEnding {
   story.step += 1;
   story.base = storyBase(state);
   story.last = ending;
-  if (story.step >= FIRST_WEEK.length) addGuildLog(state, day, 'The first week is behind them.', ['story']);
+  if (story.step >= FIRST_WEEK.length) {
+    addGuildLog(state, day, 'The first week is behind them.', ['story']);
+    // The week ends with the broadcast: from here on, Haven (§9.11).
+    startHaven(state, day);
+  }
   return ending;
 }
 

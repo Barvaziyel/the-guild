@@ -2,7 +2,7 @@
  * The bell at the top (Aviel, 2.2.0): everything that needs the player, in
  * one place. Each item opens where it's dealt with.
  */
-import { STRESS_MAX, atDepot, getLocation, type GameState } from '../engine/index.ts';
+import { STRESS_MAX, atDepot, buildingDef, getClue, getLocation, type GameState } from '../engine/index.ts';
 import { strayRows } from './animals-view.ts';
 import { foodWarning } from './depot-view.ts';
 import { dilemmaCard } from './dilemma-view.ts';
@@ -14,6 +14,7 @@ import { callCard } from './rescue-view.ts';
 import type { Route } from './route.ts';
 import { reportFirstNames, joinNames } from './runs-view.ts';
 import { storyCard } from './story-view.ts';
+import { havenReady } from './haven-view.ts';
 
 export type BellGroup = 'waiting' | 'gate' | 'back' | 'warning';
 
@@ -55,6 +56,11 @@ export function bellItems(state: GameState, now: number, opts: { touring?: boole
   // The first week (§9.10): a step done, its reward not collected yet.
   const story = storyCard(state);
   if (story?.met && !opts.touring) out.push({ id: 'story', group: 'waiting', text: `${story.title}: done. The reward is waiting.`, to: { screen: 'depot' } });
+  // Haven (§9.11): a building's up, and what it tells them is waiting to be worked out.
+  for (const id of havenReady(state)) {
+    const w = getClue(id).where;
+    if (w.kind === 'build') out.push({ id: `haven-${id}`, group: 'waiting', text: `For Haven: the ${buildingDef(w.building).name} is up. ${w.action}.`, to: { screen: 'haven' } });
+  }
 
   // At the gate.
   const recruits = state.depot.recruits.length;

@@ -47,7 +47,7 @@ import { itemDef, itemName, sumGearHook } from '../gear.ts';
 import { addFlag, adjustRelationship, getRelationship, labelFor, pairKey, relationshipLabel, traitAffinity } from '../relationships.ts';
 import { Rng } from '../rng.ts';
 import { carryCapacity, maxHp } from '../stats.ts';
-import { amountOf, fullName, pronounForms } from '../text.ts';
+import { amountOf, fillRoles, fullName, pronounForms } from '../text.ts';
 import { addTrait, maxTraitHook, revealTrait, sumTraitHook } from '../traits.ts';
 import type {
   Beat,
@@ -99,6 +99,8 @@ import { atDepth, planDepth } from '../locations.ts';
 import { outpostNear } from '../outposts.ts';
 import { seating } from '../vehicles.ts';
 import { earnNickname, nameWeapon, nemesisNewsList, takenNames } from './stories.ts';
+import { findLine, getClue, havenForRun, playRunHaven, runHaven } from '../haven.ts';
+import { HAVEN_DREAMER } from '../content/haven.ts';
 import { resolveWounds } from './wounds.ts';
 import { rescueBeat, rescueNews } from './rescue.ts';
 import { vulturesBeat } from './vultures.ts';
@@ -503,7 +505,9 @@ export function runStart(state: GameState, plan: RunPlan): GameState {
     }
   }
   const nemeses = structuredClone(state.nemeses ?? []);
-  return { ...state, survivors: crew, memorial: [], relationships, stash: [], runs: [], reports: [], log: [], nemeses };
+  // Haven's file goes along without the hints' text: a run only needs to know which it has heard (§9.11).
+  const haven = havenForRun(state.haven);
+  return { ...state, survivors: crew, memorial: [], relationships, stash: [], runs: [], reports: [], log: [], nemeses, ...(haven ? { haven } : {}) };
 }
 
 /**
@@ -612,6 +616,33 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
   const cutShort = done < middle || sim.turnBack || sim.routed;
   const outcome: RunOutcome =
     alive(sim).length === 0 ? 'lost' : sim.routed ? 'routed' : cutShort ? 'turnedBack' : 'completed';
+
+  // Haven (§9.11): a crew that got there looks for what the lead said, and anyone home again may have come across a hint. Own dice.
+  const havenLook = runHaven(state, plan, departAt);
+  const haven =
+    havenLook && outcome !== 'lost'
+      ? playRunHaven(
+          outcome === 'completed' ? havenLook : { tries: 0, hints: havenLook.hints, ...(havenLook.dreamer ? { dreamer: havenLook.dreamer } : {}) },
+          seed,
+          alive(sim).map((m) => m.s),
+          plan.job === 'scout',
+          (s) => s.stats.wits,
+          standing(sim).map((m) => m.s.id),
+        )
+      : undefined;
+  if (haven?.lead?.found) {
+    startBeat(sim, 'discovery', 'For Haven');
+    say(sim, findLine(getClue(haven.lead.clue), alive(sim).find((m) => m.s.id === haven.lead!.by)!.s), { tone: 'good' });
+  }
+  if (haven?.hint) {
+    startBeat(sim, 'travel', 'On the road');
+    say(sim, haven.hint.text);
+  }
+  // The one Haven's broadcast pulled in walks off east (§9.11). They're still counted with the crew for the rest of the run, so nothing else changes.
+  if (haven?.ran) {
+    startBeat(sim, 'travel', 'The highway east');
+    say(sim, fillRoles(HAVEN_DREAMER.run, { a: sim.members.find((m) => m.s.id === haven.ran!.id)!.s }), { tone: 'bad' });
+  }
   sim.offset =
     sim.walkingFrom !== undefined
       ? Math.round(sim.walkingFrom + foot * WALK_HOME_SHARE)
@@ -697,6 +728,7 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
       ...(sim.animals.length > 0 && (outcome === 'completed' || outcome === 'turnedBack') ? { animals: sim.animals } : {}),
       ...(sim.found.length > 0 && (outcome === 'completed' || outcome === 'turnedBack') ? { found: sim.found } : {}),
       ...(sim.vultures && vultureNewsMatters(sim.vultures.news) ? { vultures: sim.vultures.news } : {}),
+      ...(haven ? { haven } : {}),
     },
   };
 }

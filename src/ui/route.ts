@@ -10,6 +10,10 @@ export type SheetTab = (typeof SHEET_TABS)[number];
 export const PLACE_TABS = ['about', 'outpost'] as const;
 export type PlaceTab = (typeof PLACE_TABS)[number];
 
+/** The Haven tab's parts (§9.11). 'leads' is the default and has no part in the hash. */
+export const HAVEN_TABS = ['leads', 'found', 'heard'] as const;
+export type HavenTab = (typeof HAVEN_TABS)[number];
+
 /** The Depot's tabs. 'yard' is the default (Aviel, 2.2.0) and has no part in the hash. */
 export const DEPOT_TABS = ['yard', 'today', 'buildings', 'projects', 'news'] as const;
 export type DepotTab = (typeof DEPOT_TABS)[number];
@@ -34,6 +38,8 @@ export type Route =
   | { screen: 'plan'; locationId: string; step?: 'orders' }
   /** The Vultures (§7.11). */
   | { screen: 'vultures' }
+  /** Haven (§9.11): what the guild has found and heard. A tab once the broadcast is heard. */
+  | { screen: 'haven'; tab?: Exclude<HavenTab, 'leads'> }
   | { screen: 'raid' }
   | { screen: 'runs' }
   /** A crew that is out, or the report once they're back (same id). */
@@ -42,7 +48,7 @@ export type Route =
   | { screen: 'fight'; id: string };
 
 /** The screens in the tab bar. */
-export type TabScreen = 'depot' | 'roster' | 'reach' | 'runs' | 'settings';
+export type TabScreen = 'depot' | 'roster' | 'reach' | 'runs' | 'haven' | 'settings';
 
 export const DEFAULT_ROUTE: Route = { screen: 'depot' };
 
@@ -79,6 +85,10 @@ export function parseRoute(hash: string): Route {
       return a ? { screen: 'plan', locationId: a, ...(b === 'orders' ? { step: 'orders' as const } : {}) } : { screen: 'reach' };
     case 'vultures':
       return { screen: 'vultures' };
+    case 'haven': {
+      const tab = HAVEN_TABS.find((t) => t === a);
+      return tab && tab !== 'leads' ? { screen: 'haven', tab } : { screen: 'haven' };
+    }
     case 'raid':
       return { screen: 'raid' };
     case 'run':
@@ -110,6 +120,8 @@ export function routeHash(route: Route): string {
     case 'vultures':
     case 'raid':
       return `#/${route.screen}`;
+    case 'haven':
+      return route.tab ? `#/haven/${route.tab}` : '#/haven';
     case 'building':
       return `#/b/${enc(route.id)}`;
     case 'reach':
@@ -147,6 +159,8 @@ export function tabFor(route: Route): TabScreen {
     case 'run':
     case 'fight':
       return 'runs';
+    case 'haven':
+      return 'haven';
     case 'settings':
       return 'settings';
   }

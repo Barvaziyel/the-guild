@@ -6,9 +6,37 @@
 import type { BuildingId, Quality, RelationshipLabel, ResourceId, Resources } from './types.ts';
 
 /** Save format version. Bump together with a migration in save.ts. */
-export const SAVE_VERSION = 25;
+export const SAVE_VERSION = 26;
 /** A guild this many game days old or younger, coming in from an older version, gets the first week too (§9.10). */
 export const STORY_OLD_SAVE_DAYS = 14;
+
+// ---------------------------------------------------------------- Haven (§9.11)
+
+/** A run following a lead finds it this often on the first try... */
+export const HAVEN_FIND_CHANCE = 0.4;
+/** ...and this much more often for each run there that came back without it. */
+export const HAVEN_FIND_TRY = 0.25;
+/** A scouting run looks harder. */
+export const HAVEN_FIND_SCOUT = 0.15;
+/** At least this many game days between hints, so they don't all come at once (Aviel: common, but not a flood). */
+export const HAVEN_HINT_GAP = 3;
+/** How often each place a hint comes from turns one up (when the gap allows). */
+export const HAVEN_HINT_CHANCE = { run: 0.2, gate: 0.6, trader: 0.6, day: 0.12 } as const;
+/** How often the Vultures' word comes, a Depot day, once it can. */
+export const HAVEN_VULTURES_CHANCE = 0.3;
+/**
+ * The one who goes (§9.11, Aviel): one of the guild starts listening once it
+ * has found this many clues, and only in a guild of at least this many, so
+ * losing them doesn't leave it helpless.
+ */
+export const HAVEN_DREAMER_CLUES = 3;
+export const HAVEN_DREAMER_GUILD = 5;
+/** Grown and in the guild this many game days at least (a real day): someone the player knows. */
+export const HAVEN_DREAMER_KNOWN = 8;
+/** How often a line about them is heard at the fire, a Depot day, when one is due and they're home. */
+export const HAVEN_DREAMER_CHANCE = 0.35;
+/** Ready to go and not sent on a run for this many game days (a real day), they slip away at night. */
+export const HAVEN_DREAMER_WAIT = 8;
 
 // ---------------------------------------------------------------- time
 

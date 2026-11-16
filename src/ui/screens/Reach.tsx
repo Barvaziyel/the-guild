@@ -17,6 +17,7 @@ import { Portrait } from '../components/Portrait.tsx';
 import { ReachMapSvg } from '../components/ReachMapSvg.tsx';
 import { navigate, useAction } from '../hooks.ts';
 import { depthRows, exploredShort, mostlyFinds, outpostView } from '../outposts-view.ts';
+import { leadPlaces, placeLeadLine } from '../haven-view.ts';
 import { PLACE_TABS, type PlaceTab } from '../route.ts';
 import { callCard } from '../rescue-view.ts';
 import { dangerText, formatDuration, joinNames, locationView, placeNote, radiationText, runCrewNames } from '../runs-view.ts';
@@ -30,6 +31,7 @@ export function Reach({ state, selected, tab = 'about' }: { state: GameState; se
   const places = knownLocations(state);
   const pick = (id: string): void => navigate({ screen: 'reach', id }, { replace: true, keepScroll: true });
   const sel = selected && findLocation(selected) ? selected : undefined;
+  const leads = leadPlaces(state);
 
   return (
     <section aria-labelledby="reach-title">
@@ -65,6 +67,7 @@ export function Reach({ state, selected, tab = 'about' }: { state: GameState; se
                         {outpost && <span className={`place-tag${outpost.damaged ? ' is-damaged' : ''}`}>{outpost.damaged ? 'Outpost, damaged' : 'Outpost'}</span>}
                         {state.rescue.call?.locationId === loc.id && <span className="place-tag is-calling">Calling for help</span>}
                         {vultureTag(state, loc.id) && <span className="place-tag is-vultures">{vultureTag(state, loc.id)}</span>}
+                        {leads.has(loc.id) && <span className="place-tag is-haven">Lead for Haven</span>}
                       </span>
                       <span className="place-facts">
                         {dangerText(loc.danger)}, {radiationText(loc.radiation).toLowerCase()}, {formatDuration(loc.durationMin * 60_000)}
@@ -235,6 +238,11 @@ function About({ state, id }: { state: GameState; id: string }) {
         </div>
       )}
       <p className="place-note">{placeNote(v, deeper)}</p>
+      {placeLeadLine(state, id) && (
+        <button type="button" className="haven-here" onClick={() => navigate({ screen: 'haven' })}>
+          {placeLeadLine(state, id)}
+        </button>
+      )}
       {vulturePlaceLine(state, id) && (
         <button type="button" className="vulture-here" onClick={() => navigate({ screen: 'vultures' })}>
           {vulturePlaceLine(state, id)}

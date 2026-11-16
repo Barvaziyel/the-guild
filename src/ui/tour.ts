@@ -432,6 +432,17 @@ export const TOUR_STEPS: readonly TourStep[] = [
       `Another guild, the Vultures, works the Reach too. Around game day ${VULTURES_ARRIVE_DAY}, about ${proseDays((VULTURES_ARRIVE_DAY * DAY_MS) / 86_400_000)} in, they set up camp and send someone to the gate. They compete for places, people and trade; deal with them, trade with them or fight them. This panel shows how things stand.`,
   },
   {
+    id: 'haven',
+    part: 'later',
+    title: 'Haven',
+    // Before the broadcast there's no tab to show yet (§9.11).
+    route: (state) => (state.haven ? { screen: 'haven' } : { screen: 'depot' }),
+    text: (state) =>
+      state.haven
+        ? 'The long goal: find Haven. This tab is the guild’s notebook on it. The road at the top fills in as clues turn up; under it are what you know, the leads to follow (a run there might turn one up, or a building), what crews found, and what was heard on the roads.'
+        : 'The long goal comes over the radio at the end of the first week. From then on a Haven tab keeps what the guild learns about it: leads to follow on runs, what crews find, and what people hear on the roads.',
+  },
+  {
     id: 'done',
     part: 'later',
     title: "That's the tour",
