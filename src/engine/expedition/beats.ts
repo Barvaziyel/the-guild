@@ -36,6 +36,7 @@ import {
   INTIMIDATE_FAIL,
   INTIMIDATE_SUCCESS,
   POCKET_CAUGHT,
+  POCKET_UNSEEN,
   SCAVENGE_INTROS,
   SCAVENGE_NOTHING,
   SNEAK_FAIL_LINES,
@@ -191,6 +192,11 @@ export function scavengeBeat(sim: Sim): void {
         say(sim, flavor(sim, POCKET_CAUGHT, { a: m, b: watcher }), { check: caught.info, tone: 'bad' });
         adjustRelationship(sim.state, m.s.id, watcher.s.id, REL_CAUGHT_STEALING, { day: simDay(sim) });
         revealHook(sim, m, 'pocketChance');
+      } else {
+        // Nobody saw, but the log says it went (Aviel: "why is the 1 tech gone at the end").
+        // The line is picked without dice, so every roll after it comes out as before.
+        const line = POCKET_UNSEEN[(sim.beats.length + m.s.firstName.length) % POCKET_UNSEEN.length]!;
+        say(sim, line.replace('{res}', amountOf(res, 1)), { tone: 'bad' });
       }
     }
   }
@@ -284,7 +290,8 @@ export function combatBeat(sim: Sim): void {
   const lead = enemies.reduce((a, b) => (b.def.threat > a.def.threat ? b : a)).def;
   const group = describeGroup(enemies);
   startBeat(sim, 'combat', enemies.length === 1 ? lead.name : lead.plural);
-  say(sim, flavor(sim, COMBAT_INTROS[lead.type], {}, { group, Group: capitalize(group) }));
+  const one = enemies.filter((e) => !e.waiting).length === 1;
+  say(sim, flavor(sim, COMBAT_INTROS[lead.type], {}, { group, Group: capitalize(group), s: one ? 's' : '', are: one ? 'is' : 'are', have: one ? 'has' : 'have' }));
 
   const crew = standing(sim);
   const plan = sim.plan;
