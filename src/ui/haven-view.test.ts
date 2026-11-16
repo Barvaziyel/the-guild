@@ -98,6 +98,8 @@ describe('the Haven tab (§9.11)', () => {
   test('the road, once they know where it is and how to get in', () => {
     const state = heard('road');
     find(state, 'bearing', 'gate_code');
+    assert.equal(havenView(state)!.road, undefined, 'not without the notebook from the Glow');
+    find(state, 'notebook');
     assert.equal(havenView(state)!.road, 'They know where Haven is, and how to get in.');
   });
 });

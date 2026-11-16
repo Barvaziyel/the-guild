@@ -136,6 +136,16 @@ export const HAVEN_CLUES: readonly HavenClue[] = [
     learned: 'Haven’s trucks take the old highway east, two days out of the Reach.',
   },
   {
+    id: 'notebook',
+    title: 'The runaway’s notebook',
+    lead: 'One name on Haven’s list is crossed out, with a note in pencil: “ran, Glow road”. The trucks don’t follow anyone into the Glow. Go well armed, and take Medkits.',
+    where: { kind: 'run', locationId: 'the_glow', depth: 1 },
+    after: ['intake_list'],
+    find: 'Near the crater rim, under a slab of fused glass, {a.first} finds what’s left of someone, and a notebook sealed in a plastic bag.',
+    text: 'Most of the pages are burned through. One isn’t: a careful drawing of the dam from the inside, with the north gate, the turbine hall, long sheds by the water, and a way out along the spillway marked with a cross. Under it, pressed hard into the paper: “Not the north gate. Never the north gate.”',
+    learned: 'Someone got out of Haven along the spillway and ran through the Glow. They drew the inside of the dam.',
+  },
+  {
     id: 'bearing',
     title: 'A bearing on Haven',
     lead: 'The map ends at the edge of the paper. A big enough antenna, turned along the highway, could find where the signal is strongest.',
@@ -171,7 +181,7 @@ export const HAVEN_VULTURES = {
 };
 
 /** Clues that, found, open the road (the journey itself is the next roadmap step). */
-export const HAVEN_ROAD: readonly string[] = ['bearing', 'gate_code'];
+export const HAVEN_ROAD: readonly string[] = ['bearing', 'gate_code', 'notebook'];
 
 export interface HavenHint {
   id: string;

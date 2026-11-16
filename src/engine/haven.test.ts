@@ -74,6 +74,9 @@ describe('Haven: the content (§9.11)', () => {
     for (const id of [...HAVEN_ROAD, ...HAVEN_VULTURES.after]) assert.ok(ids.has(id), id);
     assert.ok(HAVEN_CLUES.some((c) => c.where.kind === 'build'), 'some clues are buildings (Aviel)');
     assert.ok(HAVEN_CLUES.filter((c) => c.where.kind === 'run').length >= 8, 'most are found on runs');
+    // Aviel: one clue the road needs can only be had by going into the Glow, the danger-5 place.
+    const glow = HAVEN_CLUES.filter((c) => c.where.kind === 'run' && LOCATIONS.find((l) => l.id === (c.where as { locationId: string }).locationId)!.danger === 5);
+    assert.ok(glow.some((c) => HAVEN_ROAD.includes(c.id)), 'the road goes through the Glow');
   });
 
   test('every clue can be found: following the leads in turn reaches all of them, and the road', () => {

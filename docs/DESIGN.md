@@ -410,6 +410,15 @@ The wounded can't be sent on runs until they heal. If an ally's help lifted the 
 
   - A Medkit in the crew cuts deaths by 60–90% at danger 3 and 35–65% at danger 4–5.
   - Never retreating and attacking aggressively at danger 4–5 costs a life every 6–8 runs.
+- **Rechecked in 2.9.0** (1,500 runs each, crews of 3 scavenging, Balanced, pulling out when someone is down): hollows that get up (2.4.0) made the Glow deadlier for a crew without Medkits.
+
+  | Crew in the Glow | Runs finished | Someone goes down | Deaths |
+  |---|---|---|---|
+  | Seasoned (below), no Medkit | 42% | 58% | 1 per 37 runs |
+  | Seasoned, a Medkit each | 42% | 58% | 1 per 250 |
+  | A month in: +2 to every stat, a Prime Hunting Rifle, Solid Riot Gear and a Medkit each | 74% | 26% | 1 per 1,500 |
+
+  So once a crew is geared up the Glow is dangerous, not impossible, and Medkits make most of the difference. That's the crew the story's clue in the Glow (§9.11) is meant for; it takes them two to four runs.
 - **Gear matters, but danger 4–5 stay dangerous** (1.6.1). A *seasoned* crew has +1 to every stat (about two real weeks of growth), a Solid Hunting Rifle and a Solid Scrap Vest each, ammo and a Medkit. Over 300 runs each:
 
   | Danger | Runs finished | Deaths |
@@ -981,7 +990,7 @@ The long goal (§15), from the broadcast that ends the first week. Aviel, 2026-1
 - **The Vultures join the guild at the end:** rivals or not, they hate slavers too. They lost three of their own to Haven, and once the guild finds the list with their names, one of theirs comes to the fence: "When you go, send for us."
 - **The end** (the next step, not this one): everyone fit sets out, fights on the way under command, learns the truth at the gate, and a big fight beside the Vultures. Then an ending scene, a Chronicle line for everyone who went, home with whoever they freed, and the game goes on. The guild is glad of the haven it built.
 
-**Clues.** Twelve, in `content/haven.ts`, each with a lead (where it should be, and why anyone thinks so), what it says, and a line for *What we know*. Each opens when the clues it follows on from are found, so there are usually two or three leads open at once. Ten are found on runs to a place, at a level of it (§7.10); two are worked out from the Haven tab once a building is up.
+**Clues.** Thirteen, in `content/haven.ts`, each with a lead (where it should be, and why anyone thinks so), what it says, and a line for *What we know*. Each opens when the clues it follows on from are found, so there are usually two or three leads open at once. Eleven are found on runs to a place, at a level of it (§7.10); two are worked out from the Haven tab once a building is up. One the road needs is in the Glow (Aviel: "There should be a clue you need that can only be got by going in the danger 5 location"): a geared crew comes back from there most of the time, so it's dangerous, not impossible (§7.5).
 
 | Clue | Where | After | What it tells them |
 |---|---|---|---|
@@ -995,11 +1004,12 @@ The long goal (§15), from the broadcast that ends the first week. Aviel, 2026-1
 | Forms from St. Jude's | St. Jude's Hospital (3) | the flyer | Haven looks people over when they arrive ("KEEP") |
 | Red Hand's ledger | Red Hand Camp (4) | the list | Red Hand sells Haven something, and is paid well |
 | The driver's map | Blackwater Swamp, deeper in (4) | the list | The trucks take the old highway east, two days out |
+| The runaway's notebook | The Glow (5) | the list (a name crossed out: "ran, Glow road") | Someone got out along the spillway and drew the inside of the dam: "Not the north gate. Never the north gate." |
 | A bearing on Haven | Radio Tower level 3: *Take a bearing* | the map | Haven is at Corwin Dam |
 | The gate code | The Water Plant, deeper in (4) | the convoy band and the list | "Shepherd", and two flashes, at the north gate |
 
 - **Finding one.** A crew that makes it there and back (a run that turns back early doesn't count) looks for it: 40% on the first try, 25% more for each crew that came back without it, 15% more when scouting. Whoever's sharpest (Wits) finds it; the run's log has it, and the report names them. The rolls have their own dice, so a run comes out the same as it would without Haven but for what it turned up. The Vultures' word comes to the Depot on a Depot day (30% a day) once the list is found and they're in the Reach.
-- **The road** is open once they have the bearing and the gate code: *They know where Haven is, and how to get in.*
+- **The road** is open once they have the bearing, the gate code and the runaway's notebook: *They know where Haven is, and how to get in.*
 
 **Hints.** Fifty, in `content/haven.ts`, from seven places: on a run (a line in the report), from someone new when they're taken in, a trader at the gate, the radio at night (with a Radio Tower), talk at the fire, a captive, and the Vultures once they're in the Reach. Each is heard once. A hint can be heard only once the guild has found as many clues as its tier, so they darken in order (the earliest tier available comes first); a few need a particular clue (the convoy band's talk needs the dropped radio). At most one every 3 game days; when that allows, a run brings one 20% of the time, a newcomer or a trader 60%, and a Depot day 12% (from the radio, the fire, a captive or the Vultures, whichever has one to tell). Hints the player didn't see come up go in the news.
 
@@ -1020,12 +1030,13 @@ The long goal (§15), from the broadcast that ends the first week. Aviel, 2026-1
 | First four clues | 2–4 | 3–9 |
 | The dropped radio, the forms | 10–11 | 12 |
 | The list, the ledger, the Vultures' word | 18 | 20–22 |
+| The runaway's notebook (the Glow, once a crew is at ease at danger 4) | 19 (12 of 12) | 24 (11 of 12) |
 | The convoy band (Radio Tower 2) | 23 (10 of 12 by day 35) | 30 (9 of 12) |
 | The driver's map, the gate code | 26–27 (9–10 of 12) | 31 (1–3 of 12) |
 | The bearing (Radio Tower 3): the road open | 33 (5 of 12 by day 35) | later |
 | Hints heard by day 7, 14, 21, 28, 35 | 8, 18, 27, 34, 39 | 8, 17, 25, 31, 36 |
 
-Radio Tower 3 is one of the last buildings, so the road opens about when the Depot is done, as Aviel asked. Deaths and hunger are as without Haven.
+Radio Tower 3 is one of the last buildings, so the road opens about when the Depot is done, as Aviel asked. Deaths and hunger are as without Haven, the trips into the Glow included.
 
 ## 10. Recruitment
 
