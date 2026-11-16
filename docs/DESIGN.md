@@ -1062,7 +1062,7 @@ With a Radio Tower, now and then someone calls for help from a known place; `res
 
 **Navigation.** Tabs along the bottom: Depot, Roster, Reach, Runs, Settings.
 
-**The day up top.** The day number sits at the top of every screen, by the bell. Under it is when the next Depot day starts, counting down: "Day 22 in 2 h 13 min" (Aviel asked for it, 2.8.8). A screen reader hears the clock time instead: "Day 22 starts at 1:35 PM". The tour's *Days pass* step outlines it.
+**The day up top.** The day number sits at the top of every screen, by the bell. Aviel asked for a way to see there when the next day starts (2.8.8); of three mockups he picked a dial: a ring beside the day fills as the day goes, and under the day is the countdown, "Next in 2 h 13 min" (the first try, a line squeezed under the number, was "ugly and cramped"). A screen reader hears the clock time instead: "Day 22 starts at 1:35 PM". The tour's *Days pass* step outlines it.
 
 **The bell (2.2.0).** Aviel asked for a notifications bell up top that keeps track of what he needs to address. A bell by the day number counts what needs the player and opens a list in four groups; a tap on a line goes there:
 - **Waiting on you:** raiders seen on the road or at the gate (the raid screen), a crew stopped at a fight (the fight), a crew on the radio (the run), a decision (Today), a call for help nobody has gone to (the place).

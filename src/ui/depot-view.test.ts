@@ -239,10 +239,14 @@ describe('the next day, up top', () => {
     const state = newGame({ seed: 'next-day', now: T0 });
     const start = nextDayAt(state, T0);
     const v = nextDayView(state, start - (72 * 60_000));
-    assert.equal(v.line, `Day ${dayAt(state, T0) + 1} in 1 h 12 min`);
+    assert.equal(v.line, 'Next in 1 h 12 min');
     assert.match(v.label, new RegExp(`^Day ${dayAt(state, T0) + 1} starts at `));
-    assert.equal(nextDayView(state, start - 20_000).line, `Day ${dayAt(state, T0) + 1} in under a minute`);
-    // The moment it starts, the count is for the one after.
-    assert.equal(nextDayView(state, start).line, `Day ${dayAt(state, T0) + 2} in 3 h`);
+    assert.ok(Math.abs(v.progress - (1 - 72 / 180)) < 1e-9, 'the dial: 1 h 48 min of a 3-hour day gone');
+    assert.equal(nextDayView(state, start - 20_000).line, 'Next in under a minute');
+    // The moment it starts, the count is for the one after, and the dial starts over.
+    const fresh = nextDayView(state, start);
+    assert.equal(fresh.line, 'Next in 3 h');
+    assert.equal(fresh.progress, 0);
+    assert.match(fresh.label, new RegExp(`^Day ${dayAt(state, T0) + 2} starts at `));
   });
 });

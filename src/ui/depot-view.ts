@@ -431,11 +431,13 @@ function joinList(xs: readonly string[]): string {
 }
 
 /**
- * Under the day number up top: when the next Depot day starts (Aviel, 2.8.8).
- * `line` is what shows, `label` says it in full for a screen reader.
+ * By the day number up top: when the next Depot day starts (Aviel, 2.8.8).
+ * A dial fills as the day goes (`progress`, 0 to 1), and the line under the
+ * day counts down; `label` says it in full for a screen reader.
  */
-export function nextDayView(state: GameState, now: number): { line: string; label: string } {
+export function nextDayView(state: GameState, now: number): { line: string; label: string; progress: number } {
   const at = nextDayAt(state, now);
   const next = dayAt(state, now) + 1;
-  return { line: `Day ${next} in ${formatDuration(Math.max(at - now, 0))}`, label: `Day ${next} starts at ${clockTime(at)}` };
+  const progress = Math.min(1, Math.max(0, 1 - (at - now) / DAY_MS));
+  return { line: `Next in ${formatDuration(Math.max(at - now, 0))}`, label: `Day ${next} starts at ${clockTime(at)}`, progress };
 }
