@@ -10,6 +10,8 @@ import {
   tickerLines,
   fightCard,
   fightCards,
+  endFrom,
+  endLines,
   fightEnd,
   fightNoticeKey,
   fightNoticeRun,
@@ -180,6 +182,19 @@ describe('the fight screen', () => {
     assert.deepEqual(fightEnd(lines, 4).map((l) => l.text), ['line 5', 'line 6']);
     assert.deepEqual(fightEnd(lines, 0).map((l) => l.text), ['line 3', 'line 4', 'line 5', 'line 6']);
     assert.deepEqual(fightEnd(lines, 6).map((l) => l.text), ['line 3', 'line 4', 'line 5', 'line 6'], 'nothing new: the last lines');
+  });
+
+  test('the end plays from the round the player last saw, if it was the same fight', () => {
+    const lines = [1, 2, 3, 4, 5, 6].map((n) => ({ text: `line ${n}` }));
+    const seen = { ...view, lines: lines.slice(0, 4), acts: [] };
+    const end = { ...view, lines, acts: [{ round: 2, line: 4, by: 'a', at: 0, kind: 'hit' as const, amount: 4 }] };
+    assert.equal(endFrom(seen, end), seen);
+    assert.equal(endFrom(undefined, end), undefined, 'nothing seen: the stage just shows the end');
+    assert.equal(endFrom({ ...seen, enemies: [] }, end), undefined, 'another fight (the other band)');
+    assert.equal(endFrom(end, seen), undefined, 'the end can’t come before what was seen');
+    assert.deepEqual(endLines(lines, seen, undefined).map((l) => l.text), ['line 5', 'line 6'], 'the last round, once played');
+    assert.deepEqual(endLines(lines, seen, 5).map((l) => l.text), ['line 5'], 'in step with the stage');
+    assert.deepEqual(endLines(lines, undefined, undefined).map((l) => l.text), ['line 3', 'line 4', 'line 5', 'line 6']);
   });
 
   test('bars and states in words', () => {

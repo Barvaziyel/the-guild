@@ -477,13 +477,21 @@ describe('who holds the gate, and a second band', () => {
       assert.ok((raid.enemies2 ?? []).length > 0);
       let now = raid.arrive + 1000;
       let view = takeRaidCommand(state, now);
+      let last = view!;
       while (view) {
+        last = view;
         now += 10_000;
         view = commandRaidRound(state, attackAll(view), now);
       }
       if (openRaid(state) === undefined) continue; // the first band got in
       const between = raidRegroup(state, now)!;
       assert.ok(between, 'waiting on the player between the bands');
+      // The round that beat them, for the stage to play (Aviel, 2.8.7: it went straight to the second band).
+      const end = between.fight!;
+      assert.ok(end.over === 'won' || end.over === 'stalemate', 'the first band’s fight, over');
+      assert.equal(end.enemies.length, (raid.enemies ?? []).length, 'the first band');
+      assert.ok(end.acts.length > last.acts.length && end.lines.length > last.lines.length, 'the last round comes after what the player saw');
+      assert.deepEqual(end.lines.slice(0, last.lines.length), last.lines, 'the same fight');
       const up = between.people.filter((p) => !p.down);
       assert.ok(up.length > 0);
       view = regroupRaid(state, [up[0]!.id], true, now);

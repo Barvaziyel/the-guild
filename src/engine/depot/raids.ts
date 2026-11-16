@@ -402,6 +402,8 @@ export interface RaidRegroup {
   people: { id: string; name: string; hp: number; maxHp: number; down: boolean; fought: boolean }[];
   against: string;
   lines: LogLine[];
+  /** The first band's fight as it ended, for the stage to play its last round. */
+  fight?: FightView;
 }
 
 /** The first band is beaten under command and the second is coming: the player picks who holds the gate. Undefined otherwise. */
@@ -422,6 +424,7 @@ export function raidRegroup(state: GameState, now: number): RaidRegroup | undefi
     people: result.sim.members.filter((m) => !m.dead).map((m) => ({ id: m.s.id, name: m.s.firstName, hp: Math.max(0, m.s.hp), maxHp: maxHp(m.s), down: m.down, fought: team.has(m.s.id) })),
     against: describeGroup(second),
     lines: result.sim.beats.at(-1)?.title === 'Between the bands' ? result.sim.beats.at(-1)!.lines : [],
+    ...(result.view ? { fight: result.view } : {}),
   };
 }
 

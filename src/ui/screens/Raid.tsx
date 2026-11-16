@@ -19,7 +19,7 @@ import {
   type GameState,
 } from '../../engine/index.ts';
 import { BattleStage } from '../components/BattleStage.tsx';
-import { fightEnd } from '../fight-view.ts';
+import { endFrom, endLines } from '../fight-view.ts';
 import { goBack, navigate, useAction, useNow, useTopOnChange } from '../hooks.ts';
 import { gateView, raidCard, raidOver, readyView, regroupView, type RegroupView } from '../raid-view.ts';
 import { Command } from './Fight.tsx';
@@ -67,7 +67,7 @@ export function Raid({ state }: { state: GameState }) {
           letThem={(s) => letRaidFight(s, Date.now())}
         />
       ) : gate && between ? (
-        <Regroup key={gate.id} state={state} now={now} view={between} />
+        <Regroup key={gate.id} state={state} now={now} view={between} seen={lastSeen.current} />
       ) : gate ? (
         <AtGate state={state} now={now} />
       ) : open ? (
@@ -238,10 +238,16 @@ function AtGate({ state, now }: { state: GameState; now: number }) {
   );
 }
 
-/** The first band beaten under command, the second coming: the player picks who meets it. */
-function Regroup({ state, now, view }: { state: GameState; now: number; view: RegroupView }) {
+/** The first band beaten under command, the second coming: the round that beat them plays out, then the player picks who meets the second. */
+function Regroup({ state, now, view, seen }: { state: GameState; now: number; view: RegroupView; seen: FightView | undefined }) {
   const { act, error } = useAction();
   const card = raidCard(state, now)!;
+  const raid = state.depot.raid!;
+  // The first band's end as the card came up. It stays put while the card waits, so the stage plays the last round once (Aviel, 2.8.7).
+  const [end] = useState(view.fight);
+  const before = endFrom(seen, end);
+  const [told, setTold] = useState<number | undefined>(undefined);
+  const lines = end ? endLines(end.lines, before, told) : [];
   const [back, setBack] = useState<ReadonlySet<string>>(new Set());
   const team = view.people.filter((p) => p.can && !back.has(p.id)).map((p) => p.id);
   const flip = (id: string) =>
@@ -253,16 +259,26 @@ function Regroup({ state, now, view }: { state: GameState; now: number; view: Re
     });
   return (
     <section className="panel fight-call raid-call">
-      <p className="dilemma-kicker">{state.depot.raid?.outpost ? 'At the outpost' : 'At the Depot'}</p>
-      <h2 className="dilemma-title">The first band is beaten</h2>
-      <p className="fight-sub">{view.against}</p>
-      {view.lines.length > 0 && (
+      <p className="dilemma-kicker">{raid.outpost ? 'At the outpost' : 'At the Depot'}</p>
+      <h2 className="dilemma-title">{view.title}</h2>
+      {end && <BattleStage state={state} place={raid.outpost ?? 'depot'} seed={raid.id} view={end} before={before} onLine={setTold} caption="Held, for now." />}
+      {lines.length > 0 && (
+        <ul className="fight-lines fight-end">
+          {lines.map((l, k) => (
+            <li key={k} className={l.tone ? `is-${l.tone}` : undefined}>
+              {l.text}
+            </li>
+          ))}
+        </ul>
+      )}
+      {told === undefined && view.lines.length > 0 && (
         <ul className="fight-lines">
           {view.lines.map((l, k) => (
             <li key={k}>{l}</li>
           ))}
         </ul>
       )}
+      <p className="fight-sub">{view.against}</p>
       <h3 className="panel-title raid-sub">Who meets the second band</h3>
       <div className="fight-chips" role="group" aria-label="Who meets the second band">
         {view.people.map((p) => (
@@ -297,9 +313,9 @@ function Over({ state, seen }: { state: GameState; seen: FightView | undefined }
   const raid = state.depot.raid!;
   const end = useMemo(() => lastRaidFight(state), [state]);
   const over = raidOver(state);
-  const before = seen && end && seen.enemies.length === end.enemies.length && seen.acts.length <= end.acts.length ? seen : undefined;
+  const before = endFrom(seen, end);
   const [told, setTold] = useState<number | undefined>(undefined);
-  const lines = !end ? [] : told === undefined ? fightEnd(end.lines, before?.lines.length ?? 0) : end.lines.slice(before?.lines.length ?? 0, told);
+  const lines = end ? endLines(end.lines, before, told) : [];
   const { name } = raidersName(state, raid);
   return (
     <section className="panel">
