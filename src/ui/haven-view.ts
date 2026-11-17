@@ -11,16 +11,19 @@ import {
   HAVEN_VULTURES,
   buildingDef,
   fillRoles,
+  clueFound,
   clueReady,
+  clueWhere,
   depthOpen,
   getClue,
   getLocation,
   havenDreamer,
   havenLeads,
   havenRoadOpen,
-  knownLocations,
+  hiddenLeads,
   leadAt,
   planDepth,
+  pointsTo,
   type GameState,
   type HavenClue,
   type HavenHeard,
@@ -36,6 +39,8 @@ export interface HavenLeadView {
   lead: string;
   /** "Hilltop Radio Station, the outskirts", "The Radio Tower, level 2". */
   where: string;
+  /** Which find pointed here: "From the engineer’s logbook." None for the first leads. */
+  from?: string;
   /** How it stands: not found yet, the level not open, tried before, or the building not up. */
   note?: string;
   /** Where to go about it. */
@@ -50,7 +55,19 @@ export interface HavenFoundView {
   text: string;
   /** "Found by Briar at Hilltop Radio Station, day 12." */
   line: string;
+  /** What the guild knows from it, in one line. None for a goodbye. */
+  learned?: string;
+  /** Where it points on to (Aviel, 2.9.1: "what's the next clue that it leads to"). */
+  next: HavenNextView[];
   isNew: boolean;
+}
+
+/** A clue a find points on to, and how it stands now. */
+export interface HavenNextView {
+  title: string;
+  /** "The Water Plant: a lead now.", "Found.", "Once the convoy band is found too." */
+  line: string;
+  status: 'lead' | 'found' | 'waits';
 }
 
 export interface HavenHeardView {
@@ -69,6 +86,8 @@ export interface HavenView {
   /** Once the guild knows where Haven is and how to get in. */
   road?: string;
   leads: HavenLeadView[];
+  /** When some leads are at places nobody has found yet: never named, but there's more out there. */
+  hidden?: string;
   /** Newest first. */
   found: HavenFoundView[];
   /** Newest first. */
@@ -97,7 +116,7 @@ export function havenView(state: GameState, seen: { found: number; heard: number
   const found = haven.found.map((f, i) => {
     if (f.id === HAVEN_DREAMER.id) {
       const line = f.at ? `On the way home from ${placeIn(f.at)}, day ${f.day}.` : `Gone in the night, day ${f.day}.`;
-      return { id: f.id, title: title(f.id), text: text(f), line, isNew: i >= seen.found };
+      return { id: f.id, title: title(f.id), text: text(f), line, next: [], isNew: i >= seen.found };
     }
     const who = f.by ? state.survivors.find((s) => s.id === f.by)?.firstName ?? state.memorial.find((m) => m.id === f.by)?.firstName : undefined;
     const where = f.at ? ` at ${placeIn(f.at)}` : '';
@@ -109,8 +128,9 @@ export function havenView(state: GameState, seen: { found: number; heard: number
         : f.id === HAVEN_VULTURES.id
           ? `At the fence, day ${f.day}.`
           : `Worked out at the Depot, day ${f.day}.`;
-    return { id: f.id, title: title(f.id), text: text(f), line, isNew: i >= seen.found };
+    return { id: f.id, title: title(f.id), text: text(f), line, learned: learned(f.id), next: nextViews(state, f.id), isNew: i >= seen.found };
   });
+  const hidden = hiddenLeads(state);
   const heard = haven.heard.map((h, i) => ({ text: h.text, line: `${heardFrom(h)}, day ${h.day}.`, isNew: i >= seen.heard }));
   return {
     broadcast: HAVEN_BROADCAST,
@@ -121,6 +141,7 @@ export function havenView(state: GameState, seen: { found: number; heard: number
     leads: havenLeads(state)
       .map((c) => leadView(state, c))
       .sort((a, b) => Number(!!b.action) - Number(!!a.action)),
+    ...(hidden > 0 ? { hidden: 'There may be more out past the places the guild knows. Scouting turns up new ones.' } : {}),
     found: found.reverse(),
     heard: heard.reverse(),
   };
@@ -140,8 +161,35 @@ function heardFrom(h: HavenHeard): string {
   return h.source === 'run' && h.at ? `On a run to ${placeIn(h.at)}` : FROM[h.source];
 }
 
+/** Where a find points on to, and how each stands (2.9.1). */
+function nextViews(state: GameState, id: string): HavenNextView[] {
+  return pointsTo(id).map((c) => {
+    const known = c.where.kind === 'build' || (state.locations[c.where.locationId]?.discovered ?? false);
+    const where = known ? capital(clueWhere(c)) : undefined;
+    if (clueFound(state, c.id)) return { title: c.title, line: where ? `${where}: found.` : 'Found.', status: 'found' as const };
+    const missing = c.after.filter((a) => !clueFound(state, a)).map((a) => lower(getClue(a).title));
+    if (missing.length > 0) return { title: c.title, line: `Once ${listed(missing)} ${missing.length === 1 ? 'is' : 'are'} found too.`, status: 'waits' as const };
+    return { title: c.title, line: where ? `${where}: a lead now.` : 'A lead now.', status: 'lead' as const };
+  });
+}
+
+/** One find as the Found tab shows it, for a run's report (2.9.1). Undefined until it's filed. */
+export function findView(state: GameState, id: string): HavenFoundView | undefined {
+  return havenView(state)?.found.find((f) => f.id === id);
+}
+
+/** "a, b and c". */
+function listed(items: string[]): string {
+  return items.length <= 1 ? (items[0] ?? '') : `${items.slice(0, -1).join(', ')} and ${items.at(-1)!}`;
+}
+
+function capital(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
 function leadView(state: GameState, c: HavenClue): HavenLeadView {
-  const base = { id: c.id, title: c.title, lead: c.lead };
+  const from = c.after.length > 0 ? `From ${listed(c.after.map((a) => lower(getClue(a).title)))}.` : undefined;
+  const base = { id: c.id, title: c.title, lead: c.lead, ...(from ? { from } : {}) };
   if (c.where.kind === 'build') {
     const w = c.where;
     const name = buildingDef(w.building).name;
@@ -152,13 +200,7 @@ function leadView(state: GameState, c: HavenClue): HavenLeadView {
   const w = c.where;
   const place = getLocation(w.locationId).name;
   const where = `${place}, ${DEPTH_NAMES[w.depth - 1]!.toLowerCase()}`;
-  const known = state.locations[w.locationId]?.discovered ?? false;
-  if (!known) {
-    // The way the Reach says it: scout where the road leads from (2.9.0).
-    const from = knownLocations(state).find((l) => l.leadsTo.includes(w.locationId));
-    if (!from) return { ...base, where, note: `Nobody has found ${placeIn(w.locationId)} yet.`, go: { label: 'Look on the Reach', to: { screen: 'reach' } } };
-    return { ...base, where, note: `Nobody has found ${placeIn(w.locationId)} yet. A road leads there from ${placeIn(from.id)}: scouting there is the best way to find it.`, go: { label: `Plan a run to ${placeIn(from.id)}`, to: { screen: 'plan', locationId: from.id } } };
-  }
+  // Leads are only ever at places on the map (2.9.1), so there's no "nobody has found it" here.
   if (!depthOpen(state, w.locationId, w.depth)) {
     return { ...base, where, note: `${DEPTH_NAMES[w.depth - 1]} isn’t open yet: explore the level before it fully.`, go: { label: 'See the place', to: { screen: 'reach', id: w.locationId } } };
   }
@@ -200,6 +242,12 @@ export function reportHavenLine(news: { lead?: { clue: string; found: boolean; b
   return who ? `For Haven: ${who} found ${t}.` : `For Haven: found ${t}.`;
 }
 
+/** A report's line for a place just found that has a lead for Haven: "There's a lead for Haven there: the engineer’s logbook." */
+export function discoveredLeadLine(state: GameState, locationId: string): string | undefined {
+  const here = havenLeads(state).filter((c) => c.where.kind === 'run' && c.where.locationId === locationId);
+  return here.length > 0 ? `There’s a lead for Haven there: ${listed(here.map((c) => lower(c.title)))}.` : undefined;
+}
+
 /** "Rook went east to Haven, alone.": the one the broadcast pulled in, walking off from the road home. */
 export function reportGoneLine(news: { ran?: { id: string } } | undefined, names: Record<string, string>): string | undefined {
   const id = news?.ran?.id;
@@ -211,8 +259,9 @@ export function havenReady(state: GameState): string[] {
   return HAVEN_CLUES.filter((c) => clueReady(state, c)).map((c) => c.id);
 }
 
+/** A title inside a sentence: "the engineer’s logbook", but "Red Hand’s ledger". */
 function lower(title: string): string {
-  return title.charAt(0).toLowerCase() + title.slice(1);
+  return /^(Red Hand|Haven|St\. |Corwin)/.test(title) ? title : title.charAt(0).toLowerCase() + title.slice(1);
 }
 
 // ---------------------------------------------------------------- the road (2.9.0, Aviel: "make it look better")

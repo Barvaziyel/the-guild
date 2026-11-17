@@ -133,7 +133,7 @@ function completeGoal(sim: Sim, goal: FightGoal, by: Member): void {
       const person = generateSurvivor(sim.state, sim.rng, { day: simDay(sim) });
       person.hp = Math.max(1, Math.round(maxHp(person) * 0.6));
       sim.found.push({ person, by: by.s.id });
-      say(sim, `${person.firstName} ${person.lastName} comes home with ${them}.`, { tone: 'good' });
+      say(sim, `${person.firstName} ${person.lastName} falls in with ${them}.`, { tone: 'good' });
       break;
     }
     case 'unlock': {

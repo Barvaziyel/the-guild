@@ -39,7 +39,8 @@ import {
 import { clockTime } from '../time.ts';
 import { foundLines, rescueLine, rescuedWhere } from '../rescue-view.ts';
 import { vultureReportLines } from '../vultures-view.ts';
-import { reportGoneLine, reportHavenLine } from '../haven-view.ts';
+import { discoveredLeadLine, findView, reportGoneLine, reportHavenLine } from '../haven-view.ts';
+import { HavenFindNote } from '../components/HavenFind.tsx';
 import { followedHome } from '../animals-view.ts';
 import { findAnySurvivor } from '../view.ts';
 
@@ -163,6 +164,7 @@ function Report({ state, report }: { state: GameState; report: RunReport }) {
   const tone = outcomeTone(s);
   const dead = new Set(s.deaths.map((d) => d.survivorId));
   const names = reportFirstNames(report);
+  const havenFind = s.haven?.lead?.found ? findView(state, s.haven.lead.clue) : undefined;
   const crew = report.plan.crew.map((cid) => ({ id: cid, name: names[cid] ?? cid, survivor: findAnySurvivor(state, cid) }));
   const loot = lootList(s);
   const rescue = rescueLine(s);
@@ -204,15 +206,17 @@ function Report({ state, report }: { state: GameState; report: RunReport }) {
         <p>{loot.length > 0 ? `Brought home ${loot.join(', ')}.` : 'Brought nothing home.'}</p>
         {radioReportLine(report) && <p className="summary-radio">{radioReportLine(report)}</p>}
         {leadReportLine(report) && <p className="summary-radio">{leadReportLine(report)}</p>}
-        {reportHavenLine(s.haven, names) && (
-          <p className={s.haven?.lead?.found ? 'summary-found' : undefined}>
-            {reportHavenLine(s.haven, names)}{' '}
-            {s.haven?.lead?.found && (
-              <button type="button" className="link" onClick={() => navigate({ screen: 'haven', tab: 'found' })}>
-                See it
-              </button>
-            )}
-          </p>
+        {/* A find for Haven, whole (2.9.1): what it says, where, and where it points on to. */}
+        {havenFind ? (
+          <div className="summary-haven">
+            <p className="summary-found">{reportHavenLine(s.haven, names)}</p>
+            <HavenFindNote find={havenFind} title />
+            <button type="button" className="link" onClick={() => navigate({ screen: 'haven' })}>
+              Open Haven
+            </button>
+          </div>
+        ) : (
+          reportHavenLine(s.haven, names) && <p>{reportHavenLine(s.haven, names)}</p>
         )}
         {reportGoneLine(s.haven, names) && (
           <p>
@@ -284,6 +288,7 @@ function Report({ state, report }: { state: GameState; report: RunReport }) {
         {s.discovered.map((d) => (
           <p key={d} className="summary-found">
             Found the way to {getLocation(d).name}.{' '}
+            {discoveredLeadLine(state, d) && `${discoveredLeadLine(state, d)} `}
             <button type="button" className="link" onClick={() => navigate({ screen: 'reach', id: d })}>
               Show it on the map
             </button>

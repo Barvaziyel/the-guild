@@ -23,11 +23,11 @@ import {
 } from './constants.ts';
 import { HAVEN_BROADCAST, HAVEN_CLUES, HAVEN_DREAMER, HAVEN_HINTS, HAVEN_ROAD, HAVEN_VULTURES, type HavenClue, type HavenHint } from './content/haven.ts';
 import { getLocation } from './content/index.ts';
-import { atDepot } from './depot/buildings.ts';
+import { atDepot, buildingDef } from './depot/buildings.ts';
 import { childrenOf } from './family.ts';
 import { dayAt } from './game.ts';
 import { leaveGuild } from './leaving.ts';
-import { planDepth } from './locations.ts';
+import { DEPTH_NAMES, ensureLocationState, locationState, planDepth } from './locations.ts';
 import { partnerOf } from './relationships.ts';
 import { Rng } from './rng.ts';
 import { fillRoles } from './text.ts';
@@ -59,9 +59,48 @@ export function clueOpen(state: GameState, clue: HavenClue): boolean {
   return !!state.haven && !clueFound(state, clue.id) && clue.after.every((id) => clueFound(state, id));
 }
 
-/** The leads: clues the guild can go after now, in the file's order. */
+/**
+ * Somewhere the guild knows of: a building's, or at a place on the map.
+ * Aviel (2.9.1): "there shouldn't be a clue available... if I haven't found
+ * that location yet, I shouldn't even know about it".
+ */
+function leadKnown(state: GameState, clue: HavenClue): boolean {
+  return clue.where.kind === 'build' || locationState(state, clue.where.locationId).discovered;
+}
+
+/** The leads: clues the guild can go after now, at places it knows of, in the file's order. */
 export function havenLeads(state: GameState): HavenClue[] {
-  return HAVEN_CLUES.filter((c) => clueOpen(state, c));
+  return HAVEN_CLUES.filter((c) => clueOpen(state, c) && leadKnown(state, c));
+}
+
+/** Leads open but at places nobody has found yet: never named, but there's more out there. */
+export function hiddenLeads(state: GameState): number {
+  return HAVEN_CLUES.filter((c) => clueOpen(state, c) && !leadKnown(state, c)).length;
+}
+
+/** The clues a clue points on to: the ones that need it. */
+export function pointsTo(id: string): HavenClue[] {
+  return HAVEN_CLUES.filter((c) => c.after.includes(id));
+}
+
+/** Where a clue is to be had, in a few words: "the Water Plant", "Blackwater Swamp, deeper in", "the Radio Tower at level 2". */
+export function clueWhere(clue: HavenClue): string {
+  const w = clue.where;
+  if (w.kind === 'build') return `the ${buildingDef(w.building).name} at level ${w.level}`;
+  const place = getLocation(w.locationId).name.replace(/^The /, 'the ');
+  return w.depth > 1 ? `${place}, ${DEPTH_NAMES[w.depth - 1]!.toLowerCase()}` : place;
+}
+
+/**
+ * The log's line after a find: where it points on to, once it's in hand.
+ * `state` is as it was before the find. Undefined when it points nowhere new.
+ */
+export function pointsLine(state: GameState, id: string): string | undefined {
+  const next = pointsTo(id).filter((c) => !clueFound(state, c.id) && c.after.every((a) => a === id || clueFound(state, a)));
+  if (next.length === 0) return undefined;
+  const places = next.map(clueWhere);
+  const list = places.length === 1 ? places[0]! : `${places.slice(0, -1).join(', ')} and ${places.at(-1)!}`;
+  return `It points on to ${list}.`;
 }
 
 /** A lead to follow on a run to this place, at this level (or one less deep). */
@@ -101,12 +140,21 @@ function file(state: GameState, id: string, day: number, by?: Survivor, at?: str
   const title = id === HAVEN_VULTURES.id ? HAVEN_VULTURES.title : getClue(id).title;
   const where = at ? ` at ${getLocation(at).name.replace(/^The /, 'the ')}` : '';
   addGuildLog(state, day, by ? `For Haven: ${by.firstName} found ${lower(title)}${where}.` : `For Haven: ${lower(title)}.`, ['haven', id]);
+  // Where it points goes on the map (2.9.1): a lead is only ever somewhere the guild knows of.
+  for (const next of pointsTo(id)) {
+    if (next.where.kind !== 'run' || !clueOpen(state, next)) continue;
+    const here = ensureLocationState(state, next.where.locationId);
+    if (here.discovered) continue;
+    here.discovered = true;
+    addGuildLog(state, day, `${title} points the way to ${getLocation(next.where.locationId).name.replace(/^The /, 'the ')}. It’s on the map now.`, ['discovery', next.where.locationId]);
+  }
   if (havenRoadOpen(state) && HAVEN_ROAD.includes(id)) addGuildLog(state, day, 'They know where Haven is now, and how to get in.', ['haven']);
   return found;
 }
 
+/** A title inside a sentence: "the engineer’s logbook", but "Red Hand’s ledger". */
 function lower(title: string): string {
-  return title.charAt(0).toLowerCase() + title.slice(1);
+  return /^(Red Hand|Haven|St\. |Corwin)/.test(title) ? title : title.charAt(0).toLowerCase() + title.slice(1);
 }
 
 // ---------------------------------------------------------------- runs
