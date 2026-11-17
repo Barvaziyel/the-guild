@@ -99,7 +99,7 @@ import { atDepth, planDepth } from '../locations.ts';
 import { outpostNear } from '../outposts.ts';
 import { seating } from '../vehicles.ts';
 import { earnNickname, nameWeapon, nemesisNewsList, takenNames } from './stories.ts';
-import { findLine, getClue, havenForRun, playRunHaven, runHaven } from '../haven.ts';
+import { findLine, getClue, havenForRun, playRunHaven, pointsLine, runHaven } from '../haven.ts';
 import { HAVEN_DREAMER } from '../content/haven.ts';
 import { resolveWounds } from './wounds.ts';
 import { rescueBeat, rescueNews } from './rescue.ts';
@@ -632,7 +632,12 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
       : undefined;
   if (haven?.lead?.found) {
     startBeat(sim, 'discovery', 'For Haven');
-    say(sim, findLine(getClue(haven.lead.clue), alive(sim).find((m) => m.s.id === haven.lead!.by)!.s), { tone: 'good' });
+    const clue = getClue(haven.lead.clue);
+    say(sim, findLine(clue, alive(sim).find((m) => m.s.id === haven.lead!.by)!.s), { tone: 'good' });
+    // What it says, and where it points (Aviel, 2.9.1: "it should be very clear... what the clue says... what's the next clue that it leads to").
+    say(sim, clue.text);
+    const next = pointsLine(state, clue.id);
+    if (next) say(sim, next);
   }
   if (haven?.hint) {
     startBeat(sim, 'travel', 'On the road');

@@ -12,19 +12,25 @@ import {
   applyHavenNews,
   clueFound,
   cluesKnown,
+  clueWhere,
   clueReady,
   findChance,
   gateHint,
   havenLeads,
   havenNew,
   havenRoadOpen,
+  hiddenLeads,
   leadAt,
+  getClue,
   playHavenDay,
+  pointsLine,
+  pointsTo,
   seenHaven,
   startHaven,
   traderHint,
   workOutClue,
 } from './haven.ts';
+import { ensureLocationState, locationState } from './locations.ts';
 import { Rng } from './rng.ts';
 import { fillRoles } from './text.ts';
 import { deserialize, serialize } from './save.ts';
@@ -37,6 +43,8 @@ import { addWanderer } from './depot/recruits.ts';
 function heard(seed: string): GameState {
   const state = testGame(seed);
   startHaven(state, 1);
+  // Every place on the map, so a lead is never hidden for want of one (that's tested on its own).
+  for (const loc of LOCATIONS) ensureLocationState(state, loc.id).discovered = true;
   return state;
 }
 
@@ -90,6 +98,45 @@ describe('Haven: the content (§9.11)', () => {
     assert.ok(havenRoadOpen(state));
   });
 
+  test('the leads that start out somewhere unknown are the only places to scout for: every find puts the next place on the map', () => {
+    const state = testGame('map');
+    startHaven(state, 1);
+    const unknown = (c: (typeof HAVEN_CLUES)[number]) => c.where.kind === 'run' && !locationState(state, c.where.locationId).discovered;
+    const starting = HAVEN_CLUES.filter((c) => c.after.length === 0 && unknown(c));
+    assert.equal(hiddenLeads(state), starting.length);
+    // Scouting turns up those places; from there on, nothing needs finding by hand.
+    for (const c of starting) if (c.where.kind === 'run') ensureLocationState(state, c.where.locationId).discovered = true;
+    assert.equal(hiddenLeads(state), 0);
+    const by = state.survivors[0]!;
+    for (let guard = 0; guard < 50 && havenLeads(state).length > 0; guard++) {
+      const c = havenLeads(state)[0]!;
+      if (c.where.kind === 'build') {
+        state.buildings[c.where.building] = c.where.level;
+        workOutClue(state, c.id, T0 + DAY_MS);
+      } else {
+        applyHavenNews(state, { lead: { clue: c.id, found: true, by: by.id } }, c.where.locationId, 5);
+      }
+      assert.equal(hiddenLeads(state), 0, `after ${c.id}`);
+    }
+    assert.equal(state.haven!.found.length, HAVEN_CLUES.length);
+    assert.ok(state.log.some((l) => l.text === 'The engineer’s logbook points the way to the Water Plant. It’s on the map now.'));
+  });
+
+  test('a find says where it points on to', () => {
+    const state = heard('points');
+    assert.equal(pointsLine(state, 'logbook'), 'It points on to the Water Plant.');
+    find(state, 'logbook', 'dropped_radio');
+    assert.equal(pointsLine(state, 'intake_list'), 'It points on to Red Hand Camp, Blackwater Swamp, deeper in and the Glow.');
+    // The gate code needs the convoy band too.
+    assert.equal(pointsLine(state, 'convoy_band'), undefined);
+    find(state, 'intake_list');
+    assert.equal(pointsLine(state, 'convoy_band'), 'It points on to the Water Plant, deeper in.');
+    assert.equal(pointsLine(state, 'dropped_radio'), 'It points on to the Radio Tower at level 2.', 'not the list: that one is found');
+    assert.equal(pointsLine(state, 'letters'), undefined, 'the letters point nowhere');
+    assert.deepEqual(pointsTo('logbook').map((c) => c.id), ['dropped_radio']);
+    assert.equal(clueWhere(getClue('convoy_band')), 'the Radio Tower at level 2');
+  });
+
   test('every hint can be heard, and only names someone when it comes through someone', () => {
     const ids = new Set(HAVEN_HINTS.map((h) => h.id));
     assert.equal(ids.size, HAVEN_HINTS.length);
@@ -117,7 +164,9 @@ describe('Haven: hearing of it', () => {
     assert.equal(state.haven, undefined);
     claimStory(state, T0 + DAY_MS);
     assert.ok(state.haven);
-    assert.deepEqual(havenLeads(state).map((c) => c.id), ['logbook', 'flyer', 'kessler_note']);
+    // Only what's on the map (2.9.1): the radio station and the metro wait to be found.
+    assert.deepEqual(havenLeads(state).map((c) => c.id), ['kessler_note']);
+    assert.equal(hiddenLeads(state), 2);
   });
 
   test('a guild without the first week hears it on a Depot day once it has a Radio Tower', () => {
@@ -225,6 +274,7 @@ describe('Haven: clues', () => {
   test('Haven’s rolls have their own dice: a run comes out the same with the file or without, but for what it turned up', () => {
     for (let i = 0; i < 30; i++) {
       const without = testGame(`same-${i}`);
+      for (const loc of LOCATIONS) ensureLocationState(without, loc.id).discovered = true;
       const withIt = heard(`same-${i}`);
       const a = simulateRun(without, plan(without, 'radio_station'), `s-${i}`, T0 + DAY_MS);
       const b = simulateRun(withIt, plan(withIt, 'radio_station'), `s-${i}`, T0 + DAY_MS);

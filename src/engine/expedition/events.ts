@@ -192,14 +192,15 @@ export function applyEffect(sim: Sim, event: EventBase, effect: EventEffect, rol
       const a = newAnimal(sim.state, effect.kind, rng, day);
       a.keeper = roles.a.s.id;
       sim.animals.push(a);
-      say(sim, `The ${getAnimal(effect.kind).name} is still at ${roles.a.s.firstName}'s heels when the Depot comes in sight.`, { tone: 'good' });
+      // Mid-run: nothing that says how the run ends (Aviel: "It mentions the depot but there is no depot yet").
+      say(sim, `The ${getAnimal(effect.kind).name} falls in at ${roles.a.s.firstName}'s heels and won't be shooed off.`, { tone: 'good' });
       break;
     }
     case 'survivor': {
       const person = generateSurvivor(sim.state, rng, { day });
       person.hp = Math.max(1, Math.round(maxHp(person) * 0.7));
       sim.found.push({ person, by: roles.a.s.id });
-      say(sim, `${person.firstName} ${person.lastName} comes home with ${sim.members.length === 1 ? roles.a.s.firstName : 'them'}.`, { tone: 'good' });
+      say(sim, `${person.firstName} ${person.lastName} falls in with ${sim.members.length === 1 ? roles.a.s.firstName : 'them'}.`, { tone: 'good' });
       break;
     }
     case 'fight': {

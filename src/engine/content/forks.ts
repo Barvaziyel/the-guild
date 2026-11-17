@@ -150,7 +150,7 @@ export const FORKS: readonly ForkDef[] = [
         id: 'take',
         label: 'Bring them along',
         check: { chance: 0.6 },
-        success: { text: 'They keep up, they keep quiet, and they are still there when the Depot comes in sight.', effects: [{ type: 'survivor' }] },
+        success: { text: 'They keep up and they keep quiet, and nobody has to wait for them.', effects: [{ type: 'survivor' }] },
         failure: {
           text: 'Somewhere along the way they slip off, and some of the meds go with them.',
           effects: [

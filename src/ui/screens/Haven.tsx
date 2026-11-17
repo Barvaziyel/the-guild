@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { havenNew, seenHaven, workOutClue, type GameState } from '../../engine/index.ts';
+import { HavenFindNote } from '../components/HavenFind.tsx';
 import { Sheet } from '../components/Sheet.tsx';
-import { HEARD_SHOWN, havenView, roadPoints, roadView, smoothPath, type HavenFoundView, type HavenLeadView, type RoadView } from '../haven-view.ts';
+import { HEARD_SHOWN, havenView, roadPoints, roadView, smoothPath, type HavenLeadView, type RoadView } from '../haven-view.ts';
 import { navigate, useAction } from '../hooks.ts';
 import { HAVEN_TABS, type HavenTab } from '../route.ts';
 
@@ -19,7 +20,9 @@ export function Haven({ state, tab }: { state: GameState; tab: HavenTab }) {
   const [seen] = useState(() => state.haven?.seen ?? { found: 0, heard: 0 });
   const view = useMemo(() => havenView(state, seen), [state, seen]);
   const road = useMemo(() => roadView(state), [state]);
-  const [reading, setReading] = useState<HavenFoundView | undefined>(undefined);
+  // The find open in the sheet: tapped on the Found page, or a building's clue just worked out.
+  const [readingId, setReadingId] = useState<string | undefined>(undefined);
+  const reading = readingId ? view?.found.find((f) => f.id === readingId) : undefined;
   const [older, setOlder] = useState(false);
   const fresh = havenNew(state);
   useEffect(() => {
@@ -89,10 +92,19 @@ export function Haven({ state, tab }: { state: GameState; tab: HavenTab }) {
             ) : (
               <ul className="haven-cards" aria-label="Leads">
                 {view.leads.map((l) => (
-                  <Lead key={l.id} lead={l} onWorkOut={() => act((s) => void workOutClue(s, l.id, Date.now()))} />
+                  <Lead
+                    key={l.id}
+                    lead={l}
+                    onWorkOut={() => {
+                      // Show what it was right away, the way a run's report does (2.9.1).
+                      act((s) => void workOutClue(s, l.id, Date.now()));
+                      setReadingId(l.id);
+                    }}
+                  />
                 ))}
               </ul>
             )}
+            {view.hidden && <p className="haven-hidden">{view.hidden}</p>}
             {error && <p className="field-error">{error}</p>}
           </>
         )}
@@ -104,7 +116,7 @@ export function Haven({ state, tab }: { state: GameState; tab: HavenTab }) {
             <ul className="haven-scraps">
               {view.found.map((f) => (
                 <li key={f.id}>
-                  <button type="button" className="haven-scrap" onClick={() => setReading(f)}>
+                  <button type="button" className="haven-scrap" onClick={() => setReadingId(f.id)}>
                     {f.isNew && <span className="haven-scrap-new">new</span>}
                     <span className="haven-scrap-title">{f.title}</span>
                     <span className="haven-scrap-line">{f.line}</span>
@@ -139,13 +151,8 @@ export function Haven({ state, tab }: { state: GameState; tab: HavenTab }) {
           ))}
       </div>
 
-      <Sheet open={!!reading} title={reading?.title ?? ''} onClose={() => setReading(undefined)}>
-        {reading && (
-          <div className="haven-note">
-            <p className="haven-hand">{reading.text}</p>
-            <p className="haven-note-line">{reading.line}</p>
-          </div>
-        )}
+      <Sheet open={!!reading} title={reading?.title ?? ''} onClose={() => setReadingId(undefined)}>
+        {reading && <HavenFindNote find={reading} />}
       </Sheet>
     </section>
   );
@@ -203,6 +210,7 @@ function Lead({ lead, onWorkOut }: { lead: HavenLeadView; onWorkOut: () => void 
     <li className={`haven-card${lead.action ? ' is-ready' : ''}`}>
       <p className="haven-card-where">{lead.where}</p>
       <h4 className="haven-card-title">{lead.title}</h4>
+      {lead.from && <p className="haven-card-from">{lead.from}</p>}
       <p className="haven-card-lead">{lead.lead}</p>
       {lead.note && <p className="haven-card-note">{lead.note}</p>}
       {lead.action ? (

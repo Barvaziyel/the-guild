@@ -1,15 +1,17 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { FIRST_WEEK, HAVEN_CLUES, HAVEN_DREAMER, claimStory, newGame, startHaven, type GameState } from '../engine/index.ts';
+import { FIRST_WEEK, HAVEN_CLUES, HAVEN_DREAMER, LOCATIONS, claimStory, newGame, startHaven, type GameState } from '../engine/index.ts';
 import { bellItems } from './bell-view.ts';
-import { havenReady, havenView, leadPlaces, placeLeadLine, planLeadLine, reportGoneLine, reportHavenLine, roadPoints, roadView, smoothPath } from './haven-view.ts';
+import { discoveredLeadLine, findView, havenReady, havenView, leadPlaces, placeLeadLine, planLeadLine, reportGoneLine, reportHavenLine, roadPoints, roadView, smoothPath } from './haven-view.ts';
 import { storyEnding } from './story-view.ts';
 
 const T0 = Date.UTC(2026, 10, 16, 8);
 
-function heard(seed: string): GameState {
+/** Heard of Haven; `mapped`, with every place on the map, so no lead is hidden for want of one. */
+function heard(seed: string, mapped = true): GameState {
   const state = newGame({ seed, now: T0 });
   startHaven(state, 2);
+  if (mapped) for (const loc of LOCATIONS) state.locations[loc.id] = { ...state.locations[loc.id]!, discovered: true };
   return state;
 }
 
@@ -22,24 +24,59 @@ describe('the Haven tab (§9.11)', () => {
     assert.equal(havenView(newGame({ seed: 'none', now: T0 })), undefined);
   });
 
-  test('just heard: the broadcast, nothing known, and three leads with where to go about them', () => {
-    const state = heard('fresh');
+  test('just heard: the broadcast, nothing known, and the leads at places the guild knows', () => {
+    const state = heard('fresh', false);
     const v = havenView(state)!;
     assert.match(v.broadcast, /^This is Haven\./);
     assert.equal(v.since, 'First heard on day 2.');
     assert.deepEqual(v.known, []);
     assert.equal(v.road, undefined);
-    assert.deepEqual(v.leads.map((l) => l.id), ['logbook', 'flyer', 'kessler_note']);
-    const farm = v.leads.find((l) => l.id === 'kessler_note')!;
+    // Aviel (2.9.1): no lead at a place nobody has found, not even its name.
+    assert.deepEqual(v.leads.map((l) => l.id), ['kessler_note']);
+    assert.ok(!JSON.stringify(v).includes('Hilltop') && !JSON.stringify(v).includes('Metro'));
+    assert.equal(v.hidden, 'There may be more out past the places the guild knows. Scouting turns up new ones.');
+    const farm = v.leads[0]!;
     assert.equal(farm.where, 'Kessler Farm, the outskirts');
+    assert.equal(farm.from, undefined, 'a first lead comes from the broadcast');
     assert.deepEqual(farm.go, { label: 'Plan a run there', to: { screen: 'plan', locationId: 'kessler_farm' } });
-    const station = v.leads.find((l) => l.id === 'logbook')!;
-    // Not found yet: where the road to it leads from.
-    state.locations.radio_station = { discovered: false, explored: 0, runs: 0 };
-    const unknown = havenView(state)!.leads.find((l) => l.id === 'logbook')!;
-    assert.equal(unknown.note, 'Nobody has found Hilltop Radio Station yet. A road leads there from Kessler Farm: scouting there is the best way to find it.');
-    assert.deepEqual(unknown.go, { label: 'Plan a run to Kessler Farm', to: { screen: 'plan', locationId: 'kessler_farm' } });
-    assert.ok(station);
+    // Found on a run: there now, and the report says so.
+    state.locations.radio_station = { discovered: true, explored: 0, runs: 0 };
+    assert.ok(havenView(state)!.leads.some((l) => l.id === 'logbook'));
+    assert.equal(discoveredLeadLine(state, 'radio_station'), 'There’s a lead for Haven there: the engineer’s logbook.');
+    assert.equal(discoveredLeadLine(state, 'drowned_mall'), undefined);
+    state.locations.old_metro = { discovered: true, explored: 0, runs: 0 };
+    assert.equal(havenView(state)!.hidden, undefined);
+  });
+
+  test('a lead says which find pointed to it', () => {
+    const state = heard('from');
+    find(state, 'logbook', 'dropped_radio', 'convoy_band', 'intake_list');
+    const v = havenView(state)!;
+    assert.equal(v.leads.find((l) => l.id === 'gate_code')!.from, 'From the convoy band and the intake list.');
+    assert.equal(v.leads.find((l) => l.id === 'ledger')!.from, 'From the intake list.');
+    find(state, 'ledger');
+    assert.equal(reportHavenLine({ lead: { clue: 'ledger', found: true, by: 'a' } }, { a: 'Briar' }), 'For Haven: Briar found Red Hand’s ledger.');
+  });
+
+  test('a find, whole: what it tells, and where it points on to, as each stands', () => {
+    const state = heard('next');
+    const who = state.survivors[0]!;
+    assert.equal(findView(state, 'logbook'), undefined, 'not until it’s filed');
+    state.haven!.found.push({ id: 'logbook', day: 3, by: who.id, at: 'radio_station' });
+    let log = findView(state, 'logbook')!;
+    assert.equal(log.line, `Found by ${who.firstName} at Hilltop Radio Station, day 3.`);
+    assert.equal(log.learned, 'The broadcast comes from the east, past the edge of the Reach.');
+    assert.deepEqual(log.next, [{ title: 'A convoy’s dropped radio', line: 'The Water Plant: a lead now.', status: 'lead' }]);
+    find(state, 'dropped_radio');
+    log = findView(state, 'logbook')!;
+    assert.deepEqual(log.next, [{ title: 'A convoy’s dropped radio', line: 'The Water Plant: found.', status: 'found' }]);
+    assert.deepEqual(findView(state, 'dropped_radio')!.next, [
+      { title: 'The convoy band', line: 'The Radio Tower at level 2: a lead now.', status: 'lead' },
+      { title: 'The intake list', line: 'Checkpoint Bravo: a lead now.', status: 'lead' },
+    ]);
+    find(state, 'convoy_band');
+    assert.deepEqual(findView(state, 'convoy_band')!.next, [{ title: 'The gate code', line: 'Once the intake list is found too.', status: 'waits' }]);
+    assert.deepEqual(findView(state, 'letters'), undefined);
   });
 
   test('found: newest first, who found it and where, and new since the player last looked', () => {
@@ -202,6 +239,7 @@ describe('the one who went (§9.11)', () => {
       title: `${first}’s goodbye`,
       text: `“I’m going to Haven. Don’t come after me. When I’m settled I’ll send for all of you, I promise.” Then ${first} walked east along the old highway, and didn’t look back.`,
       line: 'On the way home from Maple Street, day 20.',
+      next: [],
       isNew: true,
     });
     assert.equal(v.known.at(-1), `${first} went east to answer the broadcast, alone.`);

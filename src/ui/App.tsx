@@ -300,32 +300,35 @@ function TabBar({ current, unread, deciding, calling, haven }: { current: TabScr
           aria-current={t.screen === current ? 'page' : undefined}
           onClick={() => navigate({ screen: t.screen }, { replace: true })}
         >
-          {t.label}
-          {t.screen === 'runs' && calling && (
-            <span className="badge" aria-label=", a crew on the radio">
-              !
-            </span>
-          )}
-          {t.screen === 'runs' && !calling && unread > 0 && (
-            <span className="badge" aria-label={`${unread} new`}>
-              {unread}
-            </span>
-          )}
-          {t.screen === 'depot' && deciding && (
-            <span className="badge" aria-label=", something needs you">
-              !
-            </span>
-          )}
-          {t.screen === 'haven' && haven?.ready && (
-            <span className="badge" aria-label=", something to work out">
-              !
-            </span>
-          )}
-          {t.screen === 'haven' && !haven?.ready && (haven?.new ?? 0) > 0 && (
-            <span className="badge" aria-label={`${haven!.new} new`}>
-              {haven!.new}
-            </span>
-          )}
+          {/* The badge sits on the word, not after it: with six tabs it was landing on the next one (2.9.1). */}
+          <span className="tab-label">
+            {t.label}
+            {t.screen === 'runs' && calling && (
+              <span className="badge" aria-label=", a crew on the radio">
+                !
+              </span>
+            )}
+            {t.screen === 'runs' && !calling && unread > 0 && (
+              <span className="badge" aria-label={`${unread} new`}>
+                {unread}
+              </span>
+            )}
+            {t.screen === 'depot' && deciding && (
+              <span className="badge" aria-label=", something needs you">
+                !
+              </span>
+            )}
+            {t.screen === 'haven' && haven?.ready && (
+              <span className="badge" aria-label=", something to work out">
+                !
+              </span>
+            )}
+            {t.screen === 'haven' && !haven?.ready && (haven?.new ?? 0) > 0 && (
+              <span className="badge" aria-label={`${haven!.new} new`}>
+                {haven!.new}
+              </span>
+            )}
+          </span>
         </button>
       ))}
     </nav>
