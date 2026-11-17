@@ -318,3 +318,25 @@ export const LOCATIONS: readonly LocationDef[] = [
     ],
   },
 ];
+
+/**
+ * Corwin Dam, where Haven is (§9.12, 3.0.0): past the edge of the Reach, so it
+ * isn't on the map and no ordinary run goes there. The guild goes once,
+ * together, on the road east (job `haven`). Its danger sets the fights there.
+ */
+export const HAVEN_SITE: LocationDef = {
+  id: 'corwin_dam',
+  name: 'Corwin Dam',
+  biome: 'Dam',
+  description: 'A white dam across a green valley, past the edge of the Reach. Haven.',
+  danger: 5,
+  radiation: 0,
+  // Two hours there by road: what gas is reckoned on (4 legs), and nothing else.
+  durationMin: 120,
+  encounters: [],
+  loot: { scrap: 0, rations: 0, meds: 0, ammo: 0, tech: 0, gas: 0 },
+  gearChance: 0,
+  hazards: [],
+  leadsTo: [],
+  sights: [],
+};

@@ -65,6 +65,8 @@ export interface Member {
   woundBonus?: number;
   /** A lookout on the Watchtower in a raid (§9.8): shoots from up there, and can't be reached. */
   perch?: boolean;
+  /** One of the Vultures, fighting beside the guild at Haven's gate (§9.12): never part of the guild's results. */
+  ally?: boolean;
   /** Aimed last round: the next shot is better (§7.13). */
   aimed?: boolean;
   /** Where they stand in the current fight (§7.4, 2.3.0). */
@@ -155,6 +157,10 @@ export interface Sim {
   gate?: { tower: number; wall: boolean; shored?: boolean; dog?: string; machines?: number; marked?: string };
   /** The acts of the commanded fight being played, for the battle stage (§7.13); unset in any other fight. */
   fightActs?: { round: number; acts: FightAct[] };
+  /** The rounds the fight under way runs to before it's a stalemate (3.0.0: more at Haven's gate). */
+  fightRounds?: number;
+  /** Where on the road east the fight under way is (§9.12), a key of `HAVEN_JOURNEY.sites`; unset anywhere else. */
+  site?: string;
   /** The job the fight being played came with (2.5.0), if any. */
   goal?: FightGoal;
 }
@@ -187,6 +193,8 @@ export interface SimStop {
   by: string;
   against: string;
   fromBeat: number;
+  /** Where on the road east (§9.12). */
+  site?: string;
 }
 
 /** A fork on a run (§7.12): what the crew found and asked, and when. */
@@ -336,6 +344,8 @@ export function numberWord(n: number): string {
 }
 
 export function withArticle(name: string): string {
+  // One of a kind: "the Shepherd" (3.0.0).
+  if (name.startsWith('The ')) return `the ${name.slice(4)}`;
   return /^[aeiou]/i.test(name) ? `an ${name}` : `a ${name}`;
 }
 

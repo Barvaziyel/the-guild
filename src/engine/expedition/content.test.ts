@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import { ENEMIES, EVOLUTIONS, LOCATIONS, findEnemy, findLocation, findTrait } from '../content/index.ts';
 import { COMBAT_INTROS, HAZARD_TEXT } from '../content/flavor.ts';
+import { RAID_BANDS } from '../content/raids.ts';
 import { RESOURCE_IDS } from '../types.ts';
 
 describe('expedition content integrity', () => {
@@ -36,6 +37,13 @@ describe('expedition content integrity', () => {
       for (const id of loc.leadsTo) assert.ok(findLocation(id), `${loc.id} -> ${id}`);
       assert.ok(RESOURCE_IDS.some((r) => loc.loot[r] > 0), `${loc.id} has loot`);
     }
+  });
+
+  test('Haven’s own are only met at Haven (§9.12): never in the Reach or in a raid', () => {
+    const haven = new Set(ENEMIES.filter((e) => e.havenOnly).map((e) => e.id));
+    assert.ok(haven.has('the_shepherd'));
+    for (const loc of LOCATIONS) for (const enc of loc.encounters) for (const id of enc.enemies) assert.ok(!haven.has(id), `${loc.id} -> ${id}`);
+    for (const [band, def] of Object.entries(RAID_BANDS)) for (const id of def.kinds) assert.ok(!haven.has(id), `raid ${band} -> ${id}`);
   });
 
   test('every location can be reached from the starting ones', () => {

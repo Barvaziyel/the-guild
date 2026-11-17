@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { havenNew, seenHaven, workOutClue, type GameState } from '../../engine/index.ts';
+import { buyCaravan, havenNew, seenHaven, setOutForHaven, workOutClue, type GameState } from '../../engine/index.ts';
 import { HavenFindNote } from '../components/HavenFind.tsx';
 import { Sheet } from '../components/Sheet.tsx';
-import { HEARD_SHOWN, havenView, roadPoints, roadView, smoothPath, type HavenLeadView, type RoadView } from '../haven-view.ts';
+import { HEARD_SHOWN, havenView, roadEastView, roadPoints, roadView, smoothPath, type HavenLeadView, type RoadEastView, type RoadView } from '../haven-view.ts';
 import { navigate, useAction } from '../hooks.ts';
 import { HAVEN_TABS, type HavenTab } from '../route.ts';
 
@@ -16,10 +16,13 @@ const TAB_LABELS: Record<HavenTab, string> = { leads: 'Leads', found: 'Found', h
  */
 export function Haven({ state, tab }: { state: GameState; tab: HavenTab }) {
   const { act, error } = useAction();
+  // The road east's own, so its errors show on its card.
+  const going = useAction();
   // What the player had seen on opening it: anything after shows as new while they're here.
   const [seen] = useState(() => state.haven?.seen ?? { found: 0, heard: 0 });
   const view = useMemo(() => havenView(state, seen), [state, seen]);
   const road = useMemo(() => roadView(state), [state]);
+  const east = useMemo(() => roadEastView(state), [state]);
   // The find open in the sheet: tapped on the Found page, or a building's clue just worked out.
   const [readingId, setReadingId] = useState<string | undefined>(undefined);
   const reading = readingId ? view?.found.find((f) => f.id === readingId) : undefined;
@@ -44,9 +47,27 @@ export function Haven({ state, tab }: { state: GameState; tab: HavenTab }) {
       </div>
 
       <Road road={road} />
-      <p className="haven-radio">
-        <span>On the radio, every hour:</span> “{view.broadcast}”
-      </p>
+      {view.radioOff ? (
+        <p className="haven-radio">{view.radioOff}</p>
+      ) : (
+        <p className="haven-radio">
+          <span>On the radio, every hour:</span> “{view.broadcast}”
+        </p>
+      )}
+      {east && (
+        <RoadEast
+          east={east}
+          error={going.error}
+          onCaravan={() => going.act((s) => buyCaravan(s, Date.now()))}
+          onGo={() => {
+            let id: string | undefined;
+            going.act((s) => {
+              id = setOutForHaven(s, Date.now()).id;
+            });
+            if (id) navigate({ screen: 'run', id });
+          }}
+        />
+      )}
 
       <div className="sheet-tabs" role="tablist" aria-label="Haven">
         {HAVEN_TABS.map((t) => {
@@ -154,6 +175,79 @@ export function Haven({ state, tab }: { state: GameState; tab: HavenTab }) {
       <Sheet open={!!reading} title={reading?.title ?? ''} onClose={() => setReadingId(undefined)}>
         {reading && <HavenFindNote find={reading} />}
       </Sheet>
+    </section>
+  );
+}
+
+/**
+ * The road east (§9.12): getting everyone ready to go, the guild on the road,
+ * or how it ended. A sheet of paper pinned over the notebook, in rust: the one
+ * thing on the tab that's an action rather than a note.
+ */
+function RoadEast({ east, error, onCaravan, onGo }: { east: RoadEastView; error: string | null; onCaravan: () => void; onGo: () => void }) {
+  const [asking, setAsking] = useState(false);
+  return (
+    <section className={`haven-east is-${east.stage}`} aria-labelledby="haven-east-title" data-tour="haven-east">
+      <h3 id="haven-east-title" className="haven-east-title">
+        {east.title}
+      </h3>
+      {east.lines.map((l) => (
+        <p key={l}>{l}</p>
+      ))}
+      {east.seats && <p className="haven-east-seats">{east.seats}</p>}
+      {east.caravan && (
+        <div className="haven-east-caravan">
+          <button type="button" className="btn-paper" disabled={!!east.caravan.problem} onClick={onCaravan}>
+            {east.caravan.label} <span className="haven-east-cost">{east.caravan.cost}</span>
+          </button>
+          {east.caravan.problem && <p className="haven-east-problem">{east.caravan.problem}</p>}
+        </div>
+      )}
+      {east.warnings.length > 0 && (
+        <ul className="haven-east-warn" aria-label="Before they go">
+          {east.warnings.map((w) => (
+            <li key={w}>{w}</li>
+          ))}
+        </ul>
+      )}
+      {east.problems.length > 0 && (
+        <ul className="haven-east-problems" aria-label="What stops them now">
+          {east.problems.map((p) => (
+            <li key={p}>{p}</li>
+          ))}
+        </ul>
+      )}
+      {east.go &&
+        (asking ? (
+          <div className="haven-east-confirm" role="group" aria-label={east.go.label}>
+            <p>{east.go.confirm}</p>
+            <div className="haven-east-buttons">
+              <button
+                type="button"
+                className="btn-paper is-primary"
+                onClick={() => {
+                  setAsking(false);
+                  onGo();
+                }}
+              >
+                Set out
+              </button>
+              <button type="button" className="btn-paper" onClick={() => setAsking(false)}>
+                Not yet
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button type="button" className="btn-paper is-primary" onClick={() => setAsking(true)}>
+            {east.go.label}
+          </button>
+        ))}
+      {east.runId && (
+        <button type="button" className="btn-paper" onClick={() => navigate({ screen: 'run', id: east.runId! })}>
+          See the road
+        </button>
+      )}
+      {error && <p className="field-error">{error}</p>}
     </section>
   );
 }

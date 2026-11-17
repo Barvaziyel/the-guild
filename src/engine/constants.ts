@@ -247,13 +247,36 @@ export const RELIC_HEART_WEIGHT = 6;
 export const RELIC_STAT_BONUS = 1;
 
 /** Explored % gained per finished run, by job. */
-export const EXPLORE_GAIN: Record<'scavenge' | 'scout' | 'hunt' | 'rescue' | 'assault', readonly [number, number]> = {
+export const EXPLORE_GAIN: Record<'scavenge' | 'scout' | 'hunt' | 'rescue' | 'assault' | 'haven', readonly [number, number]> = {
   scavenge: [4, 6],
   scout: [10, 15],
   hunt: [2, 4],
   rescue: [2, 4],
   assault: [2, 4],
+  // Corwin Dam isn't on the map (§9.12).
+  haven: [0, 0],
 };
+
+// ---------------------------------------------------------------- the road east (§9.12, 3.0.0)
+
+/** Minutes from setting out to each part of the road, before any wait for orders; and home. */
+export const HAVEN_ROAD_MINUTES = { highway: 10, toll: 30, truck: 50, glow: 65, dam: 95, gate: 105, home: 155 } as const;
+/** How many fight at each stop on the road: the rest stay with the vehicles and the children. */
+export const HAVEN_TEAM = 6;
+/** How many of the Vultures fight beside them at the gate: their boss and a lieutenant. */
+export const HAVEN_VULTURE_ALLIES = 2;
+/** The fight at the gate runs this many rounds before it's lost. */
+export const HAVEN_GATE_ROUNDS = 10;
+/** A seat in a trader's caravan, for anyone the guild's vehicles can't carry. */
+export const HAVEN_CARAVAN_SEAT = { scrap: 20, tech: 2 } as const;
+/** Haven's stores, brought home when the guild wins: [min, max] of each. */
+export const HAVEN_STORES = { meds: [15, 25], tech: [10, 15], scrap: [20, 40] } as const;
+/** People in the wards who can walk, freed when the guild wins. */
+export const HAVEN_FREED: readonly [number, number] = [3, 5];
+/** What the Vultures think of the guild after fighting beside it: won, lost. */
+export const HAVEN_VULTURE_STANDING = { won: 30, lost: 10 } as const;
+/** What each freed person who goes with the Vultures adds to their strength. */
+export const HAVEN_VULTURE_STRENGTH = 2;
 
 // ---------------------------------------------------------------- the Depot
 

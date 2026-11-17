@@ -115,6 +115,8 @@ export function stageModel(state: GameState, at: StageAt, view: FightView, order
       state: shown,
       ...(s ? { look: figureLook(s) } : {}),
       ...(s?.equipment.weapon ? { weapon: s.equipment.weapon.defId } : {}),
+      // A Vulture beside the guild (§9.12): drawn as one, with the feather by the name.
+      ...(m.ally ? { kind: 'vulture_lieutenant', type: 'raider', seed: m.id, vulture: true } : {}),
       aimed: frame ? false : m.aimed,
       ...(m.perch ? { perch: true } : { rank: m.rank }),
     };
@@ -143,7 +145,15 @@ export function stageModel(state: GameState, at: StageAt, view: FightView, order
       ...(shown === 'down' ? { rising: true } : {}),
       ...(e.armor >= 2 ? { armored: true } : {}),
       // Their moves for the round about to be given (not while the last one plays), aimed at whoever they can still reach.
-      ...(!frame && e.intent ? { intent: { kind: e.intent.kind, ...(e.intent.at && canStillReach(view, e, e.intent.at) ? { at: crewKey(e.intent.at) } : {}) } } : {}),
+      ...(!frame && e.intent
+        ? {
+            intent: {
+              kind: e.intent.kind,
+              ...(e.intent.at && canStillReach(view, e, e.intent.at) ? { at: crewKey(e.intent.at) } : {}),
+              ...(e.intent.also && canStillReach(view, e, e.intent.also) ? { also: crewKey(e.intent.also) } : {}),
+            },
+          }
+        : {}),
     };
   }).filter((f) => f.state !== 'waiting');
   const { targets, picked } = frame ? { targets: [], picked: undefined } : stageTargets(view, orders);

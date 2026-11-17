@@ -22,7 +22,7 @@ function limb(x1: number, y1: number, x2: number, y2: number, color: string, w =
 }
 
 /** What a person holds, drawn from the hands. */
-type Held = WeaponLook | 'maul' | 'spiked_bat' | 'claws' | 'none';
+type Held = WeaponLook | 'maul' | 'spiked_bat' | 'claws' | 'saw' | 'hook' | 'none';
 
 /** How a person-shaped fighter is drawn. */
 export interface Body {
@@ -35,7 +35,7 @@ export interface Body {
   trousers: string;
   boots: string;
   /** A vest, plates or a suit over the clothes. */
-  armor?: { kind: 'vest' | 'riot' | 'hazmat' | 'leather' | 'signs' | 'feathers'; color: string };
+  armor?: { kind: 'vest' | 'riot' | 'hazmat' | 'leather' | 'signs' | 'feathers' | 'apron'; color: string };
   hat?: 'beanie' | 'bandana' | 'goggles' | 'helmet' | 'hood' | 'mask' | 'mohawk';
   held: Held;
   /** Width: 1 for most, more for brutes. */
@@ -107,6 +107,19 @@ function weapon(held: Held, front: [number, number], back: [number, number]): st
       return limb(fx - 1, fy + 3, fx + 5, fy - 15, '#2f3437', 2.6) + circle(fx + 5.5, fy - 16, 1.6, '#8fd0e8', THIN);
     case 'claws':
       return line(fx + 1, fy, fx + 6, fy + 2, 1, INK) + line(fx + 1, fy + 1, fx + 5, fy + 4, 1, INK);
+    case 'saw': {
+      // A bone saw: a short handle and a wide toothed blade.
+      let teeth = `M ${fx - 1} ${fy - 2}`;
+      for (let k = 1; k <= 6; k++) teeth += ` L ${fx - 1 + k * 1.5 - 0.9} ${fy - 2 - k * 3 + 1.2} L ${fx - 1 + k * 1.5} ${fy - 2 - k * 3}`;
+      return limb(fx - 1, fy + 3, fx + 1, fy - 2, '#3a302a', 2.6) + poly([[fx - 1, fy - 2], [fx + 5, fy - 3], [fx + 13, fy - 19], [fx + 8, fy - 20]], '#c7c9c2', THIN) + pathEl(teeth, 'none', `stroke="${INK}" stroke-width="0.8"`);
+    }
+    case 'hook':
+      // A meat hook on a wooden grip.
+      return (
+        limb(fx - 1, fy + 3, fx + 1, fy - 4, WOOD, 2.6) +
+        pathEl(`M ${fx + 1} ${fy - 4} L ${fx + 3} ${fy - 16} Q ${fx + 4} ${fy - 24} ${fx + 10} ${fy - 22} Q ${fx + 14} ${fy - 20} ${fx + 12} ${fy - 15}`, 'none', `stroke="${INK}" stroke-width="4" stroke-linecap="round"`) +
+        pathEl(`M ${fx + 1} ${fy - 4} L ${fx + 3} ${fy - 16} Q ${fx + 4} ${fy - 24} ${fx + 10} ${fy - 22} Q ${fx + 14} ${fy - 20} ${fx + 12} ${fy - 15}`, 'none', `stroke="${STEEL}" stroke-width="1.8" stroke-linecap="round"`)
+      );
     case 'none':
       return '';
   }
@@ -170,6 +183,11 @@ function torso(b: Body): string {
     if (a.kind === 'signs') {
       out += poly([[2, -47], [10, -39], [2, -31], [-6, -39]], '#e0b13a', THIN) + line(-1, -39, 5, -39, 1.2, INK);
       out += poly([[-w - 2, -48], [-w + 3, -51], [-w + 7, -48], [-w + 7, -43], [-w + 3, -40], [-w - 2, -43]], '#b5432f', THIN);
+    }
+    if (a.kind === 'apron') {
+      // A rubber apron down over the thighs, stained.
+      out += pathEl(`M ${-w + 2} -46 L ${w - 2} -46 L ${w + 1.5} -15 L ${-w - 1.5} -15 Z`, a.color, THIN);
+      out += ellipse(3, -22, 3.4, 2, '#8e3b2c', 'stroke="none" opacity="0.75"') + ellipse(-3, -35, 2, 1.4, '#8e3b2c', 'stroke="none" opacity="0.6"') + ellipse(5, -18, 1.4, 1, '#8e3b2c', 'stroke="none" opacity="0.6"');
     }
     if (a.kind === 'feathers') {
       for (let k = 0; k < 6; k++) out += poly([[-w + 1 + k * 3.4, -46], [-w + 3.4 + k * 3.4, -46], [-w + 1.2 + k * 3.4, -40 + (k % 2) * 2]], '#1d1b1a', THIN);
@@ -287,6 +305,14 @@ function raider(kind: string, seed: string): { body: Body; scale: number } {
       return { body: { ...base, bald: true, hat: 'mohawk', hair: '#8e3b2c', held: 'spiked_bat', cloth: '#5e4636', build: 1.3 }, scale: 1.12 };
     case 'raider_enforcer':
       return { body: { ...base, hat: 'helmet', accent: '#6b7272', held: 'maul', cloth: '#4a3f36', build: 1.35, armor: { kind: 'signs', color: '#e0b13a' } }, scale: 1.22 };
+    case 'haven_orderly':
+      // White, clean, masked, with a saw or a hook (§9.12).
+      return {
+        body: { ...base, cloth: '#e6e3d8', trousers: '#cfcbbd', boots: '#3a3631', hat: 'mask', accent: '#bccbc4', held: (h >>> 8) % 2 === 0 ? 'saw' : 'hook', armor: { kind: 'apron', color: '#b9b2a0' } },
+        scale: 1,
+      };
+    case 'haven_marksman':
+      return { body: { ...base, cloth: '#e6e3d8', trousers: '#cfcbbd', boots: '#3a3631', hat: 'goggles', held: 'rifle', armor: { kind: 'vest', color: '#c9c4b4' } }, scale: 1 };
     case 'vulture_shot':
       return { body: { ...base, hat: 'hood', accent: '#25221f', cloth: '#2f2b28', held: 'rifle', armor: { kind: 'feathers', color: '#1d1b1a' } }, scale: 1 };
     case 'vulture_lieutenant':
@@ -404,6 +430,80 @@ function sentryBot(): string {
   );
 }
 
+/** A seam: a line with cross-stitches along it. */
+function seam(x1: number, y1: number, x2: number, y2: number, n: number): string {
+  let out = line(x1, y1, x2, y2, 0.9, INK);
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const len = Math.hypot(dx, dy) || 1;
+  const nx = (-dy / len) * 1.8;
+  const ny = (dx / len) * 1.8;
+  for (let k = 1; k <= n; k++) {
+    const x = x1 + (dx * k) / (n + 1);
+    const y = y1 + (dy * k) / (n + 1);
+    out += line(x - nx, y - ny, x + nx, y + ny, 0.8, INK);
+  }
+  return out;
+}
+
+/** Spread fingers with nails, at the end of an arm reaching toward (dx, dy). */
+function talons(x: number, y: number, dx: number, dy: number): string {
+  const a = Math.atan2(dy, dx);
+  let out = '';
+  for (const t of [-0.5, 0, 0.5]) out += line(x, y, x + Math.cos(a + t) * 5.5, y + Math.sin(a + t) * 5.5, 1.3, INK);
+  return out;
+}
+
+/** An eye looking somewhere of its own: a white with a pupil pushed toward (lx, ly). */
+function lookingEye(x: number, y: number, r: number, lx: number, ly: number): string {
+  return ellipse(x, y, r * 1.35, r * 1.2, '#3a3631', NONE) + circle(x, y, r * 0.8, '#d6cdb0', NONE) + circle(x + lx * r * 0.4, y + ly * r * 0.4, r * 0.38, INK, NONE);
+}
+
+/**
+ * The Shepherd (§9.12): Haven's best work, sewn together out of many people.
+ * Four arms, two heads, three legs, every face still looking around; it leans
+ * on a crook of bent rebar. About 94 units tall, feet at (0, 0), facing right.
+ */
+function shepherd(): string {
+  const skin = '#9ea594';
+  const pink = '#b9a08c';
+  const grey = '#8b937f';
+  const pale = '#c4b49c';
+  let out = ellipse(-2, 0, 30, 3.8, '#1d1915', 'stroke="none" opacity="0.3"');
+  // The crook, planted behind it.
+  out += limb(-27, -1, -26, -90, '#6b6559', 2.4);
+  out += pathEl('M -26 -90 Q -26 -101 -17 -101 Q -9 -101 -9 -93', 'none', `stroke="${INK}" stroke-width="5" stroke-linecap="round"`);
+  out += pathEl('M -26 -90 Q -26 -101 -17 -101 Q -9 -101 -9 -93', 'none', 'stroke="#6b6559" stroke-width="2.4" stroke-linecap="round"');
+  // The upper back arm, raised behind it.
+  out += limb(-11, -70, -17, -98, grey, 6) + talons(-17, -98, -0.2, -1);
+  // Three legs: back, middle, front.
+  out += limb(-8, -36, -15, -4, darken(skin, 0.12), 7.5) + rect(-21, -5, 11, 5, '#5b574c', THIN);
+  out += limb(1, -36, 0, -4, pink, 7) + rect(-4, -5, 10, 5, '#4a4740', THIN);
+  out += limb(10, -36, 15, -4, skin, 7.5) + rect(10, -5, 12, 5, '#5b574c', THIN);
+  out += seam(-12, -22, -8, -19, 2) + seam(-3, -18, 4, -17, 2);
+  // The lower back arm, holding the crook.
+  out += limb(-12, -52, -24, -46, pale, 6) + circle(-25.5, -46, 3, pale, THIN);
+  // The body: hunched, lumpy, patched from different skins and sewn up.
+  out += pathEl('M -18 -34 Q -23 -56 -15 -71 Q -5 -80 9 -77 Q 21 -73 20 -56 Q 20 -44 17 -34 Z', skin, STROKE);
+  out += pathEl('M -15 -66 Q -6 -71 0 -69 L 1 -54 Q -8 -51 -17 -52 Z', pink, THIN);
+  out += pathEl('M 4 -51 L 18 -54 Q 19 -44 17 -36 L 5 -36 Z', grey, THIN);
+  out += seam(-15, -66, 0, -69, 3) + seam(1, -69, 1, -54, 3) + seam(4, -51, 18, -54, 3) + seam(5, -50, 5, -36, 2);
+  // What's left of a hospital gown, and a strap across it.
+  out += pathEl('M -18 -40 Q 0 -36 17 -40 L 17 -33 Q 0 -30 -18 -33 Z', '#d8d4c6', THIN);
+  out += line(-13, -69, 13, -40, 3, '#4a3a2c') + rect(-2, -57, 4.5, 4.5, '#8d9494', THIN);
+  // The second head, slumped on its left shoulder, looking up and back.
+  out += rect(-13, -76, 5, 5, pink, THIN) + circle(-12, -80, 6.6, pink, STROKE);
+  out += lookingEye(-14.5, -81, 1.7, -0.8, -0.6) + lookingEye(-10.5, -81.5, 1.6, -0.6, -0.8) + seam(-17, -85, -8, -86, 2);
+  // The main head, looking ahead.
+  out += rect(5, -80, 6, 6, skin, THIN) + circle(9, -85, 8.4, skin, STROKE);
+  out += pathEl('M 1 -86 A 8.4 8.4 0 0 1 16 -90 Q 9 -91 5 -88 Z', '#5b5a52', THIN);
+  out += lookingEye(10.5, -85.5, 1.8, 0.9, 0) + lookingEye(14.6, -85.5, 1.6, 0.9, 0.2) + seam(9, -80.5, 15, -80.5, 3) + seam(4, -92, 12, -93, 2);
+  // Two arms in front: the upper reaching, the lower low and forward.
+  out += limb(12, -70, 30, -63, skin, 6) + talons(30, -63, 1, 0.2) + seam(19, -68.5, 21, -64, 1);
+  out += limb(14, -52, 27, -41, grey, 6) + talons(27, -41, 1, 0.6);
+  return out;
+}
+
 /** Every enemy with a drawing of its own; a test fails when one in the game has none. */
 export const DRAWN_ENEMIES: readonly string[] = [
   'raider_scav',
@@ -420,6 +520,9 @@ export const DRAWN_ENEMIES: readonly string[] = [
   'hollow_hulk',
   'scrap_drone',
   'scrapbot_sentry',
+  'haven_orderly',
+  'haven_marksman',
+  'the_shepherd',
 ];
 
 /** The guild's dog at the gate (§9.8), facing right like the people. */
@@ -450,6 +553,7 @@ export function enemyHeight(kind: string): number {
   if (kind === 'mire_stalker') return 28;
   if (kind === 'scrap_drone') return 52;
   if (kind === 'scrapbot_sentry') return 54;
+  if (kind === 'the_shepherd') return 92;
   return 64;
 }
 
@@ -459,6 +563,7 @@ export function enemyBody(kind: string, type: string, seed: string): { svg: stri
   if (kind === 'mire_stalker') return { svg: mireStalker(), scale: 0.8, held: 'none' };
   if (kind === 'scrap_drone') return { svg: scrapDrone(), scale: 1, held: 'zapper' };
   if (kind === 'scrapbot_sentry') return { svg: sentryBot(), scale: 1.08, held: 'turret' };
+  if (kind === 'the_shepherd') return { svg: shepherd(), scale: 1.12, held: 'claws' };
   const made = type === 'hollow' ? hollow(kind, seed) : raider(kind, seed);
   return { svg: personSvg(made.body), scale: made.scale, held: made.body.held };
 }

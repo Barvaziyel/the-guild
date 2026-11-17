@@ -40,7 +40,7 @@ export interface StageFighter {
   /** Where they stand (2.3.0): the back rank stands behind the front; flyers with the back. */
   rank?: 'front' | 'back' | 'air';
   /** An enemy's move this round (2.3.0): a hit or a big hit at someone (their key), or a run for it. */
-  intent?: { kind: 'strike' | 'heavy' | 'run'; at?: string };
+  intent?: { kind: 'strike' | 'heavy' | 'run'; at?: string; also?: string };
   /** On the ground and getting back up unless finished (a hollow, 2.4.0). */
   rising?: boolean;
   /** Heavy armor (2.4.0): a shield by the name. */
@@ -77,6 +77,27 @@ export interface StageModel {
   nerve?: number;
   /** The job the fight came with (2.5.0), in the other top corner. */
   job?: StageJob;
+  /** People outside the fight, placed by hand (Haven's gate, §9.12): someone running out of a door, or lying in the road. */
+  extras?: StageExtra[];
+  /** A shot from somewhere nobody on the stage stands, such as a wall: a flash there, held for the frame, and its line to whoever it hit. */
+  shot?: { x: number; y: number; to?: { x: number; y: number } };
+  /** A scene before a fight rather than the fight: no names, bars or marks, and nothing to tap. */
+  scene?: boolean;
+}
+
+/** Someone placed by hand on the stage, outside the ranks. */
+export interface StageExtra {
+  fighter: StageFighter;
+  x: number;
+  y: number;
+  scale: number;
+  facing: 1 | -1;
+  /** Leaning into a run. */
+  running?: boolean;
+  /** Jolted, as by a hit. */
+  hit?: boolean;
+  /** On the ground. */
+  lying?: boolean;
 }
 
 /** A fight's job on the stage: its name and a pip for each turn of work. */
@@ -237,6 +258,15 @@ function placed(f: StageFighter, slot: Slot, effect: StageEffect | undefined): s
   return `<g transform="translate(${n1(slot.x)} ${n1(slot.y)})"><g class="${classes.filter(Boolean).join(' ')}">${inner}</g></g>`;
 }
 
+/** Someone placed by hand (`StageExtra`): leaning into a run, jolted by a hit, or lying in the road. */
+function extraSvg(e: StageExtra): string {
+  const b = body(e.fighter);
+  const s = e.scale * b.scale;
+  const pose = e.lying ? `<g transform="translate(${n1(b.height * 0.4)} -6) rotate(-90) scale(0.8)">${b.svg}</g>` : e.running ? `<g transform="rotate(7)">${b.svg}</g>` : b.svg;
+  const classes = ['bt-fighter', `bt-${e.fighter.side}`, e.hit ? 'bt-hit' : ''].filter(Boolean).join(' ');
+  return `<g transform="translate(${n1(e.x)} ${n1(e.y)})"><g class="${classes}"><g transform="scale(${n1(e.facing * s)} ${n1(s)})">${pose}</g></g></g>`;
+}
+
 function starPoints(cx: number, cy: number, r: number, inner: number): [number, number][] {
   const pts: [number, number][] = [];
   for (let k = 0; k < 10; k++) {
@@ -317,11 +347,14 @@ function overhead(f: StageFighter, slot: Slot, height: number, room: number, mod
   // Blows coming at one of the crew this round.
   let threatened = false;
   if (f.side === 'crew' && f.state === 'up') {
-    const coming = model.enemies.filter((e) => e.state === 'up' && !e.stunned && e.intent?.at === f.key && e.intent.kind !== 'run');
+    const able = model.enemies.filter((e) => e.state === 'up' && !e.stunned && e.intent && e.intent.kind !== 'run');
+    const coming = able.filter((e) => e.intent!.at === f.key);
     const heavy = coming.filter((e) => e.intent!.kind === 'heavy').length;
-    if (coming.length > 0) {
+    // A second blow (the Shepherd, §9.12) is always a plain one.
+    const seconds = able.filter((e) => e.intent!.also === f.key).length;
+    if (coming.length + seconds > 0) {
       threatened = true;
-      out += threatMarks(heavy, coming.length - heavy, slot.x, slot.rank === 0 ? top - 3 : ly - 11);
+      out += threatMarks(heavy, coming.length - heavy + seconds, slot.x, slot.rank === 0 ? top - 3 : ly - 11);
     }
   }
   // Marks by the name: a Vulture's feather, a nemesis's red notch.
@@ -414,24 +447,36 @@ export function stageSvg(model: StageModel): string {
   }
   // Back to front; whoever acts is drawn last in their rank, so a lunge goes over the others.
   const order = [...all].sort((a, b) => a.slot.y - b.slot.y || Number(a.f.key === model.effect?.by) - Number(b.f.key === model.effect?.by));
-  let figures = '';
+  // Anyone placed by hand stands among the ranks by depth: further back is drawn first.
+  const extras = model.extras ?? [];
+  let figures = extras.filter((e) => e.y < 194).map(extraSvg).join('');
   for (const { f, slot } of order) {
     if (f.state === 'fled' && !model.effect?.leaving?.includes(f.key)) continue;
     const label = `${f.title}${model.targets.includes(f.key) ? '. Tap to target' : ''}`;
     const hit = `<rect x="${n1(slot.x - 24 * slot.scale)}" y="${n1(slot.y - 74 * slot.scale)}" width="${n1(48 * slot.scale)}" height="${n1(80 * slot.scale)}" fill="#000" fill-opacity="0"/>`;
     figures += `<g class="bt-tap" data-key="${escapeAttr(f.key)}" role="button" tabindex="0" aria-label="${escapeAttr(label)}">${ring(f, slot, model)}${placed(f, slot, model.effect)}${hit}</g>`;
   }
+  figures += extras.filter((e) => e.y >= 194).map(extraSvg).join('');
   let marks = '';
-  for (const { f, slot } of all) {
-    const b = body(f);
-    const room = stageGap(f.side === 'crew' ? model.crew.length : model.enemies.length) - 4;
-    marks += overhead(f, slot, b.height * b.scale, room, model);
+  // A scene before the fight has no names, bars or marks over anyone.
+  if (!model.scene) {
+    for (const { f, slot } of all) {
+      const b = body(f);
+      const room = stageGap(f.side === 'crew' ? model.crew.length : model.enemies.length) - 4;
+      marks += overhead(f, slot, b.height * b.scale, room, model);
+    }
   }
+  const sh = model.shot;
+  const shot = sh
+    ? (sh.to ? `<line x1="${n1(sh.x)}" y1="${n1(sh.y)}" x2="${n1(sh.to.x)}" y2="${n1(sh.to.y)}" stroke="#f7d36b" stroke-width="1.2" stroke-dasharray="6 5" opacity="0.85"/>` : '') +
+      poly(starPoints(sh.x, sh.y, 9, 3.5), '#f7d36b', 'stroke="#ee9a45" stroke-width="1.2"')
+    : '';
   return (
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${STAGE_W} ${STAGE_H}" class="battle" role="group" aria-label="The fight">` +
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${STAGE_W} ${STAGE_H}" class="battle" role="group" aria-label="${model.scene ? 'Before the fight' : 'The fight'}">` +
     backdropSvg(model.place) +
     `<rect x="0" y="${HORIZON}" width="${STAGE_W}" height="${STAGE_H - HORIZON}" fill="#1d1915" opacity="0.08"/>` +
     figures +
+    shot +
     marks +
     (model.nerve !== undefined ? nerveMeter(model.nerve) : '') +
     (model.job ? jobPlate(model.job) : '') +

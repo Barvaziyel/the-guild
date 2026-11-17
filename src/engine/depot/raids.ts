@@ -111,7 +111,8 @@ export function raidAgainst(state: GameState, raid: DepotRaid): string {
  * on it; the higher, the sooner). Nothing if a raid is already under way.
  */
 export function scheduleRaid(state: GameState, day: number, rng: RngType, by: 'raiders' | 'vultures', outpost?: string): DepotRaid | undefined {
-  if (openRaid(state)) return undefined;
+  // Nobody comes while the whole guild is on the road east (§9.12).
+  if (openRaid(state) || state.haven?.road) return undefined;
   const start = dayStartOf(state, day);
   const arrive = start + rng.int(RAID_ARRIVE_MINUTES[0], RAID_ARRIVE_MINUTES[1]) * 60_000;
   const id = newId(state, 'raid');

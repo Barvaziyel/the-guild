@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useState } from 'react';
-import { advanceTime, dayAt, dueRuns, getLocation, havenNew, nextDayAt, searchDue, type AdvanceResult, type DepotSummary, type GameState } from '../engine/index.ts';
+import { advanceTime, dayAt, dueRuns, getLocation, havenNew, nextDayAt, returnUnsure, searchDue, type AdvanceResult, type DepotSummary, type GameState } from '../engine/index.ts';
 import { mergeSummaries, nextDayView } from './depot-view.ts';
 import { TourCard } from './components/TourCard.tsx';
 import { navigate, savedScroll, useHash, useNow, usePrefs, useRoute, useServices, useSnapshot } from './hooks.ts';
@@ -44,7 +44,7 @@ export function App() {
   const hash = useHash();
   const state = snap.status === 'ready' ? snap.state : null;
   // Wake for the next crew home, the next Depot day, or a crew calling in (or giving up on an answer), whichever comes first.
-  const wakeAt = state ? Math.min(nextDayAt(state, Date.now()), ...state.runs.map((r) => r.returnAt), ...radioWakeTimes(state, Date.now()), ...fightWakeTimes(state, Date.now()), ...raidWakeTimes(state, Date.now()), ...cornerWakeTimes(state)) : undefined;
+  const wakeAt = state ? Math.min(nextDayAt(state, Date.now()), ...state.runs.filter((r) => !returnUnsure(r)).map((r) => r.returnAt), ...radioWakeTimes(state, Date.now()), ...fightWakeTimes(state, Date.now()), ...raidWakeTimes(state, Date.now()), ...cornerWakeTimes(state)) : undefined;
   const now = useNow(30_000, wakeAt);
   const time = useTime(state, now, route);
   useNotices(state);

@@ -5,6 +5,8 @@
 import {
   amountOf,
   dueBack,
+  heldAt,
+  returnUnsure,
   searchReason,
   MAX_CREW,
   RESOURCE_IDS,
@@ -76,6 +78,8 @@ export function formatCountdown(ms: number): string {
 
 /** "back in 12 min", or "due back now" once the time has passed. Counts a call or fight ahead as answered at once (`dueBack`). */
 export function backIn(run: Run, now: number): string {
+  // Stopped at a fight on the road east, nothing moves until the player answers (§9.12).
+  if (heldAt(run, now)) return 'waiting for your word';
   const left = dueBack(run, now) - now;
   return left <= 0 ? 'due back now' : `back in ${formatDuration(Math.max(left, 60_000))}`;
 }
@@ -408,7 +412,8 @@ export function noticeNumber(id: string): number {
 
 /** One notice per crew that is out, timed for their return. Never gives away what happened. */
 export function noticesFor(state: GameState): PlannedNotice[] {
-  return state.runs.map((run) => ({
+  // On the road east the return is only a guess until the last fight is over (§9.12); it's planned then.
+  return state.runs.filter((run) => !returnUnsure(run)).map((run) => ({
     id: run.id,
     at: run.returnAt,
     title: `${joinNames(runCrewNames(run))} ${run.plan.crew.length === 1 ? 'is' : 'are'} due back`,

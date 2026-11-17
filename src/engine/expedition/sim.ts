@@ -100,7 +100,8 @@ import { outpostNear } from '../outposts.ts';
 import { seating } from '../vehicles.ts';
 import { earnNickname, nameWeapon, nemesisNewsList, takenNames } from './stories.ts';
 import { findLine, getClue, havenForRun, playRunHaven, pointsLine, runHaven } from '../haven.ts';
-import { HAVEN_DREAMER } from '../content/haven.ts';
+import { HAVEN_DREAMER, HAVEN_JOURNEY } from '../content/haven.ts';
+import { playHavenRoad, type RoadPlayed } from './haven-road.ts';
 import { resolveWounds } from './wounds.ts';
 import { rescueBeat, rescueNews } from './rescue.ts';
 import { vulturesBeat } from './vultures.ts';
@@ -119,10 +120,12 @@ const JOB_WEIGHTS: Record<RunJob, Record<MidKind, number>> = {
   rescue: { rescue: 40, travel: 16, hazard: 14, combat: 14, social: 8, scavenge: 6, discovery: 2, vultures: 0 },
   // Straight for the Vultures' camp (§7.11): the attack comes once, and early.
   assault: { vultures: 60, travel: 16, hazard: 10, combat: 6, social: 6, scavenge: 0, discovery: 2, rescue: 0 },
+  // The road east is a script, not random beats (§9.12); never drawn from.
+  haven: { travel: 1, combat: 0, hazard: 0, scavenge: 0, social: 0, discovery: 0, rescue: 0, vultures: 0 },
 };
 
 /** The beat every run of this job gets at least once. */
-const MAIN_BEAT: Record<RunJob, MidKind> = { scavenge: 'scavenge', scout: 'discovery', hunt: 'combat', rescue: 'rescue', assault: 'vultures' };
+const MAIN_BEAT: Record<RunJob, MidKind> = { scavenge: 'scavenge', scout: 'discovery', hunt: 'combat', rescue: 'rescue', assault: 'vultures', haven: 'travel' };
 
 const MID_KINDS = ['scavenge', 'combat', 'hazard', 'travel', 'social', 'discovery', 'rescue', 'vultures'] as const;
 
@@ -575,7 +578,7 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
   if (plan.job === 'rescue' && call && call.locationId === plan.locationId) sim.rescue = { person: structuredClone(call.person), trouble: call.trouble };
 
   startBeat(sim, 'depart', 'Setting Out');
-  say(sim, flavor(sim, DEPART_LINES));
+  say(sim, plan.job === 'haven' ? HAVEN_JOURNEY.depart : flavor(sim, DEPART_LINES));
   if (sim.rides.length > 0) {
     // "The engine coughs and catches. Onto the Motorcycle and away." (2.8.6: it said "Engines" and "into" for a motorcycle.)
     const boarded = sim.rides.map((r) => `${r.def.board} the ${r.def.name}`);
@@ -597,7 +600,13 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
   const slot = duration / totalBeats;
   let previous: MidKind | undefined;
   let done = 0;
-  for (let i = 0; i < middle; i++) {
+  // The road east is a script, not random beats (§9.12, 3.0.0).
+  let road: RoadPlayed | undefined;
+  if (plan.job === 'haven') {
+    road = playHavenRoad(sim, state, newMember);
+    done = middle;
+  }
+  for (let i = 0; i < middle && !road; i++) {
     if (sim.turnBack || sim.routed || standing(sim).length === 0) break;
     // Time spent at a fork (waiting on the radio, or on what was ordered) pushes the rest back.
     sim.offset = Math.round(slot * (i + 1) + slot * (rng.next() - 0.5) * 0.4) + sim.delay;
@@ -618,7 +627,7 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
     alive(sim).length === 0 ? 'lost' : sim.routed ? 'routed' : cutShort ? 'turnedBack' : 'completed';
 
   // Haven (§9.11): a crew that got there looks for what the lead said, and anyone home again may have come across a hint. Own dice.
-  const havenLook = runHaven(state, plan, departAt);
+  const havenLook = road ? undefined : runHaven(state, plan, departAt);
   const haven =
     havenLook && outcome !== 'lost'
       ? playRunHaven(
@@ -656,11 +665,12 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
         : duration + sim.delay;
 
   startBeat(sim, 'return', outcome === 'lost' ? 'Silence' : 'Home');
-  say(sim, flavor(sim, RETURN_LINES[outcome]), outcome === 'completed' ? {} : { tone: 'bad' });
+  if (road && outcome !== 'lost') say(sim, road.end.won ? HAVEN_JOURNEY.home.won : HAVEN_JOURNEY.home.lost, road.end.won ? { tone: 'good' } : { tone: 'bad' });
+  else say(sim, flavor(sim, RETURN_LINES[outcome]), outcome === 'completed' ? {} : { tone: 'bad' });
   const rescue = rescueNews(sim, outcome);
   // The road itself wears on people (§6): a little for going out at all, more the longer they're away.
-  const road = ROAD_STRESS + Math.floor(sim.offset / 60_000 / ROAD_STRESS_MINUTES);
-  for (const m of alive(sim)) stress(sim, m, road, 'the road');
+  const roadStress = ROAD_STRESS + Math.floor(sim.offset / 60_000 / ROAD_STRESS_MINUTES);
+  for (const m of alive(sim)) stress(sim, m, roadStress, 'the road');
   if (sim.walkingFrom !== undefined && outcome !== 'lost') {
     say(sim, sim.members.length === 1 ? 'It is a long way on foot.' : 'It is a long way on foot, and nobody talks much.', { tone: 'bad' });
     for (const m of alive(sim)) stress(sim, m, WALK_HOME_STRESS, 'the long walk home');
@@ -734,6 +744,7 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
       ...(sim.found.length > 0 && (outcome === 'completed' || outcome === 'turnedBack') ? { found: sim.found } : {}),
       ...(sim.vultures && vultureNewsMatters(sim.vultures.news) ? { vultures: sim.vultures.news } : {}),
       ...(haven ? { haven } : {}),
+      ...(road ? { havenEnd: road.end } : {}),
     },
   };
 }
