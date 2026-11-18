@@ -24,6 +24,10 @@ export interface FightGoal {
   state: 'open' | 'done' | 'lost';
   /** Someone held the door this round. */
   held: boolean;
+  /** Who is on it this round: one at a time (Aviel, 2026-11-18, who found two on it counting twice). */
+  worker?: string;
+  /** Won before it was done: it's done anyway (§7.4). */
+  won?: boolean;
 }
 
 /** What the fight screen shows of the job. */
@@ -53,7 +57,7 @@ export function goalView(goal: FightGoal): GoalView {
     needed: goal.def.rounds,
     ...(goal.def.deadline !== undefined ? { deadline: goal.def.deadline } : {}),
     state: goal.state,
-    doneLine: goal.def.done,
+    doneLine: goal.won && goal.def.beaten ? goal.def.beaten : goal.def.done,
     lostLine: goal.def.lost,
   };
 }
@@ -89,9 +93,15 @@ export function fastAt(m: Member, def: GoalDef): boolean {
   return gear?.some((g) => carried.includes(g)) ?? false;
 }
 
+/** Whether `m` can work the job now: it's open, and nobody else is on it this round. */
+export function canWork(goal: FightGoal | undefined, m: Member): boolean {
+  return goal?.state === 'open' && (goal.worker === undefined || goal.worker === m.s.id);
+}
+
 /** One turn on the job. Returns how much work it was. */
 export function workGoal(sim: Sim, m: Member, goal: FightGoal): number {
-  if (goal.state !== 'open') return 0;
+  if (!canWork(goal, m)) return 0;
+  goal.worker = m.s.id;
   const work = fastAt(m, goal.def) ? 2 : 1;
   goal.progress += work;
   if (goal.def.reward === 'shut') goal.held = true;
@@ -166,15 +176,29 @@ export function goalRoundEnds(sim: Sim, goal: FightGoal, round: number, enemies:
     say(sim, goal.def.lost, { tone: 'bad' });
   }
   goal.held = false;
+  delete goal.worker;
   return came;
 }
 
-/** The fight is over: a win gets an open job done (nobody is in the way now); anything else loses it. */
+/**
+ * The fight is over: a win gets an open job done, however far along it was
+ * (nobody is in the way now); anything else loses it. A door needs nothing
+ * more once they're beaten, but it's done too.
+ */
 export function settleGoal(sim: Sim, goal: FightGoal, won: boolean): void {
-  if (goal.state !== 'open' || goal.def.reward === 'shut') return;
+  if (goal.state !== 'open') return;
+  if (goal.def.reward === 'shut') {
+    if (!won) return;
+    goal.state = 'done';
+    goal.won = true;
+    say(sim, goal.def.beaten ?? goal.def.done, { tone: 'good' });
+    return;
+  }
   const by = active(sim)[0] ?? sim.members[0]!;
-  if (won) completeGoal(sim, goal, by);
-  else {
+  if (won) {
+    goal.won = true;
+    completeGoal(sim, goal, by);
+  } else {
     goal.state = 'lost';
     say(sim, goal.def.lost, { tone: 'bad' });
   }

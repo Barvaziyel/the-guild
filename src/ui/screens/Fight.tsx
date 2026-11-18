@@ -4,7 +4,7 @@ import { tapOnStage } from '../battle-view.ts';
 import { Meter } from '../components/Bars.tsx';
 import { BattleStage } from '../components/BattleStage.tsx';
 import { Sheet } from '../components/Sheet.tsx';
-import { crewChips, endFrom, endLines, fightCard, fightStatus, jobPanel, livePicks, needsTarget, nerveLine, orderHint, roundOrders, targetName, theirMoves, tickerLines, whatTheyAre, withRanks, type Picks, type Ranks } from '../fight-view.ts';
+import { crewChips, endFrom, endLines, fightCard, fightStatus, jobPanel, jobTakenBy, livePicks, needsTarget, nerveLine, orderHint, roundOrders, targetName, theirMoves, tickerLines, whatTheyAre, withRanks, type Picks, type Ranks } from '../fight-view.ts';
 import { goBack, navigate, useAction, useNow } from '../hooks.ts';
 
 /** A fight on a led run, under the player's command (§7.13). */
@@ -287,17 +287,23 @@ export function Command({
               </div>
             ) : (
               <div className="fight-grid" role="group" aria-label={`${m.name}'s move`}>
-                {m.moves.map((c) => (
-                  <button
-                    key={c.move}
-                    type="button"
-                    className={`chip${raw?.move === c.move ? ' is-on' : ''}`}
-                    aria-pressed={raw?.move === c.move}
-                    onClick={() => pick(m, c.move, c.target === 'none' ? undefined : c.targets.length === 1 ? c.targets[0] : undefined)}
-                  >
-                    {c.name}
-                  </button>
-                ))}
+                {m.moves.map((c) => {
+                  // The job is one person's a round: whoever has it, nobody else.
+                  const taken = c.move === 'job' ? jobTakenBy(view, picks, m.id) : undefined;
+                  return (
+                    <button
+                      key={c.move}
+                      type="button"
+                      className={`chip${raw?.move === c.move ? ' is-on' : ''}${taken ? ' chip-taken' : ''}`}
+                      aria-pressed={raw?.move === c.move}
+                      disabled={taken !== undefined}
+                      onClick={() => pick(m, c.move, c.target === 'none' ? undefined : c.targets.length === 1 ? c.targets[0] : undefined)}
+                    >
+                      {c.name}
+                      {taken && <span className="chip-sub">{taken} is on it</span>}
+                    </button>
+                  );
+                })}
                 <button type="button" className={`chip${raw ? '' : ' is-on'}`} aria-pressed={!raw} onClick={() => pick(m, undefined)}>
                   On their own
                 </button>

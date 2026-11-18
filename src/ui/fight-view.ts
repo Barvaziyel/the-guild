@@ -166,14 +166,26 @@ export function needsTarget(member: FightMemberView, move: MoveId): boolean {
 /** Picks that still fit the fight as it stands (a target may have died since); the rest are dropped. */
 export function livePicks(view: FightView, picks: Picks): Picks {
   const out: Picks = {};
+  let job = false;
   for (const [id, pick] of Object.entries(picks)) {
     const m = view.crew.find((c) => c.id === id);
     const choice = m?.moves.find((c) => c.move === pick.move);
     if (!choice) continue;
     if (choice.target !== 'none' && (pick.target === undefined || !choice.targets.includes(pick.target))) continue;
+    // One on the job a round: anyone after the first is left to fight on their own.
+    if (pick.move === 'job') {
+      if (job) continue;
+      job = true;
+    }
     out[id] = pick;
   }
   return out;
+}
+
+/** Who else has the fight's job this round, by name, if anyone: then it isn't `who`'s to take (one at a time). */
+export function jobTakenBy(view: FightView, picks: Picks, who: string): string | undefined {
+  const other = Object.entries(picks).find(([id, p]) => id !== who && p.move === 'job');
+  return other ? view.crew.find((c) => c.id === other[0])?.name : undefined;
 }
 
 /** Where the player has put people this round, by survivor id (2.3.0). */
@@ -304,14 +316,14 @@ export function jobPanel(view: FightView, picks: Picks = {}): JobPanel | undefin
     const left = g.deadline - view.round + 1;
     lines.push(left <= 1 ? `It has to be done this round, or it’s lost.` : `It has to be done by the end of round ${g.deadline}: this round and ${left === 2 ? 'the next' : `${left - 1} more`}.`);
   }
-  const on = view.crew.filter((m) => picks[m.id]?.move === 'job').map((m) => m.name);
-  lines.push(on.length > 0 ? `${listWords(on)} ${on.length === 1 ? 'is' : 'are'} on it this round.` : `Give someone ${g.move}, or one of those left to fight on their own may take it.`);
+  // One at a time: whoever has it this round.
+  const on = view.crew.find((m) => picks[m.id]?.move === 'job');
+  lines.push(on ? `${on.name} is on it this round.` : `Give someone ${g.move}, or one of those left to fight on their own may take it.`);
   return { ...base, lines };
 }
 
 const NUMBER_WORDS = ['no', 'one', 'two', 'three', 'four', 'five'];
 const numberWord = (n: number): string => (NUMBER_WORDS[n] ?? String(n)).replace(/^\w/, (c) => c.toUpperCase());
-const listWords = (names: string[]): string => (names.length <= 1 ? (names[0] ?? '') : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`);
 
 /** Their nerve, in words (2.3.0): how close they are to breaking, or that they won't. */
 export function nerveLine(view: FightView): string {

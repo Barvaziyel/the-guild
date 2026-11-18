@@ -4482,6 +4482,20 @@ p.is-bad {
   line-height: 1.15;
 }
 
+.fight-grid .chip-taken {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.0625rem;
+}
+
+.chip-sub {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--bone-2);
+}
+
 .fight-grid .chip-back {
   color: var(--bone-2);
 }
