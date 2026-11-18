@@ -313,7 +313,8 @@ export interface Relationship {
 // ---------------------------------------------------------------- expeditions
 
 /** Rescue: answer a call for help (§10.1); only while someone is calling from that place. */
-export type RunJob = 'scavenge' | 'scout' | 'hunt' | 'rescue' | 'assault';
+/** `haven`: the road east, the whole guild together, once (§9.12, 3.0.0). */
+export type RunJob = 'scavenge' | 'scout' | 'hunt' | 'rescue' | 'assault' | 'haven';
 export type Approach = 'sneaky' | 'balanced' | 'aggressive';
 /** When the crew pulls out of a fight: someone below half HP, someone downed, or never. */
 export type RetreatOrder = 'wounded' | 'downed' | 'never';
@@ -394,6 +395,8 @@ export interface LedFight {
   against: string;
   /** Index of the beat the fight is played in; hidden from the log until it's over. */
   fromBeat: number;
+  /** Where on the road east the fight is (§9.12), a key of `HAVEN_JOURNEY.sites`, for its name and backdrop. Missing elsewhere: it's at the run's place. */
+  site?: string;
   /** When the player took command, or sent them in on their own. */
   took?: number;
   /** The rounds given so far. */
@@ -535,6 +538,19 @@ export interface RunSummary {
   vultures?: VultureNews;
   /** What the crew turned up about Haven (§9.11). */
   haven?: HavenNews;
+  /** The road east (§9.12): how it ended at the gate. */
+  havenEnd?: HavenEnd;
+}
+
+/** How the road east ended (§9.12). */
+export interface HavenEnd {
+  won: boolean;
+  /** The one who went east, shot at the gate (a survivor id in `departed`); missing for the stranger. */
+  shot?: string;
+  /** Whether the Vultures came and fought beside the guild. */
+  vultures: boolean;
+  /** Won: the people freed from the wards who can walk. They fill the Depot's free beds; the rest go with the Vultures. */
+  freed?: Survivor[];
 }
 
 /** What a run turned up about Haven (§9.11): a clue it was looking for, or a hint on the way. */
@@ -820,6 +836,12 @@ export interface HavenState {
    * and are shot (Haven, part 2).
    */
   dreamer?: HavenDreamer;
+  /** Places bought in a trader's caravan for the road east (§9.12): seats beyond the guild's own vehicles. */
+  caravan?: number;
+  /** The road east under way (§9.12): its run, and the children riding along. */
+  road?: { runId: string; children: string[] };
+  /** How the road east ended (§9.12, 3.0.0), for good. */
+  end?: { day: number; won: boolean; freed: number; withVultures: number };
 }
 
 export interface HavenDreamer {

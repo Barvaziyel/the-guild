@@ -97,6 +97,21 @@ describe('a round on the stage', () => {
     assert.ok(m.targets.length > 0);
   });
 
+  test('at Haven’s gate (§9.12): the Vultures beside the guild drawn as Vultures, and the Shepherd’s second blow', () => {
+    const { state, run, view } = commanded('gate');
+    const ally: FightMemberView = { ...member('v1', []), name: 'Tobias', ally: true };
+    const shepherd = { ...view.enemies[0]!, kind: 'the_shepherd', state: 'up' as const, stunned: false, intent: { kind: 'strike' as const, at: view.crew[0]!.id, also: 'v1' } };
+    const v: FightView = { ...view, crew: [...view.crew, ally], enemies: [shepherd] };
+    const m = stageModel(state, { place: 'haven_gate', seed: run.id }, v, { picks: {} });
+    const drawn = m.crew.find((f) => f.key === crewKey('v1'))!;
+    assert.equal(drawn.kind, 'vulture_lieutenant');
+    assert.equal(drawn.vulture, true);
+    assert.equal(drawn.look, undefined);
+    const e = m.enemies[0]!;
+    assert.equal(e.intent?.at, crewKey(view.crew[0]!.id));
+    assert.equal(e.intent?.also, crewKey('v1'));
+  });
+
   test('played back act by act, it ends where the fight stands', () => {
     let checked = 0;
     for (let k = 0; k < 8; k++) {

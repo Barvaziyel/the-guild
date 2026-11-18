@@ -272,6 +272,14 @@ describe('their moves, and where people stand (2.3.0)', () => {
     assert.match(nerveLine({ ...view, nerve: undefined }), /won’t break/);
   });
 
+  test('one that strikes twice (the Shepherd, §9.12): both blows in its line, and what it is', () => {
+    const shepherd = enemy(0, { name: 'The Shepherd', kind: 'the_shepherd', type: 'hollow', damage: 6, armor: 2, twice: true, heavy: true, named: true, intent: { kind: 'heavy', at: 'a', also: 'b' } });
+    const v: FightView = { ...view, enemies: [shepherd] };
+    assert.deepEqual(theirMoves(v), ['The Shepherd: winding up a big hit at Mara (up to 12), and a second blow at Kai.']);
+    assert.deepEqual(theirMoves({ ...v, enemies: [{ ...shepherd, intent: { kind: 'strike', at: 'a', also: 'a' } }] }), ['The Shepherd: going for Mara, twice.']);
+    assert.ok(whatTheyAre(v).includes('The Shepherd: strikes twice a round, the second blow at someone else when it can reach two of you.'));
+  });
+
   test('a hollow on the ground, a pack, and what each kind of them is (2.4.0)', () => {
     const v: FightView = {
       ...view,

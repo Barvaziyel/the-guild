@@ -27,6 +27,7 @@ import { projectNote } from '../projects-view.ts';
 import { vulturesShort } from '../vultures-view.ts';
 import { bedsLine, buildingRows, depotNews, foodWarning, homeCounts, summaryLines, type BuildingRow } from '../depot-view.ts';
 import { stashLine } from '../gear-view.ts';
+import { EMPTY_DEPOT } from '../haven-view.ts';
 import { vehiclesLine } from '../vehicles-view.ts';
 import { callCard } from '../rescue-view.ts';
 import { strayRows } from '../animals-view.ts';
@@ -50,11 +51,15 @@ export function Depot({ state, now, tab, away, onDismissAway }: Props) {
         <h2 id="depot-title" className="screen-title">
           The Depot
         </h2>
-        <p className="screen-sub">
-          {counts.home} at home{counts.out > 0 ? `, ${counts.out} out` : ''}
-          {counts.outposts > 0 ? `, ${counts.outposts} at ${state.outposts.length === 1 ? 'the outpost' : 'outposts'}` : ''}. {bedsLine(state)}
-          {state.depot.hungry ? ' The rations have run out.' : ''}
-        </p>
+        {state.haven?.road ? (
+          <p className="screen-sub">{EMPTY_DEPOT}</p>
+        ) : (
+          <p className="screen-sub">
+            {counts.home} at home{counts.out > 0 ? `, ${counts.out} out` : ''}
+            {counts.outposts > 0 ? `, ${counts.outposts} at ${state.outposts.length === 1 ? 'the outpost' : 'outposts'}` : ''}. {bedsLine(state)}
+            {state.depot.hungry ? ' The rations have run out.' : ''}
+          </p>
+        )}
         {state.vultures.arrived && (
           <button type="button" className="head-link vulture-standing" onClick={() => navigate({ screen: 'vultures' })}>
             {vulturesShort(state)} <span aria-hidden="true">&rsaquo;</span>

@@ -40,7 +40,7 @@ import {
   type TrinketLook,
   type WeaponLook,
 } from './outfit.ts';
-import { burns, eyeBags, eyepatch, faceScar, headBandage, plaster, sickTint, sockets, strain } from './overlays.ts';
+import { burns, eyeBags, eyepatch, faceScar, headBandage, plaster, sickTint, sockets, strain, vultureCrest, vulturePaint, vultureRuff } from './overlays.ts';
 import { CLOTH, GREY_HAIR, HAIR, IRIS, PAPER, SKIN, WASHES, type HairColor, type SkinTone } from './palette.ts';
 
 /** Facial hair by pronoun. Index with appearance.facialHair. 0 = none. */
@@ -198,6 +198,8 @@ export interface PortraitOptions {
   background?: boolean;
   /** Faded, for the Memorial Wall. */
   memorial?: boolean;
+  /** One of the Vultures (§7.11): a crest of black feathers, a pale ruff and red paint across the eyes, over the same face. */
+  vulture?: boolean;
 }
 
 /** The portrait's layers as SVG fragments, back to front. */
@@ -273,6 +275,11 @@ export function portraitSvg(s: Survivor, opts: PortraitOptions = {}): string {
   const look = portraitLook(s);
   const layers = portraitLayers(s, look);
   const uid = `p${s.appearance.seed.toString(36)}`;
+  if (opts.vulture) {
+    layers['hair-back'] = vultureCrest(look.face) + layers['hair-back'];
+    layers.body += vultureRuff();
+    layers['skin-marks'] += `<g clip-path="url(#${uid}-face)">${vulturePaint(look.face)}</g>`;
+  }
   const wobble = opts.wobble !== false;
   const showBackground = opts.background !== false;
   const seed = s.appearance.seed % 997;

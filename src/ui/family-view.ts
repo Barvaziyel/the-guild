@@ -145,7 +145,8 @@ export function childRows(state: GameState, day: number): ChildRow[] {
 export function childrenSummary(state: GameState): string {
   const n = state.children.length;
   const on = state.survivors.filter((s) => s.expecting).length;
-  const kids = n === 0 ? '' : `${n} ${n === 1 ? 'child' : 'children'} at the Depot`;
+  // On the road east (§9.12), the children ride with the guild.
+  const kids = n === 0 ? '' : `${n} ${n === 1 ? 'child' : 'children'} ${state.haven?.road ? 'on the road east with the guild' : 'at the Depot'}`;
   const babies = on === 0 ? '' : `${on === 1 ? 'a baby' : `${on} babies`} on the way`;
   return [kids, babies].filter(Boolean).join(', ').replace(/^./, (c) => c.toUpperCase()) + (kids || babies ? '.' : '');
 }

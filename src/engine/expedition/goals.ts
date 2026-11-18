@@ -64,7 +64,8 @@ export function goalView(goal: FightGoal): GoalView {
  * would come through it: they wait off the stage (`waiting`) until they do.
  */
 export function rollGoal(sim: Sim, enemies: Enemy[]): FightGoal | undefined {
-  if (sim.gate || !sim.rng.chance(GOAL_CHANCE)) return undefined;
+  // No jobs at the Depot's gate, nor on the road east (§9.12): those fights are what they are.
+  if (sim.gate || sim.plan.job === 'haven' || !sim.rng.chance(GOAL_CHANCE)) return undefined;
   const types = new Set<string>(enemies.map((e) => e.def.type));
   const fits = GOALS.filter((g) => g.against.some((t) => types.has(t)));
   if (fits.length === 0) return undefined;

@@ -302,3 +302,107 @@ export const HAVEN_HINTS: readonly HavenHint[] = [
   { id: 'the_best', from: 'vultures', tier: 6, text: 'A Vulture says the three they lost to Haven were the strongest they had. “Haven only takes the best,” she says. “So why does nobody ever come back?”' },
   { id: 'waiting', from: 'vultures', tier: 9, text: 'A Vulture on the road asks whether it’s true the guild knows the way now. She looks like she’s been waiting a long time to ask.' },
 ];
+
+/**
+ * The road east (§9.12, 3.0.0): the words of the guild's last run, in order.
+ * {a} is the one who went east (§9.11), {v} the Vultures' boss.
+ */
+export const HAVEN_JOURNEY = {
+  depart: 'The whole guild goes out of the gate together, for once, and there is nobody left behind to close it.',
+  /** What the Vultures send before the guild sets out, by how things stand with them (Aviel, 2026-11-18). */
+  word: {
+    trade: 'About time. We’ll be on the road right behind you, all the way to their door. Leave some of them for us.',
+    truce: 'We said we’d come, and we will. Don’t make us sorry.',
+    wary: 'We don’t like you much. We like Haven a lot less. We’ll be there.',
+    war: 'Our word was about Haven, not about you. We’ll be at the gate. After that, things go back to how they were.',
+  },
+  /** The Vultures are around, but never gave their word (§9.11): nobody comes. */
+  noWord: 'The Vultures never gave their word. Nobody is coming to help.',
+  /** Where the road's fights are, for the fight card and screen (and each has a backdrop of its own). */
+  sites: {
+    haven_toll: 'Red Hand’s toll',
+    haven_glow: 'the Glow road',
+    haven_gate: 'Haven’s north gate',
+  } as Record<string, string>,
+  children: 'The children ride with the packs, wide awake.',
+  highway: {
+    title: 'The old highway',
+    lines: ['The old highway runs east, straight and empty, past the last sign anyone in the guild has ever read.'],
+  },
+  toll: {
+    title: 'Red Hand’s toll',
+    intro: 'Cars dragged across the road, and Red Hand behind them with their guns up, wanting a toll. Nobody is in the mood to pay it.',
+  },
+  truck: {
+    title: 'A white truck',
+    lines: [
+      'A white truck comes the other way and slows beside them. The driver leans out, smiling.',
+      '“Nearly there,” he says. “They’ll be so glad to see you.”',
+      'The back of the truck is shut. Something in it knocks, once.',
+    ],
+  },
+  glow: {
+    title: 'The Glow road',
+    intro: 'Hollows come out of the Glow and onto the road, more of them than anyone has seen in one place. Some of them have stitches.',
+  },
+  dam: {
+    title: 'Corwin Dam',
+    lines: [
+      'The dam fills the valley ahead, white and quiet. There is a garden on the spillway, washing on a line, smoke from a chimney.',
+      'It is exactly the way the broadcast said. Someone has painted HAVEN over the north gate, in letters taller than a man.',
+    ],
+  },
+  gate: {
+    title: 'The north gate',
+    /** The one who went east (§9.11). */
+    dreamer: [
+      'A door bangs open in the wall, and {a.first} comes running out barefoot, in a hospital gown, with a line of fresh stitches across {a.their} scalp.',
+      '“It’s not a haven!” {a.they} screams. “They cut you open! Down in the turbine hall, they’re making something out of people. Everyone who came. Everyone! Run!”',
+      'A single shot from the wall. {a.first} falls in the road, ten steps short of them, and doesn’t get up.',
+    ],
+    /** Nobody went east from this guild. */
+    stranger: [
+      'A door bangs open in the wall, and a woman comes running out barefoot, in a hospital gown, with a line of fresh stitches across her scalp.',
+      '“It’s not a haven!” she screams. “They cut you open! Down in the turbine hall, they’re making something out of people. Everyone who came. Everyone! Run!”',
+      'A single shot from the wall. She falls in the road, ten steps short of them, and doesn’t get up.',
+    ],
+    vultures: 'Engines on the road behind them: the Vultures, as they promised. {v.first} looks at the body in the road, then at the gate. “Well,” {v.they} says. “We’re here now.”',
+    open: 'The north gate swings open. Orderlies in white come out with saws and hooks, a marksman settles on the wall above them, and behind them comes the Shepherd: a giant sewn together out of many people, four arms, two heads, three legs, and every face on it still looking around.',
+  },
+  won: {
+    title: 'Haven',
+    lines: [
+      'The Shepherd comes down at last, all of it at once, and the ground shakes.',
+      'Inside, the wards are full: people strapped to beds, waiting their turn. Some are past saving. Some can walk.',
+      'Nobody finds Dr. Marr. There is an open window over the spillway, and a white coat on the rocks below.',
+      'On the long drive home nobody says much. Then the Depot’s lights come up out of the dark: the haven they built themselves.',
+    ],
+    /** With the Vultures there. */
+    vultures: 'The Vultures take the stores they want. The guild takes the people.',
+  },
+  lost: {
+    title: 'Haven goes on',
+    /** How the fight at the gate was lost: the first line. */
+    first: {
+      routed: 'The Shepherd doesn’t stop. One by one the guild goes down under it.',
+      withdrew: 'They pull back from the gate, and the Shepherd lets them go. It doesn’t need to chase.',
+      stalemate: 'It goes on until nobody can lift an arm, and the Shepherd is still standing.',
+    } as Record<string, string>,
+    lines: [
+      'Behind them, from the wall, the broadcast starts up again, calm as ever: “This is Haven.”',
+      'They drive home the long way, hurt and quiet. Haven goes on. It is what it is: the Depot is still there, and so are they, and they’ll keep building it.',
+    ],
+    vultures: 'The Vultures drag them back to the trucks.',
+    alone: 'They drag each other back to the vehicles.',
+  },
+  home: { won: 'The guild comes home from Haven.', lost: 'The guild comes home from Haven, beaten.' },
+  /** The Memorial Wall, for the one shot at the gate. */
+  shot: 'Shot at Haven’s gate, running to the guild.',
+  shotNews: '{a.first} was shot at Haven’s gate, running to warn the guild.',
+  wentWon: 'Went to Haven, and saw it end.',
+  wentLost: 'Went to Haven, and came home beaten.',
+  saw: 'Saw {a.first} shot at Haven’s gate.',
+  freed: 'Freed from Haven’s wards, and came home with the guild.',
+  /** Who didn't fit at the Depot, and went with the Vultures (Aviel: "what if you don't have room in the depot for everyone?"). */
+  withVultures: 'There wasn’t room at the Depot for everyone freed from Haven: {n} went with the Vultures.',
+};

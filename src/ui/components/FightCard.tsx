@@ -30,7 +30,7 @@ function FightCard({ card }: { card: FightCardView }) {
       <div className="radio-caller">
         {card.caller && <Portrait survivor={card.caller} size={56} decorative />}
         <p className="radio-intro">
-          {card.inCommand ? `${card.callerName}'s crew is waiting for your next orders.` : `${card.callerName} is on the radio: they're about to fight, and wait for your orders.`}
+          {card.line}
         </p>
       </div>
       <div className="btn-row">

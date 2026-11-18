@@ -43,6 +43,10 @@ export interface EnemyDef {
   rises?: boolean;
   /** Hunts as a pack (§7.4, 2.4.0): they all go for the same one of the crew, +1 to hit for each other one on them (up to +2). */
   pack?: boolean;
+  /** Blows a round (§9.12, 3.0.0): the Shepherd's four arms strike twice, at a second one of the crew when it can. One when missing. */
+  attacks?: number;
+  /** Never met in the Reach: only at Haven (§9.12). Kept out of encounters, raids and the balance table. */
+  havenOnly?: boolean;
   /** "{name} is {hitVerb} a Rad-hound." */
   hitVerb: string;
   /** Resources dropped when killed: [min, max]. */
@@ -286,6 +290,65 @@ export const ENEMIES: readonly EnemyDef[] = [
     heavy: 0.35,
     hitVerb: 'crushed by',
     loot: { tech: [0, 2], scrap: [1, 2] },
+  },
+
+  // ------------------------------------------------------------ Haven (§9.12, 3.0.0)
+  {
+    id: 'haven_orderly',
+    type: 'raider',
+    name: 'Haven Orderly',
+    plural: 'Haven Orderlies',
+    description: 'A white coat, a rubber apron and a bone saw. Calm, careful, and sure of what it is doing.',
+    hp: 10,
+    attack: 4,
+    damage: 4,
+    defense: 7,
+    armor: 1,
+    stealth: 5,
+    threat: 4,
+    morale: 'fearless',
+    havenOnly: true,
+    hitVerb: 'cut by',
+    loot: { meds: [0, 1] },
+  },
+  {
+    id: 'haven_marksman',
+    type: 'raider',
+    name: 'Haven Marksman',
+    plural: 'Haven Marksmen',
+    description: 'Up on the wall with a long rifle, picking out whoever moves. It never misses twice.',
+    hp: 7,
+    attack: 6,
+    damage: 5,
+    defense: 7,
+    armor: 0,
+    stealth: 7,
+    threat: 4,
+    morale: 'fearless',
+    ranged: true,
+    havenOnly: true,
+    hitVerb: 'shot by',
+    loot: { ammo: [1, 3] },
+  },
+  {
+    id: 'the_shepherd',
+    type: 'hollow',
+    name: 'The Shepherd',
+    plural: 'Shepherds',
+    description: 'A giant sewn together out of many people: four arms, two heads, three legs, and every face on it still looking around. Haven’s best work.',
+    hp: 64,
+    attack: 5,
+    damage: 6,
+    defense: 8,
+    armor: 2,
+    stealth: 4,
+    threat: 20,
+    morale: 'fearless',
+    heavy: 0.3,
+    attacks: 2,
+    havenOnly: true,
+    hitVerb: 'torn at by',
+    loot: { tech: [2, 4] },
   },
 
   // ------------------------------------------------------------ scrapbots

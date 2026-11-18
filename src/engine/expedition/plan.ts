@@ -1,10 +1,11 @@
 /**
  * Planning a run: how long it takes, what it costs, and whether it's allowed.
  */
-import { raidAtGate } from '../depot/raids.ts';
+import { openRaid, raidAtGate } from '../depot/raids.ts';
+import { havenRoadOpen } from '../haven.ts';
 import { searchReason } from '../corners.ts';
 import { laidUp } from '../depot/buildings.ts';
-import { DAY_MS, DEPTH_DURATION, HUNGER_STRESS, OUTPOST_SHORTCUT, RAID_FULL_FENCE, SNEAKY_DURATION_MULT, STRESS_HIGH } from '../constants.ts';
+import { DAY_MS, DEPTH_DURATION, HAVEN_ROAD_MINUTES, HUNGER_STRESS, OUTPOST_SHORTCUT, RAID_FULL_FENCE, SNEAKY_DURATION_MULT, STRESS_HIGH } from '../constants.ts';
 import { depthOpen, DEPTH_NAMES, locationState, planDepth } from '../locations.ts';
 import { outpostNear } from '../outposts.ts';
 import { findLocation, getEnemy, getGear, getLocation, getTrait } from '../content/index.ts';
@@ -50,6 +51,8 @@ export function shortcut(state: GameState, plan: RunPlan): number {
 
 /** Run length in ms: on foot or at the pace of the slowest vehicle, and shorter from an outpost nearby. */
 export function runDuration(state: GameState, plan: RunPlan): number {
+  // The road east takes as long as it takes, whatever carries them (§9.12).
+  if (plan.job === 'haven') return HAVEN_ROAD_MINUTES.home * 60_000;
   const vehicles = planVehicles(state, plan);
   const base = vehicles.length === 0 ? footDuration(state, plan) : Math.round(placeMinutes(plan) * Math.max(...vehicles.map((v) => vehicleDef(v).speed))) * 60_000;
   return Math.round((base * shortcut(state, plan)) / 60_000) * 60_000;
@@ -97,8 +100,47 @@ export function unavailableReason(s: Survivor): string | undefined {
   return undefined;
 }
 
+/**
+ * The road east (§9.12, 3.0.0): everyone goes, hurt or not, in vehicles that
+ * run or places in a caravan, with the children; nobody may be out, and no
+ * raiders on the way. Not the usual checks: those are for crews.
+ */
+export function havenPlanProblems(state: GameState, plan: RunPlan): string[] {
+  const problems: string[] = [];
+  const haven = state.haven;
+  if (plan.locationId !== 'corwin_dam') problems.push('The road east goes to Corwin Dam.');
+  if (!haven || !havenRoadOpen(state)) problems.push('The guild doesn’t know the way yet.');
+  else if (haven.end) problems.push('That’s over now.');
+  else if (haven.road) problems.push('The guild is on the road already.');
+  if (state.runs.length > 0) problems.push('A crew is still out. Everyone goes together.');
+  const raid = openRaid(state);
+  if (raid && (raid.seen !== undefined || raid.defenders !== undefined)) problems.push('Raiders are coming. Deal with them first.');
+  const everyone = state.survivors.map((s) => s.id);
+  if (everyone.length === 0) problems.push('There is nobody to go.');
+  if (plan.crew.length !== everyone.length || !everyone.every((id) => plan.crew.includes(id))) problems.push('Everyone goes.');
+  for (const s of state.survivors) {
+    if (s.status === 'away') problems.push(`${fullName(s)} is still out.`);
+    if (s.outpost !== undefined) problems.push(`${fullName(s)} has to come in from the outpost first.`);
+    const searching = searchReason(state, s.id);
+    if (searching) problems.push(`${fullName(s)} ${searching}.`);
+  }
+  for (const id of plan.vehicles ?? []) {
+    const v = findVehicle(state, id);
+    const why = v ? vehicleProblem(v) : 'is gone';
+    if (!v || why) problems.push(`The ${v ? vehicleName(v) : id} ${why}.`);
+  }
+  const seats = planVehicles(state, plan).reduce((n, v) => n + vehicleDef(v).seats, 0) + (haven?.caravan ?? 0);
+  const riders = everyone.length + state.children.length;
+  if (seats < riders) problems.push(`Not everyone has a seat: ${riders} to carry, ${seats} seats.`);
+  const gas = gasNeeded(state, plan);
+  if (gas > state.resources.gas) problems.push(`The vehicles need ${gas} gas; the Depot has ${state.resources.gas}.`);
+  if (plan.meds > state.resources.meds || plan.ammo > state.resources.ammo) problems.push('Not enough at the Depot.');
+  return problems;
+}
+
 /** Problems that stop the run from starting. Empty means the plan is valid. */
 export function validatePlan(state: GameState, plan: RunPlan): string[] {
+  if (plan.job === 'haven') return havenPlanProblems(state, plan);
   const problems: string[] = [];
   const loc = findLocation(plan.locationId);
   if (!loc) return [`Unknown location: ${plan.locationId}`];

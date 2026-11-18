@@ -1,17 +1,20 @@
-import { useMemo, useRef, useState } from 'react';
-import { commandRound, fightNow, fightPreview, getLocation, lastFought, ledFightNow, letThemFight, takeCommand, type FightMemberView, type FightView, type GameState, type MoveId, type RoundOrders, type Run } from '../../engine/index.ts';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import { commandRound, fightNow, fightPreview, getLocation, lastFought, ledFightNow, letThemFight, takeCommand, waitsForWord, type FightMemberView, type FightView, type GameState, type MoveId, type RoundOrders, type Run } from '../../engine/index.ts';
 import { tapOnStage } from '../battle-view.ts';
 import { Meter } from '../components/Bars.tsx';
 import { BattleStage } from '../components/BattleStage.tsx';
+import { SceneStage } from '../components/SceneStage.tsx';
+import { gateScene } from '../gate-scene.ts';
 import { Sheet } from '../components/Sheet.tsx';
-import { crewChips, endFrom, endLines, fightCard, fightStatus, jobPanel, livePicks, needsTarget, nerveLine, orderHint, roundOrders, targetName, theirMoves, tickerLines, whatTheyAre, withRanks, type Picks, type Ranks } from '../fight-view.ts';
+import { crewChips, endFrom, endLines, fightCard, fightStatus, jobPanel, livePicks, needsTarget, nerveLine, orderHint, roundOrders, stagePlace, targetName, theirMoves, tickerLines, whatTheyAre, withRanks, type Picks, type Ranks } from '../fight-view.ts';
 import { goBack, navigate, useAction, useNow } from '../hooks.ts';
 
 /** A fight on a led run, under the player's command (§7.13). */
 export function Fight({ state, id }: { state: GameState; id: string }) {
   const run = state.runs.find((r) => r.id === id);
   const fight = run?.lead?.fights.find((f) => f.ended === undefined);
-  const now = useNow(15_000, fight ? (fight.took === undefined ? fight.at : fight.until) : undefined);
+  // On the road east a fight never runs out of time (§9.12): only its start is worth waking for.
+  const now = useNow(15_000, fight ? (fight.took === undefined ? fight.at : run && waitsForWord(run) ? undefined : fight.until) : undefined);
   const live = run ? ledFightNow(run, now) : undefined;
   const view = useMemo(() => (run && live?.took !== undefined ? fightNow(state, run.id, now) : undefined), [state, run, live, now]);
   // The fight as the player last saw it, so its end can play what came after.
@@ -31,9 +34,9 @@ export function Fight({ state, id }: { state: GameState; id: string }) {
         <Command
           state={state}
           view={view}
-          until={live!.until}
+          until={waitsForWord(run) ? undefined : live!.until}
           now={now}
-          place={run.plan.locationId}
+          place={stagePlace(run, view)}
           seed={run.id}
           title={`The fight at ${view.place}`}
           give={(s, orders) => void commandRound(s, run.id, orders, Date.now())}
@@ -62,7 +65,7 @@ function Over({ state, run, seen }: { state: GameState; run: Run; seen: FightVie
   return (
     <section className="panel">
       <h2 className="plan-title">{led ? 'The fight is over' : 'No fight right now'}</h2>
-      {end && <BattleStage state={state} place={run.plan.locationId} seed={run.id} view={end} before={before} onLine={setTold} caption={OVER[end.over ?? 'won']} />}
+      {end && <BattleStage state={state} place={stagePlace(run, end)} seed={run.id} view={end} before={before} onLine={setTold} caption={OVER[end.over ?? 'won']} />}
       {lines.length > 0 && (
         <ul className="fight-lines fight-end">
           {lines.map((l, k) => (
@@ -90,17 +93,42 @@ const OVER: Record<NonNullable<FightView['over']>, string> = {
   routed: 'They were beaten.',
 };
 
+/** Scenes already played this time the game is open, so coming back to the screen doesn't play one again. */
+const scenesPlayed = new Set<string>();
+
 function NotYet({ state, runId, now }: { state: GameState; runId: string; now: number }) {
   const { act, error } = useAction();
   const run = state.runs.find((r) => r.id === runId)!;
   const card = fightCard(state, run, now)!;
   // What they're up against, before anyone takes command; it changes nothing.
   const preview = useMemo(() => fightPreview(state, runId, now), [state, runId, now]);
+  // At Haven's gate (§9.12), what happens there plays out first.
+  const fight = ledFightNow(run, now);
+  const sceneKey = `${runId}:${fight?.at}`;
+  const scene = useMemo(() => (fight && preview ? gateScene(state, run, fight, preview) : undefined), [state, run, fight, preview]);
+  const [playing, setPlaying] = useState(() => !scenesPlayed.has(sceneKey));
+  const done = useCallback(() => {
+    scenesPlayed.add(sceneKey);
+    setPlaying(false);
+  }, [sceneKey]);
+  if (scene && playing) {
+    return (
+      <section className="panel fight-call">
+        <p className="dilemma-kicker">At {card.place}</p>
+        <SceneStage frames={scene} onDone={done} />
+      </section>
+    );
+  }
   return (
     <section className="panel fight-call">
       <p className="dilemma-kicker">A fight at {card.place}</p>
       <h2 className="dilemma-title">Against {card.against}</h2>
-      {preview && <BattleStage state={state} place={run.plan.locationId} seed={run.id} view={preview} />}
+      {preview && <BattleStage state={state} place={stagePlace(run, preview)} seed={run.id} view={preview} />}
+      {scene && (
+        <button type="button" className="btn btn-quiet btn-small scene-again" onClick={() => setPlaying(true)}>
+          Watch the gate again
+        </button>
+      )}
       {preview?.goal && (
         <p>
           {preview.goal.intro} A job besides the fight: {preview.goal.title.toLowerCase()}.
@@ -142,7 +170,7 @@ export function Command({
 }: {
   state: GameState;
   view: FightView;
-  until: number;
+  until: number | undefined;
   now: number;
   place: string;
   seed: string;

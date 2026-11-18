@@ -102,7 +102,7 @@ export function Vultures({ state }: { state: GameState }) {
             {v.people.map((p) => (
               <li key={p.id} className={`vulture-person${p.where === 'Dead.' ? ' is-dead' : ''}`}>
                 <span className="vulture-portrait">
-                  {p.person ? <Portrait survivor={p.person} size={64} decorative /> : <span className="vulture-unknown" aria-hidden="true">?</span>}
+                  {p.person ? <Portrait survivor={p.person} size={64} decorative vulture /> : <span className="vulture-unknown" aria-hidden="true">?</span>}
                 </span>
                 <span className="vulture-body">
                   <span className="roster-name">{p.name}</span>
@@ -176,7 +176,7 @@ function PrisonerCard({ row, onDone }: { row: PrisonerRow; onDone: (text: string
   return (
     <li className="vulture-person">
       <span className="vulture-portrait">
-        <Portrait survivor={row.person} size={64} decorative />
+        <Portrait survivor={row.person} size={64} decorative vulture />
       </span>
       <span className="vulture-body">
         <span className="roster-name">{row.name}</span>

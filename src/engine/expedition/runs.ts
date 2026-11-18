@@ -5,7 +5,7 @@
 import { addChronicle, addGuildLog } from '../chronicle.ts';
 import { BLAME_CHANCE, LEAD_ID_BLOCK, LEAD_WAIT, MAX_REPORTS, PARTNER_GRIEF_EXTRA_DAYS, PARTNER_LOSS_STRESS, RADIO_WAIT, REL_BLAME, STRESS_MAX } from '../constants.ts';
 import { buildingName, trimPosts } from '../depot/buildings.ts';
-import { ENEMIES, getLocation } from '../content/index.ts';
+import { ENEMIES, HAVEN_JOURNEY, getLocation } from '../content/index.ts';
 import { dayAt, withRng } from '../game.ts';
 import { newId } from '../ids.ts';
 import { addExplored, ensureLocationState, exploredAt, planDepth } from '../locations.ts';
@@ -25,6 +25,7 @@ import { addStory, applyNemesisNews, takenNames } from './stories.ts';
 import { answerCall, applyRescue, bringHomeFound } from '../rescue.ts';
 import { applyVultureNews } from '../vultures.ts';
 import { applyHavenNews } from '../haven.ts';
+import { applyHavenEnd } from '../haven-road.ts';
 import { animalsFollowHome, rehomeAnimals } from '../animals.ts';
 import { parentGone } from '../family.ts';
 
@@ -208,8 +209,13 @@ function fightsFrom(stops: readonly SimStop[], departAt: number, kept: readonly 
     const old = kept[k];
     if (old && (old.took !== undefined || old.ended !== undefined)) return old;
     const at = departAt + st.at;
-    return { at, until: at + LEAD_WAIT, by: st.by, against: st.against, fromBeat: st.fromBeat, rounds: [] };
+    return { at, until: at + LEAD_WAIT, by: st.by, against: st.against, fromBeat: st.fromBeat, ...(st.site ? { site: st.site } : {}), rounds: [] };
   });
+}
+
+/** Where a led fight is, by name: a spot on the road east (§9.12), or the run's place. */
+export function ledFightPlace(run: Run, fight: LedFight): string {
+  return (fight.site && HAVEN_JOURNEY.sites[fight.site]) || getLocation(run.plan.locationId).name;
 }
 
 /** The player's part in each fight so far: none for a fight nobody took up (it was fought alone after the wait). */
@@ -259,8 +265,28 @@ export function dueBack(run: Run, now: number): number {
   return Math.max(run.departAt, at);
 }
 
+/**
+ * On the road east (§9.12) a fight waits for the player's word as long as it
+ * takes, and one under command waits for each round's orders: neither is ever
+ * fought on the crew's own when time runs out. `until` is kept, but means nothing there.
+ */
+export function waitsForWord(run: Run): boolean {
+  return run.plan.job === 'haven';
+}
+
+/** The fight on the road east the guild has stopped at and waits on, at `now` (§9.12): until it's over, the run goes no further. */
+export function heldAt(run: Run, now: number): LedFight | undefined {
+  return waitsForWord(run) ? run.lead?.fights.find((f) => f.ended === undefined && now >= f.at) : undefined;
+}
+
+/** A run on the road east with a fight still to come or waiting: when it's back is only a guess until the last is over (§9.12). */
+export function returnUnsure(run: Run): boolean {
+  return waitsForWord(run) && (run.lead?.fights.some((f) => f.ended === undefined) ?? false);
+}
+
 /** The fight on a led run that waits for the player, or is under command, at `now`. */
 export function ledFightNow(run: Run, now: number): LedFight | undefined {
+  if (waitsForWord(run)) return heldAt(run, now);
   return run.lead?.fights.find((f) => f.ended === undefined && now >= f.at && now < f.until);
 }
 
@@ -382,7 +408,8 @@ export function lastFought(state: GameState, runId: string): FightView | undefin
 export function settleLed(state: GameState, now: number): void {
   for (const run of state.runs) {
     const lead = run.lead;
-    if (!lead) continue;
+    // On the road east nothing is settled for the player (§9.12).
+    if (!lead || waitsForWord(run)) continue;
     // Settling one fight can move the next; go until nothing is left over.
     for (;;) {
       const due = lead.fights.find((f) => f.ended === undefined && now >= f.until);
@@ -408,12 +435,15 @@ export function settleRadio(state: GameState, now: number): void {
 
 /** The part of a run's log that has happened by `now`. */
 export function visibleBeats(run: Run, now: number): Beat[] {
-  return run.beats.filter((b) => run.departAt + b.at <= now);
+  // Held at a fight on the road east, what the run has after it is only a guess (§9.12).
+  const held = heldAt(run, now);
+  return run.beats.filter((b, k) => run.departAt + b.at <= now && (held === undefined || k < held.fromBeat));
 }
 
 /** Runs whose crews are back and waiting to be read. */
 export function dueRuns(state: GameState, now: number): Run[] {
-  return state.runs.filter((r) => r.returnAt <= now);
+  // Stopped at a fight on the road east, they come home only after it (§9.12).
+  return state.runs.filter((r) => r.returnAt <= now && !heldAt(r, now));
 }
 
 function summaryOf(run: Run): RunSummary {
@@ -550,6 +580,8 @@ export function completeRun(state: GameState, runId: string, now: number): RunRe
   for (const f of result.found ?? []) bringHomeFound(state, run, f, day, rng);
   // What they turned up about Haven (§9.11).
   applyHavenNews(state, result.haven, loc.id, day);
+  // Home from the road east (§9.12).
+  if (result.havenEnd) applyHavenEnd(state, result.havenEnd, day, rng);
 
   for (const res of RESOURCE_IDS) state.resources[res] += result.loot[res];
   state.resources.meds += result.medsLeft;

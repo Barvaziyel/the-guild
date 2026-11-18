@@ -34,6 +34,19 @@ function assertWellFormed(svg: string): void {
 }
 
 describe('portraitSvg', () => {
+  test('a Vulture (§7.11): feathers, a ruff and red paint over the same face', () => {
+    const s = generateSurvivor(testGame('vulture'), new Rng('vulture-face'), { day: 1 });
+    const plain = portraitSvg(s, { wobble: false });
+    const vulture = portraitSvg(s, { wobble: false, vulture: true });
+    assert.notEqual(vulture, plain);
+    assert.ok(!plain.includes('#a8402e') && vulture.includes('#a8402e'), 'red paint');
+    assert.ok(!plain.includes('#d9cfb6') && vulture.includes('#d9cfb6'), 'the pale ruff');
+    assert.ok(vulture.includes('#e8e0cc'), 'bone-tipped feathers');
+    // The face itself is the same: its layer is unchanged.
+    const layer = (svg: string): string => svg.slice(svg.indexOf('<g data-layer="head">'), svg.indexOf('<g data-layer="skin-marks">'));
+    assert.equal(layer(vulture), layer(plain));
+  });
+
   test('is a well-formed 256 x 256 SVG with every layer, back to front', () => {
     const svg = portraitSvg(person());
     assert.ok(svg.startsWith('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"'));

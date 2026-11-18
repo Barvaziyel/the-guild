@@ -84,7 +84,8 @@ export function bellItems(state: GameState, now: number, opts: { touring?: boole
     out.push({ id: `stress-${s.id}`, group: 'warning', text: `${s.firstName} is near breaking (stress ${Math.round(s.stress)}).`, to: { screen: 'survivor', id: s.id, tab: 'stats' } });
   }
   const home = state.survivors.filter(atDepot).length;
-  if (home === 0 && state.survivors.length > 0) out.push({ id: 'empty', group: 'warning', text: 'Nobody is home to hold the gate.', to: { screen: 'depot' } });
+  // On the road east no raid comes (§9.12): the Depot stands empty, and that's no warning.
+  if (home === 0 && state.survivors.length > 0 && !state.haven?.road) out.push({ id: 'empty', group: 'warning', text: 'Nobody is home to hold the gate.', to: { screen: 'depot' } });
   for (const o of state.outposts.filter((x) => x.damaged)) out.push({ id: `outpost-${o.locationId}`, group: 'warning', text: `The outpost at ${getLocation(o.locationId).name} needs mending.`, to: { screen: 'reach', id: o.locationId, tab: 'outpost' } });
 
   return out;

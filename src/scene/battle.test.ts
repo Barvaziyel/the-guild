@@ -3,6 +3,7 @@ import { describe, test } from 'node:test';
 import { ENEMIES } from '../engine/content/enemies.ts';
 import { LOCATIONS } from '../engine/content/locations.ts';
 import { BACKDROP_PLACES, DRAWN_ENEMIES, STAGE_W, labelLines, stageSlots, stageSvg, type StageFighter, type StageModel } from './battle.ts';
+import { enemyBody } from './fighters.ts';
 import type { FigureLook } from './model.ts';
 
 const look: FigureLook = { skin: '#d6a981', skinShade: '#b98a62', hair: '#4a3527', hairDark: '#33231a', longHair: true, bald: false, cloth: '#5f7f78', accent: '#a8603f', armor: 'riot_gear', hat: 'goggles', hurt: true };
@@ -38,6 +39,15 @@ function assertWellFormed(svg: string): void {
 }
 
 describe('the battle stage', () => {
+  test('the Vultures (§7.11) wear a crest of feathers, a pale ruff and red paint; raiders don’t', () => {
+    for (const kind of ['vulture_scav', 'vulture_shot', 'vulture_lieutenant']) {
+      const svg = enemyBody(kind, 'raider', 'v').svg;
+      assert.ok(svg.includes('#d9cfb6') && svg.includes('#a8402e'), kind);
+    }
+    assert.ok(enemyBody('vulture_lieutenant', 'raider', 'v').svg.includes('#e8e0cc'), 'the lieutenant’s feathers are tipped in bone');
+    for (const kind of ['raider_scav', 'raider_gunner']) assert.ok(!enemyBody(kind, 'raider', 'r').svg.includes('#d9cfb6'), kind);
+  });
+
   test('every enemy in the game has a drawing, and every place a backdrop', () => {
     for (const e of ENEMIES) assert.ok(DRAWN_ENEMIES.includes(e.id), `${e.id} needs a drawing in src/scene/fighters.ts`);
     for (const l of LOCATIONS) assert.ok(BACKDROP_PLACES.includes(l.id), `${l.id} needs a backdrop in src/scene/backdrops.ts`);
