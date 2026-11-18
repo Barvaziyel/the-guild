@@ -112,3 +112,72 @@ export function strain(f: FaceShape, side: number): string {
     drop(CX - side * (f.w - 13), EYE_Y + 16)
   );
 }
+
+// ---------------------------------------------------------------- the Vultures (§7.11)
+
+const FEATHER_DARK = ['#1d1b1a', '#2e2824'];
+const FEATHER_TIP = '#e8e0cc';
+const RUFF = '#d9cfb6';
+
+/** One long feather from (x0, y0) to its tip at (x1, y1), `w` wide, with its quill and maybe a pale end. */
+function feather(x0: number, y0: number, x1: number, y1: number, w: number, fill: string, tip: boolean): string {
+  const dx = x1 - x0;
+  const dy = y1 - y0;
+  const len = Math.hypot(dx, dy) || 1;
+  const nx = (-dy / len) * w;
+  const ny = (dx / len) * w;
+  const mx = x0 + dx * 0.55;
+  const my = y0 + dy * 0.55;
+  let out = path(d`M${x0},${y0} Q${mx + nx},${my + ny} ${x1},${y1} Q${mx - nx},${my - ny} ${x0},${y0} Z`, `fill="${fill}" stroke="${INK}" stroke-width="2.2"`);
+  if (tip) {
+    const tx = x0 + dx * 0.76;
+    const ty = y0 + dy * 0.76;
+    const m2x = x0 + dx * 0.88;
+    const m2y = y0 + dy * 0.88;
+    out += path(d`M${tx + nx * 0.6},${ty + ny * 0.6} Q${m2x + nx * 0.68},${m2y + ny * 0.68} ${x1},${y1} Q${m2x - nx * 0.68},${m2y - ny * 0.68} ${tx - nx * 0.6},${ty - ny * 0.6} Z`, `fill="${FEATHER_TIP}" stroke="${INK}" stroke-width="2"`);
+  }
+  return out + path(d`M${x0},${y0} L${x0 + dx * 0.9},${y0 + dy * 0.9}`, line(1.4, '#5b524a'));
+}
+
+/**
+ * Long black feathers swept out from the sides of the head, from behind it:
+ * a big fan on one side and a smaller one on the other, the longest tipped
+ * in bone. Goes behind the hair.
+ */
+export function vultureCrest(f: FaceShape): string {
+  let out = '';
+  // [side, degrees from straight up (out from that side), length]; drawn back to front.
+  const fan: [number, number, number][] = [
+    [1, 34, 46],
+    [1, 56, 52],
+    [-1, 78, 66],
+    [-1, 58, 80],
+    [-1, 38, 88],
+    [-1, 18, 74],
+  ];
+  fan.forEach(([side, deg, len], k) => {
+    const a = (deg * Math.PI) / 180;
+    const bx = CX + side * (f.w - 12);
+    const by = f.top + 34;
+    out += feather(bx, by, bx + side * Math.sin(a) * len, by - Math.cos(a) * len, 10, FEATHER_DARK[k % 2]!, side < 0 && k % 2 === 0);
+  });
+  return out;
+}
+
+/** A pale fluffy ruff around the bottom of the neck, over the shoulders. Goes over the clothes. */
+export function vultureRuff(): string {
+  let lower = '';
+  const n = 12;
+  for (let k = 0; k <= n; k++) {
+    const x = CX + 66 - (132 * k) / n;
+    lower += ` L${x.toFixed(1)},${k % 2 === 0 ? 226 : 238}`;
+  }
+  let out = path(`M${CX - 66},${226} Q${CX},${178} ${CX + 66},${226}${lower} Z`, `fill="${RUFF}" stroke="${INK}" stroke-width="2.4" stroke-linejoin="round"`);
+  for (const x of [-44, -26, -8, 10, 28, 46]) out += path(d`M${CX + x},${214} l${x / 12},12`, line(1.6, '#a89c80'));
+  return out;
+}
+
+/** A band of red paint across the eyes, inside the outline of the face. */
+export function vulturePaint(f: FaceShape): string {
+  return `<rect x="${CX - f.w - 4}" y="${EYE_Y - 11}" width="${(f.w + 4) * 2}" height="19" fill="#a8402e" opacity="0.75"/>`;
+}

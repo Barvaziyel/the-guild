@@ -35,8 +35,14 @@ export interface Body {
   trousers: string;
   boots: string;
   /** A vest, plates or a suit over the clothes. */
-  armor?: { kind: 'vest' | 'riot' | 'hazmat' | 'leather' | 'signs' | 'feathers' | 'apron'; color: string };
+  armor?: { kind: 'vest' | 'riot' | 'hazmat' | 'leather' | 'signs' | 'apron'; color: string };
   hat?: 'beanie' | 'bandana' | 'goggles' | 'helmet' | 'hood' | 'mask' | 'mohawk';
+  /** The Vultures' crest: this many long black feathers fanned up and back from the head; `tips` gives some of them bone-white ends. */
+  crest?: { n: number; tips: boolean };
+  /** A shaggy ruff of feathers around the neck and over the shoulders (the Vultures'). */
+  ruff?: string;
+  /** A band of paint across the eyes (the Vultures' red). */
+  paint?: string;
   held: Held;
   /** Width: 1 for most, more for brutes. */
   build: number;
@@ -125,19 +131,68 @@ function weapon(held: Held, front: [number, number], back: [number, number]): st
   }
 }
 
+/** A feather from (x0, y0) to its tip at (x1, y1), `w` wide: a leaf with its quill, and maybe a pale end. */
+function feather(x0: number, y0: number, x1: number, y1: number, w: number, fill: string, tip?: string): string {
+  const dx = x1 - x0;
+  const dy = y1 - y0;
+  const len = Math.hypot(dx, dy) || 1;
+  const nx = (-dy / len) * w;
+  const ny = (dx / len) * w;
+  const mx = x0 + dx * 0.55;
+  const my = y0 + dy * 0.55;
+  let out = pathEl(`M ${x0} ${y0} Q ${mx + nx} ${my + ny} ${x1} ${y1} Q ${mx - nx} ${my - ny} ${x0} ${y0} Z`, fill, THIN);
+  if (tip) {
+    const tx = x0 + dx * 0.74;
+    const ty = y0 + dy * 0.74;
+    const mx2 = x0 + dx * 0.87;
+    const my2 = y0 + dy * 0.87;
+    out += pathEl(`M ${tx + nx * 0.62} ${ty + ny * 0.62} Q ${mx2 + nx * 0.7} ${my2 + ny * 0.7} ${x1} ${y1} Q ${mx2 - nx * 0.7} ${my2 - ny * 0.7} ${tx - nx * 0.62} ${ty - ny * 0.62} Z`, tip, THIN);
+  }
+  return out + line(x0, y0, x0 + dx * 0.9, y0 + dy * 0.9, 0.6, '#5b524a');
+}
+
+/** Tips of a crest of up to five, fanned up and back (the figure faces right): the tallest in the middle. */
+const CREST: [number, number][] = [
+  [-13, -77],
+  [-3, -80],
+  [-19, -68],
+  [5, -77],
+  [-21, -59],
+];
+
+/** A shaggy ruff over the shoulders: a dark collar with a fringe hanging down. */
+function ruff(color: string): string {
+  // Across the top, then back along a jagged lower edge.
+  let d = 'M -11.5 -48.5 Q 1 -53 12.5 -48.5';
+  for (let k = 0; k <= 8; k++) d += ` L ${(11.5 - k * 2.85).toFixed(2)} ${k % 2 === 0 ? -40.5 : -44.5}`;
+  let out = pathEl(`${d} Z`, color, THIN);
+  for (const x of [-7, -2, 3, 8]) out += line(x, -49.5, x + 0.6, -44, 0.7, darken(color, 0.3));
+  return out;
+}
+
 function head(b: Body): string {
   const cx = 2;
   const cy = -55;
   const r = 7.6;
   let out = '';
+  // The crest stands behind the head.
+  if (b.crest) {
+    for (let k = 0; k < Math.min(b.crest.n, CREST.length); k++) {
+      const [tx, ty] = CREST[k]!;
+      out += feather(cx - 2, cy - 4, cx + tx, ty, 3.1, k % 2 === 0 ? '#1d1b1a' : '#2e2824', b.crest.tips && k < 3 ? '#e8e0cc' : undefined);
+    }
+  }
   if (b.hat === 'hood') out += pathEl(`M ${cx - 10} ${cy + 9} Q ${cx - 11} ${cy - 11} ${cx + 1} ${cy - 11} Q ${cx + 11} ${cy - 10} ${cx + 9} ${cy + 3} L ${cx + 4} ${cy + 9} Z`, b.accent, STROKE);
   if (b.longHair && !b.bald && b.hat !== 'hood') out += rect(cx - 9, cy - 3, 9, 13, b.hair, THIN);
   out += rect(cx - 2.5, cy + 5, 5, 5, b.skin, THIN);
+  if (b.ruff) out += ruff(b.ruff);
   out += circle(cx, cy, r, b.skin, STROKE);
   // Hair: a cap over the back of the head.
   if (!b.bald && b.hat !== 'hood' && b.hat !== 'helmet' && b.hat !== 'mohawk') {
     out += pathEl(`M ${cx - r} ${cy + 2} A ${r} ${r} 0 0 1 ${cx + r - 0.5} ${cy - 2.5} Q ${cx + 1} ${cy - 5} ${cx - 3} ${cy - 1} Q ${cx - 4} ${cy + 3} ${cx - r} ${cy + 2} Z`, b.hair, THIN);
   }
+  // Paint across the eyes, under them.
+  if (b.paint) out += pathEl(`M ${cx - 2} ${cy - 2.6} L ${cx + r - 0.3} ${cy - 2.6} L ${cx + r - 0.6} ${cy + 1.6} L ${cx - 2} ${cy + 1.8} Z`, b.paint, NONE);
   // Eyes, looking ahead.
   if (b.eyes === 'hollow') {
     out += ellipse(cx + 2.4, cy - 0.5, 1.5, 2, '#1d1915', NONE) + ellipse(cx + 6, cy - 0.5, 1.3, 1.9, '#1d1915', NONE) + line(cx + 2.5, cy + 4, cx + 6.5, cy + 4, 1, INK);
@@ -188,9 +243,6 @@ function torso(b: Body): string {
       // A rubber apron down over the thighs, stained.
       out += pathEl(`M ${-w + 2} -46 L ${w - 2} -46 L ${w + 1.5} -15 L ${-w - 1.5} -15 Z`, a.color, THIN);
       out += ellipse(3, -22, 3.4, 2, '#8e3b2c', 'stroke="none" opacity="0.75"') + ellipse(-3, -35, 2, 1.4, '#8e3b2c', 'stroke="none" opacity="0.6"') + ellipse(5, -18, 1.4, 1, '#8e3b2c', 'stroke="none" opacity="0.6"');
-    }
-    if (a.kind === 'feathers') {
-      for (let k = 0; k < 6; k++) out += poly([[-w + 1 + k * 3.4, -46], [-w + 3.4 + k * 3.4, -46], [-w + 1.2 + k * 3.4, -40 + (k % 2) * 2]], '#1d1b1a', THIN);
     }
   }
   out += rect(-w, -30, w * 2 + 0.5, 3, '#3a302a', THIN);
@@ -277,6 +329,9 @@ export function crewBody(look: FigureLook, weaponId: string | undefined): Body {
 const SKINS = ['#c08e66', '#8d5a3b', '#e2b48f', '#a8724f', '#d29c76', '#6e4630'];
 const HAIRS = ['#2b2420', '#4a3527', '#7a5232', '#3a2f28', '#8a8580'];
 
+/** What every Vulture wears: the ruff and the paint (the crest goes by rank). */
+const VULTURE = { ruff: '#d9cfb6', paint: '#a8402e', accent: '#25221f' } as const;
+
 /** A raider or a Vulture of the given kind; `seed` varies skin and hair between them. */
 function raider(kind: string, seed: string): { body: Body; scale: number } {
   const h = hash(seed);
@@ -313,14 +368,15 @@ function raider(kind: string, seed: string): { body: Body; scale: number } {
       };
     case 'haven_marksman':
       return { body: { ...base, cloth: '#e6e3d8', trousers: '#cfcbbd', boots: '#3a3631', hat: 'goggles', held: 'rifle', armor: { kind: 'vest', color: '#c9c4b4' } }, scale: 1 };
+    // The Vultures (§7.11): black feathers fanned up from the head, a ruff over the shoulders, red paint across the eyes.
     case 'vulture_shot':
-      return { body: { ...base, hat: 'hood', accent: '#25221f', cloth: '#2f2b28', held: 'rifle', armor: { kind: 'feathers', color: '#1d1b1a' } }, scale: 1 };
+      return { body: { ...base, ...VULTURE, crest: { n: 3, tips: false }, hat: 'goggles', cloth: '#2f2b28', held: 'rifle' }, scale: 1 };
     case 'vulture_lieutenant':
-      return { body: { ...base, hat: 'hood', accent: '#3a1f1a', cloth: '#2a2522', held: 'blade', build: 1.15, armor: { kind: 'feathers', color: '#1d1b1a' } }, scale: 1.1 };
+      return { body: { ...base, ...VULTURE, crest: { n: 5, tips: true }, cloth: '#2a2522', trousers: '#2b2724', held: 'blade', build: 1.15 }, scale: 1.1 };
     default:
       // vulture_scav, and any raider without a drawing of its own.
       return kind.startsWith('vulture_')
-        ? { body: { ...base, cloth: '#33302c', accent: '#25221f', held: 'blade', hat: 'bandana', armor: { kind: 'feathers', color: '#1d1b1a' } }, scale: 1 }
+        ? { body: { ...base, ...VULTURE, crest: { n: 3, tips: false }, cloth: '#33302c', held: 'blade' }, scale: 1 }
         : { body: { ...base, hat: 'bandana' }, scale: 1 };
   }
 }
