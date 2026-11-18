@@ -21,6 +21,7 @@ import {
   jobPanel,
   leadChoice,
   leadReportLine,
+  jobTakenBy,
   livePicks,
   memberState,
   needsTarget,
@@ -346,7 +347,15 @@ describe('the job a fight came with (2.5.0)', () => {
     assert.deepEqual(open.lines, [goal.intro, 'It has to be done by the end of round 3: this round and the next.', 'Give someone Haul the crate, or one of those left to fight on their own may take it.']);
     assert.equal(jobPanel({ ...view, round: 3 })!.lines[1], 'It has to be done this round, or it’s lost.');
     assert.equal(jobPanel(view, { a: { move: 'job' } })!.lines.at(-1), 'Mara is on it this round.');
-    assert.equal(jobPanel(view, { a: { move: 'job' }, b: { move: 'job' } })!.lines.at(-1), 'Mara and Kai are on it this round.');
+    assert.equal(jobPanel(view, { a: { move: 'job' }, b: { move: 'job' } })!.lines.at(-1), 'Mara is on it this round.', 'one at a time');
+  });
+
+  test('one on the job a round (Aviel, 2026-11-18): it’s greyed out for the rest, and a second pick is dropped', () => {
+    assert.equal(jobTakenBy(view, {}, 'b'), undefined);
+    assert.equal(jobTakenBy(view, { a: { move: 'job' } }, 'b'), 'Mara');
+    assert.equal(jobTakenBy(view, { a: { move: 'job' } }, 'a'), undefined, 'still hers to keep or drop');
+    assert.equal(jobTakenBy(view, { a: { move: 'attack', target: 0 } }, 'b'), undefined);
+    assert.deepEqual(livePicks(view, { a: { move: 'job' }, b: { move: 'job' } }), { a: { move: 'job' } });
   });
 
   test('a door says how many are still behind it', () => {

@@ -13,7 +13,7 @@ import type { LogLine, MoveId, Rank } from '../types.ts';
 import type { CombatEnd, Enemy } from './combat.ts';
 import { active, type Member, type Sim } from './context.ts';
 import { enemyRank, reaches, type EnemyRank } from './reach.ts';
-import type { GoalView } from './goals.ts';
+import { canWork, type GoalView } from './goals.ts';
 
 /** A move someone can make this round, and what it can be aimed at. */
 export interface MoveChoice {
@@ -259,7 +259,8 @@ export function movesFor(sim: Sim, m: Member, enemies: readonly Enemy[], rank: R
   }
   add('attack', foeIds, ATTACK_NAMES[kind]);
   // The job the fight came with (2.5.0), for anyone on the ground.
-  if (sim.goal?.state === 'open') add('job', [], sim.goal.def.move, sim.goal.def.detail);
+  // One at a time: once someone has worked it this round, it isn't anyone else's move until the next.
+  if (canWork(sim.goal, m)) add('job', [], sim.goal!.def.move, sim.goal!.def.detail);
   add('cover');
   if (sim.meds > 0) {
     const hurt = sim.members.filter((o) => !o.dead && !o.fled && (o.down || o.s.hp < maxHp(o.s))).map((o) => o.s.id);

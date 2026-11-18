@@ -37,6 +37,8 @@ export interface GoalDef {
   /** When it's done, and when it's lost. */
   done: string;
   lost: string;
+  /** When the fight is won before it's done, if `done` wouldn't read right then. */
+  beaten?: string;
 }
 
 export const GOALS: readonly GoalDef[] = [
@@ -55,6 +57,7 @@ export const GOALS: readonly GoalDef[] = [
     working: '{a} puts a shoulder to the door.',
     done: 'The door is shut and wedged. No more get through.',
     lost: 'Another one comes through the door.',
+    beaten: 'Whoever was behind the door thinks better of it.',
   },
   {
     id: 'grab_and_go',

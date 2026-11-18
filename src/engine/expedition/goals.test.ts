@@ -169,6 +169,59 @@ describe('jobs in fights (2.5.0)', () => {
     }
   });
 
+  test('one on the job a round (Aviel, 2026-11-18): a second ordered onto it fights instead, and adds nothing', () => {
+    for (const g of GOALS) {
+      const { state, run, view, at } = withJob(g.id, `two-${g.id}`);
+      const able = view.crew.filter((m) => m.moves.some((c) => c.move === 'job'));
+      if (able.length < 2) continue;
+      const [a, b] = able;
+      const orders = cover(view);
+      orders.moves[a!.id] = { move: 'job' };
+      orders.moves[b!.id] = { move: 'job' };
+      const after = commandRound(state, run.id, orders, at) ?? lastFought(state, run.id)!;
+      const jobs = after.acts.filter((x) => x.kind === 'job' && x.round === 1);
+      assert.equal(jobs.length, 1, `${g.id}: one turn of work, not two`);
+      assert.equal(jobs[0]!.by, a!.id, 'whoever comes first has it');
+      const one = jobs[0]!.amount ?? 0;
+      assert.ok(after.goal!.progress === Math.min(one, g.rounds) || after.goal!.state !== 'open', `${g.id}: ${JSON.stringify(after.goal)}`);
+      // And next round it's anyone's again.
+      if (!after.over && after.goal!.state === 'open') assert.ok(after.crew.filter((m) => m.moves.some((c) => c.move === 'job')).length >= 2);
+    }
+  });
+
+  test('won before the job is done: done anyway, however far along; the door too', () => {
+    /** Everyone hits the first thing they can reach; nobody touches the job. */
+    const attack = (v: FightView): RoundOrders => {
+      const moves: RoundOrders['moves'] = {};
+      for (const m of v.crew) {
+        const hit = m.moves.find((c) => c.move === 'attack' && c.targets.length > 0);
+        if (hit) moves[m.id] = { move: 'attack', target: hit.targets[0]! };
+        else if (m.moves.some((c) => c.move === 'cover')) moves[m.id] = { move: 'cover' };
+      }
+      return { moves };
+    };
+    // A strong crew, so some fights are over before the job is.
+    const strong = (st: GameState): void => {
+      for (const x of st.survivors) x.stats = { ...x.stats, aim: 10, brawn: 10, grit: 10 };
+    };
+    for (const g of GOALS) {
+      let checked = 0;
+      for (let n = 0; n < 8 && checked < 2; n++) {
+        const { state, run, view, at } = withJob(g.id, `early-${g.id}-${n}`, strong);
+        const views = play(state, run, view, at, attack);
+        const end = views.at(-1)!;
+        const before = views.at(-2)!;
+        if (end.over !== 'won' || before.goal!.state !== 'open') continue;
+        assert.equal(end.goal!.state, 'done', `${g.id}: won, so done`);
+        if (g.reward === 'shut') assert.equal(end.goal!.doneLine, g.beaten);
+        else assert.equal(end.goal!.doneLine, g.done);
+        assert.ok(end.lines.some((l) => l.text === end.goal!.doneLine), 'and the log says so');
+        checked++;
+      }
+      assert.ok(checked > 0, `${g.id}: a fight won before the job was done`);
+    }
+  });
+
   test('Lockpicks make the lock go faster', () => {
     const { state, run, view, at } = withJob('fix_open', 'picks', (s) => {
       for (const x of s.survivors) x.equipment.tool = createItem(s, 'lockpicks');
