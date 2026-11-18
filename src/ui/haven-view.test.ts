@@ -1,8 +1,11 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { FIRST_WEEK, HAVEN_CLUES, HAVEN_DREAMER, LOCATIONS, claimStory, newGame, startHaven, type GameState } from '../engine/index.ts';
+import { FIRST_WEEK, HAVEN_CLUES, HAVEN_DREAMER, LOCATIONS, buyCaravan, claimStory, newGame, setOutForHaven, startHaven, type GameState } from '../engine/index.ts';
+import { testSurvivor } from '../engine/test-utils.ts';
 import { bellItems } from './bell-view.ts';
-import { discoveredLeadLine, findView, havenReady, havenView, leadPlaces, placeLeadLine, planLeadLine, reportGoneLine, reportHavenLine, roadPoints, roadView, smoothPath } from './haven-view.ts';
+import { childrenSummary } from './family-view.ts';
+import { fightCard } from './fight-view.ts';
+import { discoveredLeadLine, findView, havenReady, havenReport, havenView, leadPlaces, placeLeadLine, planLeadLine, reportGoneLine, reportHavenLine, roadEastView, roadPoints, roadView, smoothPath } from './haven-view.ts';
 import { storyEnding } from './story-view.ts';
 
 const T0 = Date.UTC(2026, 10, 16, 8);
@@ -258,3 +261,145 @@ describe('the one who went (§9.11)', () => {
     assert.equal(reportGoneLine(undefined, {}), undefined);
   });
 });
+
+describe('the road east (§9.12)', () => {
+  /** Every clue found, a Cargo Van with gas, and plenty to pay for a caravan. */
+  function ready(seed: string): GameState {
+    const state = heard(seed);
+    for (const c of HAVEN_CLUES) if (!state.haven!.found.some((f) => f.id === c.id)) find(state, c.id);
+    state.vehicles.push({ id: 'v-van', defId: 'van', condition: 100, runs: 0 });
+    Object.assign(state.resources, { gas: 100, scrap: 500, tech: 50, meds: 8, ammo: 20 });
+    return state;
+  }
+
+  test('nothing until the guild knows the way', () => {
+    assert.equal(roadEastView(heard('no-way')), undefined);
+  });
+
+  test('getting ready: who rides, what carries them, and the button', () => {
+    const state = ready('east');
+    const east = roadEastView(state)!;
+    assert.equal(east.stage, 'ready');
+    assert.equal(east.title, 'The road east');
+    assert.match(east.lines[0]!, /whole guild goes together, children too/);
+    assert.match(east.lines[1]!, /2 h 35 min there and back/);
+    assert.match(east.lines[1]!, /six fittest go forward/);
+    assert.equal(east.lines[2], 'They take everything the Depot has: 8 meds and 20 ammo.');
+    assert.equal(east.seats, `${capitalized(state.survivors.length)} to carry. The Cargo Van seats eight.`);
+    assert.equal(east.caravan, undefined);
+    assert.deepEqual(east.problems, []);
+    assert.equal(east.go?.label, 'Set out for Haven');
+    assert.match(east.go!.confirm, /no turning back/);
+  });
+
+  test('more riders than seats: places in a caravan, then the button', () => {
+    const state = ready('caravan');
+    for (let i = 0; i < 6; i++) state.children.push(testSurvivor(`kid${i}`, { firstName: `Kid${i}`, age: 7 }));
+    const riders = state.survivors.length + 6;
+    const short = riders - 8;
+    let east = roadEastView(state)!;
+    assert.match(east.seats!, /to carry: .* of the guild and six children\. The Cargo Van seats eight\./);
+    assert.equal(east.caravan?.label, short === 1 ? 'Buy a place in a caravan' : `Buy ${['', 'one', 'two', 'three', 'four', 'five'][short]} places in a caravan`);
+    assert.equal(east.caravan?.cost, `${20 * short} scrap, ${2 * short} tech`);
+    assert.equal(east.caravan?.problem, undefined);
+    assert.ok(!east.problems.some((p) => p.startsWith('Not everyone has a seat')), 'the caravan explains it');
+    assert.equal(east.go, undefined, 'not until everyone has a seat');
+
+    state.resources.scrap = 0;
+    assert.match(roadEastView(state)!.caravan!.problem!, /^Not enough/);
+    state.resources.scrap = 500;
+    buyCaravan(state, T0);
+    east = roadEastView(state)!;
+    assert.equal(east.caravan, undefined);
+    assert.match(east.seats!, /in a trader’s caravan\.$/);
+    assert.ok(east.go);
+  });
+
+  test('worth knowing before they go: few meds, guns with no ammo, the hurt; and who comes in from an outpost', () => {
+    const state = ready('warn');
+    state.resources.meds = 1;
+    state.resources.ammo = 0;
+    const [a, b] = state.survivors;
+    a!.equipment.weapon = { uid: 'g1', defId: 'hunting_rifle' } as never;
+    b!.hp = 1;
+    b!.outpost = 'water_plant';
+    const east = roadEastView(state)!;
+    assert.ok(east.warnings.includes('Only one med for the whole road.'));
+    assert.ok(east.warnings.includes('Some of them carry guns, but there’s no ammo.'));
+    assert.ok(east.warnings.includes(`${b!.firstName} is hurt. Everyone comes anyway.`));
+    assert.ok(east.lines.includes(`${b!.firstName} comes in from the outposts first.`));
+    assert.ok(east.go, 'an outpost doesn’t stop them');
+    state.resources.meds = 0;
+    assert.ok(roadEastView(state)!.warnings.includes('No meds: nobody gets patched up between the fights.'));
+  });
+
+  test('what stops them shows, and there’s no button', () => {
+    const state = ready('stop');
+    state.vehicles = [];
+    const east = roadEastView(state)!;
+    assert.match(east.seats!, /The guild has no vehicle that runs\./);
+    assert.equal(east.go, undefined);
+  });
+
+  test('on the road: the children ride, and the card points at the run', () => {
+    const state = ready('out');
+    state.children.push(testSurvivor('kid', { firstName: 'Pip', age: 7 }));
+    const run = setOutForHaven(state, T0);
+    const east = roadEastView(state)!;
+    assert.equal(east.stage, 'out');
+    assert.equal(east.runId, run.id);
+    assert.match(east.lines[0]!, /the child too/);
+    assert.equal(childrenSummary(state), '1 child on the road east with the guild.');
+    assert.ok(!bellItems(state, T0 + 1000).some((i) => i.id === 'empty'), 'no raid comes while they’re away, so an empty Depot is no warning');
+    // The road's fights say where they are, and have their own backdrops.
+    const first = run.lead!.fights[0]!;
+    assert.equal(first.site, 'haven_toll');
+    const card = fightCard(state, run, first.at + 1)!;
+    assert.equal(card.place, 'Red Hand’s toll');
+    // They wait as long as it takes: no half hour, no radio.
+    const late = fightCard(state, run, first.at + 5 * 3_600_000)!;
+    assert.match(late.wait, /as long as it takes/);
+    assert.match(late.line, /has called a halt/);
+  });
+
+  test('how it ended: won, with the freed split between the beds and the Vultures; or lost, and the broadcast goes on', () => {
+    const state = ready('over');
+    state.haven!.end = { day: 40, won: true, freed: 2, withVultures: 1 };
+    let east = roadEastView(state)!;
+    assert.equal(east.stage, 'over');
+    assert.equal(east.title, 'Haven is finished');
+    assert.equal(east.lines[1], 'Of those freed from its wards, two came home with the guild and one went with the Vultures: there wasn’t room for everyone.');
+    assert.equal(havenView(state)!.radioOff, 'On the radio, where Haven used to be: nothing.');
+    state.haven!.end = { day: 40, won: false, freed: 0, withVultures: 0 };
+    east = roadEastView(state)!;
+    assert.equal(east.title, 'Haven goes on');
+    assert.equal(havenView(state)!.radioOff, undefined, 'the broadcast still comes');
+  });
+
+  test('the report: the one shot at the gate, the freed, the Vultures', () => {
+    const state = ready('report');
+    const shot = testSurvivor('dreamer', { firstName: 'Lio' });
+    state.memorial.push(shot);
+    state.haven!.end = { day: 40, won: true, freed: 3, withVultures: 0 };
+    const freed = [testSurvivor('f1'), testSurvivor('f2'), testSurvivor('f3')];
+    const r = havenReport(state, { summary: { havenEnd: { won: true, shot: 'dreamer', vultures: true, freed } } as never })!;
+    assert.equal(r.headline, 'Haven is finished');
+    assert.deepEqual(
+      r.lines.map((l) => l.text),
+      [
+        'Lio was shot at Haven’s gate, running to warn the guild.',
+        'Three freed from Haven’s wards came home with the guild. They’re on the Roster now.',
+        'The Vultures fought beside the guild at the gate. They won’t forget it.',
+        'Haven is finished. The game goes on.',
+      ],
+    );
+    const lost = havenReport(state, { summary: { havenEnd: { won: false, vultures: false } } as never })!;
+    assert.equal(lost.headline, 'Haven goes on');
+    assert.equal(havenReport(state, { summary: {} as never }), undefined, 'any other run');
+  });
+});
+
+function capitalized(n: number): string {
+  const w = ['No', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight'][n] ?? String(n);
+  return w;
+}

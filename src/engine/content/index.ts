@@ -1,7 +1,7 @@
 import type { GearDef, TraitDef } from '../types.ts';
 import { ENEMIES, type EnemyDef } from './enemies.ts';
 import { GEAR } from './gear.ts';
-import { LOCATIONS, type LocationDef } from './locations.ts';
+import { HAVEN_SITE, LOCATIONS, type LocationDef } from './locations.ts';
 import { ORIGINS, type OriginDef } from './origins.ts';
 import { TRAITS } from './traits.ts';
 import { VEHICLES, type VehicleDef } from './vehicles.ts';
@@ -11,7 +11,7 @@ export { ORIGINS, type OriginDef } from './origins.ts';
 export { TRAITS } from './traits.ts';
 export { FIRST_NAMES, LAST_NAMES } from './names.ts';
 export { ENEMIES, type EnemyDef, type EnemyType } from './enemies.ts';
-export { LOCATIONS, type LocationDef, type EncounterDef, type HazardKind } from './locations.ts';
+export { HAVEN_SITE, LOCATIONS, type LocationDef, type EncounterDef, type HazardKind } from './locations.ts';
 export {
   EVENTS,
   type EventBase,
@@ -33,13 +33,14 @@ export { LINE_STOPS, PROJECTS, getProject, type ProjectDef, type ProjectStage } 
 export { ANIMALS, getAnimal, type AnimalDef } from './animals.ts';
 export { CORNERS, getCorner, type CornerDef, type CornerGift, type CornerOutcome } from './corners.ts';
 export { FIRST_WEEK, type StoryGift, type StoryGoal, type StoryStep } from './story.ts';
-export { HAVEN_BROADCAST, HAVEN_CLUES, HAVEN_DREAMER, HAVEN_HINTS, HAVEN_ROAD, HAVEN_VULTURES, type HavenClue, type HavenClueWhere, type HavenHint } from './haven.ts';
+export { HAVEN_BROADCAST, HAVEN_CLUES, HAVEN_DREAMER, HAVEN_HINTS, HAVEN_JOURNEY, HAVEN_ROAD, HAVEN_VULTURES, type HavenClue, type HavenClueWhere, type HavenHint } from './haven.ts';
 export { RAID_BANDS, RAID_SPOILS, type RaidBandDef } from './raids.ts';
 
 const traitById = new Map<string, TraitDef>(TRAITS.map((t) => [t.id, t]));
 const gearById = new Map<string, GearDef>(GEAR.map((g) => [g.id, g]));
 const enemyById = new Map<string, EnemyDef>(ENEMIES.map((e) => [e.id, e]));
-const locationById = new Map<string, LocationDef>(LOCATIONS.map((l) => [l.id, l]));
+// Corwin Dam is a place the game can name but isn't on the map (§9.12).
+const locationById = new Map<string, LocationDef>([...LOCATIONS, HAVEN_SITE].map((l) => [l.id, l]));
 const originById = new Map<string, OriginDef>(ORIGINS.map((o) => [o.id, o]));
 const vehicleById = new Map<string, VehicleDef>(VEHICLES.map((v) => [v.id, v]));
 

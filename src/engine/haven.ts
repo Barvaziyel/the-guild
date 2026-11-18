@@ -382,6 +382,18 @@ function goEast(state: GameState, s: Survivor, day: number, at?: string, saw: st
   leaveGuild(state, s, day, HAVEN_DREAMER.reason, new Rng(`haven:${state.seed}:gone`));
 }
 
+/**
+ * The guild sets out for Haven (§9.12): the one still listening to the
+ * broadcast goes the night before, ahead of them, so they're at Haven when
+ * the guild gets there.
+ */
+export function dreamerGoesAhead(state: GameState, day: number): void {
+  const d = state.haven?.dreamer;
+  if (!d || d.gone !== undefined) return;
+  const s = state.survivors.find((x) => x.id === d.id);
+  if (s) goEast(state, s, day);
+}
+
 /** The one who went (§9.11), wherever they are now. */
 export function havenDreamer(state: GameState): Survivor | undefined {
   const id = state.haven?.dreamer?.id;

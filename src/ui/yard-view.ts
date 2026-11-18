@@ -5,6 +5,7 @@
 import {
   ADULT_AGE,
   dueBack,
+  waitsForWord,
   CHILD_HELP_AGE,
   getAnimal,
   keeperOf,
@@ -122,8 +123,10 @@ export function yardModel(state: GameState, hour: number, day?: number): YardMod
     people.push({ id: s.id, look: figureLook(s), place: { kind: 'idle', slot }, go: sheet(s), label: `${fullName(s)}, taking it easy ${where}.` });
   });
 
-  // The children, in front of the fire.
-  [...state.children]
+  // The children, in front of the fire, unless they're on the road east with everyone (§9.12).
+  const away = new Set(state.haven?.road?.children ?? []);
+  state.children
+    .filter((c) => !away.has(c.id))
     .sort((a, b) => (a.bornDay ?? 0) - (b.bornDay ?? 0))
     .slice(0, CHILD_SPOTS.length)
     .forEach((c, slot) => {
@@ -184,6 +187,8 @@ export function buildingCaption(state: GameState, id: BuildingId): string {
  */
 export function awayLines(state: GameState, now = 0): string[] {
   const runs = state.runs.map((run: Run) => {
+    // Everyone is on the road east (§9.12): no list of names, no time.
+    if (waitsForWord(run)) return `The whole guild is on the road east${state.haven?.road?.children.length ? ', children too' : ''}.`;
     const names = run.plan.crew.map((id) => state.survivors.find((s) => s.id === id)?.firstName).filter((n): n is string => n !== undefined);
     return `${joinNames(names)} ${names.length === 1 ? 'is' : 'are'} out at ${getLocation(run.plan.locationId).name}, back at ${clockTime(dueBack(run, now))}.`;
   });

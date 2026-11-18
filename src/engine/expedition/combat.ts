@@ -124,6 +124,8 @@ export interface Enemy {
 export interface EnemyIntent {
   kind: 'strike' | 'heavy' | 'run';
   at?: Member;
+  /** Its second blow's target, for one that strikes twice (the Shepherd, 3.0.0): someone else when it can reach them. */
+  also?: Member;
 }
 
 /** A group's nerve (§7.4, 2.3.0): deaths, their leader falling and big hits wear it down, one of the crew going down builds it up; at 0 those that can run do. */
@@ -452,6 +454,11 @@ function chooseIntents(sim: Sim, fight: FightState): void {
     const at = packmate?.intent?.at ?? sim.rng.weightedBy(targets, (m) => attention(sim, enemy, m));
     const heavy = enemy.def.heavy !== undefined && sim.rng.chance(enemy.def.heavy);
     enemy.intent = { kind: heavy ? 'heavy' : 'strike', at };
+    // A second blow goes at someone else when it can (3.0.0). Only enemies that strike twice roll for it, so every other fight is as it was.
+    if ((enemy.def.attacks ?? 1) > 1) {
+      const others = targets.filter((m) => m !== at);
+      enemy.intent.also = others.length > 0 ? sim.rng.weightedBy(others, (m) => attention(sim, enemy, m)) : at;
+    }
   }
 }
 
@@ -480,46 +487,51 @@ function enemyRound(sim: Sim, fight: FightState, tactics: Tactics, commanded: bo
       say(sim, `${capitalize(label)} breaks away and runs.`);
       continue;
     }
-    const targets = reachableBy(sim, enemy);
-    if (targets.length === 0) {
-      if (active(sim).length === 0) return;
-      continue;
-    }
-    // Who it meant to hit, if it still can; or else someone it can reach now.
-    let target = intent?.at && targets.includes(intent.at) ? intent.at : sim.rng.weightedBy(targets, (m) => attention(sim, enemy, m));
-    // Someone drawing fire pulls it their way.
-    const drawing = targets.filter((m) => tactics.drawFire.has(m));
-    if (drawing.length > 0 && !drawing.includes(target)) target = drawing[0]!;
-    const guard = tactics.guards.get(target);
-    if (guard && !guard.down && !guard.dead && !guard.fled) target = guard;
-    const armor = target.s.equipment.armor ? armorValue(target.s.equipment.armor) : 0;
-    const extra =
-      (tactics.cover.has(target) ? COVER_DEFENSE : 0) +
-      (tactics.drawFire.has(target) ? DRAW_FIRE_DEFENSE : 0) -
-      (tactics.charging.has(target) ? CHARGE_BONUS : 0) +
-      (sim.gate?.wall ? WALL_COVER : 0) +
-      (sim.gate?.shored ? RAID_SHORE_COVER : 0);
-    const shot = /shot|zapped/.test(enemy.def.hitVerb);
-    const heavy = intent?.kind === 'heavy';
-    if (sim.rng.d10() + enemy.attack + (heavy ? HEAVY_TO_HIT : 0) + packBonus(enemy, target, fight.enemies) < SURVIVOR_DEFENSE + armor + extra) {
-      act(sim, { by: fight.enemies.indexOf(enemy), at: target.s.id, kind: 'miss', shot });
-      if (commanded && intent?.kind === 'heavy') say(sim, `${capitalize(label)}'s big hit misses ${target.s.firstName}.`);
-      continue;
-    }
+    // Most strike once a round; the Shepherd strikes twice (3.0.0). Its big hit is the first blow.
+    const blows = enemy.def.attacks ?? 1;
+    for (let blow = 0; blow < blows; blow++) {
+      const targets = reachableBy(sim, enemy);
+      if (targets.length === 0) {
+        if (active(sim).length === 0) return;
+        break;
+      }
+      // Who it meant to hit, if it still can; or else someone it can reach now.
+      const aim = blow === 0 ? intent?.at : intent?.also;
+      let target = aim && targets.includes(aim) ? aim : sim.rng.weightedBy(targets, (m) => attention(sim, enemy, m));
+      // Someone drawing fire pulls it their way.
+      const drawing = targets.filter((m) => tactics.drawFire.has(m));
+      if (drawing.length > 0 && !drawing.includes(target)) target = drawing[0]!;
+      const guard = tactics.guards.get(target);
+      if (guard && !guard.down && !guard.dead && !guard.fled) target = guard;
+      const armor = target.s.equipment.armor ? armorValue(target.s.equipment.armor) : 0;
+      const extra =
+        (tactics.cover.has(target) ? COVER_DEFENSE : 0) +
+        (tactics.drawFire.has(target) ? DRAW_FIRE_DEFENSE : 0) -
+        (tactics.charging.has(target) ? CHARGE_BONUS : 0) +
+        (sim.gate?.wall ? WALL_COVER : 0) +
+        (sim.gate?.shored ? RAID_SHORE_COVER : 0);
+      const shot = /shot|zapped/.test(enemy.def.hitVerb);
+      const heavy = blow === 0 && intent?.kind === 'heavy';
+      if (sim.rng.d10() + enemy.attack + (heavy ? HEAVY_TO_HIT : 0) + packBonus(enemy, target, fight.enemies) < SURVIVOR_DEFENSE + armor + extra) {
+        act(sim, { by: fight.enemies.indexOf(enemy), at: target.s.id, kind: 'miss', shot });
+        if (commanded && intent?.kind === 'heavy') say(sim, `${capitalize(label)}'s big hit misses ${target.s.firstName}.`);
+        continue;
+      }
 
-    const damage = damageThrough(enemy.damage * (heavy ? HEAVY_HIT_MULT : 1), armor);
-    if (enemy.def.rads) absorbRads(target, enemy.def.rads);
-    const wentDown = hurt(sim, target, damage, enemyRef(enemy), enemy.def.type, enemy.nemesis?.id);
-    act(sim, { by: fight.enemies.indexOf(enemy), at: target.s.id, kind: 'hit', amount: damage, shot, ...(wentDown ? { down: true } : {}) });
-    say(sim, `${target.s.firstName} is ${heavy ? 'hit hard, ' : ''}${enemy.def.hitVerb} ${label} (-${damage} HP)${wentDown ? ' and goes down.' : '.'}`, { tone: 'bad' });
-    if (wentDown) {
-      // One of the crew down gives the rest of them heart.
-      if (fight.morale) fight.morale.nerve = Math.min(NERVE_FULL, fight.morale.nerve + NERVE_DOWN);
-      enemy.downed.push(target);
-      fight.downedHere.push(target);
-      for (const other of active(sim)) maybeFlee(sim, other, fight);
-    } else if (isHurt(target)) {
-      maybeFlee(sim, target, fight);
+      const damage = damageThrough(enemy.damage * (heavy ? HEAVY_HIT_MULT : 1), armor);
+      if (enemy.def.rads) absorbRads(target, enemy.def.rads);
+      const wentDown = hurt(sim, target, damage, enemyRef(enemy), enemy.def.type, enemy.nemesis?.id);
+      act(sim, { by: fight.enemies.indexOf(enemy), at: target.s.id, kind: 'hit', amount: damage, shot, ...(wentDown ? { down: true } : {}) });
+      say(sim, `${target.s.firstName} is ${heavy ? 'hit hard, ' : ''}${enemy.def.hitVerb} ${label} (-${damage} HP)${wentDown ? ' and goes down.' : '.'}`, { tone: 'bad' });
+      if (wentDown) {
+        // One of the crew down gives the rest of them heart.
+        if (fight.morale) fight.morale.nerve = Math.min(NERVE_FULL, fight.morale.nerve + NERVE_DOWN);
+        enemy.downed.push(target);
+        fight.downedHere.push(target);
+        for (const other of active(sim)) maybeFlee(sim, other, fight);
+      } else if (isHurt(target)) {
+        maybeFlee(sim, target, fight);
+      }
     }
   }
 }
@@ -613,6 +625,8 @@ function withdraw(sim: Sim, fight: FightState): void {
 export interface FightStart {
   ambushed: boolean;
   drop: boolean;
+  /** How many rounds before it's called a stalemate: MAX_COMBAT_ROUNDS, or more for Haven's gate (3.0.0). */
+  rounds?: number;
 }
 
 export interface FightResult {
@@ -640,18 +654,21 @@ function callHome(sim: Sim, enemies: readonly Enemy[]): FightPlan | undefined {
     if (plan && (plan.rounds.length > 0 || plan.live)) say(sim, 'You take command at the gate.');
     return plan;
   }
-  const caller = bestBy(standing(sim), (m) => simBonus(sim, m, 'nerve', []));
+  // One of the guild calls, never a Vulture beside them (§9.12).
+  const caller = bestBy(standing(sim).filter((m) => !m.ally), (m) => simBonus(sim, m, 'nerve', []));
   if (!caller) return undefined;
   const plan = lead.plans[lead.stops.length];
   const kind = sim.beats.at(-1)?.kind ?? 'combat';
-  say(sim, `${caller.s.firstName} gets on the radio to the Depot.`);
-  lead.stops.push({ at: sim.offset, by: caller.s.id, against: describeGroup(enemies), fromBeat: sim.beats.length });
+  // On the road east nobody is left at the Depot to call (§9.12): they wait for the word.
+  const road = sim.plan.job === 'haven';
+  say(sim, road ? `${caller.s.firstName} calls a halt, and they wait for the word.` : `${caller.s.firstName} gets on the radio to the Depot.`);
+  lead.stops.push({ at: sim.offset, by: caller.s.id, against: describeGroup(enemies), fromBeat: sim.beats.length, ...(sim.site ? { site: sim.site } : {}) });
   const solo = sim.members.length === 1;
   if (!plan) {
     sim.delay += LEAD_WAIT;
     sim.offset += LEAD_WAIT;
-    startBeat(sim, kind, 'No word from home');
-    say(sim, solo ? `Half an hour by the radio, and no word. ${caller.s.firstName} goes in alone.` : 'Half an hour by the radio, and no word. They go in on their own.', { tone: 'bad' });
+    startBeat(sim, kind, road ? 'No word' : 'No word from home');
+    say(sim, road ? 'Half an hour waiting for the word, and none comes. They go in on their own.' : solo ? `Half an hour by the radio, and no word. ${caller.s.firstName} goes in alone.` : 'Half an hour by the radio, and no word. They go in on their own.', { tone: 'bad' });
     return undefined;
   }
   // Under command the fight is played as the orders come in; once it's over, at the time it ended.
@@ -659,7 +676,9 @@ function callHome(sim: Sim, enemies: readonly Enemy[]): FightPlan | undefined {
   sim.delay += wait;
   sim.offset += wait;
   startBeat(sim, kind, plan.rounds.length > 0 || plan.live ? 'Under orders' : 'Word from home');
-  say(sim, plan.rounds.length > 0 || plan.live ? 'Orders come over the radio.' : solo ? `Word from home: fight it out. ${caller.s.firstName} goes in.` : 'Word from home: fight it out.');
+  const commanded = plan.rounds.length > 0 || plan.live;
+  if (road) say(sim, commanded ? 'The word comes, and they go in.' : 'The word comes: fight it out.');
+  else say(sim, commanded ? 'Orders come over the radio.' : solo ? `Word from home: fight it out. ${caller.s.firstName} goes in.` : 'Word from home: fight it out.');
   return plan;
 }
 
@@ -907,7 +926,9 @@ export function fight(sim: Sim, enemies: Enemy[], start: FightStart): FightResul
   // Orders are used one per round the crew acts in; an ambushed crew can't act in the first.
   let given = 0;
 
-  for (let round = 1; round <= MAX_COMBAT_ROUNDS && !end; round++) {
+  const rounds = start.rounds ?? MAX_COMBAT_ROUNDS;
+  sim.fightRounds = rounds;
+  for (let round = 1; round <= rounds && !end; round++) {
     attackCtx.round = round;
     if (sim.fightActs) sim.fightActs.round = round;
     attackCtx.drop = start.drop && round === 1;

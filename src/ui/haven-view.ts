@@ -6,6 +6,19 @@
 import {
   DEPTH_NAMES,
   HAVEN_BROADCAST,
+  HAVEN_JOURNEY,
+  HAVEN_ROAD_MINUTES,
+  HAVEN_TEAM,
+  caravanCost,
+  caravanProblem,
+  costText,
+  getGear,
+  maxHp,
+  roadProblems,
+  roadSeats,
+  vehicleName,
+  vulturesStayAway,
+  vulturesWord,
   HAVEN_CLUES,
   HAVEN_DREAMER,
   HAVEN_VULTURES,
@@ -29,8 +42,10 @@ import {
   type HavenHeard,
   type HavenHintSource,
   type RunPlan,
+  type RunReport,
 } from '../engine/index.ts';
 import type { Route } from './route.ts';
+import { formatDuration, joinNames } from './runs-view.ts';
 
 export interface HavenLeadView {
   id: string;
@@ -79,6 +94,8 @@ export interface HavenHeardView {
 
 export interface HavenView {
   broadcast: string;
+  /** Once Haven is finished (§9.12): the broadcast is gone, and this says so instead. */
+  radioOff?: string;
   /** "First heard on day 9." */
   since: string;
   /** What the guild knows so far, a line a clue, in the order found. */
@@ -134,6 +151,7 @@ export function havenView(state: GameState, seen: { found: number; heard: number
   const heard = haven.heard.map((h, i) => ({ text: h.text, line: `${heardFrom(h)}, day ${h.day}.`, isNew: i >= seen.heard }));
   return {
     broadcast: HAVEN_BROADCAST,
+    ...(haven.end?.won ? { radioOff: 'On the radio, where Haven used to be: nothing.' } : {}),
     since: `First heard on day ${haven.day}.`,
     known: haven.found.map((f) => learned(f.id)),
     ...(havenRoadOpen(state) ? { road: 'They know where Haven is, and how to get in.' } : {}),
@@ -296,7 +314,7 @@ export function roadView(state: GameState): RoadView | undefined {
     found,
     total,
     end: known ? 'Corwin Dam' : 'Haven?',
-    line: roadOpen ? 'The road is open.' : `${found} of ${total} found.`,
+    line: haven.end ? (haven.end.won ? 'Haven is finished.' : 'Haven goes on.') : roadOpen ? 'The road is open.' : `${found} of ${total} found.`,
     roadOpen,
   };
 }
@@ -332,3 +350,180 @@ export function smoothPath(points: readonly { x: number; y: number }[]): string 
 
 /** How many hints the Heard page shows before "Older": the rest fold away, so the tab stays short. */
 export const HEARD_SHOWN = 6;
+
+// ---------------------------------------------------------------- the road east (§9.12, 3.0.0)
+
+export interface RoadEastView {
+  /** `ready`: the way is known and the guild hasn't gone; `out`: on the road now; `over`: it's done, for good. */
+  stage: 'ready' | 'out' | 'over';
+  title: string;
+  lines: string[];
+  /** Who has to ride and what carries them (ready). */
+  seats?: string;
+  /** Places in a trader's caravan for whoever the vehicles can't carry (ready, and short of seats). */
+  caravan?: { label: string; cost: string; problem?: string };
+  /** Worth knowing before they go, not stopping them (ready). */
+  warnings: string[];
+  /** What stops them going now (ready). */
+  problems: string[];
+  /** Setting out (ready, nothing stopping them). */
+  go?: { label: string; confirm: string };
+  /** The run, to follow it (out). */
+  runId?: string;
+}
+
+/** Before the road east: what the Vultures sent, by how things stand with them; or that they aren't coming. */
+function vultureLines(state: GameState): string[] {
+  const word = vulturesWord(state);
+  if (word) return [`${word.by} sends word from the Vultures: “${word.text}”`];
+  return vulturesStayAway(state) ? [HAVEN_JOURNEY.noWord] : [];
+}
+
+const NUMBER_WORDS = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen', 'twenty'];
+const numberWord = (n: number): string => NUMBER_WORDS[n] ?? String(n);
+
+/** The road east on the Haven tab: getting ready, under way, or how it ended. Undefined until the way is known. */
+export function roadEastView(state: GameState): RoadEastView | undefined {
+  const haven = state.haven;
+  if (!haven || !havenRoadOpen(state)) return undefined;
+
+  if (haven.end) {
+    const e = haven.end;
+    if (!e.won) {
+      return {
+        stage: 'over',
+        title: 'Haven goes on',
+        lines: [`Day ${e.day}: the guild went east together, and came home beaten.`, 'The broadcast still comes, every hour.', 'It is what it is. The Depot is still there, and so are they, and they’ll keep building it.'],
+        warnings: [],
+        problems: [],
+      };
+    }
+    const freed = e.freed + e.withVultures;
+    const where =
+      freed === 0
+        ? undefined
+        : e.withVultures === 0
+          ? `${capital(numberWord(e.freed))} of those freed from its wards came home with the guild.`
+          : e.freed === 0
+            ? `${capital(numberWord(e.withVultures))} freed from its wards went with the Vultures: there was no room at the Depot.`
+            : `Of those freed from its wards, ${numberWord(e.freed)} came home with the guild and ${numberWord(e.withVultures)} went with the Vultures: there wasn’t room for everyone.`;
+    return {
+      stage: 'over',
+      title: 'Haven is finished',
+      lines: [`Day ${e.day}: the guild went east together, and Haven is finished.`, ...(where ? [where] : []), 'Nobody found Dr. Marr.', 'The radio is quiet now. The Depot is the only haven there is: the one they built themselves.'],
+      warnings: [],
+      problems: [],
+    };
+  }
+
+  if (haven.road) {
+    const kids = haven.road.children.length;
+    return {
+      stage: 'out',
+      title: 'On the road east',
+      lines: [`The whole guild is on the road to Haven${kids > 0 ? `, ${kids === 1 ? 'the child' : 'the children'} too` : ''}. The Depot stands empty until they’re back.`],
+      runId: haven.road.runId,
+      warnings: [],
+      problems: [],
+    };
+  }
+
+  const seats = roadSeats(state);
+  const riders = seats.people + seats.children;
+  const who = seats.children > 0 ? `${numberWord(riders)} to carry: ${numberWord(seats.people)} of the guild and ${seats.children === 1 ? 'a child' : `${numberWord(seats.children)} children`}` : `${numberWord(riders)} to carry`;
+  const vehicles = seats.vehicles.map((v) => `the ${vehicleName(v)}`);
+  const carry =
+    vehicles.length === 0
+      ? 'The guild has no vehicle that runs.'
+      : `${capital(joinNames(vehicles))} ${vehicles.length === 1 ? 'seats' : 'seat'} ${numberWord(seats.seats)}${seats.caravan > 0 ? `, and ${numberWord(seats.caravan)} ${seats.caravan === 1 ? 'has a place' : 'have places'} in a trader’s caravan` : ''}.`;
+  const caravan =
+    seats.short > 0
+      ? (() => {
+          const problem = caravanProblem(state);
+          return {
+            label: seats.short === 1 ? 'Buy a place in a caravan' : `Buy ${numberWord(seats.short)} places in a caravan`,
+            cost: costText(caravanCost(seats.short)),
+            ...(problem ? { problem } : {}),
+          };
+        })()
+      : undefined;
+
+  const warnings: string[] = [];
+  const meds = state.resources.meds;
+  if (meds === 0) warnings.push('No meds: nobody gets patched up between the fights.');
+  else if (meds < 3) warnings.push(`Only ${meds === 1 ? 'one med' : `${numberWord(meds)} meds`} for the whole road.`);
+  const guns = state.survivors.some((s) => s.equipment.weapon && getGear(s.equipment.weapon.defId).usesAmmo);
+  if (guns && state.resources.ammo === 0) warnings.push('Some of them carry guns, but there’s no ammo.');
+  const hurt = state.survivors.filter((s) => s.hp < maxHp(s) / 2).map((s) => s.firstName);
+  if (hurt.length > 0) warnings.push(`${joinNames(hurt)} ${hurt.length === 1 ? 'is' : 'are'} hurt. Everyone comes anyway.`);
+  const out = state.survivors.filter((s) => s.outpost !== undefined).map((s) => s.firstName);
+
+  // The seats line is the caravan's to explain.
+  const problems = roadProblems(state).filter((p) => !(caravan && p.startsWith('Not everyone has a seat')));
+  return {
+    stage: 'ready',
+    title: 'The road east',
+    lines: [
+      'Corwin Dam is east, past the Glow. The whole guild goes together, children too, and nobody stays behind.',
+      `The road takes ${formatDuration(HAVEN_ROAD_MINUTES.home * 60_000)} there and back, longer while they wait for your word at a fight. At each fight the ${numberWord(HAVEN_TEAM)} fittest go forward and the rest stay with the vehicles.`,
+      `They take everything the Depot has: ${meds === 1 ? 'one med' : `${meds} meds`} and ${state.resources.ammo} ammo.`,
+      ...(out.length > 0 ? [`${joinNames(out)} ${out.length === 1 ? 'comes' : 'come'} in from the outposts first.`] : []),
+      ...vultureLines(state),
+    ],
+    seats: `${capital(who)}. ${carry}`,
+    ...(caravan ? { caravan } : {}),
+    warnings,
+    problems,
+    ...(problems.length === 0 && seats.short === 0
+      ? {
+          go: {
+            label: 'Set out for Haven',
+            confirm: 'Everyone sets out now, children too, and the Depot stands empty until they’re back. Once they’re on the road, there’s no turning back.',
+          },
+        }
+      : {}),
+  };
+}
+
+/** The Depot's headline while everyone is on the road east. */
+export const EMPTY_DEPOT = 'Everyone is on the road east, children too. The Depot stands empty until they’re back.';
+
+/** The orders line for the road east, where the planner's job, approach and retreat don't come into it. */
+export const HAVEN_ORDERS = 'The whole guild, together, with everything the Depot had.';
+
+export interface HavenReportView {
+  headline: string;
+  lines: { text: string; tone: 'good' | 'bad' | 'plain' }[];
+}
+
+/** A report from the road east (§9.12): how it ended, who was shot at the gate, who was freed and where they went. */
+export function havenReport(state: GameState, report: Pick<RunReport, 'summary'>): HavenReportView | undefined {
+  const end = report.summary.havenEnd;
+  if (!end) return undefined;
+  const lines: HavenReportView['lines'] = [];
+  const shot = end.shot ? state.memorial.find((s) => s.id === end.shot) : undefined;
+  if (shot) lines.push({ text: `${shot.firstName} was shot at Haven’s gate, running to warn the guild.`, tone: 'bad' });
+  const after = state.haven?.end;
+  if (end.won) {
+    const freed = end.freed?.length ?? 0;
+    if (freed > 0) {
+      const joined = after?.freed ?? freed;
+      const gone = after?.withVultures ?? 0;
+      lines.push({
+        text:
+          gone === 0
+            ? `${capital(numberWord(freed))} freed from Haven’s wards came home with the guild. They’re on the Roster now.`
+            : joined === 0
+              ? `${capital(numberWord(freed))} were freed from Haven’s wards. There was no room at the Depot, so they went with the Vultures.`
+              : `${capital(numberWord(freed))} were freed from Haven’s wards: ${numberWord(joined)} came home with the guild, and ${numberWord(gone)} went with the Vultures, for want of beds.`,
+        tone: 'good',
+      });
+    }
+    if (end.vultures) lines.push({ text: 'The Vultures fought beside the guild at the gate. They won’t forget it.', tone: 'good' });
+    lines.push({ text: 'Haven is finished. The game goes on.', tone: 'plain' });
+  } else {
+    if (end.vultures) lines.push({ text: 'The Vultures fought beside the guild at the gate, and dragged them out.', tone: 'plain' });
+    lines.push({ text: 'Haven goes on. The Depot is still there, and so are they.', tone: 'plain' });
+  }
+  return { headline: end.won ? 'Haven is finished' : 'Haven goes on', lines };
+}

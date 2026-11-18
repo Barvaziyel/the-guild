@@ -211,7 +211,8 @@ export function afterFight(sim: Sim, enemies: readonly Enemy[]): void {
     for (const m of e.downed) addChronicle(m.s, day, `Put down by ${n.name} at ${place}. ${n.name} got away again.`, ['nemesis', n.id]);
   }
 
-  // The Vultures have names of their own already, and don't haunt places (§7.11).
+  // The Vultures have names of their own already, and don't haunt places (§7.11). Nothing on the road east does either (§9.12).
+  if (sim.plan.job === 'haven') return;
   const candidates = enemies.filter((e) => !e.nemesis && !e.dead && e.downed.length > 0 && !e.def.id.startsWith('vulture_'));
   if (candidates.length === 0) return;
   if (sim.nemeses.filter((n) => n.status === 'atLarge').length >= NEMESIS_MAX) return;

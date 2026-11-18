@@ -8,7 +8,7 @@ import { MOVES } from '../content/moves.ts';
 import { gearHooks, itemDef } from '../gear.ts';
 import { maxHp } from '../stats.ts';
 import { visibleTraits } from '../traits.ts';
-import { getTrait } from '../content/index.ts';
+import { HAVEN_JOURNEY, getTrait } from '../content/index.ts';
 import type { LogLine, MoveId, Rank } from '../types.ts';
 import type { CombatEnd, Enemy } from './combat.ts';
 import { active, type Member, type Sim } from './context.ts';
@@ -50,13 +50,15 @@ export interface FightEnemyView {
   /** Where it stands (2.3.0): in front, at the back (it shoots), or in the air (it flies). */
   rank: EnemyRank;
   /** What it means to do this round, chosen before the crew acts (2.3.0): a hit or a big hit at someone (a survivor id), or a run for it. */
-  intent?: { kind: 'strike' | 'heavy' | 'run'; at?: string };
+  intent?: { kind: 'strike' | 'heavy' | 'run'; at?: string; also?: string };
   /** What one of its hits does, before armor; a big hit does twice that. */
   damage: number;
   /** What comes off every hit on it (2.4.0: a brute's is 3). */
   armor: number;
   /** Gets back up once unless finished (hollows, 2.4.0). */
   rises: boolean;
+  /** Strikes twice a round (the Shepherd, §9.12). */
+  twice?: boolean;
   /** Hunts as a pack (hounds, 2.4.0). */
   pack: boolean;
   /** Winds up big hits now and then. */
@@ -138,6 +140,8 @@ export interface FightMemberView {
   byRank: Record<Rank, MoveChoice[]>;
   /** A lookout shooting from the Watchtower in a raid (§9.8). */
   perch?: boolean;
+  /** One of the Vultures, fighting beside the guild at Haven's gate (§9.12). */
+  ally?: boolean;
 }
 
 /** A fight stopped for orders: what the player sees on the fight screen. */
@@ -146,6 +150,8 @@ export interface FightView {
   round: number;
   maxRounds: number;
   place: string;
+  /** Where on the road east (§9.12), for the backdrop; missing anywhere else. */
+  site?: string;
   enemies: FightEnemyView[];
   crew: FightMemberView[];
   /** What's left in the packs. */
@@ -292,8 +298,9 @@ export function fightView(sim: Sim, enemies: readonly Enemy[], round: number, fr
   const beat = sim.beats.at(-1);
   return {
     round,
-    maxRounds: MAX_COMBAT_ROUNDS,
-    place: sim.loc.name,
+    maxRounds: sim.fightRounds ?? MAX_COMBAT_ROUNDS,
+    place: sim.site ? (HAVEN_JOURNEY.sites[sim.site] ?? sim.loc.name) : sim.loc.name,
+    ...(sim.site ? { site: sim.site } : {}),
     enemies: enemies.map((e, index) => ({
       index,
       name: names[index]!,
@@ -310,9 +317,10 @@ export function fightView(sim: Sim, enemies: readonly Enemy[], round: number, fr
       damage: e.damage,
       armor: e.def.armor,
       rises: e.def.rises === true && !e.rose && !e.nemesis,
+      ...((e.def.attacks ?? 1) > 1 ? { twice: true } : {}),
       pack: e.def.pack === true,
       heavy: e.def.heavy !== undefined,
-      ...(e.intent && !over && !e.dead && !e.fled ? { intent: { kind: e.intent.kind, ...(e.intent.at ? { at: e.intent.at.s.id } : {}) } } : {}),
+      ...(e.intent && !over && !e.dead && !e.fled ? { intent: { kind: e.intent.kind, ...(e.intent.at ? { at: e.intent.at.s.id } : {}), ...(e.intent.also ? { also: e.intent.also.s.id } : {}) } } : {}),
       leader: e.def.leader === true,
       fearless: e.def.morale === 'fearless' || e.nemesis !== undefined,
     })),
@@ -327,6 +335,7 @@ export function fightView(sim: Sim, enemies: readonly Enemy[], round: number, fr
       rank: m.rank ?? 'front',
       byRank: { front: movesFor(sim, m, enemies, 'front'), back: movesFor(sim, m, enemies, 'back') },
       ...(m.perch ? { perch: true } : {}),
+      ...(m.ally ? { ally: true } : {}),
     })),
     ...(sim.gate?.dog ? { dog: sim.gate.dog } : {}),
     meds: sim.meds,

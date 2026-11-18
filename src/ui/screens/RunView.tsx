@@ -4,9 +4,12 @@ import {
   dayAt,
   dueBack,
   getLocation,
+  heldAt,
   ledFightNow,
   markReportRead,
+  returnUnsure,
   visibleBeats,
+  waitsForWord,
   type GameState,
   type Run,
   type RunReport,
@@ -39,7 +42,7 @@ import {
 import { clockTime } from '../time.ts';
 import { foundLines, rescueLine, rescuedWhere } from '../rescue-view.ts';
 import { vultureReportLines } from '../vultures-view.ts';
-import { discoveredLeadLine, findView, reportGoneLine, reportHavenLine } from '../haven-view.ts';
+import { HAVEN_ORDERS, discoveredLeadLine, findView, havenReport, reportGoneLine, reportHavenLine } from '../haven-view.ts';
 import { HavenFindNote } from '../components/HavenFind.tsx';
 import { followedHome } from '../animals-view.ts';
 import { findAnySurvivor } from '../view.ts';
@@ -66,6 +69,7 @@ export function RunView({ state, id }: { state: GameState; id: string }) {
 }
 
 function ordersLine(plan: Run['plan']): string {
+  if (plan.job === 'haven') return HAVEN_ORDERS;
   return `${choiceName(JOBS, plan.job)}, ${choiceName(APPROACHES, plan.approach).toLowerCase()}. Pull out when: ${choiceName(RETREATS, plan.retreat).toLowerCase()}.`;
 }
 
@@ -101,6 +105,9 @@ function ActiveRun({ state, run }: { state: GameState; run: Run }) {
   const back = dueBack(run, now);
   const left = back - now;
   const call = radioCard(state, run, now) ?? (ledFightNow(run, now) ? true : undefined);
+  // On the road east a fight holds everything up until the player answers (§9.12).
+  const held = heldAt(run, now) !== undefined;
+  const road = waitsForWord(run);
   const crew = run.plan.crew.map((cid) => ({
     id: cid,
     name: run.result.crew.find((c) => c.id === cid)?.firstName ?? cid,
@@ -110,17 +117,29 @@ function ActiveRun({ state, run }: { state: GameState; run: Run }) {
   return (
     <>
       <header className="sheet-head">
-        <p className="place-biome">Out at</p>
+        <p className="place-biome">{run.plan.job === 'haven' ? 'On the road east to' : 'Out at'}</p>
         <h2 className="plan-title">{loc.name}</h2>
         <p className="place-facts">{ordersLine(run.plan)}</p>
         <CrewStrip crew={crew} />
         <div className="countdown">
-          <span className="countdown-time" role="timer" aria-live="off">
-            {formatCountdown(left)}
-          </span>
-          <span className="countdown-text">
-            {left <= 0 ? 'They should be at the gate now.' : call ? `until they're due back, at ${clockTime(back)}, if nobody answers sooner` : `until they're due back, at ${clockTime(back)}`}
-          </span>
+          {held ? (
+            <span className="countdown-text">They’ve stopped for a fight, and wait for your word as long as it takes.</span>
+          ) : (
+            <>
+              <span className="countdown-time" role="timer" aria-live="off">
+                {formatCountdown(left)}
+              </span>
+              <span className="countdown-text">
+                {left <= 0
+                  ? 'They should be at the gate now.'
+                  : road && returnUnsure(run)
+                    ? `until they're due back, at ${clockTime(back)}, if every fight on the way is answered at once`
+                    : call
+                      ? `until they're due back, at ${clockTime(back)}, if nobody answers sooner`
+                      : `until they're due back, at ${clockTime(back)}`}
+              </span>
+            </>
+          )}
           <span className="run-track" aria-hidden="true">
             <span className="run-fill" style={{ width: `${Math.round(runProgress(run, now) * 100)}%` }} />
           </span>
@@ -170,6 +189,7 @@ function Report({ state, report }: { state: GameState; report: RunReport }) {
   const rescue = rescueLine(s);
   const rescuedAt = rescuedWhere(state, s);
   const changes = changesByPerson(report);
+  const haven = havenReport(state, report);
 
   return (
     <>
@@ -177,12 +197,17 @@ function Report({ state, report }: { state: GameState; report: RunReport }) {
         <p className="place-biome">
           Day {dayAt(state, report.returnAt)}, {formatDuration(report.returnAt - report.departAt)} away
         </p>
-        <h2 className={`plan-title outcome-${tone}`}>{outcomeHeadline(s.outcome, loc.name)}</h2>
+        <h2 className={`plan-title outcome-${haven ? (s.havenEnd!.won ? 'good' : 'bad') : tone}`}>{haven ? haven.headline : outcomeHeadline(s.outcome, loc.name)}</h2>
         <p className="place-facts">{ordersLine(report.plan)}</p>
         <CrewStrip crew={crew} faded={dead} />
       </header>
 
       <section className="panel report-summary" aria-label="Summary">
+        {haven?.lines.map((l) => (
+          <p key={l.text} className={l.tone === 'good' ? 'summary-found' : l.tone === 'bad' ? 'summary-death' : undefined}>
+            {l.text}
+          </p>
+        ))}
         {s.deaths.map((d) => (
           <p key={d.survivorId} className="summary-death">
             {d.name} died. {d.cause}.
@@ -326,9 +351,15 @@ function Report({ state, report }: { state: GameState; report: RunReport }) {
       )}
 
       <div className="panel">
-        <button type="button" className="btn btn-primary" onClick={() => navigate({ screen: 'plan', locationId: report.plan.locationId })}>
-          Plan another run to {loc.name}
-        </button>
+        {haven ? (
+          <button type="button" className="btn btn-primary" onClick={() => navigate({ screen: 'haven' })}>
+            Open Haven
+          </button>
+        ) : (
+          <button type="button" className="btn btn-primary" onClick={() => navigate({ screen: 'plan', locationId: report.plan.locationId })}>
+            Plan another run to {loc.name}
+          </button>
+        )}
       </div>
     </>
   );

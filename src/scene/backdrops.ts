@@ -218,6 +218,126 @@ const THE_GLOW: Backdrop = () => {
   return out + line(0, HORIZON, W, HORIZON, 1.2, '#5d5e48');
 };
 
+// ---------------------------------------------------------------- the road east (§9.12)
+
+/** The highway running away east, toward the horizon: a road in perspective, its middle line dashed. */
+function highway(asphalt: string, paint: string, cracked: boolean): string {
+  const vx = 214;
+  let out = pathEl(`M ${vx - 14} ${HORIZON} L ${vx + 14} ${HORIZON} L ${W + 80} ${H} L -80 ${H} Z`, asphalt, NONE);
+  out += pathEl(`M ${vx - 14} ${HORIZON} L -80 ${H}`, 'none', `stroke="${darken(asphalt, 0.2)}" stroke-width="1.4"`);
+  out += pathEl(`M ${vx + 14} ${HORIZON} L ${W + 80} ${H}`, 'none', `stroke="${darken(asphalt, 0.2)}" stroke-width="1.4"`);
+  // Dashes, longer and wider as they come nearer.
+  for (let k = 0; k < 6; k++) {
+    const t0 = (k * 2 + 0.4) / 12;
+    const t1 = t0 + (k + 2) / 40;
+    const y0 = HORIZON + (H - HORIZON) * t0 * t0;
+    const y1 = HORIZON + (H - HORIZON) * Math.min(1, t1 * t1);
+    out += poly([[vx - 0.6 - t0 * 2, y0], [vx + 0.6 + t0 * 2, y0], [vx + 0.6 + t1 * 3, y1], [vx - 0.6 - t1 * 3, y1]], paint, NONE);
+  }
+  if (cracked) {
+    for (let k = 0; k < 6; k++) {
+      const h = hash(`hw-${k}`);
+      const x = 40 + (h % 320);
+      const y = HORIZON + 16 + ((h >>> 7) % 70);
+      out += pathEl(`M ${x} ${y} l 9 3 l 4 -4 l 11 6`, 'none', `stroke="${darken(asphalt, 0.3)}" stroke-width="1.2"`);
+    }
+  }
+  return out;
+}
+
+/** A road sign on two posts, shot full of holes. */
+function roadSign(x: number, y: number): string {
+  return (
+    rect(x + 6, y + 24, 3, HORIZON - y - 24, '#6b6559', THIN) +
+    rect(x + 45, y + 24, 3, HORIZON - y - 24, '#6b6559', THIN) +
+    rect(x, y, 54, 26, '#4f6a52', THIN) +
+    rect(x + 3, y + 3, 48, 20, 'none', 'stroke="#d8d4c6" stroke-width="1.2"') +
+    line(x + 10, y + 10, x + 32, y + 10, 2.2, '#d8d4c6') +
+    line(x + 10, y + 17, x + 26, y + 17, 2.2, '#d8d4c6') +
+    pathEl(`M ${x + 37} ${y + 13} h 9 m -4 -4 l 4 4 l -4 4`, 'none', 'stroke="#d8d4c6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"') +
+    circle(x + 20, y + 6, 1.1, '#2b2420', NONE) +
+    circle(x + 41, y + 21, 1.1, '#2b2420', NONE) +
+    circle(x + 8, y + 20, 0.9, '#2b2420', NONE)
+  );
+}
+
+/** Red Hand's painted hand (see their camp), at any spot and size. */
+function redHand(x: number, y: number, s: number): string {
+  return `<g transform="translate(${x} ${y}) scale(${s})">${pathEl('M 0 26 L -2 4 Q 0 0 2 4 L 3 12 L 4 0 Q 6 -4 8 0 L 8 12 L 10 2 Q 12 -2 14 2 L 13 14 L 16 8 Q 19 6 19 10 L 14 26 Z', '#a8402e', NONE)}</g>`;
+}
+
+const HAVEN_TOLL: Backdrop = () => {
+  let out = sky('#d8c1a0', '#ead7b4') + skyline('#b9a585', 'ht', HORIZON, 8) + ground('#b6a27c', '#9f8b66', 'ht');
+  out += highway('#8f8a80', '#d9cfa8', false);
+  out += roadSign(300, 58);
+  // Cars dragged across the road, nose to tail, Red Hand's mark on one.
+  out += car(116, 160, '#7a5a42') + car(186, 158, '#6b7272') + car(254, 161, '#8e4b33');
+  out += redHand(212, 130, 0.7);
+  // Burning tires by the barricade.
+  out += ellipse(70, 160, 13, 4, '#2b2420', THIN) + ellipse(70, 154, 12, 4, '#2b2420', THIN) + ellipse(70, 148, 11, 3.6, '#2b2420', THIN);
+  out += `<g class="bt-flame">${pathEl('M 60 146 Q 62 130 68 136 Q 71 122 75 136 Q 79 130 80 146 Z', '#ee9a45', 'stroke="none"')}</g>`;
+  return out + `<path d="M 66 126 Q 58 104 70 86 Q 80 70 72 50" fill="none" stroke="#5b5a52" stroke-width="7" stroke-linecap="round" opacity="0.25"/>`;
+};
+
+const HAVEN_GLOW: Backdrop = () => {
+  let out = sky('#a7b88a', '#d2dba6') + skyline('#869471', 'hg', HORIZON, 12) + rect(0, HORIZON, W, H - HORIZON, '#7d8160', NONE);
+  for (let k = 0; k < 6; k++) {
+    const h = hash(`hg-${k}`);
+    const left = k % 2 === 0;
+    out += ellipse(left ? 20 + (h % 90) : 300 + (h % 90), HORIZON + 12 + ((h >>> 6) % 60), 26 + (h % 20), 5 + (h % 3), '#c7f27a', 'stroke="none" opacity="0.45" class="bt-glow"');
+  }
+  out += highway('#6f6f62', '#a9a98a', true);
+  // A pylon down across the verge, a burned-out bus, dead trees.
+  out += line(16, 154, 104, 96, 3, '#5d6466') + line(30, 158, 112, 104, 3, '#5d6466');
+  for (let k = 0; k < 5; k++) out += line(24 + k * 17, 152 - k * 11, 36 + k * 17, 156 - k * 11, 1.4, '#5d6466');
+  out += rect(286, 118, 96, 38, '#6b5f4a', THIN) + rect(292, 124, 14, 12, '#2b2420', NONE) + rect(312, 124, 14, 12, '#2b2420', NONE) + rect(332, 124, 14, 12, '#2b2420', NONE) + rect(352, 124, 14, 12, '#2b2420', NONE);
+  out += circle(304, 158, 6, '#2b2420', THIN) + circle(364, 158, 6, '#2b2420', THIN);
+  out += deadTree(150, 156, 0.9, '#3a3631') + deadTree(262, 156, 1.1, '#3a3631');
+  return out + `<rect x="0" y="110" width="${W}" height="70" fill="#c7f27a" opacity="0.1"/>`;
+};
+
+/** The dam's north gate (§9.12): open for the fight, or shut, with a small door in the wall, before it. */
+function havenGate(open: boolean): string {
+  let out = sky('#c9d0cb', '#e3e1d4') + skyline('#a8afa6', 'hd', 60, 18);
+  // The dam: one great wall of concrete across the valley, seams down it.
+  out += pathEl(`M 0 36 Q 200 24 ${W} 36 L ${W} ${HORIZON} L 0 ${HORIZON} Z`, '#a9a596', THIN);
+  for (let x = 30; x < W; x += 46) out += line(x, 32, x, HORIZON, 0.8, '#8f8b7d');
+  out += pathEl(`M 0 36 Q 200 24 ${W} 36`, 'none', 'stroke="#7d7a6e" stroke-width="3"');
+  // Life on top: washing on a line, a chimney's smoke, a garden.
+  out += line(260, 22, 260, 32, 1.4, INK) + line(330, 24, 330, 33, 1.4, INK) + line(260, 23, 330, 25, 0.8, INK);
+  for (const [x, c] of [[272, '#efe8da'], [288, '#c9d3cf'], [304, '#efe8da'], [318, '#d8c7a6']] as const) out += rect(x, 24, 8, 9, c, THIN);
+  out += rect(80, 16, 8, 14, '#8f8b7d', THIN) + `<path d="M 84 14 Q 78 2 88 -6" fill="none" stroke="#efe8da" stroke-width="5" stroke-linecap="round" opacity="0.6"/>`;
+  for (let k = 0; k < 6; k++) out += ellipse(130 + k * 14, 29, 6, 3, k % 2 ? '#6f9a52' : '#86a85e', THIN);
+  // The marksman's post on the wall.
+  out += rect(24, 40, 30, 16, '#7d7a6e', THIN) + rect(30, 44, 18, 6, '#2b2420', NONE);
+  // HAVEN, painted over the gate in letters taller than a man.
+  out += `<text x="200" y="84" text-anchor="middle" font-family="'Big Shoulders Stencil', sans-serif" font-size="44" font-weight="800" fill="#efe8da" opacity="0.92" letter-spacing="6">HAVEN</text>`;
+  out += line(160, 86, 160, 94, 1.4, '#efe8da') + line(229, 86, 229, 98, 1.4, '#efe8da');
+  if (open) {
+    // The north gate, swung open on the dark inside.
+    out += rect(172, 100, 56, 58, '#1d1b1a', THIN);
+    out += poly([[172, 100], [154, 106], [154, 160], [172, 158]], '#6b7272', THIN) + poly([[228, 100], [246, 106], [246, 160], [228, 158]], '#6b7272', THIN);
+    out += line(163, 112, 163, 152, 0.8, INK) + line(237, 112, 237, 152, 0.8, INK);
+  } else {
+    // Shut, riveted; and a small door in the wall beside it, banged open.
+    out += rect(172, 100, 56, 58, '#6b7272', THIN) + line(200, 100, 200, 158, 1.2, INK);
+    for (const y of [108, 128, 148]) out += line(174, y, 226, y, 0.7, '#4f5555');
+    out += rect(244, 132, 12, 26, '#1d1b1a', THIN) + poly([[256, 132], [263, 135], [263, 160], [256, 158]], '#7d7a6e', THIN);
+  }
+  // A white truck parked by the gate, its back shut.
+  out += rect(300, 118, 62, 40, '#e6e3d8', THIN) + pathEl('M 362 158 L 362 128 L 380 128 L 390 142 L 390 158 Z', '#e6e3d8', THIN) + rect(368, 132, 12, 9, '#4f5a5a', THIN);
+  out += line(330, 120, 330, 156, 0.8, INK) + circle(316, 159, 6, '#2b2420', THIN) + circle(376, 159, 6, '#2b2420', THIN);
+  // The concrete apron in front of the dam.
+  out += rect(0, HORIZON, W, H - HORIZON, '#a8a393', NONE);
+  for (let k = 0; k < 7; k++) {
+    const h = hash(`hd-${k}`);
+    out += pathEl(`M ${h % W} ${HORIZON + 14 + ((h >>> 6) % 70)} l 12 2 l 5 -4 l 14 3`, 'none', 'stroke="#8a8576" stroke-width="1.1"');
+  }
+  return out + line(0, HORIZON, W, HORIZON, 1.2, '#7d7a6e');
+}
+const HAVEN_GATE: Backdrop = () => havenGate(true);
+const HAVEN_GATE_SHUT: Backdrop = () => havenGate(false);
+
 /** Where lookouts stand on the Watchtower in a raid (§9.8): the platform's floor, and its left and right ends. */
 export const TOWER_DECK = { y: 104, x0: 14, x1: 70 } as const;
 
@@ -255,6 +375,11 @@ const BACKDROPS: Record<string, Backdrop> = {
   checkpoint_bravo: CHECKPOINT,
   red_hand_camp: RED_HAND,
   the_glow: THE_GLOW,
+  haven_toll: HAVEN_TOLL,
+  haven_glow: HAVEN_GLOW,
+  haven_gate: HAVEN_GATE,
+  haven_gate_shut: HAVEN_GATE_SHUT,
+  corwin_dam: HAVEN_GATE,
 };
 
 /** Every place with a backdrop of its own; anywhere else gets open wasteland. */

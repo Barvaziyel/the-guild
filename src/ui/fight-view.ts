@@ -5,8 +5,9 @@
  */
 import {
   LEAD_WAIT,
-  getLocation,
   ledFightNow,
+  ledFightPlace,
+  waitsForWord,
   type FightMemberView,
   type FightView,
   type GameState,
@@ -54,6 +55,8 @@ export interface FightCardView {
   inCommand: boolean;
   /** "Kai will hold 24 more minutes for your orders. After that, they fight on their own." */
   wait: string;
+  /** By the caller's portrait: "Kai is on the radio: they're about to fight, and wait for your orders." */
+  line: string;
 }
 
 /** A crew at a fight, waiting for the player or under command. */
@@ -65,16 +68,33 @@ export function fightCard(state: GameState, run: Run, now: number): FightCardVie
   const rest = solo ? `${name} fights on alone` : 'they fight on their own';
   return {
     runId: run.id,
-    place: getLocation(run.plan.locationId).name,
+    place: ledFightPlace(run, f),
     against: f.against,
     callerName: name,
     caller: state.survivors.find((s) => s.id === f.by),
     inCommand: f.took !== undefined,
-    wait:
-      f.took !== undefined
+    // On the road east nobody is at the Depot to radio: they've stopped on the road (§9.12).
+    line: waitsForWord(run)
+      ? f.took !== undefined
+        ? 'The guild waits on the road for your next orders.'
+        : `${name} has called a halt: they're about to fight, and wait for your word.`
+      : f.took !== undefined
+        ? `${name}'s crew is waiting for your next orders.`
+        : `${name} is on the radio: they're about to fight, and wait for your orders.`,
+    // On the road east they wait as long as it takes (§9.12).
+    wait: waitsForWord(run)
+      ? f.took !== undefined
+        ? 'You’re in command. They wait for each round’s orders, as long as it takes.'
+        : `${name} has called a halt. They wait for your word, as long as it takes.`
+      : f.took !== undefined
         ? `You're in command. ${minutesLeft(f.until - now).replace(/^./, (c) => c.toUpperCase())} to finish it; after that, ${rest}.`
         : `${name} will hold ${minutesLeft(f.until - now)} for your orders. After that, ${rest}.`,
   };
+}
+
+/** Where the battle stage is for a run's fight: its spot on the road east (§9.12), or the run's place. */
+export function stagePlace(run: Run, view?: FightView): string {
+  return view?.site ?? run.plan.locationId;
 }
 
 /** Every crew at a fight right now, the first to call first. */
@@ -93,7 +113,8 @@ export function anyoneFighting(state: GameState, now: number): boolean {
 /** When the app should look again: a fight starting, or its time running out. */
 export function fightWakeTimes(state: GameState, now: number): number[] {
   const out: number[] = [];
-  for (const r of state.runs) for (const f of r.lead?.fights ?? []) if (f.ended === undefined) for (const t of [f.at, f.until]) if (t > now) out.push(t);
+  // On the road east nothing runs out (§9.12): only the fight starting wakes the app.
+  for (const r of state.runs) for (const f of r.lead?.fights ?? []) if (f.ended === undefined) for (const t of waitsForWord(r) ? [f.at] : [f.at, f.until]) if (t > now) out.push(t);
   return out;
 }
 
@@ -108,7 +129,7 @@ export function fightNotices(state: GameState): PlannedNotice[] {
         id: `fight-${r.id}-${k}`,
         at: f.at,
         title: `${name} is in a fight`,
-        body: `At ${getLocation(r.plan.locationId).name}, against ${f.against}. They'll wait ${formatDuration(LEAD_WAIT)} for your orders.`,
+        body: `At ${ledFightPlace(r, f)}, against ${f.against}. ${waitsForWord(r) ? 'They wait for your word.' : `They'll wait ${formatDuration(LEAD_WAIT)} for your orders.`}`,
       });
     });
   }
@@ -257,6 +278,9 @@ export function theirMoves(view: FightView): string[] {
     else if (who && pack > 0) what = `going for ${who} with the pack (+${pack} to hit)`;
     else if (who) what = `${shoots ? 'shooting at' : 'going for'} ${who}`;
     else what = 'can’t reach anyone';
+    // A second blow at someone else (the Shepherd, §9.12).
+    const also = !e.stunned && e.intent?.kind !== 'run' && e.intent?.also && canStillReach(view, e, e.intent.also) ? view.crew.find((m) => m.id === e.intent!.also)?.name : undefined;
+    if (also && who) what += also === who ? ', twice' : `, and a second blow at ${also}`;
     out.push(`${e.name}: ${what}.`);
   }
   return out;
@@ -278,6 +302,7 @@ export function whatTheyAre(view: FightView): string[] {
     if (e.pack) out.push(`${kind}: hunts as a pack. They all go for the same one of you and hit easier together: move that person back, guard them, or spray the pack.`);
     if (e.rank === 'air') out.push(`${kind}: flies. Only shots reach it, and one good one brings it down.`);
     else if (e.rank === 'back') out.push(`${kind}: shoots from the back. Blades can't reach it while anyone stands in front of it.`);
+    if (e.twice) out.push(`${kind}: strikes twice a round, the second blow at someone else when it can reach two of you.`);
     if (e.heavy) out.push(`${kind}: winds up big hits now and then, for twice the damage. Watch for it and get out of the way.`);
     if (e.leader) out.push(`${kind}: leads them. If it falls, the rest lose heart.`);
   }
@@ -370,10 +395,11 @@ export function memberState(m: FightMemberView): string {
 
 // ---------------------------------------------------------------- the fight on one screen (2.6.0)
 
-/** The line over the stage: "Round 2 of 6 · 27 min left · 2 meds, 12 ammo in the packs." */
-export function fightStatus(view: FightView, until: number, now: number, stores: string): string {
+/** The line over the stage: "Round 2 of 6 · 27 min left · 2 meds, 12 ammo in the packs." No time on the road east, where they wait as long as it takes (§9.12). */
+export function fightStatus(view: FightView, until: number | undefined, now: number, stores: string): string {
   const meds = view.meds === 1 ? '1 med' : `${view.meds} meds`;
-  return `Round ${view.round} of ${view.maxRounds} · ${formatDuration(Math.max(60_000, until - now))} left · ${meds}, ${view.ammo} ammo ${stores}`;
+  const left = until === undefined ? '' : ` · ${formatDuration(Math.max(60_000, until - now))} left`;
+  return `Round ${view.round} of ${view.maxRounds}${left} · ${meds}, ${view.ammo} ammo ${stores}`;
 }
 
 /** One of the crew in the strip under the stage: who, how they are, and what they've been told. */
