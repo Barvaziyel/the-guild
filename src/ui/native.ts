@@ -6,6 +6,7 @@
 import { App } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { LocalNotifications } from '@capacitor/local-notifications';
+import type { SoundSystem } from './audio.ts';
 import { navigate } from './hooks.ts';
 import { noticeRoute } from './radio-view.ts';
 
@@ -13,8 +14,15 @@ export function isNative(): boolean {
   return Capacitor.isNativePlatform();
 }
 
-export function setupNative(): void {
+export function setupNative(sound: SoundSystem): void {
+  // Sound stops while the game is in the background, in a browser tab too.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') sound.pause();
+    else sound.resume();
+  });
   if (!isNative()) return;
+
+  void App.addListener('pause', () => sound.pause());
 
   // Back goes back through the screens; from a tab, it puts the game in the background.
   void App.addListener('backButton', () => {
@@ -24,7 +32,10 @@ export function setupNative(): void {
   });
 
   // Coming back to the game: let the clock catch up (useNow listens for this).
-  void App.addListener('resume', () => document.dispatchEvent(new Event('visibilitychange')));
+  void App.addListener('resume', () => {
+    sound.resume();
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
 
   // Tapping a notice opens what it's about: a crew's run, or the Depot.
   void LocalNotifications.addListener('localNotificationActionPerformed', (action) => {

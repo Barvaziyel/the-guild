@@ -23,6 +23,7 @@ export function Settings({ state, now, day }: Props) {
         </h2>
       </div>
       <GameSettings state={state} />
+      <SoundSettings />
       <TourSettings state={state} />
       <SaveSettings state={state} now={now} day={day} />
       <DeveloperSettings />
@@ -97,6 +98,30 @@ function GameSettings({ state }: { state: GameState }) {
         checked={wobble}
         onChange={(on) => prefs.set({ wobble: on })}
       />
+    </div>
+  );
+}
+
+function Slider({ label, value, disabled, onChange }: { label: string; value: number; disabled: boolean; onChange: (v: number) => void }) {
+  return (
+    <label className="slider">
+      <span className="slider-label">{label}</span>
+      <input type="range" min={0} max={1} step={0.05} value={value} disabled={disabled} onChange={(e) => onChange(Number(e.target.value))} />
+    </label>
+  );
+}
+
+function SoundSettings() {
+  const { prefs } = useServices();
+  const { sound, musicVolume, effectsVolume, ambienceVolume, buzz } = usePrefs();
+  return (
+    <div className="panel">
+      <h3 className="panel-title">Sound</h3>
+      <Toggle label="Sound" help="Music, the yard around the Depot, and the sounds of the game." checked={sound} onChange={(on) => prefs.set({ sound: on })} />
+      <Slider label="Music" value={musicVolume} disabled={!sound} onChange={(v) => prefs.set({ musicVolume: v })} />
+      <Slider label="Sounds" value={effectsVolume} disabled={!sound} onChange={(v) => prefs.set({ effectsVolume: v })} />
+      <Slider label="The yard" value={ambienceVolume} disabled={!sound} onChange={(v) => prefs.set({ ambienceVolume: v })} />
+      <Toggle label="Buzz in fights" help="A short buzz when someone of yours is hit hard or goes down." checked={buzz} onChange={(on) => prefs.set({ buzz: on })} />
     </div>
   );
 }
@@ -389,6 +414,7 @@ function About() {
         The Guild {__APP_VERSION__}, save format {SAVE_VERSION}.
       </p>
       <p>Type: Big Shoulders Stencil and Atkinson Hyperlegible Next, both under the SIL Open Font License.</p>
+      <p>Music: played on the FluidR3 GM instruments by Frank Wen, under Creative Commons Attribution 3.0. The other sounds are made from scratch.</p>
     </div>
   );
 }

@@ -126,6 +126,7 @@ describe('a round on the stage', () => {
         assert.equal(last.state[enemyKey(e.index)], e.state, `${e.name} state`);
       }
       for (const c of next.crew) assert.equal(last.state[crewKey(c.id)], c.state === 'dead' ? 'down' : c.state, `${c.name} state`);
+      assert.deepEqual(frames.map((f) => f.act), next.acts.slice(view.acts.length), 'each frame carries its act, for its sound');
       for (const f of frames) {
         assert.ok(f.effect.by.startsWith('c:') || f.effect.by.startsWith('e:'));
         assert.ok(f.line >= view.lines.length && f.line <= next.lines.length, 'its line is in this round');

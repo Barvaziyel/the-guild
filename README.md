@@ -39,3 +39,5 @@ npm run apk      # build the Android app (setup in docs/ANDROID.md)
 Runs take real time (10 minutes to 2.5 hours). To test without waiting, turn on **Settings → Developer → Developer shortcuts**: a crew's run then has a button to skip ahead to their return. **Play ten runs** moves a new guild forward a month so there is history to look at.
 
 Fonts: [Big Shoulders Stencil](https://fonts.google.com/specimen/Big+Shoulders+Stencil) and [Atkinson Hyperlegible Next](https://fonts.google.com/specimen/Atkinson+Hyperlegible+Next), both under the SIL Open Font License, bundled through Fontsource.
+
+Sound: the music is composed in code and played on the FluidR3 GM instruments by Frank Wen, released under [Creative Commons Attribution 3.0](https://creativecommons.org/licenses/by/3.0/us/) (samples from [midi-js-soundfonts](https://github.com/gleitz/midi-js-soundfonts)). The effects and the yard's ambience are synthesized. The scores and the scripts that render everything into `public/audio/` are in `tools/audio/` (see its README).

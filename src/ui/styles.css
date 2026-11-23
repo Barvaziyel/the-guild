@@ -1162,6 +1162,68 @@ li:nth-child(even) .pinned {
   transform: translateX(1.25rem);
 }
 
+/* Volume sliders (3.1.0): a label, then a track the full width, tall enough to drag with a thumb. */
+.slider {
+  display: grid;
+  grid-template-columns: 6.5rem 1fr;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 44px;
+  border-top: 1px solid var(--line);
+}
+
+.slider-label {
+  font-weight: 700;
+}
+
+.slider input {
+  appearance: none;
+  width: 100%;
+  height: 44px;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.slider input::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--steel-3);
+}
+
+.slider input::-webkit-slider-thumb {
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  margin-top: -9px;
+  border-radius: 50%;
+  border: 2px solid var(--bone);
+  background: var(--rust);
+}
+
+.slider input::-moz-range-track {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--steel-3);
+}
+
+.slider input::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--bone);
+  background: var(--rust);
+}
+
+.slider input:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.slider + .toggle {
+  border-top: 1px solid var(--line);
+}
+
 .setting-block {
   margin-top: 1rem;
 }

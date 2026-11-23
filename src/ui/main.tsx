@@ -14,6 +14,7 @@ import { memoryStore, type KeyValueStore } from './persist.ts';
 import { createPrefsStore } from './prefs.ts';
 import { createGameStore, randomSeed } from './store.ts';
 import { startTour } from './components/TourCard.tsx';
+import { SoundSystem } from './audio.ts';
 
 /** localStorage, or memory if the device won't give us any (the game then warns that it can't save). */
 function deviceStorage(): KeyValueStore {
@@ -41,9 +42,10 @@ const services: AppServices = {
   store: createGameStore(kv, { now: () => Date.now(), newSeed: randomSeed, onNewGuild: (state) => startTour(prefs, state) }),
   prefs,
   notifier: isNative() ? nativeNotifier() : webNotifier(),
+  sound: new SoundSystem(),
 };
 
-setupNative();
+setupNative(services.sound);
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

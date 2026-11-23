@@ -13,10 +13,27 @@ export interface Prefs {
   devTools: boolean;
   /** The tour step on screen (see tour.ts), or null when the tour isn't running. */
   tour: string | null;
+  /** Sound at all (3.1.0), and how loud each part is, 0–1. */
+  sound: boolean;
+  musicVolume: number;
+  effectsVolume: number;
+  ambienceVolume: number;
+  /** A short buzz of the phone when someone in a fight is hit hard or goes down. */
+  buzz: boolean;
 }
 
 export const PREFS_KEY = 'the-guild:prefs';
-const DEFAULT_PREFS: Prefs = { wobble: true, notify: false, devTools: false, tour: null };
+const DEFAULT_PREFS: Prefs = {
+  wobble: true,
+  notify: false,
+  devTools: false,
+  tour: null,
+  sound: true,
+  musicVolume: 0.6,
+  effectsVolume: 0.8,
+  ambienceVolume: 0.5,
+  buzz: true,
+};
 
 export interface PrefsStore {
   get(): Prefs;

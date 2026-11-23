@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, type ReactNode } from 'react';
+import { useServices } from '../hooks.ts';
 
 /**
  * A sheet that slides up over the screen (2.6.0): for what a one-screen layout
@@ -8,10 +9,14 @@ import { useEffect, useId, useRef, type ReactNode } from 'react';
 export function Sheet({ open, title, onClose, children }: { open: boolean; title: string; onClose: () => void; children: ReactNode }) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
+  const { sound } = useServices();
   useEffect(() => {
     const d = ref.current;
     if (!d) return;
-    if (open && !d.open) d.showModal();
+    if (open && !d.open) {
+      d.showModal();
+      sound.play({ id: 'open', gain: 0.8 });
+    }
     if (!open && d.open) d.close();
   }, [open]);
   return (

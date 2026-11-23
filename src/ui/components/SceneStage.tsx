@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { stageSvg } from '../../scene/index.ts';
 import type { SceneFrame } from '../gate-scene.ts';
+import { useServices } from '../hooks.ts';
 
 /**
  * A scene played on the battle stage before a fight (Haven's gate, §9.12):
@@ -22,6 +23,11 @@ export function SceneStage({ frames, onDone }: { frames: SceneFrame[]; onDone: (
   }, [step, over, frame, onDone]);
 
   const svg = useMemo(() => (frame ? stageSvg(frame.model) : ''), [frame]);
+  // The shot from the wall is heard (3.1.0).
+  const { sound } = useServices();
+  useEffect(() => {
+    if (!over && frame?.model.shot) sound.play({ id: 'rifle', pan: -0.3 });
+  }, [frame, over, sound]);
   if (!frame) return null;
   return (
     <figure className="battle-stage scene-stage">
