@@ -8,6 +8,9 @@ import {
 } from "react";
 import type { FightView, GameState } from "../../engine/index.ts";
 import { stageSvg } from "../../scene/index.ts";
+import { usePrefs, useServices } from "../hooks.ts";
+import { buzz } from "../haptics.ts";
+import { actCues, endCue } from "../sound-view.ts";
 import {
   FRAME_MS,
   roundFrames,
@@ -78,6 +81,27 @@ export function BattleStage({
   useEffect(() => {
     onLine?.(frame ? frame.line + 1 : undefined);
   }, [frame, onLine]);
+
+  // Each act's sound as it plays (3.1.0), and how the fight ended once the last one has.
+  const { sound } = useServices();
+  const { buzz: buzzOn } = usePrefs();
+  useEffect(() => {
+    if (!frame) return;
+    const { cues, buzz: kind } = actCues(state, view, frame.act);
+    for (const cue of cues) sound.play(cue);
+    if (kind && buzzOn) buzz(kind);
+    // Only a new act makes a sound, not the state changing under it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [frame]);
+  const ended = useRef<FightView | undefined>(undefined);
+  useEffect(() => {
+    if (playing || !view.over || ended.current === view) return;
+    // Opening a fight that was already over (no round to play) stays quiet.
+    const watched = frames.length > 0;
+    ended.current = view;
+    const cue = watched ? endCue(view.over) : undefined;
+    if (cue) sound.play(cue);
+  }, [playing, view, frames, sound]);
   const svg = useMemo(
     () =>
       stageSvg(

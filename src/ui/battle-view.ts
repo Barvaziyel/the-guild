@@ -21,6 +21,8 @@ export interface StageFrame {
   stunned: Record<string, boolean>;
   /** The fight's job as the act leaves it (2.5.0). */
   job?: { progress: number; state: 'open' | 'done' | 'lost' };
+  /** The act itself, for its sound (3.1.0). */
+  act: FightAct;
 }
 
 /** What the stage needs to know about the orders being given. */
@@ -304,7 +306,7 @@ export function roundFrames(before: FightView, after: FightView): StageFrame[] {
       default:
         break;
     }
-    frames.push({ round: a.round, line: a.line, effect: effectOf(a, after), hp: { ...hp }, state: { ...state }, stunned: { ...stunned }, ...(job ? { job } : {}) });
+    frames.push({ round: a.round, line: a.line, act: a, effect: effectOf(a, after), hp: { ...hp }, state: { ...state }, stunned: { ...stunned }, ...(job ? { job } : {}) });
   }
   // How the job stands once the round is over: done, or lost at the end of it.
   const last = frames.at(-1);

@@ -1,6 +1,7 @@
 /** React glue: the game store, preferences, the clock and hash navigation. */
 import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type RefObject } from 'react';
 import type { GameState } from '../engine/index.ts';
+import type { SoundSystem } from './audio.ts';
 import type { Notifier } from './notify.ts';
 import type { Prefs, PrefsStore } from './prefs.ts';
 import { DEFAULT_ROUTE, parseRoute, routeHash, type Route } from './route.ts';
@@ -10,6 +11,7 @@ export interface AppServices {
   store: GameStore;
   prefs: PrefsStore;
   notifier: Notifier;
+  sound: SoundSystem;
 }
 
 export const ServicesContext = createContext<AppServices | null>(null);

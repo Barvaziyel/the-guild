@@ -34,6 +34,7 @@ import { SurvivorSheet } from './screens/SurvivorSheet.tsx';
 import { tourStep } from './tour.ts';
 import { Bell } from './components/Bell.tsx';
 import { resourceList } from './view.ts';
+import { useSound } from './use-sound.ts';
 
 /** Screens that have their own back bar instead of the guild header. */
 const DETAIL_SCREENS: Route['screen'][] = ['survivor', 'plan', 'run', 'fight', 'raid', 'building', 'recruits', 'gear', 'vultures'];
@@ -48,6 +49,7 @@ export function App() {
   const now = useNow(30_000, wakeAt);
   const time = useTime(state, now, route);
   useNotices(state);
+  useSound(state, route, now);
   const { tour } = usePrefs();
 
   // Each screen opens at the top, or where it was left when coming back to it.
