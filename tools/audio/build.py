@@ -16,7 +16,7 @@ os.makedirs('out', exist_ok=True)
 sys.path.insert(0, HERE)
 from engine import SR  # noqa: E402
 
-MUSIC = ['depot', 'night', 'fight', 'haven']
+MUSIC = ['depot', 'night', 'fight', 'haven', 'truth']
 what = sys.argv[1:] or ['music', 'sfx']
 if 'music' in what:
     for m in MUSIC:

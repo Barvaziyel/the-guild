@@ -6,8 +6,9 @@ Everything in `public/audio/` is made here, offline, in Python. Nothing is downl
 |---|---|---|
 | `depot.ogg` | The Depot by day: fingerpicked guitar, cello, a distant harmonica (D minor, 76 bpm, 32 bars) | `depot.py` |
 | `night.ogg` | Night at the Depot: nylon guitar, a warm pad, a low cello line (60 bpm, 24 bars) | `night.py` |
-| `fight.ogg` | Fights and raids: taiko, a string and bass ostinato, horns (E minor, 112 bpm, 40 bars) | `fight.py` |
-| `haven.ogg` | The road east: a slightly out-of-tune music box lullaby over a drone and a heartbeat (C minor, 64 bpm, 24 bars) | `haven.py` |
+| `fight.ogg` | Fights and raids: a taiko ensemble in a big hall (its own section, bus-compressed, with a sub boom), a string and bass ostinato, horns (E minor, 112 bpm, 40 bars) | `fight.py` |
+| `haven.ogg` | The road east, hopeful: guitar, pad, a horn singing the tune, strings and a fiddle lifting it, a music box at the end (C major, 84 bpm, 32 bars) | `haven.py` |
+| `truth.ogg` | After the road east: the same tune as an out-of-tune music box lullaby over a drone and a heartbeat (C minor, 64 bpm, 24 bars) | `truth.py` |
 | `sfx.ogg` | Every effect in one file; `src/ui/sounds.ts` says where each one is | `sfx.py` |
 | `amb-*.ogg` | The yard's ambience: wind, the fire, crickets, birds | `sfx.py` |
 
@@ -25,4 +26,4 @@ python3 tools/audio/build.py sfx     # just the effects and ambience
 python3 tools/audio/look.py tools/audio/out/depot.ogg   # a spectrogram and loudness plot in /tmp/look.png
 ```
 
-`engine.py` is the sampler and mixer: notes on tracks, held notes looped from the middle of their sample, a synthetic reverb, loudness to a target (music −16 to −19 LUFS). A score is a plain Python file that puts notes on tracks.
+`engine.py` is the sampler and mixer: notes on tracks, held notes looped from the middle of their sample, synthesized sounds placed like notes (`Song.sound`), a synthetic reverb, loudness to a target (music −15.5 to −19 LUFS). A score is a plain Python file that puts notes on tracks; `fight.py` renders its drums as a second song (`render(normalize=False)`) and mixes the two.

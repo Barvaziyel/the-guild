@@ -1259,11 +1259,12 @@ The "crew is back" toast now steps aside by itself after a few seconds, since th
 Aviel, 2026-11-23: "make the game a bit more interesting… assets and movement… music, sound effects". He picked all of it: sound effects, fight sounds with a buzz, the yard's ambience, and music, which I make ("make it good enough"); movement (3.2.0) and art (3.3.0) follow.
 
 - **Everything is made offline** in `tools/audio/` (Python) and shipped in `public/audio/` as Ogg Opus, about 6 MB in all. Nothing is downloaded while playing.
-- **Music**, composed in code and played on the FluidR3 GM instruments (Frank Wen, CC BY 3.0, credited in Settings → About and the README). Four loops of about a minute and a half, each folded so it loops without a gap:
+- **Music**, composed in code and played on the FluidR3 GM instruments (Frank Wen, CC BY 3.0, credited in Settings → About and the README). Five loops of about a minute and a half, each folded so it loops without a gap:
   - *The Depot* by day (6–18 h on the phone's clock): fingerpicked steel guitar, cello, a distant harmonica, D minor.
   - *Night* (from dusk, 18 h, to 5 h): slower nylon guitar, a warm pad, a low cello line.
-  - *Fights and raids*: the fight screen, and the raid screen while a raid is on: taiko, strings and bass driving, horns, E minor.
-  - *The road east*: the Haven tab, and every screen while the guild is on the road east: a slightly out-of-tune music box lullaby over a drone, a heartbeat in the middle, C minor.
+  - *Fights and raids*: the fight screen, and the raid screen while a raid is on: strings and bass driving, horns, E minor, over a taiko ensemble in a big hall (Aviel asked for the drums "fuller, deeper, more epic"): a big low drum and a sub boom under the main hits, three players on every drum, a high drum driving the later sections, a huge breakdown and a roll into the climax.
+  - *The road east*: the Haven tab, and every screen while the guild is on the road east. Hopeful (Aviel, 2026-11-23: "as you hear out on the road to a beautiful safe Haven! Only later you find out that they are bad"): fingerpicked guitar and a warm pad set out, a horn sings a lullaby-like tune, strings and a fiddle lift it, a music box plays it softly at the end. C major.
+  - *The truth*: the Haven tab once the road east is over, won or lost: the same tune as a slightly out-of-tune music box lullaby in C minor, over a drone, a heartbeat in the middle.
   - A change of music fades across in about 2.5 seconds, and a piece picks up where it was left.
 - **The yard** under the music: wind always, the fire (nearer on the Yard tab), birds by day, crickets at night. Synthesized loops, mixed by the hour. Silent in fights; only wind while the Depot stands empty on the road east.
 - **Sounds**, synthesized (with a few instrument notes for the musical ones), all in one sprite file:

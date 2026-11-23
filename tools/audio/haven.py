@@ -1,71 +1,116 @@
-"""The road east (Haven): C minor, a detuned music box lullaby over a bowed drone, a heartbeat."""
+"""The road east (Haven): hopeful. C major, 84 bpm, 32 bars.
+
+Aviel, 2026-11-23: the road to Haven should sound like the road to a
+beautiful, safe place; you only find out later what they are. Fingerpicked
+guitar and a warm pad set out, a horn sings the tune, strings and a fiddle
+lift it, and at the end a music box plays it softly, in tune. The tune is
+the same lullaby the truth (truth.py) later plays in minor, out of tune.
+"""
 from engine import *
 
-S = Song(bpm=64, bars=24, seed=47, rt=4.0, tail=9, damp=0.4, predelay=0.04)
-box = S.track('music_box', gain=0.7, pan=0.3, reverb=0.7, humanize=0.025, detune=-30)
-pad = S.track('pad_5_bowed', gain=0.6, pan=-0.1, reverb=0.6, attack=2.0, lp=2200)
-drone = S.track('contrabass', gain=0.6, pan=0.0, reverb=0.4, attack=1.5, lp=900)
-choir = S.track('voice_oohs', gain=0.5, pan=-0.3, reverb=0.9, attack=1.8, lp=3000)
-cel = S.track('cello', gain=0.6, pan=-0.25, reverb=0.6, attack=0.3, lp=3000)
-heart = S.track('taiko_drum', gain=0.7, pan=0.0, reverb=0.2, humanize=0.002, bright=False, lp=400)
-trem = S.track('tremolo_strings', gain=0.22, pan=0.4, reverb=0.8, attack=2.0, hp=500)
-rev = S.track('reverse_cymbal', gain=0.35, pan=0.0, reverb=0.5, bright=False)
-atmo = S.track('fx_4_atmosphere', gain=0.3, pan=0.2, reverb=0.8, attack=2.5, lp=4000)
+S = Song(bpm=84, bars=32, seed=53, rt=2.8, tail=8, damp=0.5)
+gtr = S.track('acoustic_guitar_steel', gain=0.85, pan=-0.2, reverb=0.4, humanize=0.009)
+harp = S.track('orchestral_harp', gain=0.55, pan=0.35, reverb=0.6, humanize=0.006)
+pad = S.track('string_ensemble_1', gain=0.42, pan=0.0, reverb=0.7, attack=1.4, lp=4000)
+bass = S.track('acoustic_bass', gain=0.75, pan=0.05, reverb=0.25, humanize=0.006)
+horn = S.track('french_horn', gain=0.8, pan=-0.1, reverb=0.6, attack=0.06)
+fiddle = S.track('fiddle', gain=0.55, pan=0.25, reverb=0.7, attack=0.08, lp=6000)
+strs = S.track('string_ensemble_1', gain=0.6, pan=-0.05, reverb=0.6, attack=0.15)
+box = S.track('music_box', gain=0.55, pan=0.3, reverb=0.75, humanize=0.012)
+drum = S.track('taiko_drum', gain=0.45, pan=0.0, reverb=0.35, humanize=0.004, bright=False, lp=900)
+rev = S.track('reverse_cymbal', gain=0.3, pan=0.0, reverb=0.5, bright=False)
 
-LULLABY = [
-    [('G5', 0, 1), ('Eb5', 1, 1), ('C5', 2, 1), ('Eb5', 3, 1)],
-    [('D5', 0, 1.5), ('C5', 1.5, .5), ('B4', 2, 2)],
-    [('C5', 0, 1), ('Eb5', 1, 1), ('G5', 2, 1), ('Ab5', 3, 1)],
-    [('G5', 0, 3)],
-    [('F5', 0, 1), ('Eb5', 1, 1), ('D5', 2, 1), ('C5', 3, 1)],
-    [('B4', 0, 1), ('C5', 1, 1), ('D5', 2, 2)],
-    [('Eb5', 0, 1), ('D5', 1, 1), ('C5', 2, 1), ('B4', 3, 1)],
-    [('C5', 0, 3)],
-]
-PADS = {'Cm': ['C3', 'Eb3', 'G3'], 'G': ['B2', 'D3', 'G3'], 'Fm': ['C3', 'F3', 'Ab3'],
-        'Ab': ['C3', 'Eb3', 'Ab3'], 'Db': ['Db3', 'F3', 'Ab3']}
-PROG = (['Cm', 'G', 'Cm', 'Ab', 'Fm', 'G', 'Ab', 'Cm'] +
-        ['Cm', 'Db', 'Cm', 'Db', 'Fm', 'Db', 'G', 'G'] +
-        ['Cm', 'G', 'Cm', 'Ab', 'Fm', 'G', 'Ab', 'Cm'])
+# Bass, alternate bass, three treble notes; a pad voicing.
+CH = {
+    'C': ('C3', 'G2', ['G3', 'C4', 'E4'], ['E4', 'G4', 'C5']),
+    'G/B': ('B2', 'G2', ['G3', 'B3', 'D4'], ['D4', 'G4', 'B4']),
+    'G': ('G2', 'D3', ['G3', 'B3', 'D4'], ['D4', 'G4', 'B4']),
+    'Gsus': ('G2', 'D3', ['G3', 'C4', 'D4'], ['D4', 'G4', 'C5']),
+    'Am': ('A2', 'E3', ['A3', 'C4', 'E4'], ['E4', 'A4', 'C5']),
+    'F': ('F2', 'C3', ['A3', 'C4', 'F4'], ['F4', 'A4', 'C5']),
+    'Em': ('E2', 'B2', ['G3', 'B3', 'E4'], ['E4', 'G4', 'B4']),
+}
+ROOT = {'C': 'C2', 'G/B': 'B1', 'G': 'G1', 'Gsus': 'G1', 'Am': 'A1', 'F': 'F1', 'Em': 'E2'}
 
-for bar, c in enumerate(PROG):
+A = ['C', 'G/B', 'Am', 'F', 'C', 'G', 'F', ('Gsus', 'G')]
+B = ['C', 'G', 'C', 'Em', 'F', 'G', ('Am', 'G'), 'C']
+C = ['F', 'G', 'Em', 'Am', 'F', 'G', 'C', 'C']
+D = ['C', 'G', 'C', 'Em', 'F', 'G', ('Am', 'G'), ('C', 'Gsus')]
+PROG = A + B + C + D
+
+def chords(bar):
+    ch = PROG[bar]
+    return ch if isinstance(ch, tuple) else (ch,)
+
+def pick(bar, ch, half=None, vel=1.0):
+    """Fingerpicking in eighths: bass, up the chord, alternate bass, back down."""
     b0 = bar * 4
-    pad.n(PADS[c], b0, 4.1, 50 if bar < 8 else 58)
-    if bar % 2 == 0:
-        drone.n('C2' if c != 'Db' else 'Db2', b0, 8.1, 55)
-        atmo.n('C4', b0, 8, 40) if bar in (4, 12, 18) else None
+    bass_, alt, (t1, t2, t3), _ = CH[ch]
+    pat = [(bass_, 70), (t1, 50), (t2, 56), (t3, 64), (alt, 62), (t3, 58), (t2, 52), (t1, 50)]
+    for i in (range(8) if half is None else range(half * 4, half * 4 + 4)):
+        p, v = pat[i]
+        gtr.n(p, b0 + i * 0.5, 1.6 if p in (bass_, alt) else 1.3, v * vel)
 
-# The lullaby: twice through the first part, once (with cello far below) in the last.
-for i, ns in enumerate(LULLABY):
+for bar in range(32):
+    cs = chords(bar)
+    vel = 0.85 if bar < 4 else 1.0
+    for k, ch in enumerate(cs):
+        pick(bar, ch, None if len(cs) == 1 else k, vel)
+        length = 4 / len(cs)
+        start = bar * 4 + k * length
+        bass.n(ROOT[ch], start, length * 0.9, 74)
+        if bar >= 4:
+            pad.n(CH[ch][3], start, length + 0.1, 40 if bar < 16 else 50)
+    # A soft walking pulse on the road, from the tune on.
+    if 8 <= bar < 24:
+        drum.n('C3', bar * 4, 1, 52)
+        drum.n('C3', bar * 4 + 2, 1, 40)
+        if bar >= 16:
+            drum.n('G3', bar * 4 + 3.5, 0.5, 34)
+    # Harp shimmer under the strings.
+    if 16 <= bar < 24:
+        for i, n in enumerate(CH[cs[0]][3] + [midi(CH[cs[0]][3][0]) + 12]):
+            harp.n(n, bar * 4 + i * 0.5, 2, 58 - i * 3)
+
+# The tune (the lullaby, in major): the horn sings it in B, the music box plays it softly in D.
+TUNE = [
+    [('G4', 0, 1), ('E4', 1, 1), ('C4', 2, 1), ('E4', 3, 1)],
+    [('D4', 0, 1.5), ('C4', 1.5, .5), ('B3', 2, 2)],
+    [('C4', 0, 1), ('E4', 1, 1), ('G4', 2, 1), ('A4', 3, 1)],
+    [('G4', 0, 3.5)],
+    [('F4', 0, 1), ('E4', 1, 1), ('D4', 2, 1), ('C4', 3, 1)],
+    [('B3', 0, 1), ('C4', 1, 1), ('D4', 2, 2)],
+    [('E4', 0, 1), ('D4', 1, 1), ('C4', 2, 1), ('B3', 3, 1)],
+    [('C4', 0, 3.5)],
+]
+for i, ns in enumerate(TUNE):
     for p, b, d in ns:
-        box.n(p, i * 4 + b, d, 70)
-        if i >= 4:
-            pass
-        box.n(p, (16 + i) * 4 + b, d, 64)
-        cel.n(midi(p) - 24, (16 + i) * 4 + b, d * 0.95, 58)
-# Fragments of it in the middle, slower and lower, as if remembered.
-for bar, (p, b, d) in [(9, ('G4', 0, 2)), (9, ('Eb4', 2, 2)), (11, ('D4', 0, 2)), (11, ('B3', 2, 2)),
-                       (13, ('F4', 0, 2)), (13, ('Eb4', 2, 2)), (15, ('D4', 0, 4))]:
-    box.n(p, bar * 4 + b, d, 52)
+        horn.n(p, (8 + i) * 4 + b, d * 0.95, 84)
+        box.n(midi(p) + 12, (24 + i) * 4 + b, d, 60)
 
-# Choir in the middle.
-for bar, notes in [(8, ['Eb4', 'G4']), (10, ['Eb4', 'G4']), (12, ['F4', 'Ab4']), (14, ['D4', 'G4'])]:
-    choir.n(notes, bar * 4, 7.8, 50)
-choir.n(['D4', 'B4'], 15 * 4, 3.8, 46)
+# The answer, higher: strings and the fiddle lift it.
+LIFT = [
+    [('A4', 0, 2), ('C5', 2, 1), ('F5', 3, 1)],
+    [('E5', 0, 1.5), ('D5', 1.5, .5), ('B4', 2, 2)],
+    [('B4', 0, 1), ('E5', 1, 1), ('G5', 2, 2)],
+    [('E5', 0, 3), ('C5', 3, 1)],
+    [('F5', 0, 1), ('E5', 1, 1), ('C5', 2, 1), ('A4', 3, 1)],
+    [('B4', 0, 1.5), ('C5', 1.5, .5), ('D5', 2, 2)],
+    [('C5', 0, 1), ('E5', 1, 1), ('G5', 2, 2)],
+    [('E5', 0, 3.5)],
+]
+for i, ns in enumerate(LIFT):
+    for p, b, d in ns:
+        fiddle.n(p, (16 + i) * 4 + b, d * 0.95, 80)
+        strs.n(midi(p) - 12, (16 + i) * 4 + b, d * 0.95, 70)
+# The horn answers underneath.
+for bar, p in [(16, 'C4'), (17, 'B3'), (18, 'G3'), (19, 'A3'), (20, 'A3'), (21, 'B3'), (22, 'C4'), (23, 'G3')]:
+    horn.n(p, bar * 4, 3.8, 62)
 
-# Heartbeat from bar 8 to 21.
-for beat in range(8 * 4, 22 * 4):
-    v = 60 + 25 * min(1, (beat - 32) / 24)
-    heart.n('C2', beat, 0.5, v)
-    heart.n('C2', beat + 0.32, 0.5, v * 0.65)
+# A swell into the lift.
+rev.n('C4', 16 * 4 - 1.38 * 84 / 60, 1.45 * 84 / 60, 80)
 
-trem.n(['B4', 'C5'], 12 * 4, 15.5, 50)
-trem.n(['Gb5', 'G5'], 16 * 4, 12, 40)
-# Swells into the sections (a reversed cymbal ends where it would have started).
-for bar in (8, 16):
-    rev.n('C4', bar * 4 - 1.38 * 64 / 60, 1.45 * 64 / 60, 80)
-
-mix = S.render(loop=True, target_lufs=-19)
+mix = S.render(loop=True, target_lufs=-18)
 print(stats(mix))
 write(mix, 'out/haven.ogg', 96)
 write(mix, 'out/haven.mp3', 160)

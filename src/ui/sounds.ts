@@ -8,7 +8,8 @@ export const MUSIC = {
   depot: 101.05263,
   night: 96.0,
   fight: 85.71429,
-  haven: 90.0,
+  haven: 91.42857,
+  truth: 90.0,
 } as const;
 
 /** Each ambience loop and its length, in seconds. */

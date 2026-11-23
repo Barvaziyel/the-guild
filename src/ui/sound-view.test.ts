@@ -60,6 +60,15 @@ describe('music (3.1.0)', () => {
     assert.equal(musicFor({ screen: 'raid' }, state, NOON), 'depot');
   });
 
+  test('Haven’s tune is hopeful until the guild has been there; then the truth', () => {
+    const state = openGame('truth');
+    state.haven = { found: [] } as unknown as GameState['haven'];
+    assert.equal(musicFor({ screen: 'haven' }, state, NOON), 'haven');
+    state.haven = { found: [], end: { day: 40, won: true, freed: 3, withVultures: 0 } } as unknown as GameState['haven'];
+    assert.equal(musicFor({ screen: 'haven' }, state, NOON), 'truth');
+    assert.equal(musicFor({ screen: 'roster' }, state, NOON), 'depot', 'only on the Haven tab');
+  });
+
   test('the whole time the guild is on the road east, it’s Haven’s tune', () => {
     const state = openGame('road');
     state.haven = { road: { runId: 'r1', children: [] } } as unknown as GameState['haven'];

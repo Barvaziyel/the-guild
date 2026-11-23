@@ -32,8 +32,10 @@ export type AmbienceMix = Record<AmbienceId, number>;
 export function musicFor(route: Route, state: GameState, hour: number): MusicId {
   if (route.screen === 'fight') return 'fight';
   if (route.screen === 'raid' && openRaid(state)) return 'fight';
-  // The road east, and Haven's notebook: its own unsettling tune.
-  if (state.haven?.road || route.screen === 'haven') return 'haven';
+  // The road east, and Haven's notebook: hopeful, a road to somewhere safe (Aviel, 2026-11-23),
+  // until the guild has been there and knows; then the same tune, in minor and out of tune.
+  if (state.haven?.road) return 'haven';
+  if (route.screen === 'haven') return state.haven?.end ? 'truth' : 'haven';
   const phase = dayPhase(hour);
   return phase === 'night' || phase === 'dusk' ? 'night' : 'depot';
 }
