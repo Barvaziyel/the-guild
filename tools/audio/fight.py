@@ -5,14 +5,17 @@ edition had drums that to me sounded good if only they were louder and reverbera
 only now a song of their own in a bigger hall, set louder against the music as a phone
 plays them. After three other tries (an ensemble with a sub, synthesized skins, sparse
 booms) that he didn't like: keep these sounds; change only how loud and how much hall.
+
+16:26, on that version ("Good"): "there are two kinds of drums now, the constant low one and
+the once in a while high one. The low one we can get rid of, and the high one we can make hit
+a bit harder". So the taiko groove is gone; the tom fills (and the timpani) stay, harder.
 """
 from engine import *
 
 S = Song(bpm=112, bars=40, seed=31, rt=1.9, tail=5, damp=0.45)
 # The drums' own hall: longer than the music's, its low end kept out of it so it rings without mud.
 D = Song(bpm=112, bars=40, seed=31, rt=3.2, tail=6, damp=0.45, predelay=0.03, verb_hp=250, wet=1.0)
-taiko = D.track('taiko_drum', gain=1.0, pan=0.0, reverb=0.55, humanize=0.004, bright=False)
-tom = D.track('melodic_tom', gain=0.5, pan=0.2, reverb=0.55, humanize=0.004, bright=False)
+tom = D.track('melodic_tom', gain=0.8, pan=0.2, reverb=0.55, humanize=0.004, bright=False)
 timp = D.track('timpani', gain=0.9, pan=-0.1, reverb=0.65, humanize=0.003, bright=False)
 pizz = S.track('pizzicato_strings', gain=1.1, pan=-0.25, reverb=0.25, humanize=0.004)
 cb = S.track('contrabass', gain=0.9, pan=0.1, reverb=0.2, humanize=0.004, release=0.08, lp=3000)
@@ -41,19 +44,10 @@ def ostinato(bar, c, full=True):
             cb.n(r + off, b, 0.35, acc[i] - 5)
             mute.n(r + off + 12, b, 0.2, acc[i] - 20)
 
-def groove(bar, big=True):
-    b0 = bar * 4
-    hits = [(0, 'C2', 115), (0.75, 'C3', 55), (1, 'G2', 80), (1.5, 'C2', 90), (2, 'C2', 110),
-            (2.75, 'C3', 55), (3, 'G2', 85), (3.5, 'C3', 70)]
-    if not big:
-        hits = [(0, 'C2', 100), (2, 'G2', 70)]
-    for b, p, v in hits:
-        taiko.n(p, b0 + b, 1, v)
-
 def fill(bar):
     b0 = bar * 4 + 2
     for i, p in enumerate(['D3', 'C3', 'A2', 'G2', 'F2', 'E2', 'D2', 'C2']):
-        tom.n(p, b0 + i * 0.25, 0.5, 70 + i * 5)
+        tom.n(p, b0 + i * 0.25, 0.5, min(127, 88 + i * 5))
 
 def roll(bar, beats, v0, v1, note='E2'):
     n = int(beats * 6)
@@ -64,7 +58,6 @@ for bar, c in enumerate(PROG):
     sec = bar // 8
     if sec in (0, 1, 2, 4):
         ostinato(bar, c)
-        groove(bar)
         if bar % 4 == 3:
             fill(bar)
         if bar % 8 == 0:
@@ -73,7 +66,6 @@ for bar, c in enumerate(PROG):
     else:
         # Breakdown: pizzicato only, the drum on one, strings swelling, a roll into the climax.
         ostinato(bar, c, full=bar >= 28)
-        groove(bar, big=False)
         trem.n(TREM[c], bar * 4, 3.95, 50 + (bar - 24) * 5, attack=1.5)
         if bar == 31:
             roll(bar, 4, 40, 120, 'B1')
@@ -101,8 +93,11 @@ for bar in list(range(16, 24)) + list(range(32, 40)):
     c = PROG[bar]
     horn2.n(midi(ROOT[c]) + 12, bar * 4, 3.8, 75)
 
-DRUMS_OVER = 4  # LU over the music, through a phone speaker
-HALL_UNDER = 6  # LU under the drums, through a phone speaker
+# The drums' and the hall's levels in the version he liked (16:26), measured then (the drums 4 LU over the
+# music through a phone, the hall 6 under them) and kept as they were: worked out again from drums that are
+# now silent most of the time, they would come out far louder.
+DRUMS_GAIN = 19.75
+HALL_GAIN = 12.45
 
 meter = pyloudnorm.Meter(SR)
 at = lambda x, lufs: x * 10 ** ((lufs - meter.integrated_loudness(x)) / 20)
@@ -126,13 +121,19 @@ def eq_loop(x):
     return (highpass(y, 250, 2) + lowpass(y, 250, 2) * 0.25)[pad:]
 
 drums = eq_loop(drums)
-music_phone = meter.integrated_loudness(phone(music))
-drums = by_phone(drums, music_phone + DRUMS_OVER)
-hall = by_phone(hall, music_phone + DRUMS_OVER - HALL_UNDER)
+drums = drums * DRUMS_GAIN
+hall = hall * HALL_GAIN
+# The fills, louder, would have the limiter take 8-10 dB off every hit and pull the music down under them.
+# A soft clip on the drums alone takes the spike off each hit instead (about 5 dB), which makes them land harder.
+top = 0.4 * np.abs(drums).max()
+drums = top * np.tanh(drums / top)
+# The clip's own fizz above 11 kHz goes (filtered as a loop, so the seam stays clean).
+drums = lowpass(np.concatenate([drums[-SR:], drums]), 11000, 2)[SR:]
 mix = music + drums + hall
 # Limited as a loop (its own end in front), so the seam doesn't jump where the limiter would start fresh.
 pad = 3 * SR
-mix = limit(np.concatenate([mix[-pad:], mix]), release=0.15)[pad:]
+# Its start after its end too, so the limiter sees the hit at the top of the loop coming.
+mix = limit(np.concatenate([mix[-pad:], mix, mix[:pad]]), release=0.15)[pad:pad + len(mix)]
 for name, x in [('music', music), ('drums', drums), ('hall', hall)]:
     print(f'{name}: full {meter.integrated_loudness(x):.1f} LUFS, through a phone {meter.integrated_loudness(phone(x)):.1f}')
 print(stats(mix))
