@@ -9,6 +9,7 @@ booms) that he didn't like: keep these sounds; change only how loud and how much
 16:26, on that version ("Good"): "there are two kinds of drums now, the constant low one and
 the once in a while high one. The low one we can get rid of, and the high one we can make hit
 a bit harder". So the taiko groove is gone; the tom fills (and the timpani) stay, harder.
+16:43: after the roll into the last part, the drum that ends it beats on every other beat to the end.
 """
 from engine import *
 
@@ -70,6 +71,13 @@ for bar, c in enumerate(PROG):
         if bar == 31:
             roll(bar, 4, 40, 120, 'B1')
             tom.n('C2', bar * 4 + 3.5, 0.5, 120)
+    # 16:43: after the roll, "instead of one single one, I suggest adding from that point a single beat
+    # every other beat": the drum that ends the roll keeps going on one and three to the end of the loop,
+    # one only in a fill's bar (the fill has three and four).
+    if bar >= 32:
+        tom.n('C2', bar * 4, 0.5, 112)
+        if bar % 4 != 3:
+            tom.n('C2', bar * 4 + 2, 0.5, 100)
 
 MEL = [
     [('E3', 0, 1), ('G3', 1, .5), ('B3', 1.5, 2.5)],
