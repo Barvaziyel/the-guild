@@ -31,6 +31,7 @@ import { EMPTY_DEPOT } from '../haven-view.ts';
 import { vehiclesLine } from '../vehicles-view.ts';
 import { callCard } from '../rescue-view.ts';
 import { strayRows } from '../animals-view.ts';
+import { ItemIcon } from '../components/Art.tsx';
 
 interface Props {
   state: GameState;
@@ -340,7 +341,8 @@ function Offers({ state }: { state: GameState }) {
       {state.depot.offers.map((o) => {
         const problem = offerProblem(state, o.id);
         return (
-          <div key={o.id} className="offer">
+          <div key={o.id} className={o.item ? 'offer offer-with-icon' : 'offer'}>
+            {o.item && <ItemIcon defId={o.item.defId} quality={o.item.quality} />}
             <p>
               {o.vultures ? 'A Vulture trader. ' : ''}They&rsquo;ll trade {offerText(o)}. They leave {o.expiresDay - 1 <= day ? 'at the end of today' : `after day ${o.expiresDay - 1}`}.
             </p>

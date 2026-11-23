@@ -42,6 +42,7 @@ import { toggleVehicle, vehicleChoices, vehicleNote } from '../vehicles-view.ts'
 import { clockTime } from '../time.ts';
 import { leadChoice } from '../fight-view.ts';
 import { planLeadLine } from '../haven-view.ts';
+import { PlacePicture } from '../components/Art.tsx';
 
 export function Planner({ state, locationId, step }: { state: GameState; locationId: string; step: 'crew' | 'orders' }) {
   const loc = findLocation(locationId);
@@ -132,6 +133,7 @@ function PlannerForm({ state, locationId, step }: { state: GameState; locationId
 
   const header = (
     <header className="sheet-head planner-head">
+      {step === 'crew' && <PlacePicture id={locationId} name={loc.name} />}
       <h2 id="plan-title" className="plan-title">
         <span className="visually-hidden">Plan a run to </span>
         {loc.name}

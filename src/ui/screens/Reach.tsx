@@ -23,6 +23,7 @@ import { callCard } from '../rescue-view.ts';
 import { dangerText, formatDuration, joinNames, locationView, placeNote, radiationText, runCrewNames } from '../runs-view.ts';
 import { nemesesAt, nemesisRows } from '../stories-view.ts';
 import { vulturePlaceLine, vulturesSummary, vultureTag } from '../vultures-view.ts';
+import { PlacePicture } from '../components/Art.tsx';
 
 const today = (s: GameState): number => dayAt(s, Date.now());
 const PLACE_TAB_LABELS: Record<PlaceTab, string> = { about: 'About', outpost: 'Outpost' };
@@ -163,6 +164,7 @@ function PlacePanel({ state, id, tab }: { state: GameState; id: string; tab: Pla
   const outpost = findOutpost(state, id);
   return (
     <div className="panel place-panel" aria-live="polite">
+      <PlacePicture id={id} name={`${loc.name}, ${loc.biome.toLowerCase()}`} />
       <p className="place-biome">{loc.biome}</p>
       <h3 className="place-title">{loc.name}</h3>
       <div className="sheet-tabs place-tabs" role="tablist" aria-label={loc.name} data-tour="place-tabs">

@@ -46,6 +46,7 @@ import { HAVEN_ORDERS, discoveredLeadLine, findView, havenReport, reportGoneLine
 import { HavenFindNote } from '../components/HavenFind.tsx';
 import { followedHome } from '../animals-view.ts';
 import { findAnySurvivor } from '../view.ts';
+import { PlacePicture } from '../components/Art.tsx';
 
 export function RunView({ state, id }: { state: GameState; id: string }) {
   const run = state.runs.find((r) => r.id === id);
@@ -116,6 +117,7 @@ function ActiveRun({ state, run }: { state: GameState; run: Run }) {
 
   return (
     <>
+      <PlacePicture id={run.plan.locationId} name={loc.name} />
       <header className="sheet-head">
         <p className="place-biome">{run.plan.job === 'haven' ? 'On the road east to' : 'Out at'}</p>
         <h2 className="plan-title">{loc.name}</h2>
@@ -193,6 +195,7 @@ function Report({ state, report }: { state: GameState; report: RunReport }) {
 
   return (
     <>
+      <PlacePicture id={report.plan.locationId} name={loc.name} />
       <header className="sheet-head">
         <p className="place-biome">
           Day {dayAt(state, report.returnAt)}, {formatDuration(report.returnAt - report.departAt)} away

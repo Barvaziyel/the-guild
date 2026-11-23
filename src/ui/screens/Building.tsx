@@ -15,6 +15,7 @@ import {
 import { Portrait } from '../components/Portrait.tsx';
 import { goBack, navigate, useAction } from '../hooks.ts';
 import { buildingRow, postCandidates, recipeRows, trainableStats, upgradeRows, workerLine } from '../depot-view.ts';
+import { BuildingPicture, ItemIcon } from '../components/Art.tsx';
 
 const today = (s: GameState): number => dayAt(s, Date.now());
 
@@ -39,6 +40,7 @@ function BuildingBody({ state, id }: { state: GameState; id: BuildingId }) {
 
   return (
     <>
+      <BuildingPicture id={id} level={r.level} name={r.built ? `The ${r.name} at level ${r.level}` : `Where the ${r.name} would go`} />
       <header className="sheet-head">
         <p className="place-biome">{r.built ? `Level ${r.level} of 3` : 'Not built yet'}</p>
         <h2 className="plan-title">{r.name}</h2>
@@ -180,7 +182,8 @@ function Workshop({ state }: { state: GameState }) {
         <p className="panel-help">New gear goes to the stash. Hand it out from a survivor&rsquo;s sheet.</p>
         <ul className="recipes">
           {recipes.map((r) => (
-            <li key={r.gear} className="recipe">
+            <li key={r.gear} className="recipe recipe-with-icon">
+              <ItemIcon defId={r.gear} />
               <span className="recipe-body">
                 <span className="item-name">{r.name}</span>
                 <span className="item-stats">{r.stats}</span>
@@ -202,7 +205,8 @@ function Workshop({ state }: { state: GameState }) {
         ) : (
           <ul className="recipes">
             {upgrades.map((u) => (
-              <li key={u.item.uid} className="recipe">
+              <li key={u.item.uid} className="recipe recipe-with-icon">
+                <ItemIcon defId={u.item.defId} quality={u.item.quality} />
                 <span className="recipe-body">
                   <span className="item-name">
                     {u.name}

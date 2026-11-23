@@ -1,5 +1,6 @@
 import type { Beat } from '../../engine/index.ts';
 import { beatTime, checkLine } from '../runs-view.ts';
+import { BeatIcon } from './Art.tsx';
 
 /** A run's log, beat by beat, with the dice shown under the lines they decided. */
 export function BeatLog({ beats, names, more }: { beats: readonly Beat[]; names: Record<string, string>; more?: boolean }) {
@@ -8,6 +9,7 @@ export function BeatLog({ beats, names, more }: { beats: readonly Beat[]; names:
       {beats.map((b, i) => (
         <li key={i} className={`beat beat-${b.kind}`}>
           <div className="beat-head">
+            <BeatIcon kind={b.kind} />
             <h4 className="beat-title">{b.title}</h4>
             {beatTime(b) && <span className="beat-time">{beatTime(b)}</span>}
           </div>
