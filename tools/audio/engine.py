@@ -202,10 +202,12 @@ def make_ir(rt, seed=1, predelay=0.02, damp=0.5, width=1.0):
 
 
 class Song:
-    def __init__(self, bpm, bars, beats_per_bar=4, seed=7, rt=2.4, tail=7.0, predelay=0.025, damp=0.5):
+    def __init__(self, bpm, bars, beats_per_bar=4, seed=7, rt=2.4, tail=7.0, predelay=0.025, damp=0.5, verb_hp=120):
         self.bpm, self.bars, self.bpb = bpm, bars, beats_per_bar
         self.rng = np.random.default_rng(seed)
         self.tracks = []
+        self.raws = []
+        self.verb_hp = verb_hp
         self.rt, self.tail, self.predelay, self.damp = rt, tail, predelay, damp
         self.tempo_map = None  # optional function beat -> seconds
 
@@ -228,7 +230,11 @@ class Song:
         self.tracks.append(tr)
         return tr
 
-    def render(self, loop=True, target_lufs=-18.0, stems=False):
+    def sound(self, sig, beat, gain=1.0, pan=0.0, reverb=0.3):
+        """A synthesized sound (mono array) placed at a beat, like a note."""
+        self.raws.append((sig, beat, gain, pan, reverb))
+
+    def render(self, loop=True, target_lufs=-18.0, stems=False, normalize=True):
         L = int(round(self.length * SR))
         total = L + int(self.tail * SR)
         dry = np.zeros((total, 2))
@@ -239,9 +245,15 @@ class Song:
             parts[tr.inst + str(id(tr))] = a
             dry += a
             wet += a * tr.reverb
+        for sig, beat, gain, pan, rev in self.raws:
+            start = max(0, int(self.t(beat) * SR))
+            end = min(total, start + len(sig))
+            st = sig[: end - start, None] * pan_gains(pan) * gain
+            dry[start:end] += st
+            wet[start:end] += st * rev
         ir = make_ir(self.rt, predelay=self.predelay, damp=self.damp)
         verb = np.stack([fftconvolve(wet[:, c], ir[:, c])[:total] for c in range(2)], 1)
-        verb = highpass(verb, 120)
+        verb = highpass(verb, self.verb_hp)
         mix = dry + verb * 0.5
         mix = highpass(mix, 28, 2)
         if loop:
@@ -253,7 +265,7 @@ class Song:
             # Let it ring out, then fade the last bit.
             k = int(0.5 * SR)
             mix[-k:] *= np.linspace(1, 0, k)[:, None]
-        return master(mix, target_lufs)
+        return master(mix, target_lufs) if normalize else mix
 
 
 def master(mix, target_lufs=-18.0, ceiling=0.89):
