@@ -7,12 +7,12 @@ music. Aviel, 2026-11-23: "make the drums fuller, deeper, more epic".
 from engine import *
 
 S = Song(bpm=112, bars=40, seed=31, rt=1.9, tail=5, damp=0.45)
-D = Song(bpm=112, bars=40, seed=32, rt=2.9, tail=5, damp=0.35, predelay=0.03, verb_hp=45)
-odaiko = D.track('taiko_drum', gain=1.25, pan=0.0, reverb=0.55, humanize=0.003, bright=False)
-PLAYERS = [D.track('taiko_drum', gain=0.75, pan=p, reverb=0.42, humanize=0.006, bright=False) for p in (-0.45, 0.0, 0.45)]
-high = D.track('taiko_drum', gain=0.5, pan=0.25, reverb=0.35, humanize=0.004, bright=False)
-tom = D.track('melodic_tom', gain=0.75, pan=-0.2, reverb=0.4, humanize=0.004, bright=False)
-timp = D.track('timpani', gain=1.0, pan=-0.1, reverb=0.45, humanize=0.003, bright=False)
+D = Song(bpm=112, bars=40, seed=32, rt=3.9, tail=6.5, damp=0.4, predelay=0.045, verb_hp=40, wet=1.3)
+odaiko = D.track('taiko_drum', gain=1.25, pan=0.0, reverb=1.0, humanize=0.003, bright=False)
+PLAYERS = [D.track('taiko_drum', gain=0.75, pan=p, reverb=0.85, humanize=0.006, bright=False) for p in (-0.45, 0.0, 0.45)]
+high = D.track('taiko_drum', gain=0.5, pan=0.25, reverb=0.6, humanize=0.004, bright=False)
+tom = D.track('melodic_tom', gain=0.75, pan=-0.2, reverb=0.75, humanize=0.004, bright=False)
+timp = D.track('timpani', gain=1.0, pan=-0.1, reverb=0.8, humanize=0.003, bright=False)
 pizz = S.track('pizzicato_strings', gain=1.1, pan=-0.25, reverb=0.25, humanize=0.004)
 cb = S.track('contrabass', gain=0.9, pan=0.1, reverb=0.2, humanize=0.004, release=0.08, lp=3000)
 mute = S.track('acoustic_guitar_steel', gain=0.55, pan=0.3, reverb=0.15, humanize=0.004, release=0.05, lp=1800)
@@ -56,7 +56,7 @@ def big(beat, v=118, sub=True):
     for k, pl in enumerate(PLAYERS):
         pl.n('C2', beat + (k - 1) * 0.012, 1.5, v - 6, detune=(k - 1) * 14)
     if sub:
-        D.sound(BOOM, beat, gain=v / 127, reverb=0.25)
+        D.sound(BOOM, beat, gain=v / 127, reverb=0.5)
 
 def hit(beat, v, note='G2', players=(0, 1, 2)):
     for k in players:
@@ -193,8 +193,9 @@ meter = pyloudnorm.Meter(SR)
 music = S.render(loop=True, normalize=False)
 drums = drum_bus(D.render(loop=True, normalize=False))
 music *= 10 ** ((-20 - meter.integrated_loudness(music)) / 20)
-# The drums sit just under the music by ear (K-weighted), not by raw energy, so the sub doesn't fool the balance.
-drums *= 10 ** ((-21 - meter.integrated_loudness(drums)) / 20)
+# The drums sit over the music by ear (K-weighted), not by raw energy, so the sub doesn't fool the balance.
+# Aviel, 2026-11-23 15:22: "still louder and reverberating".
+drums *= 10 ** ((-17 - meter.integrated_loudness(drums)) / 20)
 mix = master(music + drums, -15.5)
 print(stats(mix))
 write(mix, 'out/fight.ogg', 96)

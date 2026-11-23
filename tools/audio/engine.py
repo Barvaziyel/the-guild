@@ -202,12 +202,13 @@ def make_ir(rt, seed=1, predelay=0.02, damp=0.5, width=1.0):
 
 
 class Song:
-    def __init__(self, bpm, bars, beats_per_bar=4, seed=7, rt=2.4, tail=7.0, predelay=0.025, damp=0.5, verb_hp=120):
+    def __init__(self, bpm, bars, beats_per_bar=4, seed=7, rt=2.4, tail=7.0, predelay=0.025, damp=0.5, verb_hp=120, wet=0.5):
         self.bpm, self.bars, self.bpb = bpm, bars, beats_per_bar
         self.rng = np.random.default_rng(seed)
         self.tracks = []
         self.raws = []
         self.verb_hp = verb_hp
+        self.wet = wet
         self.rt, self.tail, self.predelay, self.damp = rt, tail, predelay, damp
         self.tempo_map = None  # optional function beat -> seconds
 
@@ -254,7 +255,7 @@ class Song:
         ir = make_ir(self.rt, predelay=self.predelay, damp=self.damp)
         verb = np.stack([fftconvolve(wet[:, c], ir[:, c])[:total] for c in range(2)], 1)
         verb = highpass(verb, self.verb_hp)
-        mix = dry + verb * 0.5
+        mix = dry + verb * self.wet
         mix = highpass(mix, 28, 2)
         if loop:
             tail = mix[L:]
