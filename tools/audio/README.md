@@ -26,4 +26,4 @@ python3 tools/audio/build.py sfx     # just the effects and ambience
 python3 tools/audio/look.py tools/audio/out/depot.ogg   # a spectrogram and loudness plot in /tmp/look.png
 ```
 
-`engine.py` is the sampler and mixer: notes on tracks, held notes looped from the middle of their sample, synthesized sounds placed like notes (`Song.sound`), a synthetic reverb, loudness to a target (music −15.5 to −19 LUFS). A score is a plain Python file that puts notes on tracks; `fight.py` renders its drums as a second song (`render(normalize=False)`) and mixes the two.
+`engine.py` is the sampler and mixer: notes on tracks, held notes looped from the middle of their sample, synthesized sounds placed like notes (`Song.sound`), a synthetic reverb, loudness to a target (music −15.5 to −19 LUFS). A score is a plain Python file that puts notes on tracks; `fight.py` renders its drums as a second song, dry and hall apart (`render(normalize=False, split=True)`), brings the dry drums close up (`punch`), sets music, drums and hall by K-weighted loudness, and finishes with the look-ahead `limit`.

@@ -7,9 +7,9 @@ music. Aviel, 2026-11-23: "make the drums fuller, deeper, more epic".
 from engine import *
 
 S = Song(bpm=112, bars=40, seed=31, rt=1.9, tail=5, damp=0.45)
-D = Song(bpm=112, bars=40, seed=32, rt=3.9, tail=6.5, damp=0.4, predelay=0.045, verb_hp=40, wet=1.3)
-odaiko = D.track('taiko_drum', gain=1.25, pan=0.0, reverb=1.0, humanize=0.003, bright=False)
-PLAYERS = [D.track('taiko_drum', gain=0.75, pan=p, reverb=0.85, humanize=0.006, bright=False) for p in (-0.45, 0.0, 0.45)]
+D = Song(bpm=112, bars=40, seed=32, rt=3.9, tail=6.5, damp=0.4, predelay=0.045, verb_hp=40, wet=1.0)
+odaiko = D.track('taiko_drum', gain=1.25, pan=0.0, reverb=0.7, humanize=0.003, bright=False)
+PLAYERS = [D.track('taiko_drum', gain=0.75, pan=p, reverb=0.6, humanize=0.006, bright=False) for p in (-0.45, 0.0, 0.45)]
 high = D.track('taiko_drum', gain=0.5, pan=0.25, reverb=0.6, humanize=0.004, bright=False)
 tom = D.track('melodic_tom', gain=0.75, pan=-0.2, reverb=0.75, humanize=0.004, bright=False)
 timp = D.track('timpani', gain=1.0, pan=-0.1, reverb=0.8, humanize=0.003, bright=False)
@@ -169,34 +169,34 @@ for bar in list(range(16, 24)) + list(range(32, 40)):
     c = PROG[bar]
     horn2.n(midi(ROOT[c]) + 12, bar * 4, 3.8, 75)
 
-def drum_bus(loop):
+def punch(loop):
     """
-    Fuller: weight where a phone can play it (around 100 Hz), parallel
-    compression, a little tape-like saturation, and the hits' attack kept.
-    Run on the loop with its own end in front, so the seam stays seamless.
+    The drums close up (Aviel: "like they are in another hall next door... triple
+    or quadruple the strength"): weight between 55 and 140 Hz, fast compression
+    so every hit lands as hard, the stick on the skin brought forward, a little
+    saturation. Run on the loop with its own end in front, so the seam stays seamless.
     """
     pad = 3 * SR
     x = np.concatenate([loop[-pad:], loop])
-    attack = highpass(x, 900, 2)
-    x = x + (lowpass(x, 150, 2) - lowpass(x, 60, 2)) * 0.9
-    env = np.sqrt(np.maximum(lowpass(np.mean(x ** 2, 1), 30, 1), 1e-12))
-    thr = np.percentile(env, 60)
-    comp = x * np.where(env > thr, (thr / env) ** (1 - 1 / 5), 1.0)[:, None]
-    comp *= np.sqrt(np.mean(x ** 2) / np.mean(comp ** 2))
-    x = 0.55 * x + 0.65 * comp
+    attack = highpass(x, 1200, 2)
+    body = x + (lowpass(x, 140, 2) - lowpass(x, 55, 2)) * 1.0
+    env = np.sqrt(np.maximum(lowpass(np.mean(body ** 2, 1), 40, 1), 1e-12))
+    thr = np.percentile(env, 75)
+    comp = body * np.where(env > thr, (thr / env) ** (1 - 1 / 4), 1.0)[:, None]
+    comp *= np.sqrt(np.mean(body ** 2) / np.mean(comp ** 2))
+    x = 0.4 * body + 0.7 * comp + attack * 0.9
     peak = np.abs(x).max()
-    x = np.tanh(1.6 * x / peak * 0.9) / np.tanh(1.6) * peak
-    x = x + attack * 0.35
+    x = np.tanh(1.3 * x / peak * 0.9) / np.tanh(1.3) * peak
     return x[pad:]
 
 meter = pyloudnorm.Meter(SR)
 music = S.render(loop=True, normalize=False)
-drums = drum_bus(D.render(loop=True, normalize=False))
-music *= 10 ** ((-20 - meter.integrated_loudness(music)) / 20)
-# The drums sit over the music by ear (K-weighted), not by raw energy, so the sub doesn't fool the balance.
-# Aviel, 2026-11-23 15:22: "still louder and reverberating".
-drums *= 10 ** ((-17 - meter.integrated_loudness(drums)) / 20)
-mix = master(music + drums, -15.5)
+drums, hall = D.render(loop=True, normalize=False, split=True)
+drums = punch(drums)
+at = lambda x, lufs: x * 10 ** ((lufs - meter.integrated_loudness(x)) / 20)
+# By ear (K-weighted): the drums well over the music, their hall behind them.
+mix = at(music, -23) + at(drums, -14) + at(hall, -20)
+mix = limit(at(mix, -14.5))
 print(stats(mix))
 write(mix, 'out/fight.ogg', 96)
 write(mix, 'out/fight.mp3', 160)

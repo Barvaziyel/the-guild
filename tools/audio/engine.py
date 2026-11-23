@@ -235,7 +235,7 @@ class Song:
         """A synthesized sound (mono array) placed at a beat, like a note."""
         self.raws.append((sig, beat, gain, pan, reverb))
 
-    def render(self, loop=True, target_lufs=-18.0, stems=False, normalize=True):
+    def render(self, loop=True, target_lufs=-18.0, stems=False, normalize=True, split=False):
         L = int(round(self.length * SR))
         total = L + int(self.tail * SR)
         dry = np.zeros((total, 2))
@@ -255,6 +255,14 @@ class Song:
         ir = make_ir(self.rt, predelay=self.predelay, damp=self.damp)
         verb = np.stack([fftconvolve(wet[:, c], ir[:, c])[:total] for c in range(2)], 1)
         verb = highpass(verb, self.verb_hp)
+        if split:
+            # The dry sound and the hall apart, each looped, for a score to mix itself.
+            out = []
+            for part in (highpass(dry, 28, 2), highpass(verb * self.wet, 28, 2)):
+                if loop:
+                    part = part[:L].copy() + np.pad(part[L:], ((0, max(0, L - (total - L))), (0, 0)))[:L]
+                out.append(part)
+            return out
         mix = dry + verb * self.wet
         mix = highpass(mix, 28, 2)
         if loop:
@@ -267,6 +275,23 @@ class Song:
             k = int(0.5 * SR)
             mix[-k:] *= np.linspace(1, 0, k)[:, None]
         return master(mix, target_lufs) if normalize else mix
+
+
+def limit(x, ceiling=0.89, lookahead=0.004, release=0.12):
+    """A look-ahead limiter: turns the loudest moments down smoothly instead of clipping them."""
+    from scipy.ndimage import maximum_filter1d, minimum_filter1d
+    n = int(lookahead * SR)
+    peak = maximum_filter1d(np.abs(x).max(1), size=2 * n + 1)
+    want = np.minimum(1.0, ceiling / np.maximum(peak, 1e-9))
+    want = minimum_filter1d(want, size=2 * n + 1)
+    # Recover slowly: a one-pole on the gain going back up, never above what's wanted.
+    a = np.exp(-1 / (release * SR))
+    g = np.empty_like(want)
+    cur = 1.0
+    for i, w in enumerate(want):
+        cur = w if w < cur else a * cur + (1 - a) * w
+        g[i] = cur
+    return x * g[:, None]
 
 
 def master(mix, target_lufs=-18.0, ceiling=0.89):
