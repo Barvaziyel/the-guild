@@ -39,6 +39,7 @@ import {
   VULTURES_MEET_CAMP_WEIGHT,
   VULTURES_MEET_WEIGHT,
   VULTURES_TURF_FINDS,
+  TRADE_LOAD,
 } from '../constants.ts';
 import { getLocation, getTrait, getVehicleDef } from '../content/index.ts';
 import { DEPART_LINES, RETURN_LINES } from '../content/flavor.ts';
@@ -105,6 +106,7 @@ import { playHavenRoad, type RoadPlayed } from './haven-road.ts';
 import { resolveWounds } from './wounds.ts';
 import { rescueBeat, rescueNews } from './rescue.ts';
 import { vulturesBeat } from './vultures.ts';
+import { tradeBeat } from './trade.ts';
 import { tryFork } from './radio.ts';
 import type { FightView } from './command.ts';
 import { campAt, campLeader, neighbours, onTurf, vultureBand, vulturesActive } from '../vultures.ts';
@@ -113,19 +115,21 @@ type MidKind = Exclude<BeatKind, 'depart' | 'return'>;
 
 /** How often each kind of beat comes up, by job. */
 const JOB_WEIGHTS: Record<RunJob, Record<MidKind, number>> = {
-  scavenge: { scavenge: 40, combat: 18, hazard: 14, travel: 10, social: 10, discovery: 6, rescue: 0, vultures: 0 },
-  scout: { discovery: 26, travel: 18, hazard: 18, combat: 14, social: 12, scavenge: 10, rescue: 0, vultures: 0 },
-  hunt: { combat: 42, travel: 14, hazard: 10, scavenge: 10, social: 10, discovery: 8, rescue: 0, vultures: 0 },
+  scavenge: { scavenge: 40, combat: 18, hazard: 14, travel: 10, social: 10, discovery: 6, rescue: 0, vultures: 0, trade: 0 },
+  scout: { discovery: 26, travel: 18, hazard: 18, combat: 14, social: 12, scavenge: 10, rescue: 0, vultures: 0, trade: 0 },
+  hunt: { combat: 42, travel: 14, hazard: 10, scavenge: 10, social: 10, discovery: 8, rescue: 0, vultures: 0, trade: 0 },
   // Getting there is most of it, and the rescue comes once (§10.1).
-  rescue: { rescue: 40, travel: 16, hazard: 14, combat: 14, social: 8, scavenge: 6, discovery: 2, vultures: 0 },
+  rescue: { rescue: 40, travel: 16, hazard: 14, combat: 14, social: 8, scavenge: 6, discovery: 2, vultures: 0, trade: 0 },
   // Straight for the Vultures' camp (§7.11): the attack comes once, and early.
-  assault: { vultures: 60, travel: 16, hazard: 10, combat: 6, social: 6, scavenge: 0, discovery: 2, rescue: 0 },
+  assault: { vultures: 60, travel: 16, hazard: 10, combat: 6, social: 6, scavenge: 0, discovery: 2, rescue: 0, trade: 0 },
   // The road east is a script, not random beats (§9.12); never drawn from.
-  haven: { travel: 1, combat: 0, hazard: 0, scavenge: 0, social: 0, discovery: 0, rescue: 0, vultures: 0 },
+  haven: { travel: 1, combat: 0, hazard: 0, scavenge: 0, social: 0, discovery: 0, rescue: 0, vultures: 0, trade: 0 },
+  // To the market and back (§7.14): the road, with the trade itself put in the middle, never drawn.
+  trade: { travel: 30, social: 14, combat: 12, hazard: 8, scavenge: 0, discovery: 0, rescue: 0, vultures: 0, trade: 0 },
 };
 
 /** The beat every run of this job gets at least once. */
-const MAIN_BEAT: Record<RunJob, MidKind> = { scavenge: 'scavenge', scout: 'discovery', hunt: 'combat', rescue: 'rescue', assault: 'vultures', haven: 'travel' };
+const MAIN_BEAT: Record<RunJob, MidKind> = { scavenge: 'scavenge', scout: 'discovery', hunt: 'combat', rescue: 'rescue', assault: 'vultures', haven: 'travel', trade: 'travel' };
 
 const MID_KINDS = ['scavenge', 'combat', 'hazard', 'travel', 'social', 'discovery', 'rescue', 'vultures'] as const;
 
@@ -177,6 +181,7 @@ const BEAT_FNS: Record<MidKind, (sim: Sim) => void> = {
   discovery: discoveryBeat,
   rescue: rescueBeat,
   vultures: vulturesBeat,
+  trade: tradeBeat,
 };
 
 // ---------------------------------------------------------------- between beats
@@ -408,6 +413,8 @@ function packLoot(sim: Sim, outcome: RunOutcome): { loot: Resources; leftBehind:
   // What still runs carries a load home, and so does anything found and got running.
   for (const r of running(sim)) capacity += r.def.cargo;
   for (const v of sim.foundVehicles) capacity += getVehicleDef(v.defId).cargo;
+  // Packs and vehicles full of nothing but goods on a trade run (§7.14).
+  if (sim.plan.job === 'trade') capacity *= TRADE_LOAD;
   capacity = Math.max(0, capacity);
 
   let leftBehind = 0;
@@ -586,6 +593,8 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
     const engines = sim.rides.length === 1 ? 'The engine coughs and catches.' : 'Engines cough and catch.';
     say(sim, `${engines} ${where.charAt(0).toUpperCase()}${where.slice(1)}.`);
   }
+  // A trade run's packs are full of goods (§7.14): they're carried like anything found, and lost the same way.
+  if (plan.job === 'trade' && plan.trade) sim.loot[plan.trade.give] += plan.trade.amount;
   // Short of rations, the crew goes anyway; whoever has none goes hungry.
   for (const s of hungryCrew(state, plan)) {
     const m = sim.members.find((x) => x.s.id === s.id)!;
@@ -597,6 +606,7 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
   const foot = footDuration(state, plan);
   const totalBeats = Math.max(MIN_BEATS, Math.min(MAX_BEATS, Math.round(foot / 60_000 / MINUTES_PER_BEAT) + 2));
   const middle = totalBeats - 1;
+  const tradeAt = plan.job === 'trade' ? Math.floor(middle / 2) : -1;
   const slot = duration / totalBeats;
   let previous: MidKind | undefined;
   let done = 0;
@@ -615,8 +625,10 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
       calledHome(sim, Math.max(opts.recallAt, sim.beats.at(-1)?.at ?? 0));
       break;
     }
-    const kind = pickBeatKind(sim, previous, i === middle - 1);
-    if (!tryFork(sim, kind) && !tryEvent(sim, kind)) BEAT_FNS[kind](sim);
+    // A trade run reaches the market halfway (§7.14).
+    const kind = i === tradeAt ? 'trade' : pickBeatKind(sim, previous, i === middle - 1);
+    if (kind === 'trade') tradeBeat(sim);
+    else if (!tryFork(sim, kind) && !tryEvent(sim, kind)) BEAT_FNS[kind](sim);
     endBeat(sim, kind);
     previous = kind;
     done += 1;

@@ -6,7 +6,6 @@ import {
   keepStray,
   sendOffStray,
   offerProblem,
-  offerText,
   type DepotSummary,
   type GameState,
 } from '../../engine/index.ts';
@@ -25,7 +24,7 @@ import { activeRuns, backIn, joinNames, runCrewNames } from '../runs-view.ts';
 import { outpostRows } from '../outposts-view.ts';
 import { projectNote } from '../projects-view.ts';
 import { vulturesShort } from '../vultures-view.ts';
-import { bedsLine, buildingRows, depotNews, foodWarning, homeCounts, summaryLines, type BuildingRow } from '../depot-view.ts';
+import { bedsLine, buildingRows, depotNews, foodWarning, homeCounts, offerView, summaryLines, type BuildingRow } from '../depot-view.ts';
 import { stashLine } from '../gear-view.ts';
 import { EMPTY_DEPOT } from '../haven-view.ts';
 import { vehiclesLine } from '../vehicles-view.ts';
@@ -340,12 +339,37 @@ function Offers({ state }: { state: GameState }) {
       <h3 className="panel-title">A trader at the gate</h3>
       {state.depot.offers.map((o) => {
         const problem = offerProblem(state, o.id);
+        const v = offerView(state, o, day);
         return (
-          <div key={o.id} className={o.item ? 'offer offer-with-icon' : 'offer'}>
-            {o.item && <ItemIcon defId={o.item.defId} quality={o.item.quality} />}
-            <p>
-              {o.vultures ? 'A Vulture trader. ' : ''}They&rsquo;ll trade {offerText(o)}. They leave {o.expiresDay - 1 <= day ? 'at the end of today' : `after day ${o.expiresDay - 1}`}.
+          <div key={o.id} className="offer">
+            <p className="offer-who">
+              {v.who}. {v.leaves}
             </p>
+            <div className="offer-deal">
+              <div className="offer-side">
+                <span className="offer-label">You give</span>
+                {v.give.map((g) => (
+                  <span key={g.text} className="offer-what">
+                    {g.text}
+                    <span className="offer-note">{g.have}</span>
+                  </span>
+                ))}
+              </div>
+              <span className="offer-arrow" aria-hidden="true">
+                &rarr;
+              </span>
+              <div className="offer-side">
+                <span className="offer-label">You get</span>
+                {o.item && <ItemIcon defId={o.item.defId} quality={o.item.quality} />}
+                {v.get.map((g) => (
+                  <span key={g.text} className="offer-what">
+                    {g.text}
+                    {g.detail && <span className="offer-note">{g.detail}</span>}
+                  </span>
+                ))}
+              </div>
+            </div>
+            {v.compare && <p className="panel-help offer-compare">{v.compare}</p>}
             {problem && <p className="field-error">{problem}</p>}
             <div className="btn-row">
               <button type="button" className="btn btn-primary btn-small" disabled={problem !== undefined} onClick={() => act((s) => acceptOffer(s, o.id, dayAt(s, Date.now())))}>

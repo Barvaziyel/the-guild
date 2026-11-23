@@ -9,6 +9,8 @@ import {
   RADIO_ANSWER_CHANCE,
   RECRUIT_WAIT_DAYS,
   SAVE_VERSION,
+  SCRAPYARD_PER_BRAWN,
+  SCRAPYARD_PER_WORKER,
   TRAINING_PRACTICE,
 } from '../constants.ts';
 import { BUILDINGS, RECIPES, getGear } from '../content/index.ts';
@@ -34,7 +36,7 @@ import {
   workerSlots,
   postBuilding,
 } from './buildings.ts';
-import { dailyUpkeep, emptySummary, gardenYield, playDepotDay } from './day.ts';
+import { dailyUpkeep, emptySummary, gardenYield, playDepotDay, scrapyardYield } from './day.ts';
 import { acceptOffer, declineOffer, offerProblem, rollDepotEvents } from './events.ts';
 import { addRadioRecruit, radioAnswerChance, recruitProblem, refreshRecruits, takeIn } from './recruits.ts';
 import { advanceTime, dayStart, nextDayAt } from './time.ts';
@@ -128,6 +130,28 @@ describe('posts', () => {
     playDepotDay(state, 2, new Rng('train'), emptySummary());
     assert.ok(s.practice.aim + s.stats.aim * 100 > before, 'practiced Aim');
     assert.equal(workerSlots(state, 'training_yard'), 2);
+  });
+
+  test('the Scrapyard strips scrap with hands only, more at each level (3.4.0)', () => {
+    const state = testGame();
+    rich(state);
+    build(state, 'scrapyard', 1);
+    assert.equal(scrapyardYield(state), 0, 'nothing without workers');
+    const [a, b] = state.survivors.filter((x) => !x.post);
+    assignPost(state, a!.id, { building: 'scrapyard' });
+    a!.stats.brawn = 4;
+    const one = scrapyardYield(state);
+    assert.ok(Math.abs(one - (SCRAPYARD_PER_WORKER + 4 * SCRAPYARD_PER_BRAWN)) < 1e-9);
+    build(state, 'scrapyard', 2);
+    build(state, 'scrapyard', 3);
+    assert.ok(Math.abs(scrapyardYield(state) - 3 * one) < 1e-9, 'three times as much at level 3');
+    if (b) assignPost(state, b.id, { building: 'scrapyard' });
+    const scrap = state.resources.scrap;
+    const summary = emptySummary();
+    for (let day = 2; day < 10; day++) playDepotDay(state, day, new Rng(`strip:${day}`), summary);
+    assert.ok((summary.stripped ?? 0) > 0);
+    assert.ok(state.resources.scrap >= scrap + (summary.stripped ?? 0) - 8 * workerSlots(state, 'workshop'), 'the stripped scrap is in the stores');
+    assert.equal(workerSlots(state, 'scrapyard'), 3);
   });
 });
 

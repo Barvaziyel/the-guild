@@ -314,7 +314,8 @@ export interface Relationship {
 
 /** Rescue: answer a call for help (§10.1); only while someone is calling from that place. */
 /** `haven`: the road east, the whole guild together, once (§9.12, 3.0.0). */
-export type RunJob = 'scavenge' | 'scout' | 'hunt' | 'rescue' | 'assault' | 'haven';
+/** `trade`: goods to the market at the Drive-In and something else back (§7.14, 3.4.0); only there. */
+export type RunJob = 'scavenge' | 'scout' | 'hunt' | 'rescue' | 'assault' | 'haven' | 'trade';
 export type Approach = 'sneaky' | 'balanced' | 'aggressive';
 /** When the crew pulls out of a fight: someone below half HP, someone downed, or never. */
 export type RetreatOrder = 'wounded' | 'downed' | 'never';
@@ -337,6 +338,28 @@ export interface RunPlan {
   depth?: number;
   /** The player leads the fights over the radio (§7.13). Any crew can be led (2.2.0; before, it needed a Radio Tower). */
   lead?: boolean;
+  /** A trade run's goods and what they're for (§7.14, 3.4.0). Only with job `trade`. */
+  trade?: TradeOrder;
+}
+
+/** What a trade run takes to the market and what it brings back (§7.14). */
+export interface TradeOrder {
+  /** What goes in the packs. */
+  give: ResourceId;
+  amount: number;
+  /** What it's traded for. */
+  get: ResourceId;
+  /** What the market would give at the prices when the crew set out, before any haggling. Set by `startRun`. */
+  quote?: number;
+}
+
+/**
+ * The market at the Drive-In (§7.14, 3.4.0): how much of each supply the guild has
+ * sold there (more than 0) or bought (less than 0) lately, which moves its price.
+ * Eases back toward 0 every game day.
+ */
+export interface MarketState {
+  glut: Partial<Record<ResourceId, number>>;
 }
 
 // ---------------------------------------------------------------- commanded fights (§7.13)
@@ -416,7 +439,7 @@ export interface RunLead {
   fights: LedFight[];
 }
 
-export type BeatKind = 'depart' | 'travel' | 'scavenge' | 'hazard' | 'combat' | 'social' | 'discovery' | 'rescue' | 'vultures' | 'return';
+export type BeatKind = 'depart' | 'travel' | 'scavenge' | 'hazard' | 'combat' | 'social' | 'discovery' | 'rescue' | 'vultures' | 'trade' | 'return';
 
 /** A dice check shown next to a log line: "Wits 6+5 vs 10". */
 export interface CheckInfo {
@@ -704,7 +727,7 @@ export interface Outpost {
 
 // ---------------------------------------------------------------- the Depot
 
-export const BUILDING_IDS = ['bunks', 'garden', 'firepit', 'infirmary', 'workshop', 'radio_tower', 'watchtower', 'training_yard'] as const;
+export const BUILDING_IDS = ['bunks', 'garden', 'scrapyard', 'firepit', 'infirmary', 'workshop', 'radio_tower', 'watchtower', 'training_yard'] as const;
 export type BuildingId = (typeof BUILDING_IDS)[number];
 
 /** A job at one of the Depot's buildings. */
@@ -1229,6 +1252,8 @@ export interface GameState {
   story?: StoryState;
   /** Haven (§9.11), from the broadcast on. Missing before it. */
   haven?: HavenState;
+  /** The market at the Drive-In (§7.14, 3.4.0). Missing until the guild first trades there. */
+  market?: MarketState;
   log: GuildLogEntry[];
   settings: {
     mercyMode: boolean;

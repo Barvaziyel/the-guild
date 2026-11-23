@@ -21,6 +21,8 @@ import {
   GARDEN_BASE,
   GARDEN_PER_WITS,
   GARDEN_PER_WORKER,
+  SCRAPYARD_PER_BRAWN,
+  SCRAPYARD_PER_WORKER,
   HEAL_BASE,
   HEAL_PER_INFIRMARY,
   HEAL_PER_MEDIC_WITS,
@@ -44,6 +46,7 @@ import { expireConditions, maxTraitHook, mulTraitHook, removeTrait } from '../tr
 import type { BuildingId, GameState, GuildLogEntry, Resources, Survivor } from '../types.ts';
 import { BUILDING_IDS } from '../types.ts';
 import { playOutpostsDay } from '../outposts.ts';
+import { easeMarket } from '../market.ts';
 import { atDepot, bedsTaken, buildingLevel, bunksCap, postBuilding, postStat, upkeepOf, workingAt, workingLevel } from './buildings.ts';
 import { clinicHealMult, crewRations, fasterHealing, memorialRelief, postProject, workOnProjects, workingOnProject } from '../projects.ts';
 
@@ -54,6 +57,8 @@ export interface DepotSummary {
   eaten: number;
   hungryDays: number;
   ammoMade: number;
+  /** Scrap the Scrapyard stripped (3.4.0). */
+  stripped?: number;
   healed: number;
   cured: number;
   /** Guild log entries written while these days were played. */
@@ -71,7 +76,7 @@ export interface DepotSummary {
 }
 
 export function emptySummary(): DepotSummary {
-  return { days: 0, grown: 0, eaten: 0, hungryDays: 0, ammoMade: 0, healed: 0, cured: 0, news: [], outposts: {}, upkeep: {}, unpaid: [], floorNights: 0, spoiled: 0 };
+  return { days: 0, grown: 0, eaten: 0, hungryDays: 0, ammoMade: 0, stripped: 0, healed: 0, cured: 0, news: [], outposts: {}, upkeep: {}, unpaid: [], floorNights: 0, spoiled: 0 };
 }
 
 /** Round a fractional amount up or down at random, so 2.3 is 3 about a third of the time. */
@@ -126,6 +131,8 @@ export function playDepotDay(state: GameState, day: number, rng: Rng, summary: D
 
   // Conditions that have run their course.
   for (const s of home) expireConditions(s, day);
+  // The market at the Drive-In settles back a little each day (§7.14).
+  easeMarket(state);
 
   // Food: what's been kept too long goes off, the Garden grows, everyone eats (the oldest first).
   summary.spoiled = (summary.spoiled ?? 0) + spoilRations(state, day);
@@ -135,7 +142,8 @@ export function playDepotDay(state: GameState, day: number, rng: Rng, summary: D
   // What the upper levels use up; a building that can't be kept going works a level lower today.
   payUpkeep(state, rng, summary);
 
-  // Work that makes things.
+  // Work that makes things: the Scrapyard first, so the Workshop can use what it strips.
+  stripScrap(state, rng, summary);
   makeAmmo(state, rng, summary);
   listenToRadio(state, day, rng);
 
@@ -277,6 +285,20 @@ function eat(state: GameState, day: number, summary: DepotSummary): boolean {
   if (hungry) state.depot.hungry = true;
   else delete state.depot.hungry;
   return hungry;
+}
+
+/** Scrap the Scrapyard's workers strip in a day (3.4.0). */
+export function scrapyardYield(state: GameState): number {
+  const level = workingLevel(state, 'scrapyard');
+  if (level === 0) return 0;
+  return level * sum(workingAt(state, 'scrapyard').map((s) => SCRAPYARD_PER_WORKER + effectiveStat(s, 'brawn') * SCRAPYARD_PER_BRAWN));
+}
+
+function stripScrap(state: GameState, rng: Rng, summary: DepotSummary): void {
+  const stripped = roundChance(rng, scrapyardYield(state));
+  if (stripped === 0) return;
+  state.resources.scrap += stripped;
+  summary.stripped = (summary.stripped ?? 0) + stripped;
 }
 
 function makeAmmo(state: GameState, rng: Rng, summary: DepotSummary): void {

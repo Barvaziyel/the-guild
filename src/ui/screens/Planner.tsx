@@ -43,6 +43,8 @@ import { clockTime } from '../time.ts';
 import { leadChoice } from '../fight-view.ts';
 import { planLeadLine } from '../haven-view.ts';
 import { PlacePicture } from '../components/Art.tsx';
+import { fitTrade, getChoices, giveChoices, marketJobs, maxTrade, tradeLine, withAmount, withGet, withGive } from '../market-view.ts';
+import { RESOURCE_NAMES } from '../view.ts';
 
 export function Planner({ state, locationId, step }: { state: GameState; locationId: string; step: 'crew' | 'orders' }) {
   const loc = findLocation(locationId);
@@ -83,7 +85,9 @@ function PlannerForm({ state, locationId, step }: { state: GameState; locationId
   const { store } = useServices();
   const now = useNow(30_000);
   // While someone is calling for help from here, the plan starts as a rescue (§10.1).
-  const [plan, setPlan] = useState<RunPlan>(() => withRescue(state, defaultPlan(state, locationId)));
+  const [draft, setPlan] = useState<RunPlan>(() => withRescue(state, defaultPlan(state, locationId)));
+  // At the market the job is Trade, with goods that fit whoever is going (§7.14).
+  const plan = fitTrade(state, draft);
   const [ammoTouched, setAmmoTouched] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
   const loc = findLocation(locationId)!;
@@ -98,7 +102,7 @@ function PlannerForm({ state, locationId, step }: { state: GameState; locationId
   // A rescue goes to the outskirts, where the call came from.
   const depths = plan.job === 'rescue' || plan.job === 'assault' ? [] : depthChoices(state, locationId);
   const assault = assaultChoice(state, locationId);
-  const jobs = jobChoices(state, locationId, assault ? [...JOBS, assault] : JOBS);
+  const jobs = marketJobs(locationId, jobChoices(state, locationId, assault ? [...JOBS, assault] : JOBS));
   const fromOutpost = outpostPlanNote(state, plan);
   const pace = paceNote(state, plan);
   const havenLead = planLeadLine(state, plan);
@@ -246,6 +250,24 @@ function PlannerForm({ state, locationId, step }: { state: GameState; locationId
             setSendError(null);
           }}
         />
+        {plan.job === 'trade' && plan.trade && (
+          <div className="trade-orders" data-tour="trade">
+            <Segmented legend="Take" name="give" choices={giveChoices(state, plan)} value={plan.trade.give} onChange={(give) => setPlan(withGive(state, plan, give))} />
+            <div className="orders-supplies">
+              <MiniStepper
+                label={RESOURCE_NAMES[plan.trade.give]}
+                value={plan.trade.amount}
+                min={Math.min(1, maxTrade(state, plan, plan.trade.give))}
+                max={maxTrade(state, plan, plan.trade.give)}
+                step={5}
+                note={`of ${maxTrade(state, plan, plan.trade.give)}`}
+                onChange={(amount) => setPlan(withAmount(state, plan, amount))}
+              />
+            </div>
+            <Segmented legend="For" name="get" choices={getChoices(state, plan.trade.give)} value={plan.trade.get} onChange={(get) => setPlan(withGet(state, plan, get))} />
+            <p className="panel-help trade-quote">{tradeLine(state, plan)}</p>
+          </div>
+        )}
         <Segmented legend="Approach" name="approach" choices={APPROACHES} value={plan.approach} onChange={(approach) => change({ approach })} />
         <Segmented legend="Pull out when" name="retreat" choices={RETREATS} value={plan.retreat} onChange={(retreat) => change({ retreat })} />
         <div className="orders-supplies">
@@ -282,6 +304,7 @@ function PlannerForm({ state, locationId, step }: { state: GameState; locationId
             }}
           />
         </label>
+        {plan.job !== 'trade' && (
         <label className="orders-keep">
           <span>Too much to carry? Keep</span>
           <select
@@ -301,6 +324,7 @@ function PlannerForm({ state, locationId, step }: { state: GameState; locationId
             ))}
           </select>
         </label>
+        )}
       </section>
 
       <section className="panel orders-send" aria-labelledby="check-title">

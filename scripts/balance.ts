@@ -13,10 +13,11 @@ const crewSize = Number(process.argv[5] ?? 3);
 const medkit = process.argv[6] === 'medkit';
 
 console.log(`\n${n} runs per location, crew of ${crewSize} fresh survivors, scavenge, ${approach}, retreat: ${retreat}${medkit ? ', with a Medkit' : ''}\n`);
-console.log('location            dgr  hurt%  down/run  deaths/100  1 death per  done%  routed%  loot  stress  beats');
+console.log('location            dgr  hurt%  down/run  deaths/100  1 death per  done%  routed%  loot  scrap  stress  beats');
 
 for (const loc of LOCATIONS) {
-  let hurtRuns = 0, downs = 0, deaths = 0, done = 0, routed = 0, loot = 0, stress = 0, beats = 0;
+  if (loc.market) continue;
+  let hurtRuns = 0, downs = 0, deaths = 0, done = 0, routed = 0, loot = 0, scrap = 0, stress = 0, beats = 0;
   for (let i = 0; i < n; i++) {
     const state = newGame({ seed: `bal-${i}`, now: 0 });
     const crew = state.survivors.slice(0, crewSize);
@@ -31,12 +32,13 @@ for (const loc of LOCATIONS) {
     if (result.outcome === 'completed') done++;
     if (result.outcome === 'routed' || result.outcome === 'lost') routed++;
     loot += RESOURCE_IDS.reduce((sum, r) => sum + result.loot[r], 0) + result.items.length;
+    scrap += result.loot.scrap;
     stress += result.crew.reduce((sum, s) => sum + (s.stress - before.get(s.id)!.stress), 0) / crew.length;
     beats += b.length;
   }
   const pct = (x: number) => String(Math.round((x / n) * 100)).padStart(4);
   console.log(
-    `${loc.name.padEnd(20)}${String(loc.danger).padStart(3)}  ${pct(hurtRuns)}%  ${(downs / n).toFixed(2).padStart(8)}  ${((deaths / n) * 100).toFixed(1).padStart(10)}  ${(deaths ? Math.round(n / deaths) : Infinity).toString().padStart(11)}  ${pct(done)}%  ${pct(routed)}%  ${(loot / n).toFixed(1).padStart(5)}  ${(stress / n).toFixed(0).padStart(6)}  ${(beats / n).toFixed(1).padStart(5)}`,
+    `${loc.name.padEnd(20)}${String(loc.danger).padStart(3)}  ${pct(hurtRuns)}%  ${(downs / n).toFixed(2).padStart(8)}  ${((deaths / n) * 100).toFixed(1).padStart(10)}  ${(deaths ? Math.round(n / deaths) : Infinity).toString().padStart(11)}  ${pct(done)}%  ${pct(routed)}%  ${(loot / n).toFixed(1).padStart(5)}  ${(scrap / n).toFixed(1).padStart(5)}  ${(stress / n).toFixed(0).padStart(6)}  ${(beats / n).toFixed(1).padStart(5)}`,
   );
 }
 console.log('');

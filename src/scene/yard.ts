@@ -25,6 +25,7 @@ const SHADE: Record<DayPhase, { color: string; opacity: number }> = {
 const BUILDING_NAMES: Record<BuildingId, string> = {
   bunks: 'Bunks',
   garden: 'Garden',
+  scrapyard: 'Scrapyard',
   firepit: 'Firepit',
   infirmary: 'Infirmary',
   workshop: 'Workshop',
@@ -206,6 +207,7 @@ function animalSpot(model: YardModel, kind: AnimalKind, keeperId?: string): { x:
 /** What people do with their hands at each post (3.2.0). Projects' crews hammer. */
 const WORK: Partial<Record<BuildingId, Work>> = {
   workshop: 'hammer',
+  scrapyard: 'hammer',
   firepit: 'poke',
   training_yard: 'spar',
   infirmary: 'tend',

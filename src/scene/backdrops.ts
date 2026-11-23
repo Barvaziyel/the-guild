@@ -335,6 +335,35 @@ function havenGate(open: boolean): string {
   }
   return out + line(0, HORIZON, W, HORIZON, 1.2, '#7d7a6e');
 }
+/** A stall at the swap meet: a table under a striped awning. */
+function stall(x: number, w: number, stripe: string): string {
+  let out = rect(x, HORIZON - 22, w, 22, '#8a6844', THIN);
+  out += line(x + 2, HORIZON - 22, x + 2, HORIZON - 50, 1.6, '#5b4a3c') + line(x + w - 2, HORIZON - 22, x + w - 2, HORIZON - 50, 1.6, '#5b4a3c');
+  out += poly([[x - 6, HORIZON - 44], [x + w + 6, HORIZON - 44], [x + w, HORIZON - 56], [x, HORIZON - 56]], '#ddd3bd', THIN);
+  for (let sx = x + 4; sx < x + w; sx += 14) out += poly([[sx - 2, HORIZON - 44], [sx + 5, HORIZON - 44], [sx + 6, HORIZON - 56], [sx, HORIZON - 56]], stripe, NONE);
+  // Goods on the table.
+  out += rect(x + 6, HORIZON - 30, 10, 8, '#a8603f', THIN) + circle(x + 26, HORIZON - 26, 4, '#6f8a4f', THIN) + rect(x + w - 18, HORIZON - 32, 8, 10, '#8d9494', THIN);
+  return out;
+}
+
+const DRIVE_IN: Backdrop = () => {
+  let out = sky('#d6c39e', '#ead9b4') + skyline('#b8a684', 'di', HORIZON, 14) + ground('#b3a07a', '#9d8a66', 'di');
+  // The screen: grey, torn, and taller than anything else for miles.
+  out += line(126, HORIZON, 126, 34, 4, '#5d6466') + line(274, HORIZON, 274, 34, 4, '#5d6466');
+  out += line(126, 96, 274, 60, 1.4, '#5d6466') + line(126, 60, 274, 96, 1.4, '#5d6466');
+  out += rect(108, 22, 184, 82, '#d9d2bf', THIN);
+  out += poly([[200, 22], [214, 22], [208, 52], [196, 44]], '#e2d1ab', THIN) + poly([[256, 104], [276, 72], [292, 80], [292, 104]], '#e2d1ab', THIN);
+  out += line(108, 104, 292, 104, 2, INK);
+  // Speaker posts in rows, where the cars used to park.
+  for (const [x, y] of [[40, 178], [96, 182], [160, 176], [226, 180], [300, 178], [360, 182]] as const) {
+    out += line(x, y, x, y - 18, 1.6, '#5d6466') + rect(x - 4, y - 24, 8, 7, '#6b7272', THIN);
+  }
+  // Stalls either side, and a cart.
+  out += stall(14, 72, '#a8402e') + stall(316, 70, '#5f7d6e');
+  out += rect(206, HORIZON - 16, 34, 14, '#8a6844', THIN) + circle(212, HORIZON - 1, 5, '#2b2420', THIN) + circle(234, HORIZON - 1, 5, '#2b2420', THIN) + line(240, HORIZON - 12, 256, HORIZON - 4, 1.6, '#5b4a3c');
+  return out;
+};
+
 const HAVEN_GATE: Backdrop = () => havenGate(true);
 const HAVEN_GATE_SHUT: Backdrop = () => havenGate(false);
 
@@ -375,6 +404,7 @@ const BACKDROPS: Record<string, Backdrop> = {
   checkpoint_bravo: CHECKPOINT,
   red_hand_camp: RED_HAND,
   the_glow: THE_GLOW,
+  drive_in: DRIVE_IN,
   haven_toll: HAVEN_TOLL,
   haven_glow: HAVEN_GLOW,
   haven_gate: HAVEN_GATE,

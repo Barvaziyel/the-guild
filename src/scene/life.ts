@@ -52,7 +52,7 @@ export function errandFor(person: YardPerson, spot: Spot): Errand | undefined {
   const p = person.place;
   const child = p.kind === 'child';
   if (spot.pose === 'lie' || p.kind === 'gate' || p.kind === 'resting') return undefined;
-  if (p.kind === 'post' && !['garden', 'workshop', 'firepit', 'training_yard', 'infirmary'].includes(p.building)) return undefined;
+  if (p.kind === 'post' && !['garden', 'scrapyard', 'workshop', 'firepit', 'training_yard', 'infirmary'].includes(p.building)) return undefined;
   const h = hash(`errand:${person.id}`);
   if (!child && h % 5 >= 2) return undefined;
   if (child && p.baby) return undefined;

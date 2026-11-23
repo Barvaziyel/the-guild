@@ -200,6 +200,11 @@ const MIGRATIONS: Record<number, (save: Record<string, unknown>) => void> = {
     if (state.haven || !state.story || state.story.step < FIRST_WEEK.length) return;
     state.haven = { day: state.depot.lastDay, found: [], tries: {}, heard: [], seen: { found: 0, heard: 0 } };
   },
+  26: () => {
+    // The market and the Scrapyard (3.4.0): nothing to change. `market` is missing until the first trade, a building
+    // missing from `buildings` is unbuilt, and the Drive-In is known from the start through `locationState`. The
+    // version still goes up, so an older game refuses a save that may have a trade run out.
+  },
 };
 
 export function serialize(state: GameState): string {

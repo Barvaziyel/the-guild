@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { Rng, dayAt, newGame, nextDayAt, assignPost, becomePartners, birth, expecting, build, emptySummary, gardenYield, guildUpkeep, postProblem, addRadioRecruit, startRun, postBuilding } from '../engine/index.ts';
+import { Rng, dayAt, newGame, nextDayAt, assignPost, becomePartners, birth, expecting, build, emptySummary, gardenYield, guildUpkeep, postProblem, addRadioRecruit, startRun, postBuilding, createItem } from '../engine/index.ts';
 import { T0, openGame, testGame, testPlan } from '../engine/test-utils.ts';
 import type { Survivor } from '../engine/index.ts';
 import {
@@ -24,6 +24,7 @@ import {
   upkeepLines,
   workerLine,
   nextDayView,
+  offerView,
 } from './depot-view.ts';
 
 describe('buildings on screen', () => {
@@ -40,7 +41,7 @@ describe('buildings on screen', () => {
     assert.equal(infirmary.next?.problem ?? '', '', 'a new guild can afford its Infirmary (1.7.2)');
     state.resources.scrap = 0;
     assert.match(buildingRow(state, 'infirmary').next?.problem ?? '', /Needs/);
-    assert.equal(buildingRows(state).length, 8);
+    assert.equal(buildingRows(state).length, 9);
     assert.match(buildingRow(state, 'bunks').status, /^4 of 4 beds taken\.$/);
   });
 
@@ -248,5 +249,26 @@ describe('the next day, up top', () => {
     assert.equal(fresh.line, 'Next in 3 h');
     assert.equal(fresh.progress, 0);
     assert.match(fresh.label, new RegExp(`^Day ${dayAt(state, T0) + 2} starts at `));
+  });
+});
+
+describe('a caravan at the gate (3.4.0)', () => {
+  test('says plainly what the guild gives and what it gets, and what the Drive-In would give', () => {
+    const state = testGame();
+    state.resources.rations = 120;
+    const swap = offerView(state, { id: 'o1', give: { rations: 40 }, get: { scrap: 20 }, expiresDay: 3 }, 2);
+    assert.deepEqual(swap.give, [{ text: '40 rations', have: 'You have 120.' }]);
+    assert.deepEqual(swap.get, [{ text: '20 scrap' }]);
+    assert.match(swap.compare ?? '', /^At the Drive-In, 40 rations would fetch about \d+ scrap\.$/);
+    assert.equal(swap.who, 'A trader');
+    assert.equal(swap.leaves, 'Leaves at the end of today.');
+    const gear = offerView(state, { id: 'o2', give: { scrap: 20, tech: 3 }, get: {}, item: createItem(state, 'machete', 'solid'), expiresDay: 9, vultures: true }, 2);
+    assert.deepEqual(gear.give.map((g) => g.text), ['20 scrap', '3 tech']);
+    assert.equal(gear.get.length, 1);
+    assert.match(gear.get[0]!.text, /Machete/);
+    assert.ok(gear.get[0]!.detail);
+    assert.equal(gear.compare, undefined, 'nothing to compare a piece of gear with');
+    assert.equal(gear.who, 'A Vulture trader');
+    assert.equal(gear.leaves, 'Leaves after day 8.');
   });
 });

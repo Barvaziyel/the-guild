@@ -154,7 +154,7 @@ function Node({ node: n, selected, onPick }: { node: MapNode; selected: boolean;
       className="map-node"
       role="button"
       tabIndex={0}
-      aria-label={`${n.label.join(' ')}, danger ${n.danger}, explored ${n.explored}%${n.outpost ? `, the guild has an outpost here${n.outpost === 'damaged' ? ' that needs mending' : ''}` : ''}${n.vultureCamp ? ', the Vultures have a camp here' : ''}${n.crewsOut ? `, a crew is there now` : ''}`}
+      aria-label={`${n.label.join(' ')}, danger ${n.danger}, ${n.market ? 'a market' : `explored ${n.explored}%`}${n.outpost ? `, the guild has an outpost here${n.outpost === 'damaged' ? ' that needs mending' : ''}` : ''}${n.vultureCamp ? ', the Vultures have a camp here' : ''}${n.crewsOut ? `, a crew is there now` : ''}`}
       aria-pressed={selected}
       onClick={pick}
       onKeyDown={onKey}

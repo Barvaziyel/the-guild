@@ -6,7 +6,7 @@
 import type { BuildingId, Quality, RelationshipLabel, ResourceId, Resources } from './types.ts';
 
 /** Save format version. Bump together with a migration in save.ts. */
-export const SAVE_VERSION = 26;
+export const SAVE_VERSION = 27;
 /** A guild this many game days old or younger, coming in from an older version, gets the first week too (§9.10). */
 export const STORY_OLD_SAVE_DAYS = 14;
 
@@ -247,7 +247,7 @@ export const RELIC_HEART_WEIGHT = 6;
 export const RELIC_STAT_BONUS = 1;
 
 /** Explored % gained per finished run, by job. */
-export const EXPLORE_GAIN: Record<'scavenge' | 'scout' | 'hunt' | 'rescue' | 'assault' | 'haven', readonly [number, number]> = {
+export const EXPLORE_GAIN: Record<'scavenge' | 'scout' | 'hunt' | 'rescue' | 'assault' | 'haven' | 'trade', readonly [number, number]> = {
   scavenge: [4, 6],
   scout: [10, 15],
   hunt: [2, 4],
@@ -255,7 +255,37 @@ export const EXPLORE_GAIN: Record<'scavenge' | 'scout' | 'hunt' | 'rescue' | 'as
   assault: [2, 4],
   // Corwin Dam isn't on the map (§9.12).
   haven: [0, 0],
+  // A market has nothing to explore (§7.14).
+  trade: [0, 0],
 };
+
+// ---------------------------------------------------------------- the market (§7.14, 3.4.0)
+
+/**
+ * What each supply is worth at the Drive-In, in scrap, before the market moves. Aviel (2026-11-23):
+ * "a merchant that you can go to and exchange rations for scraps, or scraps for gas… maybe the price
+ * goes up as you exchange more." Rations start at 3 to a scrap (caravans at the gate pay a little better,
+ * but rarely come wanting them).
+ */
+export const MARKET_VALUE = { scrap: 1, rations: 0.45, meds: 1.5, ammo: 0.5, tech: 3, gas: 1.2 } as const;
+/** The market pays this share of what something's worth, and asks this much more for it. */
+export const MARKET_SELL = 0.85;
+export const MARKET_BUY = 1.15;
+/**
+ * How fast prices move: every unit traded moves that supply's glut by its worth divided by this, and
+ * the price goes with e to the minus glut. Selling 60 rations makes them about a quarter cheaper.
+ */
+export const MARKET_DEPTH = 100;
+/** Scrap is what everyone at the market deals in, so its price moves a third as fast: paying for gas in scrap doesn't sink it. */
+export const MARKET_SCRAP_DEPTH = 300;
+/** Each game day, a supply's glut eases back by this share (about half of it in a real day). */
+export const MARKET_EASE = 0.1;
+/** On a trade run the packs, and anything with wheels, carry goods and nothing else: this many times the usual load. */
+export const TRADE_LOAD = 3;
+/** Haggling: the crew's best Nerve against this, for this much more on a success, or this on a big one (by 5 or more). */
+export const HAGGLE_DC = 10;
+export const HAGGLE_BONUS = 0.15;
+export const HAGGLE_BIG_BONUS = 0.25;
 
 // ---------------------------------------------------------------- the road east (§9.12, 3.0.0)
 
@@ -304,6 +334,14 @@ export const HUNGRY_HEAL_SHARE = 0.5;
 export const GARDEN_BASE = 2;
 export const GARDEN_PER_WORKER = 0.5;
 export const GARDEN_PER_WITS = 0.25;
+
+/**
+ * The Scrapyard (3.4.0, Aviel: always too many rations, never enough scrap): scrap stripped a day =
+ * level * sum over workers of (SCRAPYARD_PER_WORKER + Brawn * SCRAPYARD_PER_BRAWN). Nothing without hands.
+ * Two at level 1 with Brawn 4 strip about 7 a real day; three at level 3 with Brawn 5, about 36.
+ */
+export const SCRAPYARD_PER_WORKER = 0.25;
+export const SCRAPYARD_PER_BRAWN = 0.05;
 
 /** Stress shed per day at the Depot, before Firepit and traits. 5 before 1.6.2: with 8 Depot days a real day, people were calm again by every check-in. */
 export const REST_RELIEF = 2;

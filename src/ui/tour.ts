@@ -92,7 +92,7 @@ function firstSurvivorRoute(state: GameState, tab: 'stats' | 'bonds' | 'story'):
 
 /** The safest known place, for a first run. */
 function easiestPlace(state: GameState) {
-  return [...knownLocations(state)].sort((a, b) => a.danger - b.danger || a.durationMin - b.durationMin)[0];
+  return [...knownLocations(state)].filter((l) => !l.market).sort((a, b) => a.danger - b.danger || a.durationMin - b.durationMin)[0];
 }
 
 /** What to build first, with what it costs now: up to three suggestions. */
@@ -197,7 +197,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     route: depot,
     target: 'resources',
     text: () =>
-      'Almost everything comes home with crews from runs in the Reach. The Garden grows rations, the Workshop turns scrap into ammo, outposts send some home, and now and then a trader offers a swap.',
+      'Almost everything comes home with crews from runs in the Reach. The Garden grows rations, the Scrapyard strips the old station for scrap once it\u2019s built, the Workshop turns scrap into ammo, and outposts send some home. Too much of one thing? Trade it at the market at the Drive-In.',
   },
   {
     id: 'garden',
@@ -293,6 +293,15 @@ export const TOUR_STEPS: readonly TourStep[] = [
       'Runs are how the guild gets nearly everything. Scavenge for supplies, scout to explore and find new places, or hunt for food. Each place mostly finds one or two things (tap it to see which), and dangerous places pay better and hurt more.',
   },
   {
+    id: 'market',
+    part: 'runs',
+    title: 'The market',
+    route: () => ({ screen: 'reach', id: 'drive_in' }),
+    target: 'market',
+    text: () =>
+      'The Drive-In is a market, not a place to search. Send a crew with goods, rations say, and they bring back something else: scrap, gas, anything. Packed with nothing but goods, they carry three times as much. The more of one thing the guild trades there, the worse the price, until it settles back over a day or two.',
+  },
+  {
     id: 'plan',
     part: 'runs',
     title: 'Planning a run',
@@ -357,7 +366,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     route: depotBuildings,
     target: 'buildings',
     text: () =>
-      "People at home work a post, and practice its stat every day: gardeners sharpen their Wits, firekeepers their Nerve. Change posts from a building or from someone's sheet.",
+      "People at home work a post, and practice its stat every day: gardeners sharpen their Wits, firekeepers their Nerve, the Scrapyard's workers their Brawn. Change posts from a building or from someone's sheet.",
   },
   {
     id: 'build-first',

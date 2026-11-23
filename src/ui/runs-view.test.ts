@@ -215,14 +215,14 @@ describe('Reach map', () => {
     for (const loc of LOCATIONS) for (const line of mapLabel(loc.name)) assert.ok(line.length <= 14, line);
   });
 
-  test('a new guild sees three places and question marks one step beyond', () => {
+  test('a new guild sees three places, the market, and question marks one step beyond', () => {
     const map = reachMap(testGame());
     const known = map.nodes.filter((n) => n.known).map((n) => n.id).sort();
-    assert.deepEqual(known, ['kessler_farm', 'maple_street', 'rail_yard']);
+    assert.deepEqual(known, ['drive_in', 'kessler_farm', 'maple_street', 'rail_yard']);
     const unknown = map.nodes.filter((n) => !n.known);
     assert.equal(unknown.length, 6);
     assert.ok(unknown.every((n) => n.label.length === 0), 'unknown places have no name');
-    assert.equal(map.roads.filter((r) => r.known).length, 3);
+    assert.equal(map.roads.filter((r) => r.known).length, 4);
   });
 });
 

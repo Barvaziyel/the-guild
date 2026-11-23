@@ -134,6 +134,35 @@ export const STALEMATE_LINES = [
   'Neither side can finish it. Both pull back, each watching the other go.',
 ] as const;
 
+// ---------------------------------------------------------------- the market (§7.14, 3.4.0)
+
+export const MARKET_ARRIVAL: CrewLines = {
+  crew: [
+    'The Drive-In. Stalls between the speaker posts, smoke from a dozen cookfires, and everyone keeping their hands where the others can see them.',
+    'Under the torn screen, the swap meet is in full voice. The crew finds a trader with room on the table.',
+    'A guard at the fence counts the crew in and nods at the goods. Inside, everyone is selling something.',
+  ],
+  solo: [
+    'The Drive-In. Stalls between the speaker posts, smoke from a dozen cookfires, and not a hand far from where it can be seen.',
+    'Under the torn screen, the swap meet is in full voice. {a.first} finds a trader with room on the table.',
+    'A guard at the fence looks {a.first} up and down, then at the goods, and waves {a.them} in.',
+  ],
+};
+
+/** The best talker haggles: a big win, a win, or nothing doing. */
+export const HAGGLE_BIG = [
+  '{a.first} haggles like it\'s a blood sport, and the trader ends up thanking {a.them} for the privilege.',
+  '{a.first} walks away from the table twice. The third time, the trader chases {a.them} with a better offer.',
+];
+export const HAGGLE_WON = [
+  '{a.first} haggles, and gets a little more than the asking.',
+  '{a.first} points out every dent in the trader\'s goods, and the price comes down.',
+];
+export const HAGGLE_LOST = [
+  '{a.first} tries to haggle. The trader has heard it all before.',
+  '{a.first} pushes for a better price and gets a long, flat look.',
+];
+
 export const SCAVENGE_INTROS: CrewLines = {
   crew: ['The crew spreads out to search.', 'Time to see what is left here.', 'They work through the place room by room.'],
   solo: ['Time to see what is left here.', '{a.first} works through the place room by room.', '{a.first} starts searching, slow and careful.'],

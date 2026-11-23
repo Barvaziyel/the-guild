@@ -130,6 +130,17 @@ const BEAT_DRAWINGS: Record<BeatKind, () => string> = {
     pathEl('M 28 12 L 19 14 L 16 17 Q 14 18 15 15 L 17 13', 'none', `stroke="${STAMP}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"`),
   // The Vultures: a black feather.
   vultures: () => pathEl('M 8 26 Q 10 12 24 6 Q 22 18 8 26 Z', '#2b2420', FINE) + line(8, 26, 20, 11, 0.8, '#7d7d7d'),
+  // The market at the Drive-In (3.4.0): a pair of scales.
+  trade: () =>
+    line(16, 6, 16, 25, 1.6) +
+    line(10, 26, 22, 26, 1.8) +
+    line(6, 10, 26, 10, 1.6) +
+    line(7, 10, 4, 18, 0.8) +
+    line(7, 10, 10, 18, 0.8) +
+    line(25, 10, 22, 16, 0.8) +
+    line(25, 10, 28, 16, 0.8) +
+    pathEl('M 3 18 Q 7 22 11 18 Z', '#d8b66c', FINE) +
+    pathEl('M 21 16 Q 25 20 29 16 Z', '#d8b66c', FINE),
   // Home: the Depot's roof.
   return: () => pathEl('M 5 17 L 16 7 L 27 17', 'none', ink(1.8)) + rect(9, 16, 14, 10, '#efe6d2', FINE) + rect(14, 19, 4, 7, INK, 'stroke="none"'),
 };
