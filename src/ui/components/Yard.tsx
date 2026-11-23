@@ -7,6 +7,9 @@ import { yardSvg } from '../../scene/index.ts';
 import { parseRoute } from '../route.ts';
 import { awayLines, yardModel } from '../yard-view.ts';
 
+/** When each trip through the gate was first drawn, so it plays from when it's first seen (3.2.0), and only once. */
+const firstDrawn = new Map<string, number>();
+
 interface Picked {
   key: string;
   label: string;
@@ -19,12 +22,36 @@ interface Picked {
  */
 export function Yard({ state, now }: { state: GameState; now: number }) {
   const hour = new Date(now).getHours();
-  const model = useMemo(() => yardModel(state, hour, dayAt(state, now)), [state, hour, now]);
+  const model = useMemo(() => {
+    const m = yardModel(state, hour, dayAt(state, now), now);
+    // A crew that set out a minute ago, seen for the first time, sets out now.
+    const trips = m.trips?.map((t) => {
+      const k = `${t.way}:${t.id}:${t.at}`;
+      if (!firstDrawn.has(k)) firstDrawn.set(k, Math.max(t.at, Date.now()));
+      return { ...t, at: firstDrawn.get(k)! };
+    });
+    return trips ? { ...m, trips } : m;
+  }, [state, hour, now]);
   const key = JSON.stringify(model);
-  // The drawing only changes when what it shows does, so its animations keep running.
-  const svg = useMemo(() => yardSvg(model), [key]); // eslint-disable-line react-hooks/exhaustive-deps
+  // The drawing only changes when what it shows does, so its animations keep running; what moves is timed by the clock it's drawn at.
+  const svg = useMemo(() => yardSvg(model, Date.now()), [key]); // eslint-disable-line react-hooks/exhaustive-deps
   const box = useRef<HTMLDivElement>(null);
   const [picked, setPicked] = useState<Picked | null>(null);
+
+  // A trader or someone at the gate who turns up while the yard is open comes up the road (3.2.0).
+  const shown = useRef<Set<string> | null>(null);
+  useEffect(() => {
+    const root = box.current;
+    const arrivals = arrivalKeys(model);
+    if (root && shown.current) {
+      for (const k of arrivals) {
+        if (shown.current.has(k)) continue;
+        const el = [...root.querySelectorAll<SVGElement>('[data-key]')].find((e) => e.dataset.key === k);
+        el?.classList.add(k === 'trader' ? 'yard-enter-r' : 'yard-enter-l');
+      }
+    }
+    shown.current = new Set(arrivals);
+  }, [svg]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // What's picked is drawn again on top of everything, glowing, so it stands out even at night.
   useEffect(() => {
@@ -97,6 +124,11 @@ export function Yard({ state, now }: { state: GameState; now: number }) {
       <Animals state={state} />
     </section>
   );
+}
+
+/** What can arrive at the gate while the yard is watched: the trader, and people asking to join. */
+function arrivalKeys(model: ReturnType<typeof yardModel>): string[] {
+  return [...(model.trader ? ['trader'] : []), ...model.people.filter((p) => p.place.kind === 'gate').map((p) => `s:${p.id}`)];
 }
 
 /** The guild's animals (§9.7): what each does, and who looks after it. */

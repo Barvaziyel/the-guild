@@ -60,6 +60,10 @@ export interface StageEffect {
   tone: 'hurt' | 'hit' | 'miss' | 'heal' | 'plain';
   /** Fighters who run off in this act. */
   leaving?: string[];
+  /** A heavy blow, or someone going down: the stage shakes (3.2.0). */
+  big?: boolean;
+  /** What flies off whoever is hit (3.2.0): blood, sparks off a machine; dust where a shot misses. */
+  splash?: 'blood' | 'sparks' | 'dust';
 }
 
 export interface StageModel {
@@ -249,13 +253,25 @@ function placed(f: StageFighter, slot: Slot, effect: StageEffect | undefined): s
   if (effect?.at === f.key && effect.reaction === 'miss') classes.push('bt-dodge');
   if (effect?.at === f.key && effect.reaction === 'heal') classes.push('bt-heal');
   if (effect?.leaving?.includes(f.key)) classes.push('bt-leave');
-  let inner = `<g transform="scale(${n1(facing * s)} ${n1(s)})">${lying}</g>`;
-  // A flash at the muzzle when they fire.
+  // Standing ones breathe; whoever was just put down falls rather than appearing on the ground (3.2.0).
+  const fell = out && effect?.at === f.key && effect.reaction === 'hit';
+  const pose = fell ? `<g class="bt-fall" style="--f:${facing}">${lying}</g>` : lying;
+  const still = f.state === 'up' && !classes.some((c) => c.startsWith('bt-l') || c === 'bt-recoil' || c === 'bt-act' || c === 'bt-hit' || c === 'bt-dodge');
+  let inner = `<g transform="scale(${n1(facing * s)} ${n1(s)})">${still ? `<g class="bt-idle" style="animation-delay:-${(hashKey(f.key) % 26) / 10}s">${pose}</g>` : pose}</g>`;
+  // A flash at the muzzle when they fire, and a puff of smoke after it.
   if (effect?.by === f.key && effect.motion === 'shoot') {
     const [mx, my] = b.muzzle;
     inner += `<g class="bt-flash">${poly(starPoints(mx * facing * s, my * s, 7 * s, 3 * s), '#f7d36b', `stroke="#ee9a45" stroke-width="1.2"`)}</g>`;
+    for (const k of [0, 1, 2]) inner += `<circle class="bt-puff" cx="${n1(mx * facing * s + facing * k * 3)}" cy="${n1(my * s - k * 2)}" r="${n1(3 + k)}" fill="#cfc6b4" style="animation-delay:${0.08 + k * 0.06}s;--f:${facing}"/>`;
   }
   return `<g transform="translate(${n1(slot.x)} ${n1(slot.y)})"><g class="${classes.filter(Boolean).join(' ')}">${inner}</g></g>`;
+}
+
+/** A small stable number from a fighter's key, to stagger their breathing. */
+function hashKey(key: string): number {
+  let h = 0;
+  for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
+  return h;
 }
 
 /** Someone placed by hand (`StageExtra`): leaning into a run, jolted by a hit, or lying in the road. */
@@ -415,6 +431,22 @@ function effectLayer(model: StageModel, spots: Map<string, { slot: Slot; height:
     const y = over.slot.y - over.height * over.slot.scale - 30;
     out += `<text x="${n1(over.slot.x)}" y="${n1(y)}" class="bt-pop is-${e.tone}" text-anchor="middle">${escapeAttr(e.pop)}</text>`;
   }
+  // What flies off the one hit (3.2.0): specks of blood, or sparks off a machine; a puff of dirt where a shot misses.
+  if (e.splash && to) {
+    const cx = to.slot.x;
+    const cy = to.slot.y - to.height * to.slot.scale * (e.splash === 'dust' ? 0.05 : 0.55);
+    const away = to.side === 'crew' ? -1 : 1;
+    const color = e.splash === 'sparks' ? '#f7d36b' : e.splash === 'dust' ? '#b9a884' : '#8e2a20';
+    const count = e.splash === 'dust' ? 4 : e.big ? 9 : 6;
+    for (let i = 0; i < count; i++) {
+      const angle = e.splash === 'dust' ? -Math.PI / 2 + (i - 1.5) * 0.5 : (-0.9 + (i / (count - 1)) * 1.6) * (away > 0 ? 1 : -1) + (away > 0 ? 0 : Math.PI);
+      const dist = (e.splash === 'dust' ? 9 : 14) + (i % 3) * 5;
+      const dx = Math.cos(angle) * dist;
+      const dy = Math.sin(angle) * dist;
+      const r = e.splash === 'dust' ? 2.6 : e.splash === 'sparks' ? 1.4 : 1.9;
+      out += `<circle class="bt-speck is-${e.splash}" cx="${n1(cx)}" cy="${n1(cy)}" r="${r}" fill="${color}" style="--dx:${n1(dx)}px;--dy:${n1(dy)}px;animation-delay:${e.splash === 'dust' ? 0.12 : 0.14}s"/>`;
+    }
+  }
   if (e.reaction === 'heal' && to) {
     for (const k of [-8, 0, 8]) out += `<g class="bt-sparkle" style="animation-delay:${(k + 8) * 0.03}s">${pathEl(`M ${n1(to.slot.x + k)} ${n1(to.slot.y - 30 - Math.abs(k))} m -3 0 h 6 m -3 -3 v 6`, 'none', 'stroke="#9cc27f" stroke-width="2" stroke-linecap="round"')}</g>`;
   }
@@ -473,9 +505,11 @@ export function stageSvg(model: StageModel): string {
     : '';
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${STAGE_W} ${STAGE_H}" class="battle" role="group" aria-label="${model.scene ? 'Before the fight' : 'The fight'}">` +
+    `<g class="${model.effect?.big ? 'bt-world bt-quake' : 'bt-world'}">` +
     backdropSvg(model.place) +
     `<rect x="0" y="${HORIZON}" width="${STAGE_W}" height="${STAGE_H - HORIZON}" fill="#1d1915" opacity="0.08"/>` +
     figures +
+    '</g>' +
     shot +
     marks +
     (model.nerve !== undefined ? nerveMeter(model.nerve) : '') +

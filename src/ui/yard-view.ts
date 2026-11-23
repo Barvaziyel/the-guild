@@ -34,7 +34,7 @@ import {
 } from '../engine/index.ts';
 import { HAIR_STYLES, portraitLook } from '../portrait/index.ts';
 import { CHILD_SPOTS, GATE_SPOTS, IDLE_SPOTS, PARKING_X, REST_SPOTS } from '../scene/layout.ts';
-import { dayPhase, type FigureLook, type YardModel, type YardPerson } from '../scene/model.ts';
+import { dayPhase, type FigureLook, type YardModel, type YardPerson, type YardTrip } from '../scene/model.ts';
 import { routeHash } from './route.ts';
 import { ageText } from './family-view.ts';
 import { joinNames } from './runs-view.ts';
@@ -84,8 +84,39 @@ function idleOrder(state: GameState, idle: Survivor[]): Survivor[] {
   return out;
 }
 
-/** The Depot as the drawing shows it, at the hour on the player's clock. */
-export function yardModel(state: GameState, hour: number, day?: number): YardModel {
+/** How long after a crew sets out or comes home the yard still shows them going through the gate (3.2.0). */
+export const TRIP_WINDOW_MS = 3 * 60_000;
+
+/**
+ * Crews setting out or just home (3.2.0), within the last few minutes: on
+ * foot each one walks; with vehicles, the vehicles drive and the crew rides.
+ * Coming home, only those back at the Depot (not sent on to an outpost).
+ */
+export function yardTrips(state: GameState, now: number, parked: readonly { id: string }[]): YardTrip[] {
+  const trips: YardTrip[] = [];
+  const recent = (t: number): boolean => t <= now && now - t < TRIP_WINDOW_MS;
+  const add = (way: 'out' | 'in', at: number, crew: string[], vehicles: string[]): void => {
+    if (vehicles.length > 0) {
+      vehicles.forEach((id, order) => {
+        const v = state.vehicles.find((x) => x.id === id);
+        const slot = parked.findIndex((x) => x.id === id);
+        if (v && (way === 'out' || slot >= 0)) trips.push({ id, vehicle: { defId: v.defId, id, slot: Math.max(0, slot) }, way, at, order });
+      });
+      return;
+    }
+    crew.forEach((id, order) => {
+      const s = state.survivors.find((x) => x.id === id);
+      if (!s || (way === 'in' && (s.status !== 'ready' || s.outpost !== undefined))) return;
+      trips.push({ id, look: figureLook(s), way, at, order });
+    });
+  };
+  for (const r of state.runs) if (recent(r.departAt)) add('out', r.departAt, r.plan.crew, r.plan.vehicles ?? []);
+  for (const r of state.reports) if (recent(r.returnAt)) add('in', r.returnAt, r.plan.crew, r.plan.vehicles ?? []);
+  return trips;
+}
+
+/** The Depot as the drawing shows it, at the hour on the player's clock; with `now`, crews going through the gate. */
+export function yardModel(state: GameState, hour: number, day?: number, now?: number): YardModel {
   const people: YardPerson[] = [];
   const home = state.survivors.filter((s) => s.status === 'ready' && s.outpost === undefined);
 
@@ -165,7 +196,8 @@ export function yardModel(state: GameState, hour: number, day?: number): YardMod
     const keeper = keeperOf(state, a);
     return { id: a.id, kind: a.kind, ...(keeper ? { keeperId: keeper.id } : {}), label: `${a.name}, the ${getAnimal(a.kind).name}.${keeper ? ` Looked after by ${keeper.firstName}.` : ''}` };
   });
-  return { buildings, projects, people, trader: state.depot.offers.length > 0, vehicles, animals, phase: dayPhase(hour) };
+  const trips = now !== undefined ? yardTrips(state, now, vehicles) : [];
+  return { buildings, projects, people, trader: state.depot.offers.length > 0, vehicles, animals, phase: dayPhase(hour), ...(trips.length > 0 ? { trips } : {}) };
 }
 
 /** What a tap on a building says: "Garden, level 2. 2 of 3 working." or what it would cost. */

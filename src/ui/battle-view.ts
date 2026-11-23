@@ -190,12 +190,15 @@ function effectOf(a: FightAct, after: FightView): StageEffect {
   const at = a.at !== undefined ? keyFor(a.at) : undefined;
   const onCrew = typeof a.at === 'string';
   const base = { by, ...(at ? { at } : {}) };
+  // What flies off whoever is hit (3.2.0): a machine sparks, anyone else bleeds.
+  const machine = typeof a.at === 'number' && after.enemies[a.at]?.type === 'scrapbot';
+  const splash = machine ? ('sparks' as const) : ('blood' as const);
   switch (a.kind) {
     case 'hit':
     case 'kill':
-      return { ...base, motion: a.shot ? 'shoot' : 'lunge', reaction: 'hit', pop: `-${a.amount ?? 0}`, tone: onCrew ? 'hurt' : 'hit' };
+      return { ...base, motion: a.shot ? 'shoot' : 'lunge', reaction: 'hit', pop: `-${a.amount ?? 0}`, tone: onCrew ? 'hurt' : 'hit', splash, ...((a.amount ?? 0) >= 6 || a.down || a.kind === 'kill' ? { big: true } : {}) };
     case 'miss':
-      return { ...base, motion: a.shot ? 'shoot' : 'lunge', reaction: 'miss', pop: 'Miss', tone: 'miss' };
+      return { ...base, motion: a.shot ? 'shoot' : 'lunge', reaction: 'miss', pop: 'Miss', tone: 'miss', ...(a.shot ? { splash: 'dust' as const } : {}) };
     case 'heal':
       return { ...base, motion: 'act', reaction: 'heal', pop: `+${a.amount ?? 0}`, tone: 'heal' };
     case 'revive':
@@ -205,7 +208,7 @@ function effectOf(a: FightAct, after: FightView): StageEffect {
       return { ...base, motion: 'act', reaction: 'none', pop: a.ok ? (gone === 'dead' ? 'Shuts down' : 'Backs off') : 'No good', tone: a.ok ? 'hit' : 'miss' };
     }
     case 'finish':
-      return { ...base, motion: a.shot ? 'shoot' : 'lunge', reaction: 'hit', pop: 'Finished', tone: 'hit' };
+      return { ...base, motion: a.shot ? 'shoot' : 'lunge', reaction: 'hit', pop: 'Finished', tone: 'hit', splash, big: true };
     case 'rise':
       return { by, motion: 'none', reaction: 'none', pop: 'Gets up', tone: 'hurt' };
     case 'arrive':
