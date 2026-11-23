@@ -364,6 +364,9 @@ export function itemStats(item: ItemInstance): string {
 
 export interface ItemView {
   uid: string;
+  /** What it is and how good, for its icon (3.3.0). */
+  defId: string;
+  quality: ItemInstance['quality'];
   name: string;
   /** What a named weapon is: "Solid Machete". */
   kind?: string;
@@ -377,6 +380,8 @@ export interface ItemView {
 export function itemView(item: ItemInstance): ItemView {
   return {
     uid: item.uid,
+    defId: item.defId,
+    quality: item.quality,
     name: itemName(item),
     ...(item.name ? { kind: baseItemName(item) } : {}),
     stats: itemStats(item),

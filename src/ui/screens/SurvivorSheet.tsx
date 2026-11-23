@@ -34,6 +34,7 @@ import { Portrait } from '../components/Portrait.tsx';
 import { goBack, navigate, useAction, useServices } from '../hooks.ts';
 import type { SheetTab } from '../route.ts';
 import { backIn, runOfSurvivor } from '../runs-view.ts';
+import { ItemIcon } from '../components/Art.tsx';
 import {
   SLOT_NAMES,
   bonds,
@@ -484,6 +485,7 @@ function GearSlot({ state, survivor: s, slot, editable, open, onToggle, onDone }
   return (
     <li className="gear-slot">
       <div className="gear-row">
+        <ItemIcon defId={view?.defId} quality={view?.quality} />
         <div className="gear-item">
           <span className="slot-name">{SLOT_NAMES[slot]}</span>
           {view ? (
@@ -508,9 +510,12 @@ function GearSlot({ state, survivor: s, slot, editable, open, onToggle, onDone }
                 const v = itemView(it);
                 return (
                   <li key={it.uid}>
-                    <button type="button" className="pick" onClick={() => equip(it.uid)}>
-                      <span className="item-name">{v.name}</span>
-                      <span className="item-stats">{v.stats || v.description}</span>
+                    <button type="button" className="pick pick-with-icon" onClick={() => equip(it.uid)}>
+                      <ItemIcon defId={v.defId} quality={v.quality} />
+                      <span className="pick-text">
+                        <span className="item-name">{v.name}</span>
+                        <span className="item-stats">{v.stats || v.description}</span>
+                      </span>
                     </button>
                   </li>
                 );

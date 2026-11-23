@@ -6295,3 +6295,95 @@ p.is-bad {
     transform: scale(1);
   }
 }
+
+/* ---------------------------------------------------------------- pictures (3.3.0) */
+
+.item-icon-box {
+  flex: none;
+  display: block;
+  width: 44px;
+  height: 44px;
+}
+
+.item-icon-box svg,
+.beat-icon-box svg,
+.place-picture-box svg,
+.building-picture-box svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.gear-row > .item-icon-box {
+  margin-top: 0.125rem;
+}
+
+.gear-row > .gear-item {
+  flex: 1;
+}
+
+.pick.pick-with-icon {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.pick-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.recipe.recipe-with-icon {
+  grid-template-columns: auto 1fr auto;
+}
+
+.offer.offer-with-icon {
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  column-gap: 0.75rem;
+  align-items: start;
+}
+
+.offer.offer-with-icon > :not(.item-icon-box) {
+  grid-column: 2;
+}
+
+.place-picture-box {
+  aspect-ratio: 400 / 160;
+  margin: 0.75rem 1rem 0;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.place-panel .place-picture-box {
+  margin: -0.25rem 0 0.75rem;
+}
+
+.building-picture-box {
+  margin: 0.75rem 1rem 0;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.building-picture-box svg {
+  height: auto;
+}
+
+.beat-head {
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.beat-head .beat-time {
+  margin-left: auto;
+}
+
+.beat-icon-box {
+  flex: none;
+  display: block;
+  width: 30px;
+  height: 30px;
+}

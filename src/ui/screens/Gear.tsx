@@ -5,6 +5,7 @@ import { Portrait } from '../components/Portrait.tsx';
 import { carriedRows, gearTakers, salvageButton, sparesPanel, stashGroups, stashLine } from '../gear-view.ts';
 import { goBack, navigate, useAction } from '../hooks.ts';
 import type { ItemView } from '../view.ts';
+import { ItemIcon } from '../components/Art.tsx';
 
 /** The guild's stash, with a way to hand each piece to someone, and what everyone carries. */
 export function Gear({ state }: { state: GameState }) {
@@ -83,6 +84,7 @@ export function Gear({ state }: { state: GameState }) {
                 {g.items.map((item) => (
                   <li key={item.uid} className="gear-slot">
                     <div className="gear-row">
+                      <ItemIcon defId={item.defId} quality={item.quality} />
                       <div className="gear-item">
                         <ItemDetails view={item} />
                       </div>

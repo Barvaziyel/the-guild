@@ -1251,8 +1251,7 @@ The "crew is back" toast now steps aside by itself after a few seconds, since th
     Bad Leg and Missing Fingers are out of frame.
   - A hand-drawn wobble is applied with an SVG filter. It can be turned off (`wobble: false`) if long lists of portraits scroll slowly on the phone.
   - `npm run portraits` writes a gallery to `out/portraits.html`.
-- **Image generation** (after Nov 16) covers location cards, event vignettes, item icons and buildings. Use one locked style prompt and a reference image.
-- **Placeholder** until the art exists: initials in a stamped circle, plus icons from game-icons.net (CC BY 3.0, credited).
+- **Everything else is drawn in code too** (3.3.0, §14.3), in the same ink: the planned image-generator art for places, events, items and buildings was not needed.
 
 ### 14.1 Sound (3.1.0)
 
@@ -1289,6 +1288,15 @@ Aviel, 2026-11-23, all four of the movement options. Everything moves with CSS (
 - **Crews on the map**: a crew out walks (or drives) along the roads it knows from the Depot to its place, the shortest way, and back again: the first and last 30% of a run on the road, the rest at the place (where the place's badge counts them). Tap one to open its run. The tour's Reach step mentions it.
 - **Livelier fights**: everyone standing breathes; a hit sends specks of blood (sparks off a machine), a shot that misses kicks up dirt, a gun leaves a puff of smoke, someone put down falls rather than appearing on the ground, and a heavy blow (6 or more) or someone going down shakes the stage.
 - **Snappier screens**: a new screen fades up into place (another tab of the same screen doesn't), cards fade in as they appear, buttons press in, the toast springs up, badges pop; a supply that changes counts to its new amount and flashes green or red, with the change (“+12”) floating up beside it.
+
+### 14.3 Pictures (3.3.0)
+
+Aviel, 2026-11-23, all four of the art options, in the ink style of the yard and portraits (`src/scene/icons.ts`, `src/scene/pictures.ts`, shown by `components/Art.tsx`):
+
+- **An icon for every piece of gear**: a small drawing on a paper tile; a rusty one is speckled with rust, solid, prime and relic carry one, two and three stars, and a relic has a gold edge; an empty slot is a dashed outline. On the Gear screen, a survivor's gear and the stash picker, the Workshop's *Make* and *Improve*, and a trader's gear. **A new piece of gear needs a drawing in `icons.ts`** (`pictures.test.ts` fails otherwise).
+- **Each place's picture**: its battle backdrop (§7.13) cropped to a banner across the horizon, at the top of the Reach's place panel, the planner's crew step (the orders step stays on one screen), and a run, out or back.
+- **Small pictures in the log**: a round stamp in red ink beside every moment of a run: setting out (the gate), the road (footprints), scavenging (a crate pried open), a hazard (the warning sign), a fight (crossed blades), the crew among themselves (a fire), a find (a spyglass), a rescue (two hands), the Vultures (a feather), home (the Depot's roof).
+- **Buildings up close**: a building's screen opens with its drawing from the yard at its level (the empty lot before it's built), with sky and ground around it, the Firepit with its fire and smoke moving. Always a landscape (1.9 to 2.8 wide to 1 high).
 
 ## 15. Roadmap
 
@@ -1353,7 +1361,7 @@ From the ideas in `claude/interactive-ideas.md`, and Aviel's own additions. The 
 | Haven, part 2: the road east (§9.12, 3.0.0). Everyone sets out, children too; fights on the way under command; at the gate, the one of the guild who went east gets out, shouts the truth and is shot by a sniper; the Vultures join, since they think it's vile too; a big fight against a giant stitched from many people (four arms, three legs, two heads; it needs a drawing in `fighters.ts`); an ending scene, Chronicle lines, whoever they freed comes home; the game goes on | Aviel, 2026-11-16: "Haven is really a place where they believe in creating the next evolution of humans... The end fight you have to fight this giant Frankenstein... you only find out once you get there"; "One of our own... runs away to join them... This is the one who escapes and is shot when you approach" | done (2026-11-17) |
 | Sound (§14.1, 3.1.0): music, the yard's ambience, sound effects, fight sounds and a buzz | Aviel, 2026-11-23: "make the game a bit more interesting… music, sound effects"; he picked all four, and that I make the music | **done** (3.1.0) |
 | Movement (§14.2, 3.2.0): the yard comes alive (work at the posts, people stepping away and back, crews and vehicles through the gate, the trader's cart, the sky and the road), crews on the Reach map, livelier fights, snappier screens | Aviel, 2026-11-23, all four | **done** (3.2.0) |
-| Art (3.3.0): an icon for every piece of gear, each place's picture, small pictures in run logs, each building up close on its screen | Aviel, 2026-11-23, all four, in the ink style of the yard and portraits | planned |
+| Art (§14.3, 3.3.0): an icon for every piece of gear, each place's picture, small pictures in run logs, each building up close on its screen | Aviel, 2026-11-23, all four, in the ink style of the yard and portraits | **done** (3.3.0) |
 
 Not picked: choosing the rooms before a scavenge, raids you see coming, feasts and gatherings, talking to people in the yard.
 
