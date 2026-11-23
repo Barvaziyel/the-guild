@@ -50,20 +50,60 @@ def boom(d=1.4, f0=78, f1=46):
 
 BOOM = boom()
 
+def skin(f0, d=0.55, slap=1.0, seed=0):
+    """
+    A drum hit a phone can hear (Aviel, 15:35: the drums were "still super quiet";
+    the taiko samples have almost nothing above 300 Hz, where a phone speaker
+    starts): the skin's modes falling in pitch at the strike, the slap of the
+    hand, the click of the stick, a little grit.
+    """
+    rng = np.random.default_rng(seed)
+    t = np.arange(int(d * SR)) / SR
+    body = np.zeros_like(t)
+    for ratio, amp, tau in [(1.0, 1.0, 0.2), (1.59, 0.6, 0.11), (2.14, 0.4, 0.07), (2.65, 0.25, 0.045), (3.16, 0.15, 0.03)]:
+        f = f0 * ratio * (1 + 0.45 * np.exp(-t / 0.025))
+        body += amp * np.sin(2 * np.pi * np.cumsum(f) / SR + rng.uniform(0, 6)) * np.exp(-t / tau)
+    noise = rng.normal(0, 1, len(t))
+    slap_ = lowpass(highpass(noise, 350, 2), 3000, 2) * np.exp(-t / 0.04) * 1.6 * slap
+    click = lowpass(highpass(noise, 2500, 2), 7000, 2) * np.exp(-t / 0.007) * 0.5 * slap
+    x = (body + slap_ + click) * (1 - np.exp(-t / 0.0012))
+    x = np.tanh(2.0 * x / np.abs(x).max())
+    return lowpass(x, 9000, 2) / np.abs(x).max()
+
+# A few of each, so no two hits are quite the same.
+SKINS = {
+    'big': [skin(92, 0.8, 1.0, k) for k in range(4)],
+    'mid': [skin(150, 0.55, 0.95, 10 + k) for k in range(4)],
+    'high': [skin(230, 0.4, 0.85, 20 + k) for k in range(4)],
+    'top': [skin(330, 0.3, 0.7, 30 + k) for k in range(3)],
+}
+NOTE_SKIN = {'C2': 'big', 'G2': 'mid', 'C3': 'high', 'A2': 'mid', 'E2': 'big', 'D2': 'big', 'A1': 'big', 'G1': 'big'}
+PANS = (-0.45, 0.0, 0.45)
+_turn = [0]
+
+def slap(kind, beat, v, k=1):
+    """One player's skin on top of their drum."""
+    _turn[0] += 1
+    sounds = SKINS[kind]
+    D.sound(sounds[_turn[0] % len(sounds)], beat, gain=(v / 127) ** 1.4, pan=PANS[k % 3], reverb=0.45)
+
 def big(beat, v=118, sub=True):
     """Every drum at once: the big drum, three players, and a boom under it."""
     odaiko.n('G1', beat, 2, v)
     for k, pl in enumerate(PLAYERS):
         pl.n('C2', beat + (k - 1) * 0.012, 1.5, v - 6, detune=(k - 1) * 14)
+        slap('big', beat + (k - 1) * 0.012, v - 4, k)
     if sub:
         D.sound(BOOM, beat, gain=v / 127, reverb=0.5)
 
 def hit(beat, v, note='G2', players=(0, 1, 2)):
     for k in players:
         PLAYERS[k].n(note, beat + (k - 1) * 0.01, 1, v - abs(k - 1) * 6, detune=(k - 1) * 12)
+        slap(NOTE_SKIN.get(note, 'mid'), beat + (k - 1) * 0.01, v - abs(k - 1) * 6, k)
 
 def ghost(beat, v, k=1):
     PLAYERS[k % 3].n('C3', beat, 0.6, v)
+    slap('high', beat, v - 6, k)
 
 def roll(start, beats, v0, v1, note='C3', step=0.25):
     n = int(beats / step)
@@ -74,6 +114,7 @@ def drive(bar, v=46):
     """The high drum on every eighth, pushing it along."""
     for i in range(8):
         high.n('C4' if i % 2 == 0 else 'G3', bar * 4 + i * 0.5, 0.4, v + (12 if i % 2 == 0 else 0))
+        slap('top', bar * 4 + i * 0.5, v + 30 + (12 if i % 2 == 0 else 0), i)
 
 def bar_a(bar, lift=0):
     b = bar * 4
@@ -102,6 +143,7 @@ def fill(bar, lift=0):
     big(b + 1.5, 112 + lift)
     for i, p in enumerate(['C3', 'A2', 'G2', 'E2', 'D2', 'C2', 'A1', 'G1']):
         tom.n(p, b + 2 + i * 0.25, 0.6, 80 + i * 5 + lift)
+        slap(['high', 'high', 'mid', 'mid', 'mid', 'big', 'big', 'big'][i], b + 2 + i * 0.25, 86 + i * 5 + lift, i)
         if i % 2 == 0:
             hit(b + 2 + i * 0.25, 78 + i * 4 + lift, 'G2', players=(i // 2 % 3,))
     timp.n('E2', b + 3.5, 1, 110)
@@ -189,14 +231,25 @@ def punch(loop):
     x = np.tanh(1.3 * x / peak * 0.9) / np.tanh(1.3) * peak
     return x[pad:]
 
+DRUMS_OVER = 8  # LU over the music, through a phone speaker
 meter = pyloudnorm.Meter(SR)
 music = S.render(loop=True, normalize=False)
 drums, hall = D.render(loop=True, normalize=False, split=True)
 drums = punch(drums)
 at = lambda x, lufs: x * 10 ** ((lufs - meter.integrated_loudness(x)) / 20)
-# By ear (K-weighted): the drums well over the music, their hall behind them.
-mix = at(music, -23) + at(drums, -14) + at(hall, -20)
-mix = limit(at(mix, -14.5))
+
+def phone(x):
+    """Roughly what a phone's speaker plays: little below 300 Hz."""
+    return lowpass(highpass(x, 300, 4), 8000, 2)
+
+music = at(music, -23)
+# The drums well over the music where a phone can play them (Aviel: "triple or quadruple the strength"),
+# the hall behind them.
+drums = drums * 10 ** ((meter.integrated_loudness(phone(music)) + DRUMS_OVER - meter.integrated_loudness(phone(drums))) / 20)
+hall = hall * 10 ** ((meter.integrated_loudness(drums) - 7 - meter.integrated_loudness(hall)) / 20)
+mix = limit(at(music + drums + hall, -14.5))
+for name, x in [('music', music), ('drums', drums), ('hall', hall)]:
+    print(f'{name}: full {meter.integrated_loudness(x):.1f} LUFS, through a phone {meter.integrated_loudness(phone(x)):.1f}')
 print(stats(mix))
 write(mix, 'out/fight.ogg', 96)
 write(mix, 'out/fight.mp3', 160)
