@@ -93,11 +93,12 @@ for bar in list(range(16, 24)) + list(range(32, 40)):
     c = PROG[bar]
     horn2.n(midi(ROOT[c]) + 12, bar * 4, 3.8, 75)
 
-# The drums' and the hall's levels in the version he liked (16:26), measured then (the drums 4 LU over the
-# music through a phone, the hall 6 under them) and kept as they were: worked out again from drums that are
-# now silent most of the time, they would come out far louder.
-DRUMS_GAIN = 19.75
-HALL_GAIN = 12.45
+# The drums' and the hall's levels. 16:26 he liked them at 19.75 and 12.45 (with the taiko groove under
+# them); with the groove gone and the fills played harder that was too loud (16:34: "make them a bit closer
+# to the strings and all the rest"), so both are 7 dB down: through a phone a fill now peaks about 9 dB over
+# the music around it, where it was in the version he liked (it was 13).
+DRUMS_GAIN = 8.82
+HALL_GAIN = 5.56
 
 meter = pyloudnorm.Meter(SR)
 at = lambda x, lufs: x * 10 ** ((lufs - meter.integrated_loudness(x)) / 20)
