@@ -50,7 +50,7 @@ def boom(d=1.4, f0=78, f1=46):
 
 BOOM = boom()
 
-def skin(f0, d=0.55, slap=1.0, seed=0):
+def skin(f0, d=0.55, slap=1.0, seed=0, dark=False):
     """
     A drum hit a phone can hear (Aviel, 15:35: the drums were "still super quiet";
     the taiko samples have almost nothing above 300 Hz, where a phone speaker
@@ -64,14 +64,18 @@ def skin(f0, d=0.55, slap=1.0, seed=0):
         f = f0 * ratio * (1 + 0.45 * np.exp(-t / 0.025))
         body += amp * np.sin(2 * np.pi * np.cumsum(f) / SR + rng.uniform(0, 6)) * np.exp(-t / tau)
     noise = rng.normal(0, 1, len(t))
-    slap_ = lowpass(highpass(noise, 350, 2), 3000, 2) * np.exp(-t / 0.04) * 1.6 * slap
-    click = lowpass(highpass(noise, 2500, 2), 7000, 2) * np.exp(-t / 0.007) * 0.5 * slap
+    # A dark skin (the low hits) thuds rather than cracks: its slap stays under 1 kHz, its click is faint.
+    slap_ = lowpass(highpass(noise, 250 if dark else 350, 2), 1000 if dark else 3000, 2) * np.exp(-t / (0.06 if dark else 0.04)) * 1.6 * slap
+    click = lowpass(highpass(noise, 2500, 2), 7000, 2) * np.exp(-t / 0.007) * (0.12 if dark else 0.5) * slap
     x = (body + slap_ + click) * (1 - np.exp(-t / 0.0012))
     x = np.tanh(2.0 * x / np.abs(x).max())
     return lowpass(x, 9000, 2) / np.abs(x).max()
 
 # A few of each, so no two hits are quite the same.
 SKINS = {
+    # Low and round, for the build and the boom (15:44: "less drums but lower sounding").
+    'low': [skin(72, 1.0, 0.75, 40 + k, dark=True) for k in range(4)],
+    'boom': [skin(56, 1.6, 0.85, 50 + k, dark=True) for k in range(3)],
     'big': [skin(92, 0.8, 1.0, k) for k in range(4)],
     'mid': [skin(150, 0.55, 0.95, 10 + k) for k in range(4)],
     'high': [skin(230, 0.4, 0.85, 20 + k) for k in range(4)],
@@ -161,23 +165,43 @@ def roll_t(bar, beats, v0, v1, note='E2'):
     for i in range(n):
         timp.n(note, bar * 4 + (4 - beats) + i / 6, 0.3, v0 + (v1 - v0) * i / n)
 
-# A: the groove, a little held back. B: full. C: with the high drum driving.
-for first, lift, dv in [(0, -10, None), (4, -6, None), (8, 0, None), (12, 0, None), (16, 2, 44), (20, 4, 48)]:
-    phrase(first, lift, dv)
-# The breakdown: one huge hit a bar, then the build.
-for bar in range(24, 30):
-    big(bar * 4, 112 if bar % 2 == 0 else 100)
-    ghost(bar * 4 + 2.5, 44, bar)
-for i in range(8):
-    hit(30 * 4 + i * 0.5, 60 + i * 6, 'G2')
-roll(31 * 4, 4, 45, 127, 'C3', step=0.125)
-roll(31 * 4 + 2, 2, 60, 127, 'G2', step=0.25)
-roll_t(31, 4, 40, 124, 'B1')
-# The climax: everything, with the big hits doubled.
-for first in (32, 36):
-    phrase(first, 8, 56)
-    for bar in range(first, first + 3):
-        big(bar * 4 + 3, 104)
+def boo(beat, v):
+    """One of the build's hits: the big drum and the three players, low, no boom yet."""
+    odaiko.n('G1', beat, 2, v)
+    for k, pl in enumerate(PLAYERS):
+        pl.n('G1', beat + (k - 1) * 0.012, 2, v - 8, detune=(k - 1) * 14)
+        slap('low', beat + (k - 1) * 0.012, v - 4, k)
+
+def booom(beat, v=127):
+    """The hit it was all building to: every drum, the boom under it, the timpani, and then nothing but the hall."""
+    odaiko.n('C1', beat, 3, v)
+    for k, pl in enumerate(PLAYERS):
+        pl.n('C1', beat + (k - 1) * 0.015, 3, v - 4, detune=(k - 1) * 16)
+        slap('boom', beat + (k - 1) * 0.015, v, k)
+    D.sound(BOOM, beat, gain=0.45, reverb=0.6)
+    timp.n('E2', beat, 3, 120)
+
+def build(bar, hits=(0, 1, 2, 3), v0=78, v1=116):
+    """Boo, boo, boo, boo: getting louder, into the boom at the next bar."""
+    for i, b in enumerate(hits):
+        boo(bar * 4 + b, v0 + (v1 - v0) * i / max(1, len(hits) - 1))
+
+# Aviel, 15:44: "less drums but lower sounding... no drums no drums, boo boo boo boo booom,
+# epic style but make the drums worth it, savor them". So the drums only come in to build to
+# a boom at the top of each part, and then leave the hall ringing.
+for top in (8, 16, 24, 32):
+    booom(top * 4)
+build(7)
+build(15)
+build(23, hits=(0, 1, 2, 2.5, 3, 3.5), v0=74, v1=118)
+# Into the climax, the longest build: slow, then quicker.
+build(30, hits=(0, 2), v0=70, v1=82)
+build(31, hits=(0, 1, 2, 2.5, 3, 3.25, 3.5, 3.75), v0=86, v1=124)
+roll_t(31, 2, 50, 118, 'B1')
+# The climax lands a second boom halfway; the last bars build back into the top of the loop.
+booom(36 * 4, 120)
+build(39, hits=(0, 1, 2, 3, 3.5), v0=84, v1=122)
+booom(0)
 
 for bar, c in enumerate(PROG):
     sec = bar // 8
@@ -221,17 +245,24 @@ def punch(loop):
     pad = 3 * SR
     x = np.concatenate([loop[-pad:], loop])
     attack = highpass(x, 1200, 2)
-    body = x + (lowpass(x, 140, 2) - lowpass(x, 55, 2)) * 1.0
+    body = x + (lowpass(x, 140, 2) - lowpass(x, 55, 2)) * 0.4
     env = np.sqrt(np.maximum(lowpass(np.mean(body ** 2, 1), 40, 1), 1e-12))
     thr = np.percentile(env, 75)
     comp = body * np.where(env > thr, (thr / env) ** (1 - 1 / 4), 1.0)[:, None]
     comp *= np.sqrt(np.mean(body ** 2) / np.mean(comp ** 2))
     x = 0.4 * body + 0.7 * comp + attack * 0.9
+    # The low end's overtones, so a phone, which can't play the boom itself, still hears how low it is:
+    # drive what's under 150 Hz hard and keep only the harmonics that come out above 250 Hz.
+    low = lowpass(x, 150, 4)
+    overtones = highpass(np.tanh(6 * low / np.abs(low).max()), 250, 4)
+    x = x + overtones * np.abs(x).max() * 0.6
     peak = np.abs(x).max()
-    x = np.tanh(1.3 * x / peak * 0.9) / np.tanh(1.3) * peak
+    # Driven hard into a soft clip, as big film drums are: the hits keep their weight but lose their spikes.
+    x = np.tanh(3.0 * x / peak) / np.tanh(3.0) * peak
     return x[pad:]
 
-DRUMS_OVER = 8  # LU over the music, through a phone speaker
+DRUMS_OVER = 9  # dB over the music at each boom, through a phone speaker
+BOOMS = [b * 4 for b in (0, 8, 16, 24, 32, 36)]
 meter = pyloudnorm.Meter(SR)
 music = S.render(loop=True, normalize=False)
 drums, hall = D.render(loop=True, normalize=False, split=True)
@@ -242,12 +273,22 @@ def phone(x):
     """Roughly what a phone's speaker plays: little below 300 Hz."""
     return lowpass(highpass(x, 300, 4), 8000, 2)
 
-music = at(music, -23)
-# The drums well over the music where a phone can play them (Aviel: "triple or quadruple the strength"),
-# the hall behind them.
-drums = drums * 10 ** ((meter.integrated_loudness(phone(music)) + DRUMS_OVER - meter.integrated_loudness(phone(drums))) / 20)
-hall = hall * 10 ** ((meter.integrated_loudness(drums) - 7 - meter.integrated_loudness(hall)) / 20)
-mix = limit(at(music + drums + hall, -14.5))
+music = at(music, -22)  # where the music sits in the end: about where the other pieces sit
+
+def at_booms(x):
+    """How loud something is through a phone in the first 150 ms of each boom."""
+    y = phone(x).mean(1)
+    spb = 60 / 112
+    return 20 * np.log10(np.sqrt(np.mean([np.mean(y[int(b * spb * SR):int(b * spb * SR) + int(0.15 * SR)] ** 2) for b in BOOMS])))
+
+# Each boom stands well over the music through a phone, with its hall ringing on after it.
+drums = drums * 10 ** ((at_booms(music) + DRUMS_OVER - at_booms(drums)) / 20)
+hall = hall * 10 ** ((at_booms(drums) - 9 - at_booms(hall)) / 20)
+# No loudness normalizing after this: the booms would pull the music down under them.
+mix = music + drums + hall
+# Limited as a loop (its own end in front), so the seam doesn't jump where the limiter would start fresh.
+pad = 3 * SR
+mix = limit(np.concatenate([mix[-pad:], mix]), release=0.25)[pad:]
 for name, x in [('music', music), ('drums', drums), ('hall', hall)]:
     print(f'{name}: full {meter.integrated_loudness(x):.1f} LUFS, through a phone {meter.integrated_loudness(phone(x)):.1f}')
 print(stats(mix))
