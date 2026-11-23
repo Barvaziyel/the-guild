@@ -24,7 +24,7 @@ import { dangerText, formatDuration, joinNames, locationView, placeNote, radiati
 import { nemesesAt, nemesisRows } from '../stories-view.ts';
 import { vulturePlaceLine, vulturesSummary, vultureTag } from '../vultures-view.ts';
 import { PlacePicture } from '../components/Art.tsx';
-import { priceLines } from '../market-view.ts';
+import { priceRows } from '../market-view.ts';
 
 const today = (s: GameState): number => dayAt(s, Date.now());
 const PLACE_TAB_LABELS: Record<PlaceTab, string> = { about: 'About', outpost: 'Outpost' };
@@ -220,14 +220,33 @@ function MarketAbout({ state, id }: { state: GameState; id: string }) {
         </div>
       </dl>
       <div className="market-prices" data-tour="market">
-        <h4 className="levels-title">Prices today</h4>
-        <ul>
-          {priceLines(state).map((line) => (
-            <li key={line}>{line}</li>
-          ))}
-        </ul>
+        <h4 className="levels-title">Prices today, in scrap</h4>
+        <table className="price-table">
+          <thead>
+            <tr>
+              <th scope="col">
+                <span className="visually-hidden">Supply</span>
+              </th>
+              <th scope="col">Sell 10 for</th>
+              <th scope="col">Buy 10 for</th>
+            </tr>
+          </thead>
+          <tbody>
+            {priceRows(state).map((row) => (
+              <tr key={row.id}>
+                <th scope="row">
+                  {row.name}
+                  {row.trend && <span className={`price-trend is-${row.trend}`}>{row.trend === 'cheap' ? 'Cheap lately' : 'Pricey lately'}</span>}
+                </th>
+                <td>{row.sell}</td>
+                <td>{row.buy}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {priceRows(state).some((r) => r.trend) && <p className="panel-help">Cheap lately: the guild has sold a lot of it here. Pricey lately: it has bought a lot.</p>}
       </div>
-      <p className="place-note">Nothing to explore here, and nothing to find: crews come with goods and go home with something else. The more of one thing the guild trades, the worse the price, until it settles back over a day or two.</p>
+      <p className="place-note">Nothing to explore here, and nothing to find: crews come with goods and go home with something else. A big load fetches less than the table says, since the more of one thing the guild trades, the worse the price; prices settle back over a day or two.</p>
       {v.crewsOut.map((run) => (
         <button key={run.id} type="button" className="crew-here" onClick={() => navigate({ screen: 'run', id: run.id })}>
           {joinNames(runCrewNames(run))} {run.plan.crew.length === 1 ? 'is' : 'are'} here now. Follow the run.

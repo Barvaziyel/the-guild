@@ -23,6 +23,11 @@ import {
   bedsTaken,
   bunksCap,
   costText,
+  amountOf,
+  getVehicleDef,
+  marketQuote,
+  vehicleName,
+  type TradeOffer,
   craftProblem,
   dailyUpkeep,
   effectiveStat,
@@ -447,4 +452,45 @@ export function nextDayView(state: GameState, now: number): { line: string; labe
   const next = dayAt(state, now) + 1;
   const progress = Math.min(1, Math.max(0, 1 - (at - now) / DAY_MS));
   return { line: `Next in ${formatDuration(Math.max(at - now, 0))}`, label: `Day ${next} starts at ${clockTime(at)}`, progress };
+}
+
+// ---------------------------------------------------------------- caravans at the gate
+
+/**
+ * A caravan's offer laid out as what the guild gives and what it gets (Aviel, 2026-11-23: "it should
+ * be clearer what you're giving and what you're getting"), with what the guild has of each thing it
+ * would give, and what the market at the Drive-In would give for the same, when it's a plain swap.
+ */
+export interface OfferView {
+  who: string;
+  give: { text: string; have: string }[];
+  get: { text: string; detail?: string }[];
+  /** "At the Drive-In, 40 rations would fetch about 11 scrap." */
+  compare?: string;
+  leaves: string;
+}
+
+export function offerView(state: GameState, offer: TradeOffer, day: number): OfferView {
+  const give = RESOURCE_IDS.filter((r) => (offer.give[r] ?? 0) > 0).map((r) => ({ text: amountOf(r, offer.give[r]!), have: `You have ${state.resources[r]}.` }));
+  const got = RESOURCE_IDS.filter((r) => (offer.get[r] ?? 0) > 0);
+  const get: OfferView['get'] = got.map((r) => ({ text: amountOf(r, offer.get[r]!) }));
+  if (offer.item) get.push({ text: itemName(offer.item), detail: itemStats(offer.item) });
+  if (offer.vehicle) {
+    const def = getVehicleDef(offer.vehicle.defId);
+    get.push({ text: `A ${vehicleName(offer.vehicle)}`, detail: `Seats ${def.seats}, carries ${def.cargo}, in fair shape (${offer.vehicle.condition}%).` });
+  }
+  let compare: string | undefined;
+  const gives = RESOURCE_IDS.filter((r) => (offer.give[r] ?? 0) > 0);
+  if (gives.length === 1 && got.length === 1 && !offer.item && !offer.vehicle) {
+    const order = { give: gives[0]!, amount: offer.give[gives[0]!]!, get: got[0]! };
+    const there = marketQuote(state.market, order);
+    compare = `At the Drive-In, ${amountOf(order.give, order.amount)} would fetch about ${amountOf(order.get, there)}.`;
+  }
+  return {
+    who: offer.vultures ? 'A Vulture trader' : 'A trader',
+    give,
+    get,
+    ...(compare ? { compare } : {}),
+    leaves: offer.expiresDay - 1 <= day ? 'Leaves at the end of today.' : `Leaves after day ${offer.expiresDay - 1}.`,
+  };
 }

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import { moveMarket, newGame, tradeCapacity, validatePlan, type RunPlan } from '../engine/index.ts';
 import { JOBS, defaultPlan } from './runs-view.ts';
-import { fitTrade, marketJobs, maxTrade, priceLines, tradeLine, withAmount, withGet, withGive } from './market-view.ts';
+import { fitTrade, marketJobs, maxTrade, priceLine, priceRows, tradeLine, withAmount, withGet, withGive } from './market-view.ts';
 
 function atMarket(crew = 3): { state: ReturnType<typeof newGame>; plan: RunPlan } {
   const state = newGame({ seed: 'market-view', now: 0 });
@@ -43,13 +43,19 @@ describe('the market on screen (§7.14)', () => {
     assert.equal(fitTrade(state, { ...plan, locationId: 'rail_yard', job: 'trade' }).job, 'scavenge');
   });
 
-  test('prices in plain words, and a note once the guild has moved them', () => {
+  test('prices for ten of each, in scrap, and a mark once the guild has moved them', () => {
     const { state } = atMarket();
-    const lines = priceLines(state);
-    assert.equal(lines.length, 5);
-    assert.equal(lines[0], 'Rations: 3 fetch a scrap, and a scrap buys 1.6.');
-    assert.match(lines.find((l) => l.startsWith('Tech'))!, /^Tech: sells for [\d.]+ scrap, and costs [\d.]+\.$/);
+    const rows = priceRows(state);
+    assert.deepEqual(rows.map((r) => r.id), ['rations', 'meds', 'ammo', 'tech', 'gas'], 'everything but scrap, which they\u2019re priced in');
+    assert.deepEqual(rows.map((r) => [r.sell, r.buy]), [[3, 6], [11, 20], [4, 7], [22, 41], [9, 16]]);
+    assert.ok(rows.every((r) => !r.trend));
+    assert.equal(priceLine(state, 'rations'), '10 rations sell for 3 scrap here, and cost 6.');
+    assert.equal(priceLine(state, 'scrap'), 'Everything here is priced in scrap.');
     moveMarket(state, { give: 'rations', amount: 200, get: 'scrap' }, 40);
-    assert.match(priceLines(state)[0]!, /Cheap lately: the guild has sold a lot here\.$/);
+    const moved = priceRows(state);
+    assert.equal(moved[0]!.trend, 'cheap');
+    assert.ok(moved[0]!.sell < 3);
+    assert.match(priceLine(state, 'scrap'), /Pricey lately: the guild has bought a lot here\.$/);
+    assert.ok(!/[Dd]ear/.test(priceLine(state, 'scrap')), 'not "dear" (Aviel)');
   });
 });

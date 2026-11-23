@@ -276,6 +276,8 @@ export const MARKET_BUY = 1.15;
  * the price goes with e to the minus glut. Selling 60 rations makes them about a quarter cheaper.
  */
 export const MARKET_DEPTH = 100;
+/** Scrap is what everyone at the market deals in, so its price moves a third as fast: paying for gas in scrap doesn't sink it. */
+export const MARKET_SCRAP_DEPTH = 300;
 /** Each game day, a supply's glut eases back by this share (about half of it in a real day). */
 export const MARKET_EASE = 0.1;
 /** On a trade run the packs, and anything with wheels, carry goods and nothing else: this many times the usual load. */

@@ -1610,16 +1610,51 @@ li:nth-child(even) .pinned {
   margin-top: 1rem;
 }
 
-.market-prices ul {
-  display: grid;
-  gap: 0.375rem;
+.price-table {
+  width: 100%;
   margin-top: 0.375rem;
+  border-collapse: collapse;
   font-size: 0.9375rem;
 }
 
-.market-prices li {
-  padding-left: 0.75rem;
-  border-left: 2px solid var(--line);
+.price-table th,
+.price-table td {
+  padding: 0.5rem 0.25rem;
+  border-bottom: 1px solid var(--line);
+  text-align: right;
+  vertical-align: top;
+}
+
+.price-table thead th {
+  font-weight: 400;
+  font-size: 0.8125rem;
+  color: var(--bone-2);
+}
+
+.price-table th[scope='row'] {
+  text-align: left;
+  font-weight: 700;
+}
+
+.price-table td {
+  font-family: var(--stencil);
+  font-size: 1.25rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.price-trend {
+  display: block;
+  font-weight: 400;
+  font-size: 0.8125rem;
+}
+
+.price-trend.is-cheap {
+  color: var(--sage);
+}
+
+.price-trend.is-pricey {
+  color: var(--blood-hi);
 }
 
 .level {
@@ -6372,15 +6407,54 @@ p.is-bad {
   grid-template-columns: auto 1fr auto;
 }
 
-.offer.offer-with-icon {
-  display: grid;
-  grid-template-columns: 44px 1fr;
-  column-gap: 0.75rem;
-  align-items: start;
+/* A caravan's offer: what the guild gives, and what it gets (3.4.0). */
+.offer-who {
+  margin: 0 0 0.5rem;
+  color: var(--bone-2);
+  font-size: var(--step--1);
 }
 
-.offer.offer-with-icon > :not(.item-icon-box) {
-  grid-column: 2;
+.offer-deal {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+.offer-side {
+  display: grid;
+  align-content: start;
+  gap: 0.375rem;
+  padding: 0.625rem;
+  border: 1.5px solid var(--line);
+  border-radius: 6px;
+  background: var(--steel-2);
+}
+
+.offer-label {
+  font-size: var(--step--1);
+  color: var(--bone-3);
+}
+
+.offer-what {
+  display: grid;
+  font-weight: 700;
+}
+
+.offer-note {
+  font-weight: 400;
+  font-size: var(--step--1);
+  color: var(--bone-2);
+}
+
+.offer-arrow {
+  align-self: center;
+  font-size: 1.25rem;
+  color: var(--rust-hi);
+}
+
+.offer-compare {
+  margin: 0.5rem 0 0;
 }
 
 .place-picture-box {

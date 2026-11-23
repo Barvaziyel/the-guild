@@ -109,34 +109,49 @@ export function tradeLine(state: GameState, plan: RunPlan): string {
   return `${amountOf(t.give, t.amount)} fetch about ${amountOf(t.get, got)} at today’s prices; whoever talks best may get more. ${carry}`;
 }
 
-function num(x: number): string {
-  return x >= 10 ? String(Math.round(x)) : String(Math.round(x * 10) / 10);
+/** A supply's prices at the Drive-In today, for ten of it, in scrap: what ten fetch, and what ten cost. */
+export interface PriceRow {
+  id: ResourceId;
+  name: string;
+  /** Scrap the market gives for ten, at today's price. */
+  sell: number;
+  /** Scrap it takes for ten, at today's price. */
+  buy: number;
+  /** The guild has moved this price lately: sold a lot (cheap) or bought a lot (pricey). */
+  trend?: 'cheap' | 'pricey';
 }
 
-/**
- * A supply's prices today, in scrap: "Rations: 3 fetch a scrap, and a scrap buys 2." or
- * "Tech: sells for 2.2 scrap, costs 4.1." With a note when the guild has moved the price.
- */
-export function priceLine(state: GameState, r: ResourceId): string {
-  if (r === 'scrap') return `Everything here is priced in scrap.${moved(state, 'scrap')}`;
-  const scrap = unitPrice(state.market, 'scrap');
-  const p = unitPrice(state.market, r);
-  // Selling one fetches this much scrap; buying one costs this much.
-  const sell = p.pays / scrap.asks;
-  const buy = p.asks / scrap.pays;
-  const sold = sell >= 0.75 ? `sells for ${num(sell)} scrap` : `${num(1 / sell)} fetch a scrap`;
-  const bought = buy >= 0.75 ? `costs ${num(buy)}` : `a scrap buys ${num(1 / buy)}`;
-  return `${RESOURCE_NAMES[r]}: ${sold}, and ${bought}.${moved(state, r)}`;
-}
-
-function moved(state: GameState, r: ResourceId): string {
+function trendOf(state: GameState, r: ResourceId): PriceRow['trend'] {
   const glut = state.market?.glut[r] ?? 0;
-  if (glut > 0.05) return ' Cheap lately: the guild has sold a lot here.';
-  if (glut < -0.05) return ' Dear lately: the guild has bought a lot here.';
+  return glut > 0.05 ? 'cheap' : glut < -0.05 ? 'pricey' : undefined;
+}
+
+/** The Drive-In's prices for every supply but scrap, which everything is priced in. */
+export function priceRows(state: GameState): PriceRow[] {
+  return RESOURCE_IDS.filter((r) => r !== 'scrap').map((r) => {
+    const trend = trendOf(state, r);
+    return {
+      id: r,
+      name: RESOURCE_NAMES[r],
+      // At today's price, before a trade that size moves it: the planner says what a whole load fetches.
+      sell: Math.round((10 * unitPrice(state.market, r).pays) / unitPrice(state.market, 'scrap').asks),
+      buy: Math.round((10 * unitPrice(state.market, r).asks) / unitPrice(state.market, 'scrap').pays),
+      ...(trend ? { trend } : {}),
+    };
+  });
+}
+
+/** "Cheap lately: the guild has sold a lot here." */
+export function trendText(trend: PriceRow['trend']): string {
+  if (trend === 'cheap') return 'Cheap lately: the guild has sold a lot here.';
+  if (trend === 'pricey') return 'Pricey lately: the guild has bought a lot here.';
   return '';
 }
 
-/** Every supply's prices today, for the market's panel on the Reach. */
-export function priceLines(state: GameState): string[] {
-  return RESOURCE_IDS.filter((r) => r !== 'scrap').map((r) => priceLine(state, r));
+/** One supply's prices in a sentence, for the planner: "10 rations sell for 3 scrap here, and cost 7." */
+export function priceLine(state: GameState, r: ResourceId): string {
+  const trend = trendText(trendOf(state, r));
+  if (r === 'scrap') return `Everything here is priced in scrap.${trend ? ` ${trend}` : ''}`;
+  const row = priceRows(state).find((x) => x.id === r)!;
+  return `10 ${r} sell for ${row.sell} scrap here, and cost ${row.buy}.${trend ? ` ${trend}` : ''}`;
 }
