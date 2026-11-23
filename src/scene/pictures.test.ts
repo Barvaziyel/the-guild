@@ -47,7 +47,7 @@ describe('pictures (3.3.0)', () => {
   });
 
   test('every kind of moment in a run has a stamp', () => {
-    const kinds: BeatKind[] = ['depart', 'travel', 'scavenge', 'hazard', 'combat', 'social', 'discovery', 'rescue', 'vultures', 'return'];
+    const kinds: BeatKind[] = ['depart', 'travel', 'scavenge', 'hazard', 'combat', 'social', 'discovery', 'rescue', 'vultures', 'trade', 'return'];
     assert.deepEqual([...BEAT_KINDS].sort(), [...kinds].sort());
     for (const k of kinds) wellFormed(beatIconSvg(k));
   });

@@ -28,6 +28,7 @@ import {
   effectiveStat,
   firepitRelief,
   gardenYield,
+  scrapyardYield,
   rationsGoingOff,
   RATION_KEEP_DAYS,
   guildUpkeep,
@@ -82,6 +83,10 @@ export function buildingStatus(state: GameState, id: BuildingId): string {
       return bedsLine(state);
     case 'garden':
       return `Grows about ${oneDecimal(gardenYield(state))} rations a day. The guild at home${state.outposts.length > 0 ? ' and at the outposts' : ''} eats ${dailyUpkeep(state)}. ${spoilLine(state)}`;
+    case 'scrapyard': {
+      const n = workingAt(state, id).length;
+      return n === 0 ? 'Nobody is working here, so nothing is stripped.' : `Strips about ${oneDecimal(scrapyardYield(state))} scrap a day.`;
+    }
     case 'firepit':
       return `Everyone at home sheds about ${Math.round(REST_RELIEF + firepitRelief(state))} stress a day.`;
     case 'infirmary':
@@ -315,6 +320,7 @@ export function mergeSummaries(a: DepotSummary, b: DepotSummary): DepotSummary {
     eaten: a.eaten + b.eaten,
     hungryDays: a.hungryDays + b.hungryDays,
     ammoMade: a.ammoMade + b.ammoMade,
+    stripped: (a.stripped ?? 0) + (b.stripped ?? 0),
     healed: a.healed + b.healed,
     cured: a.cured + b.cured,
     news: [...a.news, ...b.news],
@@ -339,6 +345,7 @@ export function summaryLines(s: DepotSummary, state?: GameState): string[] {
   out.push(`The Garden grew ${s.grown} rations and the guild ate ${s.eaten}.`);
   if ((s.spoiled ?? 0) > 0) out.push(`${s.spoiled} ${s.spoiled === 1 ? 'ration' : 'rations'} kept too long went off.`);
   if (s.hungryDays > 0) out.push(`The guild went hungry for ${s.hungryDays === 1 ? 'a day' : `${s.hungryDays} days`}.`);
+  if ((s.stripped ?? 0) > 0) out.push(`The Scrapyard stripped ${s.stripped} scrap.`);
   if (s.ammoMade > 0) out.push(`The Workshop made ${s.ammoMade} ammo.`);
   if (s.healed > 0) out.push(`Rest healed ${s.healed} health${s.cured > 0 ? `, and the Infirmary treated ${s.cured === 1 ? 'one patient' : `${s.cured} patients`}` : ''}.`);
   const sent = costText(s.outposts ?? {});

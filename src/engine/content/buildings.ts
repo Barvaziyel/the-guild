@@ -50,6 +50,17 @@ export const BUILDINGS: readonly BuildingDef[] = [
     ],
   },
   {
+    id: 'scrapyard',
+    name: 'Scrapyard',
+    description: 'The sidings behind the station, and everything that rusted on them.',
+    workStat: 'brawn',
+    levels: [
+      { effect: 'People here strip the old station and the sidings for scrap: wire, pipe, sheet. Nothing without hands. Two can work here.', cost: { scrap: 20 } },
+      { effect: 'A cutting torch: twice as much. Three can work here.', cost: { scrap: 80, tech: 10 } },
+      { effect: 'A winch and a cart on the old track: three times as much. Three can work here.', cost: { scrap: 200, tech: 30 } },
+    ],
+  },
+  {
     id: 'firepit',
     name: 'Firepit',
     description: 'Somewhere warm to sit at night and talk about anything but the Reach.',

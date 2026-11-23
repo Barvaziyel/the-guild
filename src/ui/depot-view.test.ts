@@ -40,7 +40,7 @@ describe('buildings on screen', () => {
     assert.equal(infirmary.next?.problem ?? '', '', 'a new guild can afford its Infirmary (1.7.2)');
     state.resources.scrap = 0;
     assert.match(buildingRow(state, 'infirmary').next?.problem ?? '', /Needs/);
-    assert.equal(buildingRows(state).length, 8);
+    assert.equal(buildingRows(state).length, 9);
     assert.match(buildingRow(state, 'bunks').status, /^4 of 4 beds taken\.$/);
   });
 

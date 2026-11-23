@@ -36,6 +36,8 @@ export const MAP_SPOTS: Record<string, MapSpot> = {
   radio_station: { x: 79, y: 50, label: 'left' },
   the_glow: { x: 92, y: 7, label: 'left' },
   blackwater: { x: 88, y: 90, label: 'left' },
+  // The market (3.4.0), straight down the road from the Depot, between the roads to the Water Plant and Blackwater.
+  drive_in: { x: 48, y: 87, label: 'right' },
 };
 
 /** Map labels drop a leading "The" (except The Glow) and break onto two lines when long. */
@@ -72,6 +74,8 @@ export interface MapNode {
   outpost?: 'ok' | 'damaged';
   /** A Vultures' camp here (§7.11). */
   vultureCamp?: true;
+  /** A market, where crews trade (§7.14). */
+  market?: true;
 }
 
 export interface MapRoad {
@@ -122,6 +126,7 @@ export function reachMap(state: GameState): ReachMap {
       crewsOut: state.runs.filter((r) => r.plan.locationId === loc.id).length,
       ...outpostMark(state, loc.id),
       ...(campAt(state, loc.id) ? { vultureCamp: true as const } : {}),
+      ...(loc.market ? { market: true as const } : {}),
     });
   }
   return { nodes, roads };

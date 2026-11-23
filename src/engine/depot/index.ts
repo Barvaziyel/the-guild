@@ -30,7 +30,7 @@ export {
   workerSlots,
   workingAt,
 } from './buildings.ts';
-export { dailyUpkeep, emptySummary, guildUpkeep, firepitRelief, frontier, gardenYield, healRate, playDepotDay, type DepotSummary } from './day.ts';
+export { dailyUpkeep, emptySummary, guildUpkeep, firepitRelief, frontier, gardenYield, scrapyardYield, healRate, playDepotDay, type DepotSummary } from './day.ts';
 export { acceptOffer, declineOffer, offerProblem, offerText, raid, raidDefense, rollDepotEvents } from './events.ts';
 export {
   canDefend,

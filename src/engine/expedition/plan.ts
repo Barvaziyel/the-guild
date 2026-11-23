@@ -13,10 +13,13 @@ import { crewConflicts } from '../relationships.ts';
 import { maxHp } from '../stats.ts';
 import { fullName } from '../text.ts';
 import { maxTraitHook, mulTraitHook } from '../traits.ts';
-import type { GameState, RunPlan, Survivor } from '../types.ts';
+import type { GameState, ResourceId, RunPlan, Survivor } from '../types.ts';
+import { RESOURCE_IDS } from '../types.ts';
 import { crewLimit, findVehicle, gasNeeded, planVehicles, vehicleDef, vehicleName, vehicleProblem } from '../vehicles.ts';
 import { lineShare } from '../projects.ts';
 import { campAt, onTurf, vultureBand } from '../vultures.ts';
+import { marketQuote, tradeCapacity } from '../market.ts';
+import { amountOf } from '../text.ts';
 
 function crewOf(state: GameState, plan: RunPlan): Survivor[] {
   const out: Survivor[] = [];
@@ -160,6 +163,11 @@ export function validatePlan(state: GameState, plan: RunPlan): string[] {
     else if (depth > 1) problems.push('Their camp is in the outskirts.');
   }
 
+  // The Drive-In is a market: trade runs go there, and only there (§7.14).
+  if (loc.market && plan.job !== 'trade') problems.push(`${loc.name} is a market: crews go there to trade.`);
+  if (plan.job === 'trade' && !loc.market) problems.push(`There's no market at ${loc.name}.`);
+  if (plan.job === 'trade' && depth > 1) problems.push('The market is all in one place.');
+
   if (plan.job === 'rescue') {
     // Only while someone is calling for help from here, and nobody has gone yet (§10.1).
     const call = state.rescue?.call;
@@ -191,6 +199,7 @@ export function validatePlan(state: GameState, plan: RunPlan): string[] {
   }
   if (plan.meds > state.resources.meds) problems.push('Not enough meds at the Depot.');
   if (plan.ammo > state.resources.ammo) problems.push('Not enough ammo at the Depot.');
+  if (plan.job === 'trade') problems.push(...tradeProblems(state, plan));
 
   if (vehicleIds.length > 0) {
     if (new Set(vehicleIds).size !== vehicleIds.length) problems.push('A vehicle is listed twice.');
@@ -208,6 +217,31 @@ export function validatePlan(state: GameState, plan: RunPlan): string[] {
     const gas = gasNeeded(state, plan);
     if (gas > state.resources.gas) problems.push(`The vehicles need ${gas} gas there and back; the Depot has ${state.resources.gas}.`);
   }
+  return problems;
+}
+
+/**
+ * What the Depot can spare of a supply for a trade (§7.14): what's in the stores, less what this run
+ * takes with it anyway (rations for the road, meds and ammo, gas for the vehicles).
+ */
+export function spareToTrade(state: GameState, plan: RunPlan, r: ResourceId): number {
+  const taken = r === 'rations' ? rationsNeeded(state, plan) : r === 'meds' ? plan.meds : r === 'ammo' ? plan.ammo : r === 'gas' ? gasNeeded(state, plan) : 0;
+  return Math.max(0, state.resources[r] - taken);
+}
+
+/** What's wrong with a trade run's goods, if anything (§7.14). */
+export function tradeProblems(state: GameState, plan: RunPlan): string[] {
+  const t = plan.trade;
+  if (!t) return ['Pick what to take to the market, and what to bring back.'];
+  if (!RESOURCE_IDS.includes(t.give) || !RESOURCE_IDS.includes(t.get)) return ['That isn\u2019t something the market deals in.'];
+  if (t.give === t.get) return ['Bring back something other than what they take.'];
+  if (!Number.isInteger(t.amount) || t.amount < 1) return ['Take at least one thing to trade.'];
+  const problems: string[] = [];
+  const spare = spareToTrade(state, plan, t.give);
+  if (t.amount > spare) problems.push(`The Depot can spare ${amountOf(t.give, spare)} for the market.`);
+  const loads = tradeCapacity(state, plan);
+  if (t.amount > loads) problems.push(`Packed with goods, this crew can carry ${loads}.`);
+  else if (marketQuote(state.market, t) < 1) problems.push(`That isn\u2019t enough for even one ${t.get === 'rations' ? 'ration' : amountOf(t.get, 1).replace(/^1 /, '')}.`);
   return problems;
 }
 

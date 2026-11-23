@@ -439,6 +439,7 @@ The wounded can't be sent on runs until they heal. If an ally's help lifted the 
 - The crew can carry the sum of everyone's Carry. Anything beyond that is left behind.
 - Gear quality, from worst to best: **Rusty (−1) · Common · Solid (+1) · Prime (+2) · Relic (+2 and a unique perk)**.
 - **Danger pays** (1.6.1): every find is 25% bigger for each point of danger above 1, so the Glow gives double; a level down counts as a point more (§7.10). Since 1.10.1 it's in each find ("Rosa turns up 5 scrap."), rounded to whole supplies with the odds kept, and a load in the packs holds as much more, so the carry limit counts the same loads. *Until 1.10.1 it was added to the haul at the end ("25% on top"), which Aviel found read like a bonus rather than what's there.* Loot per run with a fresh crew is about 5 at danger 1, 9–13 at danger 2, 13 at danger 3. For a seasoned crew (§7.5) it's 6–7 at danger 1, 12–17 at danger 2, 23–27 at danger 3, 26–28 at danger 4 and 19 at danger 5, where they turn back more often.
+- **More scrap everywhere** (3.4.0, Aviel: "raise the percentage of scrap found compared to other things on all runs"). Every place's scrap weight is 3 more than it was, so every place finds more scrap and a little less of everything else; the total found doesn't change. Scrap a run (fresh crew of 3, `npm run balance`, 400 runs a place), before → after: the Rail Yard 3.3 → 3.6, Maple Street 1.7 → 2.3, Kessler Farm 1.4 → 2.7, the Old Metro 4.8 → 5.6, the Drowned Mall 3.1 → 4.3, Hilltop 3.2 → 4.6, St. Jude's 1.6 → 3.1, the Water Plant 4.6 → 5.6, Blackwater 1.0 → 2.9, Checkpoint Bravo 2.0 → 3.1, Red Hand Camp 1.6 → 2.1, the Glow 0.9 → 1.6: about 40% more over all, most at the places that had least. Deaths, downs and loot are unchanged (the same dice pick what a find is). Outposts send home the same mix.
 - **Relics** (1.6.1) turn up in two ways, and can't be made:
   - at **the heart of a place** (§7.10), as a rare quality among found gear (weight 6, against about 100 for the others);
   - from a **nemesis** killed for good, which always leaves one: a weapon or armor it hoarded.
@@ -685,6 +686,22 @@ Gear and traits add moves (a `moves` hook on traits and gear):
 - **Before and after.** The card when a crew stops at a fight shows the stage with who they're up against, before anyone takes command (`fightPreview`, which changes nothing). When the fight ends, its last round plays out on the end screen, with how it went: won, got away, both sides pulled back, or beaten (`lastFought`).
 - **How it knows.** A commanded fight notes each act as it happens (who, at whom, hit, miss or kill, how much, a shot or a blow), alongside the log lines, and the fight view carries them. Nothing rolls differently for it: fights nobody commands come out the same, line for line.
 
+### 7.14 The market at the Drive-In (3.4.0)
+
+Aviel, 2026-11-23, and a friend playing too: rations are a passive income used only for upkeep, so they pile up; scrap only comes from runs and pays for everything, so there's never enough. His idea: "some kind of merchant that you can go to and exchange rations for scraps, or scraps for gas… maybe the price goes up as you exchange more." (Spoiling, §9.1, caps the pile but wastes it; caravans buy spare rations at 0.5 scrap, but an offer for rations came about once a real week.)
+
+- **A place, not a building.** *The Drive-In*, a swap meet under an old drive-in screen, danger 1, 30 minutes on foot, known from the start (older saves have it too), straight down the road from the Depot on the map. `LocationDef.market`: only the **Trade** job goes there, and Trade goes nowhere else. Nothing to explore (Trade explores 0), so no levels and no outpost; no calls for help come from it; its panel on the Reach has no Outpost tab, and shows the prices today instead of what it mostly finds.
+- **A trade run** takes goods and brings back something else: any supply for any other. The planner's orders show *Take* (each supply, with how many the Depot can spare: what's stored, less what the run takes anyway, like rations for the road), how many, *For*, and what it fetches at today's prices. The goods leave the stores when the crew sets out.
+- **Packs full of goods:** a trade crew carries three times its usual load (`TRADE_LOAD`), vehicles' cargo included. A crew of three on foot carries about 50–70. What's bought is what they keep first if anything has to be left behind.
+- **On the road** the run is an ordinary one at danger 1 (raider scavs mostly: they want the packs), with the market halfway (a `trade` beat, its stamp a pair of scales). A crew that turns back before it gets there brings the goods home; a routed crew loses them, as it loses anything it carries; one routed on the way back loses what it bought.
+- **Haggling:** at the market the crew's best Nerve rolls against 10: 15% more on a success, 25% if it beats it by 5.
+- **Prices.** Each supply has a worth in scrap (scrap 1, rations 0.45, ammo 0.5, gas 1.2, meds 1.5, tech 3). The market pays 85% of what something's worth and asks 115%. So at the start 3 rations fetch a scrap and a scrap buys 1.6 rations; a scrap buys about half a can of gas; tech sells for about 2.2 scrap and costs about 4.1.
+- **The more of one thing, the worse the price** (his rule). Every unit sold raises that supply's glut by its worth over 100, every unit bought lowers it, and its price goes with e to the minus glut. Selling 60 rations at once fetches about 16 scrap (3.75 each), 120 about 27, 200 about 36. Buying makes that supply dearer the same way, so scrap gets dearer as the guild buys it, whatever it pays with. A glut eases back 10% every game day, so about half of it is gone in a real day.
+- **Priced at departure** (runs are decided at departure, §7.3): the price when they leave is stored with the plan (`TradeOrder.quote`), so every replay of the run agrees, and the market moves then, so a second crew sent at the same time doesn't get the same deal.
+- **The panel** lists the prices in plain words ("Rations: 3 fetch a scrap, and a scrap buys 1.6."), with "Cheap lately" or "Dear lately" once the guild has moved them.
+- **Tour:** a step on the Reach, *The market*, after *Why go out*; *Getting more* mentions the Scrapyard and the market.
+- **Later:** in multiplayer (§15), the market's prices could be shared by every guild on the server.
+
 ## 8. Gear
 
 Every survivor has four slots: **Weapon · Armor · Tool · Trinket**
@@ -728,6 +745,7 @@ The Depot plays one **Depot day** for every game day that passes (§11). Each da
 |---|---|---|---|---|---|
 | Bunks | Level 1 | 4 beds | 8 beds (30 scrap) | 12 beds (180 scrap, 18 tech, 90 rations) | — |
 | Garden | Level 1 | Grows rations | ×2 (25 scrap) | ×3 (150 scrap, 18 tech) | Wits |
+| Scrapyard (3.4.0) | — | Strips scrap, two hands (20 scrap) | ×2, three hands (80 scrap, 10 tech) | ×3 (200 scrap, 30 tech) | Brawn |
 | Firepit → Bar | Level 1 | −3 stress a day | Bar: −4, people warm to each other (60 scrap, 6 tech, 40 rations) | Bar and Stage: −5, warm faster (180 scrap, 24 tech, 120 rations) | Nerve |
 | Infirmary | — | 25 scrap, 2 meds | 90 scrap, 16 tech, 20 meds | 210 scrap, 45 tech, 60 meds | Wits |
 | Workshop | — | Basic gear, ammo (30 scrap) | Guns, armor, instruments, Prime upgrades (100 scrap, 16 tech) | Makes Solid gear (240 scrap, 54 tech) | Wits |
@@ -761,6 +779,7 @@ The Depot plays one **Depot day** for every game day that passes (§11). Each da
 Building is instant. Numbers live in `constants.ts`, and the building text in `content/buildings.ts`; a test checks that they agree.
 
 - **Garden:** rations per day = level × (2 + for each gardener, 0.5 + Wits × 0.25). Two gardeners with Wits 4 at level 1 grow 5, enough for a guild of 4 at home.
+- **Scrapyard** (3.4.0; Aviel and a friend playing too: "there's always not enough scrap and always too much rations"): scrap per day = level × (for each worker, 0.25 + Brawn × 0.05). Nothing without hands, unlike the Garden. Two with Brawn 4 at level 1 strip about 7 scrap a real day; three with Brawn 5 at level 3, about 36. The point is a choice for people at home once the guild is fed: until 3.4.0 the only post that made anything without a run was the Garden. In the yard it's the sidings between the Bunks and the Garden: a heap, the shell of an old car being cut up, bins; bottles for a cutting torch at level 2, a winch on an A-frame and a cart at level 3. Its workers hammer. The cots by the Bunks (for the hurt, with no Infirmary) moved up under the rails to make room.
 - **Firepit:** each keeper adds 0.5 + Nerve × 0.1 to the relief (1 + Nerve × 0.25 before 1.7.1). A Bar gives each pair at home a 25% chance a day to warm by 1 (50% at level 3).
 - **Workshop:** each worker turns 1 scrap into 1 + Wits × 0.25 ammo a day, until the Depot holds 60 ammo.
 - **Radio Tower:** a 3% chance per level each day, +0.5% per point of the operators' Wits, of hearing about an undiscovered place one road beyond a known one.
@@ -1344,7 +1363,7 @@ From the ideas in `claude/interactive-ideas.md`, and Aviel's own additions. The 
 | Idea | What Aviel said | Status |
 |---|---|---|
 | Take command of a fight: turn-based fights, at least as an option (his ask from 2026-11-12) | Yes. **The game is 2.0.0 when this is done.** Picked first (§7.13) | **done**: runs 1.13.0; the battle stage 1.14.0; raids at the gate, getting ready, talking first and two bands 2.0.0; raids that differ, what they want, spoils and captives, outposts like the gate 2.1.0 (§9.8) |
-| Haggle with traders | Yes | planned |
+| Haggle with traders | Yes | in part (3.4.0): at the market the crew's best talker haggles on their own (§7.14); caravans at the gate still don't |
 | Names: things get their names from the guild's people, not from the player, once they've spent enough time with them | Yes, named by the people | planned |
 | What people want: now and then someone asks for something, and doing it (or not) matters | Maybe | to decide |
 | Long expeditions beyond the Reach | Possible | to decide |
@@ -1362,6 +1381,8 @@ From the ideas in `claude/interactive-ideas.md`, and Aviel's own additions. The 
 | Sound (§14.1, 3.1.0): music, the yard's ambience, sound effects, fight sounds and a buzz | Aviel, 2026-11-23: "make the game a bit more interesting… music, sound effects"; he picked all four, and that I make the music | **done** (3.1.0) |
 | Movement (§14.2, 3.2.0): the yard comes alive (work at the posts, people stepping away and back, crews and vehicles through the gate, the trader's cart, the sky and the road), crews on the Reach map, livelier fights, snappier screens | Aviel, 2026-11-23, all four | **done** (3.2.0) |
 | Art (§14.3, 3.3.0): an icon for every piece of gear, each place's picture, small pictures in run logs, each building up close on its screen | Aviel, 2026-11-23, all four, in the ink style of the yard and portraits | **done** (3.3.0) |
+| Too many rations, never enough scrap (§7.14, §9.1, §7.6): the market at the Drive-In, the Scrapyard, more scrap in every place's finds | Aviel, 2026-11-23, after he and a friend both ran into it; he picked the market (his idea, with prices that rise as you trade) and the Scrapyard, and added more scrap on all runs. Proposal in `claude/rations-and-scrap.md` | **done** (3.4.0) |
+| **Multiplayer**, the next big thing. A Cloudflare Worker (he has an account), some storage there, playing offline and online. Ideas he named: runs together with other guilds, raiding other people's depots. Open: how it fits the single-player story | Aviel, 2026-11-23: "I would want it to be the next big thing we do." First take in `claude/multiplayer.md`: async and offline-first, own story in a shared world, starting with cloud saves | to design |
 
 Not picked: choosing the rooms before a scavenge, raids you see coming, feasts and gatherings, talking to people in the yard.
 

@@ -46,6 +46,7 @@ import { HAVEN_ORDERS, discoveredLeadLine, findView, havenReport, reportGoneLine
 import { HavenFindNote } from '../components/HavenFind.tsx';
 import { followedHome } from '../animals-view.ts';
 import { findAnySurvivor } from '../view.ts';
+import { TRADE_JOB } from '../market-view.ts';
 import { PlacePicture } from '../components/Art.tsx';
 
 export function RunView({ state, id }: { state: GameState; id: string }) {
@@ -71,7 +72,7 @@ export function RunView({ state, id }: { state: GameState; id: string }) {
 
 function ordersLine(plan: Run['plan']): string {
   if (plan.job === 'haven') return HAVEN_ORDERS;
-  return `${choiceName(JOBS, plan.job)}, ${choiceName(APPROACHES, plan.approach).toLowerCase()}. Pull out when: ${choiceName(RETREATS, plan.retreat).toLowerCase()}.`;
+  return `${choiceName([...JOBS, TRADE_JOB], plan.job)}, ${choiceName(APPROACHES, plan.approach).toLowerCase()}. Pull out when: ${choiceName(RETREATS, plan.retreat).toLowerCase()}.`;
 }
 
 function CrewStrip({ crew, faded }: { crew: { id: string; name: string; survivor: Survivor | undefined }[]; faded?: Set<string> }) {

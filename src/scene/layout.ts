@@ -33,6 +33,7 @@ export const BUILDING_AREAS: Record<BuildingId, Area> = {
   bunks: { x: 6, y: 200, w: 196, h: 58 },
   workshop: { x: 200, y: 244, w: 100, h: 72 },
   infirmary: { x: 304, y: 246, w: 92, h: 70 },
+  scrapyard: { x: 8, y: 270, w: 186, h: 68 },
   garden: { x: 8, y: 350, w: 146, h: 74 },
   firepit: { x: 158, y: 348, w: 108, h: 78 },
   training_yard: { x: 272, y: 350, w: 124, h: 74 },
@@ -55,6 +56,7 @@ const s = (x: number, y: number, pose: Pose = 'stand', facing: 1 | -1 = 1): Spot
 export const POST_SPOTS: Record<BuildingId, readonly Spot[]> = {
   bunks: [],
   garden: [s(40, 424, 'kneel'), s(118, 424, 'kneel', -1), s(79, 412, 'stand')],
+  scrapyard: [s(48, 338), s(90, 340, 'stand', -1), s(172, 338, 'stand', -1)],
   firepit: [s(230, 414, 'stand', -1), s(190, 416), s(250, 398, 'stand', -1)],
   workshop: [s(226, 322), s(252, 322), s(278, 322, 'stand', -1)],
   infirmary: [s(318, 322), s(356, 324, 'stand', -1), s(388, 322, 'stand', -1)],
@@ -96,7 +98,8 @@ export const CHILD_SPOTS: readonly Spot[] = [s(196, 450), s(228, 452, 'stand', -
 /** Cots for the wounded: in front of the Infirmary, or by the Bunks without one. */
 export const REST_SPOTS = {
   infirmary: [s(320, 340, 'lie'), s(352, 340, 'lie'), s(384, 340, 'lie', -1), s(320, 356, 'lie'), s(352, 356, 'lie'), s(384, 356, 'lie', -1)],
-  bunks: [s(26, 282, 'lie'), s(58, 282, 'lie'), s(90, 282, 'lie'), s(122, 282, 'lie'), s(154, 282, 'lie'), s(186, 282, 'lie', -1)],
+  // Just under the rails, clear of the Scrapyard's piles (3.4.0; they were at 282).
+  bunks: [s(26, 268, 'lie'), s(58, 268, 'lie'), s(90, 268, 'lie'), s(122, 268, 'lie'), s(154, 268, 'lie'), s(186, 268, 'lie', -1)],
 } as const;
 
 /** The queue outside the gate, nearest first. */

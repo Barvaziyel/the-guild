@@ -148,9 +148,10 @@ describe('outposts on screen', () => {
   test('what a place mostly gives up: everything at least half as common as the most', () => {
     const at = (id: string): string => mostlyFinds(getLocation(id));
     assert.equal(at('rail_yard'), 'scrap');
-    assert.equal(at('kessler_farm'), 'rations');
-    assert.equal(at('maple_street'), 'rations and scrap');
+    // Scrap counts for more everywhere since 3.4.0.
+    assert.equal(at('kessler_farm'), 'rations and scrap');
+    assert.equal(at('maple_street'), 'scrap and rations');
     assert.equal(at('old_metro'), 'scrap');
-    assert.equal(at('radio_station'), 'tech and scrap');
+    assert.equal(at('radio_station'), 'scrap and tech');
   });
 });

@@ -24,6 +24,7 @@ import { dangerText, formatDuration, joinNames, locationView, placeNote, radiati
 import { nemesesAt, nemesisRows } from '../stories-view.ts';
 import { vulturePlaceLine, vulturesSummary, vultureTag } from '../vultures-view.ts';
 import { PlacePicture } from '../components/Art.tsx';
+import { priceLines } from '../market-view.ts';
 
 const today = (s: GameState): number => dayAt(s, Date.now());
 const PLACE_TAB_LABELS: Record<PlaceTab, string> = { about: 'About', outpost: 'Outpost' };
@@ -73,9 +74,9 @@ export function Reach({ state, selected, tab = 'about' }: { state: GameState; se
                       <span className="place-facts">
                         {dangerText(loc.danger)}, {radiationText(loc.radiation).toLowerCase()}, {formatDuration(loc.durationMin * 60_000)}
                       </span>
-                      {mostlyFinds(loc) && <span className="place-facts">Mostly {mostlyFinds(loc)}</span>}
+                      {loc.market ? <span className="place-facts">Trades anything for anything</span> : mostlyFinds(loc) && <span className="place-facts">Mostly {mostlyFinds(loc)}</span>}
                     </span>
-                    <span className="place-explored">{here.explored >= 100 && deepestOpen(state, loc.id) > 1 ? exploredShort(state, loc.id) : `${here.explored}%`}</span>
+                    <span className="place-explored">{loc.market ? '' : here.explored >= 100 && deepestOpen(state, loc.id) > 1 ? exploredShort(state, loc.id) : `${here.explored}%`}</span>
                   </button>
                 </li>
               );
@@ -162,6 +163,17 @@ function PlacePanel({ state, id, tab }: { state: GameState; id: string; tab: Pla
 
   const loc = getLocation(id);
   const outpost = findOutpost(state, id);
+  // The market has nothing to explore and no outpost: just what it trades (§7.14).
+  if (loc.market) {
+    return (
+      <div className="panel place-panel" aria-live="polite">
+        <PlacePicture id={id} name={`${loc.name}, ${loc.biome.toLowerCase()}`} />
+        <p className="place-biome">{loc.biome}</p>
+        <h3 className="place-title">{loc.name}</h3>
+        <MarketAbout state={state} id={id} />
+      </div>
+    );
+  }
   return (
     <div className="panel place-panel" aria-live="polite">
       <PlacePicture id={id} name={`${loc.name}, ${loc.biome.toLowerCase()}`} />
@@ -188,6 +200,43 @@ function PlacePanel({ state, id, tab }: { state: GameState; id: string; tab: Pla
         {tab === 'about' ? <About state={state} id={id} /> : <OutpostTab state={state} id={id} />}
       </div>
     </div>
+  );
+}
+
+function MarketAbout({ state, id }: { state: GameState; id: string }) {
+  const loc = getLocation(id);
+  const v = locationView(state, id);
+  return (
+    <>
+      <p className="place-desc">{loc.description}</p>
+      <dl className="facts">
+        <div>
+          <dt>Danger</dt>
+          <dd className={`danger-text d${loc.danger}`}>{loc.danger} of 5</dd>
+        </div>
+        <div>
+          <dt>Takes about</dt>
+          <dd>{formatDuration(loc.durationMin * 60_000)}</dd>
+        </div>
+      </dl>
+      <div className="market-prices" data-tour="market">
+        <h4 className="levels-title">Prices today</h4>
+        <ul>
+          {priceLines(state).map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+      </div>
+      <p className="place-note">Nothing to explore here, and nothing to find: crews come with goods and go home with something else. The more of one thing the guild trades, the worse the price, until it settles back over a day or two.</p>
+      {v.crewsOut.map((run) => (
+        <button key={run.id} type="button" className="crew-here" onClick={() => navigate({ screen: 'run', id: run.id })}>
+          {joinNames(runCrewNames(run))} {run.plan.crew.length === 1 ? 'is' : 'are'} here now. Follow the run.
+        </button>
+      ))}
+      <button type="button" className="btn btn-primary btn-wide" onClick={() => navigate({ screen: 'plan', locationId: id })}>
+        Plan a trade run
+      </button>
+    </>
   );
 }
 

@@ -97,6 +97,46 @@ export function bunks(level: number): string {
   return out;
 }
 
+/** The Scrapyard (3.4.0): the sidings behind the station, stripped for scrap. */
+export function scrapyard(level: number): string {
+  const b = 334;
+  if (level === 0) return emptyLot('scrapyard', b, 16);
+  const rust = '#7d5a43';
+  const rustDark = '#5f4434';
+  let out = '';
+  // At the top level, a winch on an A-frame over the old car, lifting its roof off.
+  if (level >= 3) {
+    out += line(100, b, 122, b - 58, 2) + line(146, b, 122, b - 58, 2) + line(108, b - 22, 138, b - 22, 1.2);
+    out += line(122, b - 58, 122, b - 40, 0.8);
+    out += poly([[110, b - 40], [134, b - 40], [132, b - 35], [112, b - 35]], rust);
+  }
+  // A heap of everything: sheet, pipe, a wheel.
+  out += poly([[18, b], [26, b - 14], [36, b - 22], [50, b - 27], [62, b - 19], [72, b - 11], [80, b]], rust);
+  out += poly([[30, b - 9], [44, b - 17], [58, b - 13], [46, b - 5]], rustDark, FINE);
+  out += line(42, b - 22, 35, b - 36, 1.6, '#5d6466') + line(55, b - 24, 64, b - 37, 1.6, '#5d6466') + line(64, b - 37, 68, b - 35, 1.2, '#5d6466');
+  out += circle(28, b - 6, 5, '#3a3a38') + circle(28, b - 6, 1.6, C.steel, FINE);
+  // The shell of an old car, cut open.
+  out += poly([[96, b], [98, b - 16], [110, b - 26], [136, b - 26], [146, b - 16], [150, b]], '#8a5a3e');
+  out += rect(112, b - 22, 10, 8, C.window, FINE) + rect(125, b - 22, 10, 8, C.window, FINE);
+  out += poly([[100, b - 4], [104, b - 12], [116, b - 10], [114, b - 3]], C.window, FINE);
+  // Bins of what's been sorted.
+  out += rect(160, b - 14, 14, 14, C.wood) + rect(176, b - 12, 14, 12, C.woodDark);
+  out += line(162, b - 14, 166, b - 19, 1.2, '#5d6466') + line(168, b - 14, 171, b - 18, 1.2, '#b87333') + circle(182, b - 14, 2.4, '#b87333', FINE);
+  if (level >= 2) {
+    // The cutting torch: two bottles on a hand truck, and a hose to the heap.
+    out += rect(82, b - 22, 5, 22, '#5f7d6e', FINE) + rect(88, b - 20, 5, 20, '#a8402e', FINE);
+    out += pathEl(`M 87 ${b - 8} Q 80 ${b + 2} 70 ${b - 6}`, 'none', `stroke="${INK}" stroke-width="0.8"`);
+    // Sheet stacked against the bins, and a coil of wire.
+    out += poly([[150, b], [156, b - 20], [160, b - 20], [156, b]], C.steel);
+    out += ellipse(186, b - 16, 5, 2.4, 'none', `stroke="#b87333" stroke-width="1.6"`);
+  }
+  if (level >= 3) {
+    // A cart for hauling it, and two lengths of the old track to run it on.
+    out += line(10, b + 2, 18, b + 2, 1) + rect(6, b - 10, 14, 8, C.steelDark) + circle(9, b - 1, 2.2, '#3a3a38') + circle(17, b - 1, 2.2, '#3a3a38');
+  }
+  return out;
+}
+
 export function workshop(level: number): string {
   const base = Y.middle;
   if (level === 0) return emptyLot('workshop', base, 18);
@@ -234,6 +274,7 @@ export const BUILDING_DRAWINGS: Record<BuildingId, (level: number) => string> = 
   workshop,
   infirmary,
   garden,
+  scrapyard,
   firepit,
   training_yard: trainingYard,
 };
@@ -245,6 +286,8 @@ export const BUILDING_BASE: Record<BuildingId, number> = {
   bunks: Y.rails,
   workshop: Y.middle,
   infirmary: Y.middle,
+  // Between the middle row and the Garden.
+  scrapyard: 334,
   garden: Y.front - 2,
   // Before the people sitting on its logs.
   firepit: Y.front - 16,

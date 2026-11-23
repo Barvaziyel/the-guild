@@ -81,7 +81,8 @@ export function playRescueDay(state: GameState, day: number, rng: Rng): RescueCa
 
 /** Someone calls for help from a known place. Returns the call. */
 export function startCall(state: GameState, day: number, rng: Rng, locationId?: string, trouble?: RescueTrouble): RescueCall | undefined {
-  const places = knownLocations(state);
+  // Not from the market at the Drive-In (§7.14): nobody's stuck at a swap meet.
+  const places = knownLocations(state).filter((l) => !l.market);
   if (places.length === 0) return undefined;
   const place = locationId ?? rng.pick(places).id;
   const person = rescueCandidate(state, rng, day);

@@ -1605,6 +1605,23 @@ li:nth-child(even) .pinned {
   margin-top: 0.25rem;
 }
 
+/* The market's prices today (§7.14, 3.4.0). */
+.market-prices {
+  margin-top: 1rem;
+}
+
+.market-prices ul {
+  display: grid;
+  gap: 0.375rem;
+  margin-top: 0.375rem;
+  font-size: 0.9375rem;
+}
+
+.market-prices li {
+  padding-left: 0.75rem;
+  border-left: 2px solid var(--line);
+}
+
 .level {
   display: grid;
   grid-template-columns: 8.5rem 1fr;
@@ -4423,6 +4440,23 @@ p.is-bad {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.5rem;
+}
+
+/* A trade run's goods (§7.14): what goes, how many, what for, and what it fetches. */
+.trade-orders {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border: 1.5px solid var(--line);
+  border-radius: 6px;
+}
+
+.trade-orders .orders-supplies {
+  grid-template-columns: 1fr;
+}
+
+.trade-quote {
+  margin: 0;
 }
 
 .mini-stepper {

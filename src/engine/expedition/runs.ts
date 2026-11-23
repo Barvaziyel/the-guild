@@ -28,14 +28,17 @@ import { applyHavenNews } from '../haven.ts';
 import { applyHavenEnd } from '../haven-road.ts';
 import { animalsFollowHome, rehomeAnimals } from '../animals.ts';
 import { parentGone } from '../family.ts';
+import { marketQuote, moveMarket } from '../market.ts';
 
 /**
  * Send a crew out. The whole run is simulated now and stored; nothing that
  * happens at the Depot afterwards can change it. Throws if the plan is invalid.
  */
-export function startRun(state: GameState, plan: RunPlan, now: number): Run {
-  const problems = validatePlan(state, plan);
+export function startRun(state: GameState, given: RunPlan, now: number): Run {
+  const problems = validatePlan(state, given);
   if (problems.length > 0) throw new Error(`Cannot start run: ${problems.join(' ')}`);
+  // A trade is priced at the market as it is now (§7.14), and the run, and every replay of it, keeps that price.
+  const plan: RunPlan = given.job === 'trade' && given.trade ? { ...given, trade: { ...given.trade, quote: marketQuote(state.market, given.trade) } } : given;
 
   const seed = String(withRng(state, (rng) => rng.seed32()));
   const sim = simulateRun(state, plan, seed, now);
@@ -68,6 +71,11 @@ export function startRun(state: GameState, plan: RunPlan, now: number): Run {
   state.resources.rations -= rationsPacked(state, plan);
   state.resources.meds -= plan.meds;
   state.resources.ammo -= plan.ammo;
+  // The goods go in the packs, and word of the trade moves the market's prices now, so a second crew doesn't get the same deal.
+  if (plan.job === 'trade' && plan.trade) {
+    state.resources[plan.trade.give] -= plan.trade.amount;
+    moveMarket(state, plan.trade, plan.trade.quote ?? 0);
+  }
   const vehicles = planVehicles(state, plan);
   if (vehicles.length > 0) {
     run.gas = gasNeeded(state, plan);
