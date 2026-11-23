@@ -90,7 +90,8 @@ export function stateCues(before: GameState, after: GameState): Cue[] {
   if (built(before, after)) out.push({ id: 'build' });
   if (after.story && before.story && after.story.step > before.story.step) out.push({ id: 'reward' });
   if (after.corners.last && after.corners.last !== before.corners.last && after.corners.searched.length > before.corners.searched.length) out.push({ id: 'loot' });
-  if (after.depot.offers.length < before.depot.offers.length && spent(before, after) && gained(before, after)) out.push({ id: 'trade' });
+  // A trade (supplies or gear); sending the trader on changes nothing to hear.
+  if (after.depot.offers.length < before.depot.offers.length && (spent(before, after) || gained(before, after))) out.push({ id: 'trade' });
   else if (after.stash.length !== before.stash.length && (spent(before, after) || gained(before, after)) && sent.length === 0 && after.reports.length === before.reports.length) out.push({ id: 'craft' });
   if (after.dilemmas.active && after.dilemmas.active.day !== before.dilemmas.active?.day) out.push({ id: 'decision' });
   return out.slice(0, 2).map((c, i) => (i === 0 ? c : { ...c, delay: 0.35, gain: 0.7 }));

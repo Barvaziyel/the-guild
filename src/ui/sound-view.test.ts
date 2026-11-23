@@ -130,6 +130,15 @@ describe('the game changing (3.1.0)', () => {
     made.resources.scrap -= 4;
     made.stash.push(createItem(made, 'pipe'));
     assert.deepEqual(stateCues(before, made).map((c) => c.id), ['craft']);
+    // Buying a trader's gear is a trade, not making something.
+    const traded = structuredClone(before);
+    traded.depot.offers = [{ id: 'o1', give: {}, get: {}, expiresDay: 9 }];
+    const bought = structuredClone(traded);
+    bought.depot.offers = [];
+    bought.resources.scrap += 0;
+    bought.resources.rations -= 10;
+    bought.stash.push(createItem(bought, 'machete'));
+    assert.deepEqual(stateCues(traded, bought).map((c) => c.id), ['trade']);
     // Giving gear from the stash to someone changes nothing to hear.
     const given = structuredClone(before);
     given.stash.push(createItem(given, 'pipe'));
