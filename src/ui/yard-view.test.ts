@@ -3,7 +3,7 @@ import { describe, test } from 'node:test';
 import { Rng, becomePartners, birth, build, createVehicle, expecting, getRelationship, addRadioRecruit, startRun, postBuilding } from '../engine/index.ts';
 import { T0, openGame, testGame, testPlan } from '../engine/test-utils.ts';
 import type { Survivor } from '../engine/index.ts';
-import { awayLines, buildingCaption, childSize, figureLook, yardModel } from './yard-view.ts';
+import { awayLines, buildingCaption, childSize, figureLook, yardModel, yardTrips, TRIP_WINDOW_MS } from './yard-view.ts';
 
 describe('the yard', () => {
   test('workers stand at their posts, the rest hang out by the fire', () => {
@@ -124,5 +124,25 @@ describe('the yard', () => {
     assert.deepEqual(older.place, { kind: 'child', slot: 0, baby: false });
     assert.match(older.label, /, 8 years old, playing in the yard\.$/);
     assert.ok(childSize(8) > 0.5 && childSize(8) < childSize(15) && childSize(15) < 1);
+  });
+});
+
+describe('crews through the gate (3.2.0)', () => {
+  test('a crew just sent walks out; minutes later they are gone from the yard', () => {
+    const state = testGame('trips');
+    const run = startRun(state, testPlan(state, 'maple_street', {}, 2), T0);
+    const trips = yardTrips(state, T0 + 5000, []);
+    assert.deepEqual(trips.map((t) => [t.id, t.way, t.order]), run.plan.crew.map((id, i) => [id, 'out', i]));
+    assert.deepEqual(yardTrips(state, T0 + TRIP_WINDOW_MS + 1, []), []);
+    assert.equal(yardModel(state, 12, 1, T0 + 5000).trips?.length, 2);
+    assert.equal(yardModel(state, 12, 1).trips, undefined, 'without a clock, nobody moves');
+  });
+
+  test('a crew that drove: the vehicle goes, the crew rides', () => {
+    const state = testGame('drive');
+    const run = startRun(state, testPlan(state, 'maple_street', {}, 2), T0);
+    state.vehicles.push({ id: 'v9', defId: 'hatchback', condition: 80, runId: run.id } as (typeof state.vehicles)[number]);
+    run.plan.vehicles = ['v9'];
+    assert.deepEqual(yardTrips(state, T0 + 1000, []).map((t) => [t.id, t.vehicle?.defId]), [['v9', 'hatchback']]);
   });
 });

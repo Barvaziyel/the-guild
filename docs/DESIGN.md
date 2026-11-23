@@ -1276,6 +1276,20 @@ Aviel, 2026-11-23: "make the game a bit more interesting… assets and movement�
 - **Settings → Sound**: sound on or off, Music, Sounds and The yard sliders, and *Buzz in fights*. These belong to the phone, not the save (`prefs.ts`). Nothing plays until the first touch (phones require it), nor while the game is in the background.
 - Code: `sound-view.ts` decides what plays (tested), `audio.ts` plays it with Web Audio, `use-sound.ts` keeps it in step with the game, `sounds.ts` is written by `tools/audio/build.py`.
 
+### 14.2 Movement (3.2.0)
+
+Aviel, 2026-11-23, all four of the movement options. Everything moves with CSS (keyframes made in code where they depend on the game), and nothing moves with the phone's *reduce motion* setting on.
+
+- **The yard comes alive** (`src/scene/life.ts`):
+  - People at a post work at it: the gardeners chop with their hoes, the Workshop's hammer, the fire's keepers poke it, the Training Yard spars, the medics bend to their work, the lookout turns to watch the other way. A project's crew hammers.
+  - About two in five of those by the fire or at a post on the ground step away now and then: they get up, walk along the open ground in front of their row of buildings, stand a while and walk back. Children run about more often, babies stay put. Nobody on a cot, up a tower or at the gate. Timed by the phone's clock, so the yard drawn again a moment later carries on where it was.
+  - **Crews through the gate**: a crew that set out or came home in the last three minutes is seen doing it when the yard is first looked at: on foot they gather by the gate, go out through it and along the road (or come along the road, in through the gate, and back to where they belong); with vehicles, the vehicles drive out, or drive in and park, and the crew rides. The gate swings open while they pass.
+  - A trader's cart that turns up while the yard is open rolls in along the road; someone new at the gate walks up to it.
+  - The clouds drift, birds cross by day, a star falls now and then at night, and a tumbleweed rolls along the road.
+- **Crews on the map**: a crew out walks (or drives) along the roads it knows from the Depot to its place, the shortest way, and back again: the first and last 30% of a run on the road, the rest at the place (where the place's badge counts them). Tap one to open its run. The tour's Reach step mentions it.
+- **Livelier fights**: everyone standing breathes; a hit sends specks of blood (sparks off a machine), a shot that misses kicks up dirt, a gun leaves a puff of smoke, someone put down falls rather than appearing on the ground, and a heavy blow (6 or more) or someone going down shakes the stage.
+- **Snappier screens**: a new screen fades up into place (another tab of the same screen doesn't), cards fade in as they appear, buttons press in, the toast springs up, badges pop; a supply that changes counts to its new amount and flashes green or red, with the change (“+12”) floating up beside it.
+
 ## 15. Roadmap
 
 | # | PR | Model |
@@ -1338,7 +1352,7 @@ From the ideas in `claude/interactive-ideas.md`, and Aviel's own additions. The 
 | Haven, part 1: finding it. Clues found on runs to different places and two from buildings, hints by chance from all over, a Haven tab, about five weeks (§9.11) | Aviel, 2026-11-16: the story is now about finding out about Haven and getting there; clues from runs at different places (and build goals too), "all the information you have so far should live in a new tab", hints "common enough that it makes you interested". The truth (his, later the same day): a cult around a doctor from St. Jude's, started after the bombs, cuts people up to make the next kind of human, with the Glow's radiation; the Hollows are its failures. One of the guild goes east to join them. 2.9.1 (his playtest, 2026-11-17): a find shows what it says, where it was found and where it points; no lead at a place the guild hasn't found | **done** (2.9.0, 2.9.1) |
 | Haven, part 2: the road east (§9.12, 3.0.0). Everyone sets out, children too; fights on the way under command; at the gate, the one of the guild who went east gets out, shouts the truth and is shot by a sniper; the Vultures join, since they think it's vile too; a big fight against a giant stitched from many people (four arms, three legs, two heads; it needs a drawing in `fighters.ts`); an ending scene, Chronicle lines, whoever they freed comes home; the game goes on | Aviel, 2026-11-16: "Haven is really a place where they believe in creating the next evolution of humans... The end fight you have to fight this giant Frankenstein... you only find out once you get there"; "One of our own... runs away to join them... This is the one who escapes and is shot when you approach" | done (2026-11-17) |
 | Sound (§14.1, 3.1.0): music, the yard's ambience, sound effects, fight sounds and a buzz | Aviel, 2026-11-23: "make the game a bit more interesting… music, sound effects"; he picked all four, and that I make the music | **done** (3.1.0) |
-| Movement (3.2.0): the yard comes alive (people walking between posts, the fire and their beds, crews leaving and coming home through the gate, vehicles, the trader's cart), crews on the Reach map, livelier fights, snappier screens | Aviel, 2026-11-23, all four | planned, next |
+| Movement (§14.2, 3.2.0): the yard comes alive (work at the posts, people stepping away and back, crews and vehicles through the gate, the trader's cart, the sky and the road), crews on the Reach map, livelier fights, snappier screens | Aviel, 2026-11-23, all four | **done** (3.2.0) |
 | Art (3.3.0): an icon for every piece of gear, each place's picture, small pictures in run logs, each building up close on its screen | Aviel, 2026-11-23, all four, in the ink style of the yard and portraits | planned |
 
 Not picked: choosing the rooms before a scavenge, raids you see coming, feasts and gatherings, talking to people in the yard.

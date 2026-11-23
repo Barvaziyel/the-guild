@@ -281,7 +281,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     route: () => ({ screen: 'reach' }),
     target: 'map',
     text: (state) =>
-      `You know ${countOf(knownLocations(state).length, 'place', 'places').toLowerCase()}. Each has a danger from 1 to 5, and a ring that fills as you explore it. Question marks are roads to places nobody has found yet.`,
+      `You know ${countOf(knownLocations(state).length, 'place', 'places').toLowerCase()}. Each has a danger from 1 to 5, and a ring that fills as you explore it. Question marks are roads to places nobody has found yet. Crews out walk the roads here.`,
   },
   {
     id: 'why-runs',

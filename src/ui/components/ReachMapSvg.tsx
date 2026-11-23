@@ -1,7 +1,8 @@
 import type { KeyboardEvent } from 'react';
 import type { GameState } from '../../engine/index.ts';
-import { usePrefs } from '../hooks.ts';
-import { DEPOT_SPOT, reachMap, type LabelSide, type MapNode, type MapSpot } from '../reach-map.ts';
+import { navigate, useNow, usePrefs } from '../hooks.ts';
+import { crewMarker, DEPOT_SPOT, reachMap, type CrewMarker, type LabelSide, type MapNode, type MapSpot } from '../reach-map.ts';
+import { joinNames } from '../runs-view.ts';
 
 /** Marker fill by danger, 1 to 5, on paper. */
 const DANGER_FILL = ['#8aa77e', '#c2a654', '#c77d3f', '#a64d27', '#7e2a22'];
@@ -47,7 +48,67 @@ export function ReachMapSvg({ state, selected, onPick }: Props) {
       {map.nodes.map((n) => (
         <Node key={n.id} node={n} selected={n.id === selected} onPick={onPick} />
       ))}
+      <Crews state={state} />
     </svg>
+  );
+}
+
+/** Crews out in the Reach (3.2.0), where they are on the road: walking or driving out, at the place, coming home. */
+function Crews({ state }: { state: GameState }) {
+  const now = useNow(1000);
+  const markers = state.runs
+    .map((r) => crewMarker(state, r, now, joinNames(r.plan.crew.map((id) => state.survivors.find((s) => s.id === id)?.firstName ?? '').filter(Boolean))))
+    // At the place, the badge on its marker says they're there.
+    .filter((m): m is CrewMarker => m !== undefined && m.stage !== 'there');
+  if (markers.length === 0) return null;
+  return (
+    <g className="map-crews">
+      {markers.map((m, i) => (
+        <g
+          key={m.runId}
+          className={`map-crew is-${m.stage}`}
+          style={{ transform: `translate(${m.x + (i % 2) * 1.2}px, ${m.y - 2.4 - (i % 3) * 0.8}px)` }}
+          role="button"
+          tabIndex={0}
+          aria-label={`${m.label} ${m.stage === 'out' ? 'on the way out' : m.stage === 'back' ? 'on the way home' : 'at work there'}. Open their run.`}
+          onClick={() => navigate({ screen: 'run', id: m.runId })}
+          onKeyDown={(e: KeyboardEvent) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              navigate({ screen: 'run', id: m.runId });
+            }
+          }}
+        >
+          <circle r={4.2} fill="transparent" />
+          <ellipse cx={0} cy={-0.4} rx={2.6} ry={3.4} fill={PAPER} opacity={0.75} />
+          <g transform={`scale(${m.facing * 1.55} 1.55)`}>{m.driving ? <MapCar /> : <MapWalker still={m.stage === 'there'} />}</g>
+        </g>
+      ))}
+    </g>
+  );
+}
+
+/** A tiny walker in rust ink, legs going while on the road. */
+function MapWalker({ still }: { still: boolean }) {
+  return (
+    <g className={still ? 'map-walker is-still' : 'map-walker'}>
+      <circle cx={0} cy={-2.3} r={0.75} fill="#a64d27" stroke={INK} strokeWidth={0.25} />
+      <line x1={0} y1={-1.5} x2={0} y2={0.2} stroke={INK} strokeWidth={0.45} strokeLinecap="round" />
+      <rect x={-1.3} y={-1.5} width={1} height={1.4} rx={0.2} fill="#7d6c4f" stroke={INK} strokeWidth={0.2} />
+      <line className="map-leg" x1={0} y1={0.2} x2={0.6} y2={1.6} stroke={INK} strokeWidth={0.4} strokeLinecap="round" />
+      <line className="map-leg map-leg-b" x1={0} y1={0.2} x2={-0.6} y2={1.6} stroke={INK} strokeWidth={0.4} strokeLinecap="round" />
+    </g>
+  );
+}
+
+/** A tiny vehicle for a crew that drove. */
+function MapCar() {
+  return (
+    <g className="map-car">
+      <path d="M -2 0.6 L -2 -0.6 L -0.9 -0.8 L -0.3 -1.7 L 1.1 -1.7 L 1.7 -0.7 L 2.2 -0.5 L 2.2 0.6 Z" fill="#a64d27" stroke={INK} strokeWidth={0.25} strokeLinejoin="round" />
+      <circle cx={-1.1} cy={0.8} r={0.55} fill={INK} />
+      <circle cx={1.3} cy={0.8} r={0.55} fill={INK} />
+    </g>
   );
 }
 

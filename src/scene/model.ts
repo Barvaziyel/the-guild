@@ -65,6 +65,22 @@ export interface YardAnimal {
   label: string;
 }
 
+/**
+ * Someone, or a vehicle, setting out through the gate or coming home (3.2.0).
+ * People riding in a vehicle aren't drawn walking.
+ */
+export interface YardTrip {
+  /** The person's or the vehicle's id. */
+  id: string;
+  look?: FigureLook;
+  vehicle?: { defId: string; id: string; slot: number };
+  way: 'out' | 'in';
+  /** When it began, epoch ms. */
+  at: number;
+  /** Their place in the line through the gate. */
+  order: number;
+}
+
 export type DayPhase = 'dawn' | 'day' | 'dusk' | 'night';
 
 export interface YardModel {
@@ -81,6 +97,8 @@ export interface YardModel {
   /** The guild's animals. */
   animals: YardAnimal[];
   phase: DayPhase;
+  /** Crews and vehicles going out through the gate or coming home just now (3.2.0). */
+  trips?: YardTrip[];
 }
 
 /** The light by the hour on the player's clock. */

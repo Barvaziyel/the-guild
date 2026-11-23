@@ -6,7 +6,8 @@
 import type { AnimalKind, BuildingId, ProjectId } from '../engine/types.ts';
 import { BUILDING_BASE, BUILDING_DRAWINGS, bulbs, flame, stationHouse } from './buildings.ts';
 import { C, circle, hash, hit, ink, line, mix, pathEl, rect, tappable } from './draw.ts';
-import { figure, trader } from './figures.ts';
+import { figure, trader, type Work } from './figures.ts';
+import { errandFor, errandMotion, roadLife, skyLife, tripMotion, tripSeconds, type Motion } from './life.ts';
 import { BUILDING_AREAS, CHILD_SPOTS, GATE, GATE_SPOTS, H, IDLE_SPOTS, PARKING_X, POST_SPOTS, PROJECT_SPOTS, REST_SPOTS, W, Y, type Spot } from './layout.ts';
 import { PROJECT_BASE, PROJECT_DRAWINGS, wallRun, wallShare, type ProjectLook } from './projects.ts';
 import type { DayPhase, YardModel, YardPerson } from './model.ts';
@@ -70,7 +71,8 @@ function sky(phase: DayPhase): string {
       [250, 24, 26],
       [190, 78, 22],
     ] as const) {
-      out += `<ellipse cx="${cx}" cy="${cy}" rx="${w}" ry="${w / 4}" fill="${cloud}"/><ellipse cx="${cx + w / 3}" cy="${cy - w / 6}" rx="${w / 2}" ry="${w / 4}" fill="${cloud}"/>`;
+      // Clouds drift, each at its own pace (3.2.0).
+      out += `<g class="yard-cloud" style="animation-duration:${50 + w * 2}s;animation-delay:-${cx % 37}s"><ellipse cx="${cx}" cy="${cy}" rx="${w}" ry="${w / 4}" fill="${cloud}"/><ellipse cx="${cx + w / 3}" cy="${cy - w / 6}" rx="${w / 2}" ry="${w / 4}" fill="${cloud}"/></g>`;
     }
   }
   // What's left of the city on the horizon.
@@ -136,13 +138,17 @@ function fence(wall: ProjectLook): string {
   return out;
 }
 
-function gate(): string {
+/** The gate; with `open` (3.2.0) its two leaves swing back while a crew goes through, timed like the crew. */
+function gate(open?: { seconds: number; elapsed: number }): string {
   const top = Y.fence - 26;
   const half = GATE.w / 2;
   let body = '';
-  for (const x of [GATE.x, GATE.x + half]) {
+  const swing = open ? ` style="animation:yard-gate ${open.seconds.toFixed(2)}s linear ${(-open.elapsed).toFixed(2)}s 1 both"` : '';
+  for (const [i, x] of [GATE.x, GATE.x + half].entries()) {
+    body += `<g class="yard-gate-leaf yard-gate-${i === 0 ? 'l' : 'r'}"${swing}>`;
     body += `<rect x="${x + 1}" y="${top}" width="${half - 2}" height="26" fill="url(#yard-chain)" ${ink(1.2)}/>`;
     body += line(x + 1, Y.fence, x + half - 1, top, 0.9);
+    body += '</g>';
   }
   body += rect(GATE.x - 3, top - 6, 4, 32, C.steelDark) + rect(GATE.x + GATE.w - 1, top - 6, 4, 32, C.steelDark);
   return tappable('gate', '#/recruits', 'The gate. See who is asking to join.', hit(GATE.x - 4, top - 8, GATE.w + 8, 36) + body);
@@ -197,9 +203,53 @@ function animalSpot(model: YardModel, kind: AnimalKind, keeperId?: string): { x:
   return { ...ANIMAL_SPOTS[kind], facing: 1 };
 }
 
-/** The whole yard as an SVG document. */
-export function yardSvg(model: YardModel): string {
+/** What people do with their hands at each post (3.2.0). Projects' crews hammer. */
+const WORK: Partial<Record<BuildingId, Work>> = {
+  workshop: 'hammer',
+  firepit: 'poke',
+  training_yard: 'spar',
+  infirmary: 'tend',
+  watchtower: 'watch',
+};
+
+function workFor(person: YardPerson, pose: string): Work | undefined {
+  const p = person.place;
+  if (p.kind === 'project') return 'hammer';
+  if (p.kind !== 'post') return undefined;
+  if (p.building === 'garden') return pose === 'kneel' ? 'hoe' : 'tend';
+  return WORK[p.building];
+}
+
+/** How long the gate stands open for the crews going through it now, and how far into that it is. */
+function gateOpen(model: YardModel, clock: number): { seconds: number; elapsed: number } | undefined {
+  const trips = (model.trips ?? []).filter((t) => tripMotion(t, clock));
+  if (trips.length === 0) return undefined;
+  const from = Math.min(...trips.map((t) => t.at));
+  const to = Math.max(...trips.map((t) => t.at + tripSeconds(t) * 1000));
+  return { seconds: (to - from) / 1000 + 1, elapsed: (clock - from) / 1000 };
+}
+
+/**
+ * The whole yard as an SVG document. `clock` (epoch ms) times what moves
+ * (3.2.0): people's errands and crews going through the gate, so the same
+ * moment drawn again looks the same.
+ */
+export function yardSvg(model: YardModel, clock = 0): string {
   const items: { y: number; svg: string }[] = [];
+  const motions: Motion[] = [];
+  // Who is coming home through the gate right now, so their own figure waits for them.
+  const arriving = new Map<string, string>();
+  for (const trip of model.trips ?? []) {
+    const m = tripMotion(trip, clock);
+    if (!m) continue;
+    motions.push(m);
+    items.push(...m.items);
+    if (m.homeClass) arriving.set(trip.id, m.homeClass);
+  }
+  const hideUntil = (id: string, svg: string): string => {
+    const cls = arriving.get(id);
+    return cls ? `<g class="${cls}">${svg}</g>` : svg;
+  };
   items.push({ y: Y.back - 2, svg: stationHouse() });
   items.push({ y: Y.rails - 1, svg: rails() });
 
@@ -218,13 +268,22 @@ export function yardSvg(model: YardModel): string {
     const size = p.look.size ?? 1;
     const tall = (spot.pose === 'lie' ? 14 : 30) * size;
     const wide = (spot.pose === 'lie' ? 30 : 16) * Math.max(size, 0.8);
-    const body = hit(spot.x - wide / 2, spot.y - tall, wide, tall + 2) + figure(p.look, spot, p.id);
+    let drawn = figure(p.look, spot, p.id, workFor(p, spot.pose));
+    // Now and then they step away for a bit (3.2.0), but not while just coming home.
+    const errand = arriving.has(p.id) ? undefined : errandFor(p, spot);
+    if (errand) {
+      const m = errandMotion(p, spot, errand, clock);
+      motions.push(m);
+      items.push(...m.items);
+      drawn = `<g class="${m.homeClass}">${drawn}</g>`;
+    }
+    const body = hit(spot.x - wide / 2, spot.y - tall, wide, tall + 2) + hideUntil(p.id, drawn);
     items.push({ y, svg: tappable(`s:${p.id}`, p.go, p.label, body) });
   }
 
   model.vehicles.forEach((v, i) => {
     const x = PARKING_X[i]!;
-    const body = hit(x - 44, Y.parking - 44, 88, 46) + vehicle(v.defId, v.id, x, Y.parking, v.broken);
+    const body = hit(x - 44, Y.parking - 44, 88, 46) + hideUntil(v.id, vehicle(v.defId, v.id, x, Y.parking, v.broken));
     items.push({ y: Y.parking, svg: tappable(`v:${v.id}`, '#/vehicles', v.label, body) });
   });
 
@@ -242,8 +301,9 @@ export function yardSvg(model: YardModel): string {
     items.push({ y: at.y + 0.2, svg: tappable(`a:${a.id}`, '#/depot/yard', a.label, body) });
   }
 
-  items.push({ y: Y.fence, svg: fence(model.projects.the_wall ?? { done: 0, working: false }) + gate() });
+  items.push({ y: Y.fence, svg: fence(model.projects.the_wall ?? { done: 0, working: false }) + gate(gateOpen(model, clock)) });
   if (model.trader) items.push({ y: 574, svg: cart() });
+  items.push({ y: Y.road + 42, svg: roadLife() });
 
   items.sort((a, b) => a.y - b.y);
   const shade = SHADE[model.phase];
@@ -251,12 +311,14 @@ export function yardSvg(model: YardModel): string {
 
   const defs =
     `<pattern id="yard-chain" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M 0 0 L 6 6 M 6 0 L 0 6" stroke="${C.fence}" stroke-width="0.6"/></pattern>` +
-    `<radialGradient id="yard-glow"><stop offset="0" stop-color="${C.lit}" stop-opacity="0.55"/><stop offset="1" stop-color="${C.lit}" stop-opacity="0"/></radialGradient>`;
+    `<radialGradient id="yard-glow"><stop offset="0" stop-color="${C.lit}" stop-opacity="0.55"/><stop offset="1" stop-color="${C.lit}" stop-opacity="0"/></radialGradient>` +
+    (motions.length > 0 ? `<style>${motions.map((m) => m.css).join('')}</style>` : '');
 
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" class="yard yard-${model.phase}" role="group" aria-label="The Depot yard">` +
     `<defs>${defs}</defs>` +
     sky(model.phase) +
+    skyLife(model.phase) +
     ground() +
     items.map((i) => i.svg).join('') +
     (shade.opacity > 0 ? `<rect class="yard-shade" width="${W}" height="${H}" fill="${shade.color}" opacity="${shade.opacity}" pointer-events="none"/>` : '') +

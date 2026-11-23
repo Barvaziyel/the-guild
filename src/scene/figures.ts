@@ -40,24 +40,47 @@ function torso(look: FigureLook, x: number, y: number, h: number): string {
   return out;
 }
 
-function arms(look: FigureLook, x: number, y: number, reach: number, facing: number): string {
+/** What someone at a post is doing with their hands (3.2.0), as a class that moves the front arm. */
+export type Work = 'hoe' | 'hammer' | 'poke' | 'spar' | 'tend' | 'watch';
+
+/** A tool in the front hand, hanging from it: drawn with the arm so it swings with it. */
+function tool(work: Work | undefined, hx: number, hy: number, facing: number): string {
+  if (work === 'hammer') return line(hx, hy, hx + 4.5 * facing, hy + 1.5, 1, C.woodDark) + rect(hx + 3.2 * facing - 1.2, hy + 0.2, 2.4, 3, '#7d8382', FINE);
+  if (work === 'poke') return line(hx, hy, hx + 7 * facing, hy + 5, 1, C.woodDark);
+  return '';
+}
+
+function arms(look: FigureLook, x: number, y: number, reach: number, facing: number, work?: Work, swing?: boolean): string {
   // Reach > 0 swings the front arm forward (working, gesturing).
   const back = rect(x - 6.6, y + 0.5, 2.2, 8, look.cloth, FINE) + circle(x - 5.5, y + 9, 1.2, look.skin, FINE);
   const fx = x + 4.4 + facing * reach;
-  const front = rect(fx, y + 0.5, 2.2, 8 - reach, look.cloth, FINE) + circle(fx + 1.1, y + 9 - reach, 1.2, look.skin, FINE);
-  return facing > 0 ? back + front : front + back;
+  let front = rect(fx, y + 0.5, 2.2, 8 - reach, look.cloth, FINE) + circle(fx + 1.1, y + 9 - reach, 1.2, look.skin, FINE) + tool(work, fx + 1.1, y + 9 - reach, facing);
+  let backArm = back;
+  // Arms that move turn about the shoulder: the top middle of their own box.
+  if (work === 'hammer' || work === 'poke' || work === 'tend') front = `<g class="yard-arm yard-${work}" style="--f:${facing}">${front}</g>`;
+  if (swing) {
+    front = `<g class="yard-swing" style="--f:${facing}">${front}</g>`;
+    backArm = `<g class="yard-swing yard-swing-b" style="--f:${facing}">${back}</g>`;
+  }
+  return facing > 0 ? backArm + front : front + backArm;
 }
 
-function standing(look: FigureLook, facing: number): string {
+function standing(look: FigureLook, facing: number, work?: Work): string {
   return (
     rect(-3.6, -10, 3, 9, C.trousers, FINE) +
     rect(0.6, -10, 3, 9, C.trousers, FINE) +
     rect(-4, -1.6, 3.6, 1.8, C.boots, FINE) +
     rect(0.4, -1.6, 3.6, 1.8, C.boots, FINE) +
     torso(look, 0, -20, 11) +
-    arms(look, 0, -20, 0, facing) +
+    arms(look, 0, -20, work === 'tend' ? 1.5 : 0, facing, work) +
     head(look, 0, -24.5, facing)
   );
+}
+
+/** Walking (3.2.0): legs and arms swing, each leg from the hip. */
+function walking(look: FigureLook, facing: number): string {
+  const leg = (x: number, b: boolean): string => `<g class="yard-step${b ? ' yard-step-b' : ''}">${rect(x, -10, 3, 9, C.trousers, FINE)}${rect(x - 0.4, -1.6, 3.6, 1.8, C.boots, FINE)}</g>`;
+  return leg(-3.2, false) + leg(0.2, true) + torso(look, 0, -20, 11) + arms(look, 0, -20, 0, facing, undefined, true) + head(look, 0, -24.5, facing);
 }
 
 function sitting(look: FigureLook, facing: number): string {
@@ -68,19 +91,17 @@ function sitting(look: FigureLook, facing: number): string {
   return thighs + shins + torso(look, 0, -17, 10.5) + arms(look, 0, -17, 1.5, f) + head(look, 0, -21.5, f);
 }
 
-/** Working the soil with a hoe. */
-function kneeling(look: FigureLook, facing: number): string {
+/** Working the soil with a hoe; at a post, the hoe rises and chops (3.2.0). */
+function kneeling(look: FigureLook, facing: number, work?: Work): string {
   const f = facing;
   const hoe = line(5 * f, -11, 13 * f, -1, 1.1, C.woodDark) + rect(f > 0 ? 11.5 : -15, -1.5, 3.5, 1.8, '#7d8382', FINE);
+  const upper = torso(look, 0.6 * f, -20, 11) + arms(look, 0.6 * f, -20, 3, f) + hoe + head(look, 1.4 * f, -24.2, f);
   return (
     rect(-3.6, -10, 3, 9, C.trousers, FINE) +
     rect(0.6, -10, 3, 9, C.trousers, FINE) +
     rect(-4, -1.6, 3.6, 1.8, C.boots, FINE) +
     rect(0.4, -1.6, 3.6, 1.8, C.boots, FINE) +
-    torso(look, 0.6 * f, -20, 11) +
-    arms(look, 0.6 * f, -20, 3, f) +
-    hoe +
-    head(look, 1.4 * f, -24.2, f)
+    (work === 'hoe' ? `<g class="yard-chop" style="--f:${f}">${upper}</g>` : upper)
   );
 }
 
@@ -92,22 +113,38 @@ function lying(look: FigureLook, facing: number): string {
   return cot + blanket + head(look, -9.5 * f, -9.5, -f);
 }
 
-const POSES: Record<Pose, (look: FigureLook, facing: number) => string> = {
+const POSES: Record<Pose, (look: FigureLook, facing: number, work?: Work) => string> = {
   stand: standing,
   sit: sitting,
   kneel: kneeling,
   lie: lying,
 };
 
-/** A person at a spot, with an idle bob that starts at a different moment for everyone. */
-export function figure(look: FigureLook, spot: Spot, seedKey: string): string {
+/** The scale a figure is drawn at. */
+export function figureScale(look: FigureLook): number {
+  return +(1.12 * (look.size ?? 1)).toFixed(3);
+}
+
+/**
+ * A person at a spot, with an idle bob that starts at a different moment for
+ * everyone, and what they're doing at their post (3.2.0): a sparring partner
+ * lunges, a lookout turns to look the other way.
+ */
+export function figure(look: FigureLook, spot: Spot, seedKey: string, work?: Work): string {
   const delay = (hash(seedKey) % 2000) / 1000;
   const anim = spot.pose === 'lie' ? 'yard-breathe' : 'yard-bob';
+  let body = POSES[spot.pose](look, spot.facing, work);
+  if (work === 'spar' || work === 'watch') body = `<g class="yard-${work}" style="animation-delay:-${delay * 2}s;--f:${spot.facing}">${body}</g>`;
   return (
-    `<g transform="translate(${spot.x} ${spot.y}) scale(${+(1.12 * (look.size ?? 1)).toFixed(3)})">` +
-    `<g class="${anim}" style="animation-delay:-${delay}s">${POSES[spot.pose](look, spot.facing)}</g>` +
+    `<g transform="translate(${spot.x} ${spot.y}) scale(${figureScale(look)})">` +
+    `<g class="${anim}" style="animation-delay:-${delay}s">${body}</g>` +
     '</g>'
   );
+}
+
+/** Someone on the move (3.2.0), drawn at the origin facing right: the walk is placed and turned by whoever draws it. */
+export function walker(look: FigureLook): string {
+  return walking(look, 1);
 }
 
 /** The trader: a generic figure in a long coat and a wide hat. */

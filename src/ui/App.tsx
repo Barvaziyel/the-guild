@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { advanceTime, dayAt, dueRuns, getLocation, havenNew, nextDayAt, returnUnsure, searchDue, type AdvanceResult, type DepotSummary, type GameState } from '../engine/index.ts';
 import { mergeSummaries, nextDayView } from './depot-view.ts';
 import { TourCard } from './components/TourCard.tsx';
@@ -35,6 +35,7 @@ import { tourStep } from './tour.ts';
 import { Bell } from './components/Bell.tsx';
 import { resourceList } from './view.ts';
 import { useSound } from './use-sound.ts';
+import { COUNT_MS, changeText, countAt, screenKey } from './motion-view.ts';
 
 /** Screens that have their own back bar instead of the guild header. */
 const DETAIL_SCREENS: Route['screen'][] = ['survivor', 'plan', 'run', 'fight', 'raid', 'building', 'recruits', 'gear', 'vultures'];
@@ -126,7 +127,10 @@ export function App() {
           {snap.saveError} Your progress is kept until you close the game. Export the save from Settings to be safe.
         </p>
       )}
-      <main className="screen">{screen}</main>
+      {/* A new screen comes in; another tab of the same screen doesn't (3.2.0). */}
+      <main className="screen" key={screenKey(route as { screen: string })}>
+        {screen}
+      </main>
       {time.current && <ReturnToast state={s} reportId={time.current} more={time.more} onClose={time.dismiss} />}
       {touring && tour && <TourCard state={s} stepId={tour} />}
       <TabBar
@@ -272,11 +276,58 @@ function TopBar({ state, day, now }: { state: GameState; day: number; now: numbe
       <ul className="resources" aria-label="Supplies at the Depot" data-tour="resources">
         {resourceList(state).map((r) => (
           <li key={r.id}>
-            <span className="res-name">{r.name}</span> <span className="res-amount">{r.amount}</span>
+            <span className="res-name">{r.name}</span> <Amount value={r.amount} />
           </li>
         ))}
       </ul>
     </header>
+  );
+}
+
+/**
+ * A supply's amount (3.2.0): when it changes, it counts to the new number and
+ * flashes, with the change floating up beside it.
+ */
+function Amount({ value }: { value: number }) {
+  const [shown, setShown] = useState(value);
+  const [change, setChange] = useState<{ text: string; up: boolean; n: number } | null>(null);
+  const last = useRef(value);
+  useEffect(() => {
+    const from = last.current;
+    last.current = value;
+    if (from === value) return;
+    const text = changeText(from, value);
+    if (text) setChange((c) => ({ text, up: value > from, n: (c?.n ?? 0) + 1 }));
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      setShown(value);
+      return;
+    }
+    const start = performance.now();
+    let frame = 0;
+    const step = (t: number): void => {
+      const elapsed = t - start;
+      setShown(countAt(from, value, elapsed));
+      if (elapsed < COUNT_MS) frame = requestAnimationFrame(step);
+    };
+    frame = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(frame);
+  }, [value]);
+  useEffect(() => {
+    if (!change) return;
+    const t = window.setTimeout(() => setChange(null), 1400);
+    return () => window.clearTimeout(t);
+  }, [change]);
+  return (
+    <span className="res-amount-box">
+      <span key={change?.n ?? 0} className={`res-amount${change ? (change.up ? ' is-up' : ' is-down') : ''}`}>
+        {shown}
+      </span>
+      {change && (
+        <span key={`c${change.n}`} className={`res-change${change.up ? ' is-up' : ' is-down'}`} aria-hidden="true">
+          {change.text}
+        </span>
+      )}
+    </span>
   );
 }
 
