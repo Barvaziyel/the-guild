@@ -5,6 +5,7 @@ import { T0, openGame, testGame, testPlan } from '../engine/test-utils.ts';
 import type { Survivor } from '../engine/index.ts';
 import { awayLines, BIG_PACK_MS, buildingCaption, childSize, figureLook, yardModel, yardTrips, TRIP_WINDOW_MS } from './yard-view.ts';
 import { walker } from '../scene/figures.ts';
+import { vehicle } from '../scene/vehicles.ts';
 
 describe('the yard', () => {
   test('workers stand at their posts, the rest hang out by the fire', () => {
@@ -156,8 +157,26 @@ describe('crews through the gate (3.2.0)', () => {
   test('a crew that drove: the vehicle goes, the crew rides', () => {
     const state = testGame('drive');
     const run = startRun(state, testPlan(state, 'maple_street', {}, 2), T0);
-    state.vehicles.push({ id: 'v9', defId: 'hatchback', condition: 80, runId: run.id } as (typeof state.vehicles)[number]);
+    state.vehicles.push({ id: 'v9', defId: 'car', condition: 80, runId: run.id } as (typeof state.vehicles)[number]);
     run.plan.vehicles = ['v9'];
-    assert.deepEqual(yardTrips(state, T0 + 1000, []).map((t) => [t.id, t.vehicle?.defId]), [['v9', 'hatchback']]);
+    assert.deepEqual(yardTrips(state, T0 + 1000, []).map((t) => [t.id, t.vehicle?.defId]), [['v9', 'car']]);
+    // Riding in it (3.7.2; it drove out empty).
+    assert.equal(yardTrips(state, T0 + 1000, [])[0]!.vehicle?.riders?.length, 2);
+  });
+
+  test('a pair on a motorcycle sit on it; more than its seats go in the next vehicle (3.7.2)', () => {
+    const state = testGame('riders');
+    const run = startRun(state, testPlan(state, 'maple_street', {}, 3), T0);
+    state.vehicles.push(
+      { id: 'm1', defId: 'motorcycle', condition: 80, runId: run.id } as (typeof state.vehicles)[number],
+      { id: 'm2', defId: 'motorcycle', condition: 80, runId: run.id } as (typeof state.vehicles)[number],
+    );
+    run.plan.vehicles = ['m1', 'm2'];
+    const trips = yardTrips(state, T0 + 1000, []);
+    assert.deepEqual(trips.map((t) => t.vehicle?.riders?.length), [2, 1]);
+    const svg = vehicle('motorcycle', 'm1', 0, 0, false, trips[0]!.vehicle!.riders!);
+    assert.ok(svg.length > vehicle('motorcycle', 'm1', 0, 0, false).length, 'drawn on it');
+    const car = vehicle('car', 'v1', 0, 0, false, trips[0]!.vehicle!.riders!);
+    assert.ok(car.includes('fill-opacity="0.25"'), 'seen through the glass');
   });
 });

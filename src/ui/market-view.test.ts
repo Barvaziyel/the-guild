@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { moveMarket, newGame, tradeCapacity, validatePlan, type RunPlan } from '../engine/index.ts';
+import { marketQuote, moveMarket, newGame, priceOf, tradeCapacity, validatePlan, type RunPlan } from '../engine/index.ts';
 import { JOBS, defaultPlan } from './runs-view.ts';
-import { fitTrade, marketJobs, maxTrade, priceLine, priceRows, tradeLine, withAmount, withGet, withGive } from './market-view.ts';
+import { fitTrade, marketJobs, maxTrade, maxWant, payChoices, priceLine, priceRows, tradeChips, tradeLine, withGet, withGive, withWant } from './market-view.ts';
 
 function atMarket(crew = 3): { state: ReturnType<typeof newGame>; plan: RunPlan } {
   const state = newGame({ seed: 'market-view', now: 0 });
@@ -26,20 +26,49 @@ describe('the market on screen (§7.14)', () => {
     assert.equal(fitted.lootPriority, 'scrap', 'what was bought is kept first');
     assert.ok(fitted.trade!.amount > 0 && fitted.trade!.amount <= tradeCapacity(state, fitted));
     assert.deepEqual(validatePlan(state, fitted), []);
-    assert.match(tradeLine(state, fitted), /^\d+ rations fetch about \d+ scrap at today’s prices; whoever talks best may get more\. Packed with goods, this crew can carry \d+\.$/);
+    assert.match(tradeLine(state, fitted), /^\d+ scrap cost \d+ rations at today’s prices; whoever talks best may get a little more\. Packed with goods, this crew can carry \d+\.$/);
+    assert.equal(fitted.trade!.want! % 5, 0, 'a round number to start with');
+  });
+
+  test('buy an exact number, and the price is the fewest goods that buy it: rounded up (3.7.2)', () => {
+    const { state, plan } = atMarket();
+    const fitted = fitTrade(state, plan);
+    const most = maxWant(state, fitted, 'rations', 'scrap');
+    for (let want = 1; want <= most; want++) {
+      const t = withWant(state, fitted, want).trade!;
+      assert.equal(t.want, want, 'exactly what was asked, one by one');
+      assert.ok(marketQuote(state.market, t) >= want, `${t.amount} rations buy ${want} scrap`);
+      assert.ok(marketQuote(state.market, { ...t, amount: t.amount - 1 }) < want, 'and one fewer wouldn’t');
+    }
+    assert.equal(withWant(state, fitted, 999).trade!.want, most, 'no more than the crew can pay for');
+    assert.equal(withWant(state, fitted, 0).trade!.want, 1);
+    const seven = withWant(state, fitted, 7);
+    assert.deepEqual(validatePlan(state, seven), []);
+    assert.deepEqual(tradeChips(seven).map((c) => [c.glyph, c.text]), [
+      ['rations', `−${seven.trade!.amount}`],
+      ['arrow', ''],
+      ['scrap', '+7'],
+    ]);
+    // A big unit for small change: paying for 3 scrap with tech rounds up to a whole piece of tech.
+    state.resources.tech = 10;
+    const tech = withGive(state, withWant(state, fitted, 3), 'tech').trade!;
+    assert.equal(tech.amount, priceOf(state.market, 'tech', 'scrap', 3));
+    assert.ok(marketQuote(state.market, tech) > 3, 'worth more than three, and still only three come back');
+    assert.ok(!payChoices(state, seven, 'scrap').some((c) => c.id === 'scrap'), 'nothing paid for with itself');
   });
 
   test('the amount shrinks to fit a smaller crew, and changes with what goes', () => {
     const { state, plan } = atMarket();
-    const big = withAmount(state, fitTrade(state, plan), 999);
-    assert.equal(big.trade!.amount, maxTrade(state, big, 'rations'));
+    const big = withWant(state, fitTrade(state, plan), 999);
+    assert.ok(big.trade!.amount <= maxTrade(state, big, 'rations'));
     const solo = fitTrade(state, { ...big, crew: big.crew.slice(0, 1) });
-    assert.ok(solo.trade!.amount < big.trade!.amount);
+    assert.ok(solo.trade!.want! < big.trade!.want!, 'fewer bought when fewer carry the goods');
     assert.deepEqual(validatePlan(state, solo), []);
     const scrap = withGive(state, solo, 'scrap');
     assert.equal(scrap.trade!.give, 'scrap');
     assert.equal(scrap.trade!.get, 'gas', 'never scrap for scrap');
     assert.equal(withGet(state, scrap, 'meds').trade!.get, 'meds');
+    assert.equal(withGet(state, solo, 'rations').trade!.give, 'scrap', 'buying rations, paid in scrap');
     assert.equal(fitTrade(state, { ...plan, locationId: 'rail_yard', job: 'trade' }).job, 'scavenge');
   });
 

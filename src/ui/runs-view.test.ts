@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { DAY_MS, LEAD_WAIT, LOCATIONS, MAX_CREW, Rng, amountOf, completeRun, dayAt, dayStart, runDuration, startRun, type RiskEstimate } from '../engine/index.ts';
+import { DAY_MS, LEAD_WAIT, LOCATIONS, MAX_CREW, Rng, amountOf, completeRun, createVehicle, dayAt, dayStart, runDuration, startRun, type RiskEstimate } from '../engine/index.ts';
 import { clockTime } from './time.ts';
 import { T0, openGame, testGame, testPlan } from '../engine/test-utils.ts';
 import { DEPOT_SPOT, MAP_SPOTS, mapLabel, reachMap } from './reach-map.ts';
 import {
   departChips,
+  tripLine,
   haulView,
   paceNote,
   rationsNote,
@@ -264,4 +265,14 @@ describe('the Runs screen’s report list', () => {
     assert.deepEqual(recent.map((i) => i.id), ['a', 'b', 'e']);
     assert.deepEqual(older.map((i) => i.id), ['c', 'd']);
   });
+});
+
+test('the planner’s header says the ride’s time once a vehicle is picked (3.7.2)', () => {
+  const state = testGame('trip-line');
+  state.vehicles.push(createVehicle(state, 'motorcycle', 80), createVehicle(state, 'car', 80));
+  const [bike, car] = state.vehicles.map((v) => v.id) as [string, string];
+  const plan = { ...testPlan(state, 'rail_yard'), crew: state.survivors.slice(0, 2).map((s) => s.id) };
+  assert.equal(tripLine(state, plan, 10 * 60_000, 11 * 60_000), 'about 10 min on foot');
+  assert.equal(tripLine(state, { ...plan, vehicles: [bike] }, 10 * 60_000, 5 * 60_000), 'about 5 min by motorcycle');
+  assert.equal(tripLine(state, { ...plan, vehicles: [bike, car] }, 10 * 60_000, 6 * 60_000), 'about 6 min riding');
 });

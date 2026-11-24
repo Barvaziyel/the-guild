@@ -364,6 +364,7 @@ function TabBar({ current, state, now, touring }: { current: TabScreen; state: G
           key={t.screen}
           type="button"
           className="tab"
+          data-tab={t.screen}
           aria-current={t.screen === current ? 'page' : undefined}
           onClick={() => navigate({ screen: t.screen }, { replace: true })}
         >

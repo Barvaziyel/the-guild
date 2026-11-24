@@ -6,7 +6,7 @@
 import type { BuildingId, Quality, RelationshipLabel, ResourceId, Resources } from './types.ts';
 
 /** Save format version. Bump together with a migration in save.ts. */
-export const SAVE_VERSION = 28;
+export const SAVE_VERSION = 29;
 /** A guild this many game days old or younger, coming in from an older version, gets the first week too (§9.10). */
 export const STORY_OLD_SAVE_DAYS = 14;
 
@@ -529,8 +529,15 @@ export const VEHICLE_NOISE_CAP = 0.6;
 export const WRECK_PER_DANGER = 0.004;
 /** ...plus this times (1 - condition/100) squared. */
 export const WRECK_WORN = 0.08;
-/** Condition lost to a fight or hazard, on top of the run's ordinary wear. */
-export const VEHICLE_KNOCKS: readonly [number, number] = [2, 6];
+/** Condition lost to a fight or hazard, on top of the run's ordinary wear (3.7.2: was 2 to 6). */
+export const VEHICLE_KNOCKS: readonly [number, number] = [1, 3];
+/**
+ * A run's ordinary wear goes with how far it is (3.7.2; Aviel: one 5-minute run took his motorcycle from
+ * 60% to 49%, "way too excessive"): the full amount for a place this many minutes' walk away or more...
+ */
+export const WEAR_FULL_MIN = 60;
+/** ...and never less than this share of it, however near. At least 1 point a run, all the same. */
+export const WEAR_NEAR_SHARE = 0.3;
 /** Condition of a wreck a crew gets running and drives home. */
 export const FOUND_VEHICLE_CONDITION: readonly [number, number] = [10, 35];
 /** Walking home after a wreck: stress for each walker... */

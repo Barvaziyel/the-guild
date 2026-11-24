@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import type { Choice } from '../runs-view.ts';
 import { Chips } from './Glyph.tsx';
 
@@ -95,6 +96,38 @@ export function Segmented<T extends string>({ legend, name, choices, value, onCh
 /** A small number picker on one line: the label and how many there are, then − n +. Two sit side by side. */
 export function MiniStepper({ label, value, min, max, step = 1, note, onChange }: StepperProps) {
   const set = (v: number): void => onChange(Math.max(min, Math.min(max, v)));
+  // Hold a button to keep counting (3.7.2), for steps of one up to a big number.
+  const now = useRef(value);
+  now.current = value;
+  const hold = useRef<{ wait: number; tick: number; held: boolean }>({ wait: 0, tick: 0, held: false });
+  const stop = (): void => {
+    window.clearTimeout(hold.current.wait);
+    window.clearInterval(hold.current.tick);
+  };
+  useEffect(() => stop, []);
+  const press = (dir: 1 | -1) => ({
+    onPointerDown: () => {
+      stop();
+      hold.current.held = false;
+      hold.current.wait = window.setTimeout(() => {
+        hold.current.held = true;
+        hold.current.tick = window.setInterval(() => {
+          const next = Math.max(min, Math.min(max, now.current + dir * step));
+          if (next === now.current) return stop();
+          now.current = next;
+          onChange(next);
+        }, 70);
+      }, 380);
+    },
+    onPointerUp: stop,
+    onPointerLeave: stop,
+    onPointerCancel: stop,
+    onClick: () => {
+      // A hold already counted; the click that ends it doesn't add one more.
+      if (hold.current.held) hold.current.held = false;
+      else set(value + dir * step);
+    },
+  });
   return (
     <div className="mini-stepper">
       <span className="mini-stepper-label">
@@ -102,13 +135,13 @@ export function MiniStepper({ label, value, min, max, step = 1, note, onChange }
         <span className="mini-stepper-note">{note}</span>
       </span>
       <span className="stepper-controls">
-        <button type="button" className="step" aria-label={`Fewer ${label.toLowerCase()}`} disabled={value <= min} onClick={() => set(value - step)}>
+        <button type="button" className="step" aria-label={`Fewer ${label.toLowerCase()}`} disabled={value <= min} {...press(-1)}>
           &minus;
         </button>
         <output className="step-value" aria-live="polite">
           {value}
         </output>
-        <button type="button" className="step" aria-label={`More ${label.toLowerCase()}`} disabled={value >= max} onClick={() => set(value + step)}>
+        <button type="button" className="step" aria-label={`More ${label.toLowerCase()}`} disabled={value >= max} {...press(1)}>
           +
         </button>
       </span>

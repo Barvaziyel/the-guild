@@ -479,7 +479,7 @@ This is how crews grow past four, and how the guild moves faster and hauls more.
   - **Faster:** the run takes the slowest vehicle's share of the walking time. The number of beats still comes from the distance, so a vehicle meets as much on the way, just sooner.
   - **Carries more:** each vehicle's cargo adds to what the crew can bring home.
   - **Noisy:** fights come up more often (the combat weight × 1 + the vehicles' noise, at most +60%), the crew is −2 to spotting enemies first, and **nobody sneaks in a vehicle** (the planner switches a Sneaky approach to Balanced).
-- **Wear.** Every run takes 3–9 condition, by type, and every fight or hazard knocks off 2–6 more. At 0 it breaks down and stays home until repaired. Repairs happen in the Workshop (level 1 or better), back to full: 3 scrap for every 10 points and 1 tech for every 25 (24 scrap, 3 tech from 20%).
+- **Wear.** Every run takes 3–9 condition, by type, for a place an hour's walk away or more, and less for a nearer one, down to 30% of it (at least 1): about 1–3 to the Rail Yard. Every fight or hazard knocks off 1–3 more. (3.7.2; Aviel: one 5-minute run took his motorcycle from 60% to 49%. It was 3–9 for any run and 2–6 a knock.) At 0 it breaks down and stays home until repaired. Repairs happen in the Workshop (level 1 or better), back to full: 3 scrap for every 10 points and 1 tech for every 25 (24 scrap, 3 tech from 20%).
 - **Wrecks.** At every fight or hazard, a vehicle is wrecked with a chance of 0.4% × danger + 8% × (1 − condition/100)². Measured over a run at Checkpoint Bravo: about 2% in good condition, 4% at 60%, 7% at 25%; at Red Hand Camp up to 11% when worn. A wreck hurts its riders (1–4 each) and is left behind. If what still runs can't seat everyone, the crew **turns for home on foot**: the walk takes 60% of the round trip on foot, and everyone gains +8 stress. A lost run loses its vehicles too.
 - **Found on runs.** Places with wrecks (Maple Street, the Rail Yard, Kessler Farm, the Drowned Mall, St. Jude's, the Water Plant, Checkpoint Bravo, Red Hand Camp) can turn one up on a discovery beat. The crew gets it running and drives it home at 10–35% condition, and its cargo helps carry the loot. About 3% of scouting runs at those places find one, and well under 1% of other runs.
 - **Sold by traders.** About one caravan in ten brings a vehicle instead of the usual offer, at 45–80% condition, for its price ±15%.
@@ -691,7 +691,12 @@ Gear and traits add moves (a `moves` hook on traits and gear):
 Aviel, 2026-11-23, and a friend playing too: rations are a passive income used only for upkeep, so they pile up; scrap only comes from runs and pays for everything, so there's never enough. His idea: "some kind of merchant that you can go to and exchange rations for scraps, or scraps for gas… maybe the price goes up as you exchange more." (Spoiling, §9.1, caps the pile but wastes it; caravans buy spare rations at 0.5 scrap, but an offer for rations came about once a real week.)
 
 - **A place, not a building.** *The Drive-In*, a swap meet under an old drive-in screen, danger 1, 30 minutes on foot, known from the start (older saves have it too), straight down the road from the Depot on the map. `LocationDef.market`: only the **Trade** job goes there, and Trade goes nowhere else. Nothing to explore (Trade explores 0), so no levels and no outpost; no calls for help come from it; its panel on the Reach has no Outpost tab, and shows the prices today instead of what it mostly finds.
-- **A trade run** takes goods and brings back something else: any supply for any other. The planner's orders show *Take* (each supply, with how many the Depot can spare: what's stored, less what the run takes anyway, like rations for the road), how many, *For*, and what it fetches at today's prices. The goods leave the stores when the crew sets out.
+- **A trade run** takes goods and brings back something else: any supply for any other. The goods leave the stores when the crew sets out.
+  - The planner's orders show *Buy* (each supply, with its price today), how many, one at a time (holding a button keeps counting), and *Pay with* (each supply, with how many the Depot can spare: what's stored, less what the run takes anyway, like rations for the road).
+  - The price follows: what goes and what comes back, as pictures, and "7 scrap cost 23 rations at today's prices".
+  - The price is the fewest goods that buy that many, so it rounds up, never down (`priceOf`). The trader hands over exactly that many (`TradeOrder.want`), even when the goods were worth a little more; a good haggler still gets a little on top.
+  - At most, what the goods the crew can carry would buy.
+  - (3.7.2; Aviel: "it's annoying that everything jumps by seemingly random numbers when trading. I should be able to buy an exact amount of x and tell me the price in y. It should round up, don't make it easier on me." Before, you picked how much to take, in fives, and saw roughly what it fetched.)
 - **Packs full of goods:** a trade crew carries three times its usual load (`TRADE_LOAD`), vehicles' cargo included. A crew of three on foot carries about 50–70. What's bought is what they keep first if anything has to be left behind.
 - **On the road** the run is an ordinary one at danger 1 (raider scavs mostly: they want the packs), with the market halfway (a `trade` beat, its stamp a pair of scales). A crew that turns back before it gets there brings the goods home; a routed crew loses them, as it loses anything it carries; one routed on the way back loses what it bought.
 - **Haggling:** at the market the crew's best Nerve rolls against 10: 15% more on a success, 25% if it beats it by 5.
@@ -1347,7 +1352,7 @@ Aviel, 2026-11-23 and 24: tweening in all five places, things that happened whil
   - *Used*: what of that didn't come back, struck through.
   - *Back*: what they found or traded for, and the meds and ammo they didn't use, then each piece of gear by its picture.
 
-  The first time a report is opened, the rows come in one after another, each thing back pops up in turn, then flies into a strip of the Depot's stores under it. The store counts up by what this crew brought, with the change floating up. Gear flies into a crate that counts the stash. The "crew is back" toast doesn't sit over the report it points to.
+  The first time a report is opened, the rows come in one after another and each thing back pops up in turn. Then it flies home: supplies into the Depot's tab and gear into the Gear tab, each of which bumps as it lands. The "crew is back" toast doesn't sit over the report it points to. (3.7.2: it first flew into a strip of all six of the Depot's stores under the rows, which counted up. Aviel found that line confusing, so it's gone.)
 - **Fights**: a bar drains. What was just lost stays as a pale chunk for a moment and shrinks away; a heal grows in. A frame knows the health before its act (`StageEffect.was`).
 - **The map, since the last look** (`mapNews`, `seeMap`; `Seen.mapped`). The Reach remembers the places it drew and how explored they were:
   - A place new to the map draws its road in from where it was found, then pops up at its end; the roads on from it fade in.
@@ -1362,6 +1367,12 @@ Aviel, 2026-11-23 and 24: tweening in all five places, things that happened whil
 
   Before, a front-facing body crossed its legs like scissors and flapped both arms.
 - **Packs on the road**: a crew walking out or in through the gate carries a pack. It's small for a run under 45 minutes and big, with a bedroll, for a longer one, and it bulges on the way home (`YardTrip.pack`, `BIG_PACK_MS`).
+- **Riding** (3.7.2; Aviel: a pair on the motorcycle "just sped out without the characters"):
+  - A crew that drives rides in its vehicles, filling each one's seats in turn (`YardTrip.vehicle.riders`). Coming home, only those back at the Depot ride.
+  - On a motorcycle the driver sits leaning into the bars and the passenger holds on behind (`rider`).
+  - In anything else, each rider is a head and shoulders in a window, under faint glass (`inWindow`). A pickup's bed carries two more.
+  - On the Reach, a crew that took only motorcycles shows on one (`CrewMarker.ride`). The map's little car now faces the way it drives; it drove backwards.
+- **The ride's time**: once a vehicle is picked, the planner's header says how long the ride takes ("about 5 min by motorcycle", `tripLine`) instead of the place's walk. Aviel saw "4.5 minutes" for the Rail Yard after the header had said "about 10 min on foot".
 - Marks from before 3.7.0 have no record of the map, the yard or the stores, so nothing moves the first time.
 
 ## 15. Roadmap

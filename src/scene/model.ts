@@ -73,7 +73,8 @@ export interface YardTrip {
   /** The person's or the vehicle's id. */
   id: string;
   look?: FigureLook;
-  vehicle?: { defId: string; id: string; slot: number };
+  /** With a vehicle, who rides in it (3.7.2; Aviel: a pair "on the motorcycle … it just sped out without the characters"). */
+  vehicle?: { defId: string; id: string; slot: number; riders?: FigureLook[] };
   way: 'out' | 'in';
   /** What they carry on their back (3.7.0): a small pack for a short run, a big one for a long one; fuller on the way home. */
   pack?: 'day' | 'big';

@@ -129,6 +129,26 @@ describe('vehicles: runs', () => {
     assert.ok(car.condition < 100 && car.condition >= 100 - 30);
   });
 
+  test('a short hop wears a vehicle a little, a long road the full amount (3.7.2)', () => {
+    const wear = (place: string): number[] => {
+      const out: number[] = [];
+      for (let i = 0; i < 60; i++) {
+        const { state, vehicles } = garage(`wear-${place}-${i}`, ['motorcycle'], 2);
+        const bike = vehicles[0]!;
+        const run = startRun(state, { ...testPlan(state, place, {}, 2), vehicles: [bike.id], approach: 'balanced' }, T0);
+        const news = run.result.vehicles![0]!;
+        if (!news.wrecked && run.result.outcome === 'completed') out.push(100 - news.condition);
+      }
+      return out;
+    };
+    const near = wear('rail_yard');
+    const far = wear('radio_station');
+    const avg = (xs: number[]): number => xs.reduce((a, b) => a + b, 0) / xs.length;
+    assert.ok(near.every((w) => w >= 1), 'always a little');
+    assert.ok(avg(near) <= 5, `Rail Yard: ${avg(near).toFixed(1)} a run on average`);
+    assert.ok(avg(far) > avg(near) + 2, `far: ${avg(far).toFixed(1)}, near: ${avg(near).toFixed(1)}`);
+  });
+
   test('a wrecked vehicle is left behind, its riders get hurt, and the crew walks home', () => {
     for (let i = 0; i < 400; i++) {
       const { state, vehicles } = garage(`wreck-${i}`, ['car'], 6, 5);

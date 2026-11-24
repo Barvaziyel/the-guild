@@ -28,7 +28,10 @@ export function tradeBeat(sim: Sim): void {
   });
   // The price was set when they left; haggling and anything lost on the way change how much it comes to.
   const base = t.quote ?? marketQuote(sim.state.market, t);
-  const got = have >= t.amount ? Math.floor(base * (1 + bonus)) : Math.floor(marketQuote(sim.state.market, { ...t, amount: have }) * (1 + bonus));
+  // Bought by the number (3.7.2): exactly what was asked, and no more for goods worth a little over it; a
+  // good haggler still gets a bit on top. With goods lost on the way, whatever's left fetches what it can.
+  const asked = t.want !== undefined ? Math.min(t.want, base) : base;
+  const got = have >= t.amount ? Math.floor(asked * (1 + bonus)) : Math.floor(Math.min(asked, marketQuote(sim.state.market, { ...t, amount: have })) * (1 + bonus));
   sim.loot[t.give] -= have;
   sim.loot[t.get] += got;
   say(sim, `The trader takes ${amountOf(t.give, have)} and hands over ${amountOf(t.get, got)}.`, got > 0 ? { tone: 'good' } : {});

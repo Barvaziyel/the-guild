@@ -30,6 +30,8 @@ import {
   HARD_RUN_DANGER,
   ROAD_STRESS_MINUTES,
   VEHICLE_KNOCKS,
+  WEAR_FULL_MIN,
+  WEAR_NEAR_SHARE,
   VEHICLE_NOISE_CAP,
   WALK_HOME_SHARE,
   WALK_HOME_STRESS,
@@ -699,7 +701,9 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
   const vehicleNews: VehicleNews[] = sim.rides.map((r) => {
     // Nobody drives home from a lost run.
     if (r.wrecked || outcome === 'lost') return { id: r.v.id, defId: r.v.defId, condition: 0, wrecked: true };
-    const condition = Math.max(0, r.v.condition - rng.int(r.def.wear[0], r.def.wear[1]));
+    // Ordinary wear goes with the distance (3.7.2): a short hop wears it a little, a long road the full amount.
+    const near = Math.max(WEAR_NEAR_SHARE, Math.min(1, sim.loc.durationMin / WEAR_FULL_MIN));
+    const condition = Math.max(0, r.v.condition - Math.max(1, Math.round(rng.int(r.def.wear[0], r.def.wear[1]) * near)));
     return { id: r.v.id, defId: r.v.defId, condition };
   });
   if (outcome !== 'lost') aftermath(sim);

@@ -209,6 +209,10 @@ const MIGRATIONS: Record<number, (save: Record<string, unknown>) => void> = {
     // Coming home (3.7.0): a report keeps the rations and gas the crew set out with (`RunReport.packed`). Older
     // reports have none, and the report shows what it can without it.
   },
+  28: () => {
+    // Buying by the number (3.7.2): a trade may name exactly how many to buy (`TradeOrder.want`). Trades out
+    // now have none, and buy whatever their goods fetch, as before.
+  },
 };
 
 export function serialize(state: GameState): string {

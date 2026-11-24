@@ -110,6 +110,28 @@ function backpack(pack: Pack, full: boolean): string {
   return out + line(-3.2, -19.6, 0.6, -14.5, 0.9, darken(canvas, 0.35));
 }
 
+/**
+ * Someone riding (3.7.2), facing right with the hip at 0, 0: sitting on a motorcycle's seat, leaning
+ * into it, hands on the bars ahead, a knee bent down to the peg. A passenger holds on instead.
+ */
+export function rider(look: FigureLook, passenger = false): string {
+  const reach = passenger ? 5 : 9;
+  return (
+    rect(-1.5, -1.6, 7.5, 3.2, C.trousers, FINE) +
+    rect(4.6, -1, 2.8, 7, C.trousers, FINE) +
+    rect(4.2, 5, 4.6, 1.8, C.boots, FINE) +
+    `<g transform="rotate(12)">${rect(-3.4, -11, 6.8, 10.5, look.cloth, FINE)}${look.armor ? rect(-2.8, -10.2, 5.6, 8, ARMOR_COLORS[look.armor] ?? darken(look.cloth, 0.3), FINE) : ''}</g>` +
+    profileHead(look, 2.4, -15) +
+    line(1.6, -9, 1.6 + reach, -6.5, 2.2, look.cloth) +
+    circle(1.6 + reach, -6.5, 1.2, look.skin, FINE)
+  );
+}
+
+/** A head and shoulders seen through a window (3.7.2), facing right, small enough for one: 8 tall, from y = -5.5 to 2.5. */
+export function inWindow(look: FigureLook): string {
+  return `<g transform="scale(0.62)">${rect(-3.4, -1, 6.8, 5, look.cloth, FINE)}${profileHead(look, 0.4, -4.6)}</g>`;
+}
+
 /** A head seen from the side: one eye ahead, the hair swept back. */
 function profileHead(look: FigureLook, cx: number, cy: number): string {
   const r = 4.3;

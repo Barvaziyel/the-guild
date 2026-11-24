@@ -234,7 +234,7 @@ function Report({ state, report }: { state: GameState; report: RunReport }) {
             )}
           </p>
         )}
-        <Homecoming state={state} report={report} fresh={fresh} />
+        <Homecoming report={report} fresh={fresh} />
         {haul.vehicles.map((v) => (
           <p key={v} className="haul-item">
             {v}

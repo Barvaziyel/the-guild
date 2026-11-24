@@ -236,7 +236,7 @@ export function tripMotion(trip: YardTrip, clock: number): Motion | undefined {
   const moving = walk(path, lead, trip.vehicle ? DRIVE : MARCH, scale, first.x < last.x ? 1 : -1);
   const start: Frame = { t: 0, css: `opacity:${trip.way === 'out' && !trip.vehicle ? 1 : 0};${at(first, moving.frames[0] ? facingOf(moving.frames[0].css) : 1, scale)}` };
   const frames = [start, { ...start, t: lead }, ...moving.frames, { t: total, css: `opacity:0;${at(last, moving.facing, scale)}` }];
-  const body = trip.vehicle ? vehicle(trip.vehicle.defId, trip.vehicle.id, 0, 0, false) : walker(trip.look!, gaitFor(trip.id, MARCH), trip.pack ?? 'day', trip.way === 'in');
+  const body = trip.vehicle ? vehicle(trip.vehicle.defId, trip.vehicle.id, 0, 0, false, trip.vehicle.riders) : walker(trip.look!, gaitFor(trip.id, MARCH), trip.pack ?? 'day', trip.way === 'in');
   const delay = (-elapsed).toFixed(2);
   let css = keyframes(`${k}-m`, frames, total) + `.yard .${k}-m{animation:${k}-m ${total.toFixed(2)}s linear ${delay}s 1 both}`;
   let homeClass: string | undefined;

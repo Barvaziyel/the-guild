@@ -70,6 +70,23 @@ export function marketQuote(market: MarketState | undefined, order: Pick<TradeOr
 }
 
 /** The price of one now, in scrap's worth: what the market pays for one, and what it asks. */
+/**
+ * What it costs to buy exactly `want` of `get` with `give` (3.7.2): the fewest goods that fetch at least
+ * that many, so it rounds up, never down. Infinity when even everything wouldn't (`limit` goods).
+ */
+export function priceOf(market: MarketState | undefined, give: ResourceId, get: ResourceId, want: number, limit = 10_000): number {
+  if (give === get || want <= 0) return 0;
+  if (marketQuote(market, { give, get, amount: limit }) < want) return Infinity;
+  let lo = 1;
+  let hi = limit;
+  while (lo < hi) {
+    const mid = Math.floor((lo + hi) / 2);
+    if (marketQuote(market, { give, get, amount: mid }) >= want) hi = mid;
+    else lo = mid + 1;
+  }
+  return lo;
+}
+
 export function unitPrice(market: MarketState | undefined, r: ResourceId): { pays: number; asks: number } {
   const p = MARKET_VALUE[r] * Math.exp(-glutOf(market, r));
   return { pays: p * MARKET_SELL, asks: p * MARKET_BUY };
