@@ -17,7 +17,8 @@ export function Chips({ chips, className }: { chips: readonly Chip[]; className?
   return (
     <span className={`tags${className ? ` ${className}` : ''}`}>
       {chips.map((c, i) => (
-        <span key={i} className={`tag${c.tone ? ` is-${c.tone}` : ''}`} aria-label={c.label ?? c.text}>
+        // A tap says what it means (3.7.1): `data-tip` is read by `TagTips` in App.
+        <span key={i} className={`tag${c.tone ? ` is-${c.tone}` : ''}${c.label ? ' has-tip' : ''}`} aria-label={c.label ?? c.text} {...(c.label ? { 'data-tip': c.label } : {})}>
           <Glyph name={c.glyph} className={SUPPLIES.has(c.glyph) ? `res-${c.glyph}` : undefined} />
           <span aria-hidden={c.label ? 'true' : undefined}>{c.text}</span>
         </span>

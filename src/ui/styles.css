@@ -7144,3 +7144,66 @@ p.is-bad {
     transform: none;
   }
 }
+
+/* A move that needs a target (3.7.1): what it does is said above, and whom it can go at comes in under the moves. */
+.fight-targets {
+  margin-top: 0.375rem;
+  padding: 0.5rem;
+  border: 1px solid var(--rust);
+  border-radius: 6px;
+}
+
+.fight-who {
+  margin: 0 0 0.375rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--bone);
+}
+
+/* A picture says what it means when tapped (3.7.1): a dotted line under its word, a bigger place to tap, and a bubble. */
+.tag.has-tip {
+  position: relative;
+  cursor: help;
+}
+
+.tag.has-tip::after {
+  content: '';
+  position: absolute;
+  inset: -8px -4px;
+}
+
+.tag.has-tip > span:last-child {
+  text-decoration: underline dotted;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.tag-tip {
+  position: fixed;
+  z-index: 60;
+  transform: translateY(-100%);
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 0.875rem;
+  line-height: 1.35;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+}
+
+.tag-tip.is-below {
+  transform: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .tag-tip {
+    animation: tag-tip-in 0.16s ease-out;
+  }
+}
+
+@keyframes tag-tip-in {
+  from {
+    opacity: 0;
+  }
+}

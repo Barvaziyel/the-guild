@@ -81,3 +81,15 @@ const SUPPLY_ORDER: readonly ResourceId[] = ['scrap', 'rations', 'meds', 'ammo',
 export function problemNote(problem: string | undefined): string | undefined {
   return problem === undefined || /^Needs \d/.test(problem) || /^Not enough /.test(problem) ? undefined : problem;
 }
+
+/**
+ * Where a tag's meaning shows when it's tapped (3.7.1; Aviel: "symbols are not clear, like what does the
+ * dice symbol mean?"): above the tag, or under it near the top of the screen; centred on it, but kept
+ * inside the screen.
+ */
+export function tipPlacement(tag: { left: number; top: number; width: number; height: number }, screen: { width: number; height: number }, tipWidth: number): { left: number; top: number; below: boolean } {
+  const margin = 8;
+  const below = tag.top < 72;
+  const left = Math.max(margin, Math.min(screen.width - tipWidth - margin, tag.left + tag.width / 2 - tipWidth / 2));
+  return { left: Math.round(left), top: Math.round(below ? tag.top + tag.height + 6 : tag.top - 6), below };
+}

@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { addChronicle, createItem, ensureLocationState, equipFromStash, type GameState } from '../engine/index.ts';
+import { MAX_LOG, addChronicle, addGuildLog, createItem, ensureLocationState, equipFromStash, type GameState } from '../engine/index.ts';
 import { T0, testGame } from '../engine/test-utils.ts';
-import { baselineSeen, dots, mapNews, missingGear, newChronicle, newlyBuilt, seeBuilt, seeChronicle, seeMap, seeNews, seePlace, seeStash, seeStores, seenFor, sheetDots, storesNews, todayReasons, urgentItems } from './attention-view.ts';
+import { baselineSeen, dots, latestNews, mapNews, missingGear, newChronicle, newlyBuilt, seeBuilt, seeChronicle, seeMap, seeNews, seePlace, seeStash, seeStores, seenFor, sheetDots, storesNews, todayReasons, urgentItems } from './attention-view.ts';
 import { slotViews } from './gear-view.ts';
 
 function bare(state: GameState): void {
@@ -87,6 +87,42 @@ describe('where to look (3.5.0)', () => {
     const state = testGame('runs');
     assert.deepEqual(urgentItems(state, T0), []);
     assert.equal(dots(state, T0, baselineSeen(state)).tabs.runs, undefined);
+  });
+});
+
+describe('the News dot (3.7.1)', () => {
+  test('a crew coming home doesn’t light it: the Runs tab has that', () => {
+    const state = testGame('news-runs');
+    let seen = baselineSeen(state);
+    state.log.push({ day: 3, text: 'The crew returned from the Rail Yard.', tags: ['run'] });
+    assert.equal(dots(state, T0, seen).depot.news, undefined);
+    state.log.push({ day: 3, text: 'A stray dog nosed around.', tags: ['animal'] });
+    assert.equal(dots(state, T0, seen).depot.news, true);
+    seen = seeNews(state, seen);
+    state.log.push({ day: 4, text: 'The crew returned from Maple Street.', tags: ['run'] });
+    assert.equal(dots(state, T0, seen).depot.news, undefined);
+  });
+
+  test('with the log full, a new line still lights it', () => {
+    const state = testGame('news-full');
+    for (let i = 0; i < MAX_LOG; i++) addGuildLog(state, 1, `Line ${i}.`);
+    let seen = seeNews(state, baselineSeen(state));
+    assert.equal(state.log.length, MAX_LOG);
+    addGuildLog(state, 2, 'A trader came by.');
+    assert.equal(state.log.length, MAX_LOG, 'still full');
+    assert.equal(dots(state, T0, seen).depot.news, true);
+    seen = seeNews(state, seen);
+    assert.equal(dots(state, T0, seen).depot.news, undefined);
+  });
+
+  test('marks from before 3.7.1 count the news as read up to now', () => {
+    const state = testGame('news-old');
+    const { newsKey: _gone, ...old } = baselineSeen(state);
+    state.log.push({ day: 2, text: 'A trader came by.' });
+    const seen = seenFor(state, old);
+    assert.equal(seen.newsKey, latestNews(state));
+    assert.equal(dots(state, T0, seen).depot.news, undefined);
+    assert.equal(seenFor(state, seen), seen, 'once filled in, the same marks');
   });
 });
 

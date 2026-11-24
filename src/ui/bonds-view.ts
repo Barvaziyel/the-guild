@@ -54,7 +54,7 @@ export function bondChips(label: RelationshipLabel, partners = false): Chip[] {
   switch (label) {
     case 'bonded':
       return [
-        { glyph: 'dice', text: `+${BONDED_CHECK_BONUS}`, tone: 'good', label: `On a run together: plus ${BONDED_CHECK_BONUS} to every roll` },
+        { glyph: 'dice', text: `+${BONDED_CHECK_BONUS} rolls`, tone: 'good', label: `On a run together: plus ${BONDED_CHECK_BONUS} to every roll` },
         { glyph: 'stress', text: `−${Math.round((1 - BONDED_STRESS_MULT) * 100)}%`, tone: 'good', label: `On a run together: ${Math.round((1 - BONDED_STRESS_MULT) * 100)}% less stress` },
         { glyph: 'shield', text: `+${wounds}`, tone: 'good', label: 'On a run together: wounds are less likely to be serious' },
         { glyph: 'home', text: `−${calmer}`, tone: 'good', label: `At home together: ${calmer} less stress a day` },
@@ -63,20 +63,20 @@ export function bondChips(label: RelationshipLabel, partners = false): Chip[] {
       ];
     case 'friend':
       return [
-        { glyph: 'dice', text: '+', tone: 'good', label: 'Lifts the rolls the whole crew makes together' },
+        { glyph: 'dice', text: 'rolls +', tone: 'good', label: 'Lifts the rolls the whole crew makes together' },
         { glyph: 'tear', text: 'grief', tone: 'bad', label: 'Grieves if the other is lost' },
       ];
     case 'neutral':
       return [];
     case 'rival':
       return [
-        { glyph: 'dice', text: '−', tone: 'bad', label: 'Drags down the rolls the whole crew makes together' },
+        { glyph: 'dice', text: 'rolls −', tone: 'bad', label: 'Drags down the rolls the whole crew makes together' },
         { glyph: 'stress', text: `+${STRESS_RIVAL_PER_BEAT}`, tone: 'bad', label: `On a run together: ${STRESS_RIVAL_PER_BEAT} more stress at every stretch` },
         { glyph: 'bolt', text: 'quarrels', tone: 'bad', label: 'Quarrels on the road' },
       ];
     case 'feud':
       return [
-        { glyph: 'dice', text: '−', tone: 'bad', label: 'Drags down the rolls the whole crew makes together' },
+        { glyph: 'dice', text: 'rolls −', tone: 'bad', label: 'Drags down the rolls the whole crew makes together' },
         { glyph: 'stress', text: `+${STRESS_RIVAL_PER_BEAT}`, tone: 'bad', label: `On a run together: ${STRESS_RIVAL_PER_BEAT} more stress at every stretch` },
         { glyph: 'swords', text: `${Math.round(FEUD_FIGHT_CHANCE * 100)}%`, tone: 'bad', label: `At home: a ${Math.round(FEUD_FIGHT_CHANCE * 100)}% chance a day they come to blows` },
       ];
@@ -121,9 +121,9 @@ export function crewChips(state: GameState, crew: readonly string[]): Chip[] {
   const out: Chip[] = [
     {
       glyph: 'dice',
-      text: together > 0 ? `+${together}` : together < 0 ? `−${-together}` : '0',
+      text: `${together > 0 ? `+${together}` : together < 0 ? `−${-together}` : '±0'} together`,
       ...(together > 0 ? { tone: 'good' as const } : together < 0 ? { tone: 'bad' as const } : {}),
-      label: `How well they get on: ${together > 0 ? 'plus' : together < 0 ? 'minus' : ''} ${Math.abs(together)} on the rolls they make together`,
+      label: `How well they get on: ${together > 0 ? 'plus ' : together < 0 ? 'minus ' : ''}${Math.abs(together)} on the rolls they make together, like spotting trouble`,
     },
   ];
   const bonded = crew.some((a, i) => crew.slice(i + 1).some((b) => relationshipLabel(state, a, b) === 'bonded'));
