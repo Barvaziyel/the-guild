@@ -9,6 +9,7 @@ import {
   findLocation,
   isMarket,
   marketQuote,
+  priceOf,
   spareToTrade,
   tradeCapacity,
   unitPrice,
@@ -18,6 +19,7 @@ import {
   type RunPlan,
   type TradeOrder,
 } from '../engine/index.ts';
+import type { Chip } from './glyphs.ts';
 import type { Choice } from './runs-view.ts';
 import { RESOURCE_NAMES } from './view.ts';
 
@@ -46,13 +48,30 @@ export function maxTrade(state: GameState, plan: RunPlan, give: ResourceId): num
   return Math.max(0, Math.min(spareToTrade(state, plan, give), tradeCapacity(state, plan)));
 }
 
+/** The most of `get` the goods the crew can take would buy today. */
+export function maxWant(state: GameState, plan: RunPlan, give: ResourceId, get: ResourceId): number {
+  return marketQuote(state.market, { give, get, amount: maxTrade(state, plan, give) });
+}
+
+/**
+ * Buy exactly so many (3.7.2; Aviel: "it's annoying that everything jumps by seemingly random numbers when
+ * trading. I should be able to buy an exact amount of x and tell me the price in y. It should round up"):
+ * the order names how many to buy, kept within what the crew can pay for, and its price, rounded up.
+ */
+function buying(state: GameState, plan: RunPlan, give: ResourceId, get: ResourceId, want: number): TradeOrder {
+  const most = maxWant(state, plan, give, get);
+  if (most < 1) return { give, get, amount: maxTrade(state, plan, give), want: 1 };
+  const n = Math.max(1, Math.min(Math.round(want), most));
+  return { give, get, want: n, amount: priceOf(state.market, give, get, n, maxTrade(state, plan, give)) };
+}
+
 /** What a new trade takes: the supply the Depot has most of to spare (by what it's worth), for scrap, or gas if it's scrap. */
 export function defaultTrade(state: GameState, plan: RunPlan): TradeOrder {
   const worth = (r: ResourceId): number => spareToTrade(state, plan, r) * unitPrice(state.market, r).pays;
   // Rations first: they're what piles up (Aviel, 2026-11-23).
   const give = spareToTrade(state, plan, 'rations') >= 10 ? 'rations' : [...RESOURCE_IDS].sort((a, b) => worth(b) - worth(a))[0]!;
   const get: ResourceId = give === 'scrap' ? 'gas' : 'scrap';
-  return { give, get, amount: roundDown(maxTrade(state, plan, give)) };
+  return buying(state, plan, give, get, roundDown(maxWant(state, plan, give, get)));
 }
 
 /** Down to a round 5 once there's more than 10, so the stepper's steps land on round numbers. */
@@ -67,27 +86,51 @@ function roundDown(n: number): number {
 export function fitTrade(state: GameState, plan: RunPlan): RunPlan {
   if (!isMarket(plan.locationId)) return plan.job === 'trade' ? { ...plan, job: 'scavenge' } : plan;
   const t = plan.trade ?? defaultTrade(state, plan);
-  // Nothing picked yet (or nothing could be, before there was a crew): as much as they can take.
-  const amount = t.amount > 0 ? Math.max(0, Math.min(t.amount, maxTrade(state, plan, t.give))) : roundDown(maxTrade(state, plan, t.give));
+  // Nothing picked yet (or nothing could be, before there was a crew): as much as they can pay for.
+  const want = t.want !== undefined && t.want > 0 ? t.want : roundDown(maxWant(state, plan, t.give, t.get));
   const { depth: _depth, ...rest } = plan;
-  return { ...rest, job: 'trade', trade: { give: t.give, get: t.get, amount }, lootPriority: t.get };
+  return { ...rest, job: 'trade', trade: buying(state, plan, t.give, t.get, want), lootPriority: t.get };
 }
 
-/** Pick what to take; what comes back changes too if it would be the same thing. */
+/** What to pay with; what's bought changes too if it would be the same thing. */
 export function withGive(state: GameState, plan: RunPlan, give: ResourceId): RunPlan {
   const t = plan.trade ?? defaultTrade(state, plan);
   const get = t.get === give ? (give === 'scrap' ? 'gas' : 'scrap') : t.get;
-  return fitTrade(state, { ...plan, trade: { give, get, amount: roundDown(maxTrade(state, plan, give)) } });
+  return fitTrade(state, { ...plan, trade: { give, get, amount: 0, want: t.want ?? 0 } });
 }
 
+/** What to buy; what pays for it changes too if it would be the same thing. */
 export function withGet(state: GameState, plan: RunPlan, get: ResourceId): RunPlan {
   const t = plan.trade ?? defaultTrade(state, plan);
-  return fitTrade(state, { ...plan, trade: { ...t, get } });
+  const give = t.give === get ? (get === 'rations' ? 'scrap' : 'rations') : t.give;
+  return fitTrade(state, { ...plan, trade: { give, get, amount: 0, want: t.want ?? 0 } });
 }
 
-export function withAmount(state: GameState, plan: RunPlan, amount: number): RunPlan {
+/** How many to buy: exactly that many, within what the crew can pay for. */
+export function withWant(state: GameState, plan: RunPlan, want: number): RunPlan {
   const t = plan.trade ?? defaultTrade(state, plan);
-  return fitTrade(state, { ...plan, trade: { ...t, amount } });
+  return fitTrade(state, { ...plan, trade: { ...t, want: Math.max(1, want) } });
+}
+
+/** The supplies to buy, each with its price today. */
+export function buyChoices(state: GameState): Choice<ResourceId>[] {
+  return RESOURCE_IDS.map((id) => ({ id, name: RESOURCE_NAMES[id], description: priceLine(state, id) }));
+}
+
+/** What to pay with: anything but what's bought, each saying how many the Depot can spare. */
+export function payChoices(state: GameState, plan: RunPlan, get: ResourceId): Choice<ResourceId>[] {
+  return giveChoices(state, plan).filter((c) => c.id !== get);
+}
+
+/** The price, as pictures: what goes, and what comes back for it. */
+export function tradeChips(plan: RunPlan): Chip[] {
+  const t = plan.trade;
+  if (!t || t.want === undefined || t.amount < 1) return [];
+  return [
+    { glyph: t.give, text: `−${t.amount}`, tone: 'bad', label: `Costs ${amountOf(t.give, t.amount)} at today’s prices, rounded up` },
+    { glyph: 'arrow', text: '' },
+    { glyph: t.get, text: `+${t.want}`, tone: 'good', label: `Buys ${amountOf(t.get, t.want)}` },
+  ];
 }
 
 /** The supplies to take, each saying how many the Depot can spare. */
@@ -103,15 +146,15 @@ export function getChoices(state: GameState, give: ResourceId): Choice<ResourceI
   return RESOURCE_IDS.filter((id) => id !== give).map((id) => ({ id, name: RESOURCE_NAMES[id], description: priceLine(state, id) }));
 }
 
-/** "54 rations fetch about 15 scrap at today's prices. A good haggler gets more." */
+/** "15 scrap cost 54 rations at today's prices. A good haggler gets a little more." */
 export function tradeLine(state: GameState, plan: RunPlan): string {
   const t = plan.trade;
   if (!t || t.amount < 1) return 'Nothing to take.';
-  const got = marketQuote(state.market, t);
   const loads = tradeCapacity(state, plan);
   const carry = `Packed with goods, ${plan.crew.length === 1 ? 'one person' : 'this crew'} can carry ${loads}.`;
-  if (got < 1) return `${amountOf(t.give, t.amount)} wouldn’t fetch even one. ${carry}`;
-  return `${amountOf(t.give, t.amount)} fetch about ${amountOf(t.get, got)} at today’s prices; whoever talks best may get more. ${carry}`;
+  if (marketQuote(state.market, t) < 1) return `${amountOf(t.give, t.amount)} wouldn’t buy even one. ${carry}`;
+  if (t.want !== undefined) return `${amountOf(t.get, t.want)} cost ${amountOf(t.give, t.amount)} at today’s prices; whoever talks best may get a little more. ${carry}`;
+  return `${amountOf(t.give, t.amount)} fetch about ${amountOf(t.get, marketQuote(state.market, t))} at today’s prices; whoever talks best may get more. ${carry}`;
 }
 
 /** A supply's prices at the Drive-In today, for ten of it, in scrap: what ten fetch, and what ten cost. */

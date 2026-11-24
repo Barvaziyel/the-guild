@@ -351,6 +351,13 @@ export interface TradeOrder {
   get: ResourceId;
   /** What the market would give at the prices when the crew set out, before any haggling. Set by `startRun`. */
   quote?: number;
+  /**
+   * Exactly how many of `get` to buy (3.7.2; Aviel: "I should be able to buy an exact amount of x and tell
+   * me the price in y. It should round up, don't make it easier on me"). `amount` is then its price,
+   * rounded up (`priceOf`), and the trader hands over this many, however much the goods were worth.
+   * Missing on trades planned before: they buy whatever the goods fetch.
+   */
+  want?: number;
 }
 
 /**

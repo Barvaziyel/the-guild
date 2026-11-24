@@ -242,6 +242,8 @@ export function tradeProblems(state: GameState, plan: RunPlan): string[] {
   const loads = tradeCapacity(state, plan);
   if (t.amount > loads) problems.push(`Packed with goods, this crew can carry ${loads}.`);
   else if (marketQuote(state.market, t) < 1) problems.push(`That isn\u2019t enough for even one ${t.get === 'rations' ? 'ration' : amountOf(t.get, 1).replace(/^1 /, '')}.`);
+  else if (t.want !== undefined && (!Number.isInteger(t.want) || t.want < 1)) problems.push('Buy at least one.');
+  else if (t.want !== undefined && marketQuote(state.market, t) < t.want) problems.push(`${amountOf(t.give, t.amount)} won\u2019t buy ${amountOf(t.get, t.want)}.`);
   return problems;
 }
 

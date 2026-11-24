@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import { completeRun, startRun, type RunReport } from '../engine/index.ts';
 import { openGame, testPlan } from '../engine/test-utils.ts';
-import { HOME_BACK_AT, HOME_STEP, flights, homecoming, storesBefore } from './homecoming-view.ts';
+import { HOME_BACK_AT, HOME_STEP, flights, homecoming } from './homecoming-view.ts';
 
 const name = (i: { defId: string }): string => i.defId;
 
@@ -63,21 +63,13 @@ describe('coming home (3.7.0)', () => {
     assert.equal(h.empty, true);
   });
 
-  test('each thing back pops up in turn and lands after it; the stores count up from before', () => {
+  test('each thing back pops up in turn and lands after it', () => {
     const f = flights(homecoming(report(), name));
     assert.deepEqual(f.map((x) => x.key), ['scrap', 'meds', 'ammo', 'tech', 'i9']);
     assert.equal(f[0]!.showAt, HOME_BACK_AT);
     assert.equal(f[1]!.showAt - f[0]!.showAt, HOME_STEP);
     assert.ok(f.every((x) => x.landAt > x.showAt));
     assert.equal(f[4]!.kind, 'item');
-    assert.deepEqual(storesBefore({ scrap: 40, rations: 9, meds: 1, ammo: 4, tech: 0, gas: 5 }, { scrap: 12, meds: 1, ammo: 4, tech: 1 }), {
-      scrap: 28,
-      rations: 9,
-      meds: 0,
-      ammo: 0,
-      tech: 0,
-      gas: 5,
-    });
   });
 
   test('a real run home: the report keeps what was packed', () => {

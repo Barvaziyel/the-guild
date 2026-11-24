@@ -46,7 +46,7 @@ import { PlacePicture } from '../components/Art.tsx';
 import { GearSlots } from '../components/GearSlots.tsx';
 import { Chips, Glyph } from '../components/Glyph.tsx';
 import { crewChips, pairChips } from '../bonds-view.ts';
-import { fitTrade, getChoices, giveChoices, marketJobs, maxTrade, tradeLine, withAmount, withGet, withGive } from '../market-view.ts';
+import { buyChoices, fitTrade, marketJobs, maxWant, payChoices, tradeChips, tradeLine, withGet, withGive, withWant } from '../market-view.ts';
 import { RESOURCE_NAMES } from '../view.ts';
 
 export function Planner({ state, locationId, step }: { state: GameState; locationId: string; step: 'crew' | 'orders' }) {
@@ -263,19 +263,20 @@ function PlannerForm({ state, locationId, step }: { state: GameState; locationId
         />
         {plan.job === 'trade' && plan.trade && (
           <div className="trade-orders" data-tour="trade">
-            <Segmented legend="Take" name="give" choices={giveChoices(state, plan)} value={plan.trade.give} onChange={(give) => setPlan(withGive(state, plan, give))} />
+            {/* Buy by the number, and see the price (3.7.2). */}
+            <Segmented legend="Buy" name="get" choices={buyChoices(state)} value={plan.trade.get} onChange={(get) => setPlan(withGet(state, plan, get))} />
             <div className="orders-supplies">
               <MiniStepper
-                label={RESOURCE_NAMES[plan.trade.give]}
-                value={plan.trade.amount}
-                min={Math.min(1, maxTrade(state, plan, plan.trade.give))}
-                max={maxTrade(state, plan, plan.trade.give)}
-                step={5}
-                note={`of ${maxTrade(state, plan, plan.trade.give)}`}
-                onChange={(amount) => setPlan(withAmount(state, plan, amount))}
+                label={RESOURCE_NAMES[plan.trade.get]}
+                value={plan.trade.want ?? 0}
+                min={Math.min(1, maxWant(state, plan, plan.trade.give, plan.trade.get))}
+                max={maxWant(state, plan, plan.trade.give, plan.trade.get)}
+                note={`of ${maxWant(state, plan, plan.trade.give, plan.trade.get)}`}
+                onChange={(want) => setPlan(withWant(state, plan, want))}
               />
             </div>
-            <Segmented legend="For" name="get" choices={getChoices(state, plan.trade.give)} value={plan.trade.get} onChange={(get) => setPlan(withGet(state, plan, get))} />
+            <Segmented legend="Pay with" name="give" choices={payChoices(state, plan, plan.trade.get)} value={plan.trade.give} onChange={(give) => setPlan(withGive(state, plan, give))} />
+            <Chips chips={tradeChips(plan)} className="trade-price" />
             <p className="panel-help trade-quote">{tradeLine(state, plan)}</p>
           </div>
         )}

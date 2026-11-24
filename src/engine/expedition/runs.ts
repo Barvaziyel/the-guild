@@ -74,7 +74,7 @@ export function startRun(state: GameState, given: RunPlan, now: number): Run {
   // The goods go in the packs, and word of the trade moves the market's prices now, so a second crew doesn't get the same deal.
   if (plan.job === 'trade' && plan.trade) {
     state.resources[plan.trade.give] -= plan.trade.amount;
-    moveMarket(state, plan.trade, plan.trade.quote ?? 0);
+    moveMarket(state, plan.trade, plan.trade.want !== undefined ? Math.min(plan.trade.want, plan.trade.quote ?? 0) : (plan.trade.quote ?? 0));
   }
   const vehicles = planVehicles(state, plan);
   if (vehicles.length > 0) {

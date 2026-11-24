@@ -2,8 +2,7 @@
  * Coming home (3.7.0). Aviel: "When you get back from a run there should be some effects satisfying
  * that clearly show what was brought back including what they took with them (ammo etc)". The
  * report opens on what the crew took, what they used up out there, and what they brought back; the
- * first time it's opened, what came back flies into the Depot's stores, which count up to what's
- * there now. Plain, tested; `components/Homecoming.tsx` plays it.
+ * first time it's opened, what came back flies home: supplies to the Depot's tab, gear to the Gear tab. Plain, tested; `components/Homecoming.tsx` plays it.
  */
 import { RESOURCE_IDS, type ItemInstance, type ResourceId, type RunReport } from '../engine/index.ts';
 import { supplyChips, type Chip } from './glyphs.ts';
@@ -84,11 +83,4 @@ export function flights(h: Homecoming): Flight[] {
     const showAt = HOME_BACK_AT + i * HOME_STEP;
     return { ...k, showAt, landAt: showAt + HOME_FLY_AFTER + HOME_FLY_MS };
   });
-}
-
-/** The stores before the haul landed: what's there now, less what came back. */
-export function storesBefore(now: Record<ResourceId, number>, backBy: Amounts): Record<ResourceId, number> {
-  const out = { ...now };
-  for (const r of RESOURCE_IDS) out[r] = Math.max(0, out[r] - (backBy[r] ?? 0));
-  return out;
 }

@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { itemName, RESOURCE_IDS, type GameState, type RunReport } from '../../engine/index.ts';
-import { GLYPHS } from '../glyphs.ts';
-import { HOME_BACK_AT, HOME_FLY_AFTER, HOME_FLY_MS, HOME_TOOK_AT, HOME_USED_AT, flights, homecoming, storesBefore } from '../homecoming-view.ts';
-import { COUNT_MS, countAt } from '../motion-view.ts';
+import { itemName, type RunReport } from '../../engine/index.ts';
+import { HOME_BACK_AT, HOME_FLY_AFTER, HOME_FLY_MS, HOME_TOOK_AT, HOME_USED_AT, flights, homecoming } from '../homecoming-view.ts';
 import { ItemIcon } from './Art.tsx';
 import { Chips, Glyph } from './Glyph.tsx';
 
@@ -10,17 +8,14 @@ const still = (): boolean => window.matchMedia?.('(prefers-reduced-motion: reduc
 
 /**
  * What a crew took, used and brought back (3.7.0). The first time the report is opened, each thing
- * that came back pops up and flies into the Depot's stores, which count up to what's there now.
+ * that came back pops up and flies home: supplies into the Depot's tab, gear into the Gear tab, which
+ * bump as it lands (3.7.2; a strip of the Depot's stores under the rows was more confusing than it helped).
  */
-export function Homecoming({ state, report, fresh }: { state: GameState; report: RunReport; fresh: boolean }) {
+export function Homecoming({ report, fresh }: { report: RunReport; fresh: boolean }) {
   const h = useMemo(() => homecoming(report, itemName), [report]);
   const [play] = useState(() => fresh && !still() && !h.empty);
   const plan = useMemo(() => flights(h), [h]);
   const root = useRef<HTMLDivElement>(null);
-  const [landed, setLanded] = useState<Record<string, true>>({});
-  // The stores before the haul: what's there now, less what came back (taken once, so they don't move under it).
-  const [before] = useState(() => storesBefore(state.resources, h.backBy));
-  const [stashBefore] = useState(() => Math.max(0, state.stash.length - h.items.length));
 
   useEffect(() => {
     if (!play) return;
@@ -30,9 +25,8 @@ export function Homecoming({ state, report, fresh }: { state: GameState; report:
       timers.push(
         window.setTimeout(() => {
           const el = root.current?.querySelector<HTMLElement>(`[data-fly="${f.key}"]`);
-          const target = root.current?.querySelector<HTMLElement>(`[data-store="${f.kind === 'item' ? 'stash' : f.key}"]`);
-          const land = (): void => setLanded((l) => ({ ...l, [f.kind === 'item' ? `stash:${f.key}` : f.key]: true }));
-          if (!el || !target || typeof el.animate !== 'function') return land();
+          const target = document.querySelector<HTMLElement>(`.tabbar [data-tab="${f.kind === 'item' ? 'gear' : 'depot'}"]`);
+          if (!el || !target || typeof el.animate !== 'function') return;
           const from = el.getBoundingClientRect();
           const to = target.getBoundingClientRect();
           const clone = el.cloneNode(true) as HTMLElement;
@@ -45,14 +39,17 @@ export function Homecoming({ state, report, fresh }: { state: GameState; report:
           const flight = clone.animate(
             [
               { transform: 'translate(0, 0) scale(1)', opacity: 1 },
-              { transform: `translate(${dx * 0.5}px, ${dy * 0.5 - 28}px) scale(1.1)`, opacity: 1, offset: 0.45 },
-              { transform: `translate(${dx}px, ${dy}px) scale(0.5)`, opacity: 0.2 },
+              { transform: `translate(${dx * 0.5}px, ${dy * 0.5 - 40}px) scale(1.1)`, opacity: 1, offset: 0.45 },
+              { transform: `translate(${dx}px, ${dy}px) scale(0.45)`, opacity: 0.2 },
             ],
             { duration: HOME_FLY_MS, easing: 'cubic-bezier(0.45, 0, 0.6, 1)', fill: 'forwards' },
           );
           flight.onfinish = () => {
             clone.remove();
-            land();
+            // The tab it lands on gives a little bump.
+            target.classList.remove('is-bumped');
+            void target.offsetWidth;
+            target.classList.add('is-bumped');
           };
         }, f.showAt + HOME_FLY_AFTER),
       );
@@ -65,7 +62,6 @@ export function Homecoming({ state, report, fresh }: { state: GameState; report:
 
   if (h.empty) return <p>Brought nothing home.</p>;
   const shownAt = Object.fromEntries(plan.map((f) => [f.key, f.showAt]));
-  const stashLanded = h.items.filter((i) => landed[`stash:${i.uid}`]).length;
   return (
     <div ref={root} className={`home${play ? ' is-playing' : ''}`}>
       {h.took.length > 0 && (
@@ -104,59 +100,6 @@ export function Homecoming({ state, report, fresh }: { state: GameState; report:
           ))}
         </span>
       </div>
-      {play && (
-        <div className="home-stores" aria-hidden="true">
-          {RESOURCE_IDS.map((r) => (
-            <span key={r} className="home-store" data-store={r}>
-              <Glyph name={r} className={`res-glyph res-${r}`} />
-              {/* Up by what this crew brought, from what was there before them: not whatever else came in since. */}
-              <StoreCount from={before[r]} to={before[r] + (h.backBy[r] ?? 0)} go={landed[r] === true} />
-            </span>
-          ))}
-          {h.items.length > 0 && (
-            <span className="home-store" data-store="stash">
-              <svg className="glyph res-glyph" viewBox="0 0 24 24" aria-hidden="true">
-                <path d={GLYPHS.crate} />
-              </svg>
-              <StoreCount from={stashBefore} to={stashBefore + stashLanded} go={stashLanded > 0} />
-            </span>
-          )}
-        </div>
-      )}
     </div>
   );
 }
-
-/** A store's count: still until something lands, then counting to its new amount, with the change floating up. */
-function StoreCount({ from, to, go }: { from: number; to: number; go: boolean }) {
-  const [shown, setShown] = useState(from);
-  const last = useRef(from);
-  useEffect(() => {
-    if (!go) return;
-    const start = performance.now();
-    const begin = last.current;
-    last.current = to;
-    let frame = 0;
-    const step = (t: number): void => {
-      const elapsed = t - start;
-      setShown(countAt(begin, to, elapsed));
-      if (elapsed < COUNT_MS) frame = requestAnimationFrame(step);
-    };
-    frame = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(frame);
-  }, [go, to]);
-  const gained = to - from;
-  return (
-    <span className="res-amount-box">
-      <span key={go ? `on${to}` : 'off'} className={`res-amount${go && gained > 0 ? ' is-up' : ''}`}>
-        {shown}
-      </span>
-      {go && gained > 0 && (
-        <span key={`c${to}`} className="res-change is-up">
-          +{gained}
-        </span>
-      )}
-    </span>
-  );
-}
-

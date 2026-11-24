@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import { MARKET_VALUE, TRADE_LOAD } from './constants.ts';
 import { LOCATIONS, getLocation } from './content/index.ts';
-import { easeMarket, marketQuote, moveMarket, tradeCapacity, unitPrice } from './market.ts';
+import { easeMarket, marketQuote, moveMarket, priceOf, tradeCapacity, unitPrice } from './market.ts';
 import { startRun } from './expedition/runs.ts';
 import { simulateRun } from './expedition/sim.ts';
 import { tradeProblems, validatePlan } from './expedition/plan.ts';
@@ -98,6 +98,34 @@ describe('the market at the Drive-In (§7.14)', () => {
       if (r.outcome === 'routed' || r.outcome === 'lost') assert.equal(r.loot.scrap + r.loot.rations, 0);
     }
     assert.ok(completed >= 34, `${completed} of 40 got there and back`);
+  });
+
+  test('buying an exact number: priced rounding up, and exactly that many handed over (3.7.2)', () => {
+    const state = testGame('exact');
+    for (const [give, get, want] of [['rations', 'scrap', 7], ['tech', 'scrap', 3], ['scrap', 'gas', 4]] as const) {
+      const price = priceOf(state.market, give, get, want);
+      assert.ok(marketQuote(state.market, T(give, price, get)) >= want, `${price} ${give} buy ${want} ${get}`);
+      assert.ok(marketQuote(state.market, T(give, price - 1, get)) < want, 'and not one fewer');
+    }
+    assert.equal(priceOf(state.market, 'rations', 'tech', 50, 20), Infinity, 'out of reach with twenty');
+    assert.equal(priceOf(state.market, 'rations', 'rations', 5), 0);
+    // A whole piece of tech for three scrap: worth more than three, and still three come back.
+    let completed = 0;
+    for (let i = 0; i < 30; i++) {
+      const s = testGame(`exact-${i}`);
+      s.resources.tech = 10;
+      const order: TradeOrder = { give: 'tech', get: 'scrap', want: 3, amount: priceOf(s.market, 'tech', 'scrap', 3) };
+      assert.ok(marketQuote(s.market, order) > 3);
+      assert.deepEqual(tradeProblems(s, tradePlan(s, order)), []);
+      const run = startRun(s, tradePlan(s, order), 0);
+      if (run.result.outcome !== 'completed') continue;
+      completed++;
+      const line = run.beats.find((b) => b.kind === 'trade')!.lines.map((l) => l.text).join(' ');
+      const got = Number(/hands over (\d+) scrap/.exec(line)?.[1]);
+      assert.ok(got >= 3 && got <= Math.floor(3 * 1.25), `${got}: three, or a little more for a good haggler`);
+    }
+    assert.ok(completed >= 25);
+    assert.deepEqual(tradeProblems(state, tradePlan(state, { give: 'rations', get: 'scrap', amount: 12, want: 9 })), ['12 rations won’t buy 9 scrap.']);
   });
 
   test('a crew that turns back before the market brings the goods home', () => {
