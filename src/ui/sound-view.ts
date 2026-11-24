@@ -165,15 +165,42 @@ const ENEMY_SHOTS: Record<string, SoundId> = {
   scrapbot_sentry: 'laser',
 };
 
+/** Three voices for each kind that has one (3.4.1). */
+const VOICES: Record<string, readonly [SoundId, SoundId, SoundId]> = {
+  groan: ['groan', 'groan2', 'groan3'],
+  snarl: ['snarl', 'snarl2', 'snarl3'],
+  servo: ['servo', 'servo2', 'servo3'],
+};
+const HURTS: readonly SoundId[] = ['hurt', 'hurt2', 'hurt3'];
+
+/**
+ * Each enemy in a fight sounds like itself (3.4.1; a player fought eight hollows and they all groaned
+ * the same, one after another): one of its kind's three voices, at a pitch of its own, so no two of
+ * the first eight sound alike. Its swings and falls take the same pitch.
+ */
+export function enemyVoice(index: number): { variant: 0 | 1 | 2; rate: number } {
+  const rates = [0.88, 1, 1.12, 0.94, 1.06] as const;
+  return { variant: (index % 3) as 0 | 1 | 2, rate: rates[(index * 7) % 5]! };
+}
+
+/** The sound of someone being hurt: one of three, by who it is, so a crew sounds like more than one person. */
+function hurtSound(who: string | number | undefined): SoundId {
+  const key = String(who ?? '');
+  let h = 0;
+  for (const c of key) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return HURTS[h % HURTS.length]!;
+}
+
 /** What a blow from this enemy sounds like, swinging and landing. */
-function enemyBlow(view: FightView, index: number): { swing: SoundId; land: SoundId } {
+function enemyBlow(view: FightView, index: number): { swing: SoundId; land: SoundId; rate?: number } {
   const e = view.enemies[index];
   if (!e) return { swing: 'swing', land: 'blunt' };
-  if (e.type === 'feral') return { swing: 'snarl', land: 'bite' };
-  if (e.type === 'hollow' || e.kind === 'the_shepherd') return { swing: 'groan', land: 'blunt' };
-  if (e.type === 'scrapbot') return { swing: 'servo', land: 'blunt' };
-  if (e.kind === 'haven_orderly' || e.kind === 'raider_scav' || e.kind === 'vulture_scav') return { swing: 'swing2', land: 'blade' };
-  return { swing: 'swing', land: 'blunt' };
+  const { variant, rate } = enemyVoice(index);
+  if (e.type === 'feral') return { swing: VOICES.snarl![variant], land: 'bite', rate };
+  if (e.type === 'hollow' || e.kind === 'the_shepherd') return { swing: VOICES.groan![variant], land: 'blunt', rate };
+  if (e.type === 'scrapbot') return { swing: VOICES.servo![variant], land: 'blunt', rate };
+  if (e.kind === 'haven_orderly' || e.kind === 'raider_scav' || e.kind === 'vulture_scav') return { swing: 'swing2', land: 'blade', rate };
+  return { swing: 'swing', land: 'blunt', rate };
 }
 
 /** The sound of one act on the battle stage, and a buzz when it hurts one of the guild badly. */
@@ -194,13 +221,17 @@ export function actCues(state: GameState, view: FightView, act: FightAct): { cue
         if (landed) cues.push(at('bite', 0.2));
       } else if (act.shot) {
         cues.push(own(shotSound(state, view, act.by)));
-        cues.push(landed ? at('hurt', 0.12, 0.6) : at('ricochet', 0.1, 0.7));
+        cues.push(landed ? at(hurtSound(act.at), 0.12, 0.6) : at('ricochet', 0.1, 0.7));
       } else {
-        const blow = byCrew ? crewBlow(state, act.by as string) : enemyBlow(view, act.by as number);
-        cues.push(own(blow.swing, 0, 0.8));
+        const blow: { swing: SoundId; land: SoundId; rate?: number } = byCrew ? crewBlow(state, act.by as string) : enemyBlow(view, act.by as number);
+        cues.push(blow.rate ? { ...own(blow.swing, 0, 0.8), rate: blow.rate } : own(blow.swing, 0, 0.8));
         if (landed) cues.push(at(blow.land, 0.12));
       }
-      if (act.kind === 'kill' || act.kind === 'finish' || act.down) cues.push(at(fallSound(view, act), 0.35));
+      if (act.kind === 'kill' || act.kind === 'finish' || act.down) {
+        const fall = at(fallSound(view, act), 0.35);
+        // A fallen enemy falls at its own pitch.
+        cues.push(typeof act.at === 'number' ? { ...fall, rate: enemyVoice(act.at).rate } : fall);
+      }
       const onCrew = typeof act.at === 'string';
       const buzz: Buzz | undefined = onCrew && landed ? (act.down ? 'heavy' : (act.amount ?? 0) >= 4 ? 'light' : undefined) : undefined;
       return buzz ? { cues, buzz } : { cues };

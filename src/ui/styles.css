@@ -2969,16 +2969,21 @@ li:nth-child(even) .pinned {
   animation: yard-watch 11s steps(1, end) infinite;
 }
 
+/* A step's length and where someone is in it are their own (3.4.1): --sd and --ph on .yard-gait. */
 .yard .yard-step {
-  animation: yard-step 0.56s ease-in-out infinite alternate;
+  animation: yard-step var(--sd, 0.42s) ease-in-out var(--ph, 0s) infinite alternate;
 }
 
 .yard .yard-step-b {
-  animation-delay: -0.56s;
+  animation-delay: calc(var(--ph, 0s) - var(--sd, 0.42s));
 }
 
 .yard .yard-swing {
-  animation: yard-step 0.56s ease-in-out infinite alternate-reverse;
+  animation: yard-step var(--sd, 0.42s) ease-in-out var(--ph, 0s) infinite alternate-reverse;
+}
+
+.yard .yard-walkbob {
+  animation: yard-walkbob var(--sd, 0.42s) ease-in-out var(--ph, 0s) infinite;
 }
 
 .yard .yard-swing-b {
@@ -2986,7 +2991,8 @@ li:nth-child(even) .pinned {
 }
 
 .yard .yard-still .yard-step,
-.yard .yard-still .yard-swing {
+.yard .yard-still .yard-swing,
+.yard .yard-still .yard-walkbob {
   animation: none;
 }
 
@@ -3133,10 +3139,21 @@ li:nth-child(even) .pinned {
 
 @keyframes yard-step {
   0% {
-    transform: rotate(-24deg);
+    transform: rotate(-22deg);
   }
   100% {
-    transform: rotate(24deg);
+    transform: rotate(22deg);
+  }
+}
+
+/* Lowest with the legs apart, highest as they pass. */
+@keyframes yard-walkbob {
+  0%,
+  100% {
+    transform: translateY(0.4px);
+  }
+  50% {
+    transform: translateY(-0.9px);
   }
 }
 

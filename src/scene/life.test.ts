@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import { BUILDING_IDS, PROJECT_IDS, type BuildingId, type ProjectId } from '../engine/types.ts';
-import { errandFor, errandMotion, gatePath, pathLength, tripMotion, tripSeconds } from './life.ts';
+import { RUN, STROLL, errandFor, errandMotion, gaitFor, gatePath, pathLength, stepSeconds, tripMotion, tripSeconds } from './life.ts';
 import { IDLE_SPOTS, POST_SPOTS, REST_SPOTS, W } from './layout.ts';
 import type { FigureLook, YardModel, YardPerson, YardTrip } from './model.ts';
 import { spotFor, yardSvg } from './yard.ts';
@@ -47,6 +47,27 @@ describe('errands in the yard (3.2.0)', () => {
       assert.match(m.css, /@keyframes ye\w+-w\{/);
       assert.equal(m.items.length, 2);
     }
+  });
+
+  test('people walk like people (3.4.1): straight across, easing in and out, each in their own step', () => {
+    let seen = 0;
+    for (let k = 0; k < 60; k++) {
+      const p = person(`gait${k}`, { kind: 'idle', slot: k % 6 });
+      const spot = spotFor(p)!;
+      const e = errandFor(p, spot);
+      if (!e) continue;
+      seen++;
+      assert.equal(e.path.length, 2, 'one slanting walk, not up-then-across');
+      assert.ok(Math.abs(e.path[1]!.x - e.path[0]!.x) >= 40, 'always some way across, so they face where they go');
+      const css = errandMotion(p, spot, e, 0).css;
+      assert.match(css, /animation-timing-function:cubic-bezier\(0\.45,0,0\.55,1\)/, 'they ease off and slow to a stop');
+    }
+    assert.ok(seen > 10);
+    // The feet keep up: about 8 units a step, faster steps for a run.
+    assert.ok(Math.abs(stepSeconds(STROLL) * STROLL - 8.4) < 0.05);
+    assert.ok(stepSeconds(RUN) < stepSeconds(STROLL));
+    const phases = new Set(Array.from({ length: 12 }, (_, k) => gaitFor(`p${k}`, STROLL).phase));
+    assert.ok(phases.size >= 10, 'nobody marches in step');
   });
 
   test('children run about more often than grown-ups stroll', () => {

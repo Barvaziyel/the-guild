@@ -93,10 +93,10 @@ export class SoundSystem {
     const [start, length] = SPRITE[cue.id];
     const src = ctx.createBufferSource();
     src.buffer = this.sprite;
-    // A little variation, so the same shot twice doesn't sound copied.
-    src.playbackRate.value = cue.rate ?? 1 + (Math.random() - 0.5) * 0.06;
+    // Every sound a little different each time (3.4.1: ±5% pitch, ±12% loudness, on top of an enemy's own voice), so nothing sounds copied.
+    src.playbackRate.value = (cue.rate ?? 1) * (1 + (Math.random() - 0.5) * 0.1);
     const gain = ctx.createGain();
-    gain.gain.value = cue.gain ?? 1;
+    gain.gain.value = (cue.gain ?? 1) * (1 + (Math.random() - 0.5) * 0.24);
     let tail: AudioNode = gain;
     if (cue.pan && typeof ctx.createStereoPanner === 'function') {
       const pan = ctx.createStereoPanner();

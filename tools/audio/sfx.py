@@ -624,6 +624,68 @@ def s_bark():
 SOUNDS = {name[2:]: fn for name, fn in globals().items() if name.startswith('s_') and callable(fn)}
 
 
+# ---------------------------------------------------------------- voices (3.4.1)
+# A player fought eight hollows and they all groaned the same, eight times in a row. Each kind of
+# enemy now has three voices (the first is the sound above), and the game gives each enemy in a fight
+# one of them at a pitch of its own. Made after everything else with the random state put back, so
+# the sounds above and the ambience come out exactly as before.
+
+def groan_voice(base, contour, vowels, d):
+    total = d + 0.15
+    t = t_(d)
+    pitch = base * np.interp(t, np.linspace(0, d, len(contour)), contour) * (1 + 0.03 * rng.normal(0, 1, len(t)).cumsum() / 200)
+    src = blwave(pitch) + noise(d) * 0.18
+    out = sum(bp(src, lo, hi) * w for lo, hi, w in vowels)
+    out *= np.interp(t, [0, 0.12 * d, 0.65 * d, d], [0, 1, 0.8, 0])
+    return norm(pad(verb(out, 1.0, 0.3), total), -5)
+
+
+def v_groan2():
+    # Lower and longer, an "aah" that sags.
+    return groan_voice(68, [1.0, 1.2, 1.1, 0.7], [(500, 900, 1.0), (1000, 1400, 0.5), (2400, 3000, 0.12)], 1.15)
+
+
+def v_groan3():
+    # Higher and short, an "ooh" with a catch in it.
+    return groan_voice(104, [0.95, 1.1, 0.85, 1.05, 0.8], [(250, 450, 1.0), (600, 900, 0.6), (2100, 2600, 0.1)], 0.7)
+
+
+def v_snarl2():
+    return norm(fade_end(growl(0.45, 98, 1.0)), -6)
+
+
+def v_snarl3():
+    return norm(fade_end(growl(0.75, 64, 1.4)), -6)
+
+
+def servo_voice(f0, f1, d, clank_f):
+    total = d + 0.08
+    t = t_(d)
+    whirr = sweep(f0, f1, d, 'square') * 0.3 + sweep(2 * f0, 2 * f1, d) * 0.3
+    whirr = bp(whirr, 200, 3000) * np.interp(t, [0, 0.05, d - 0.07, d], [0, 1, 1, 0])
+    out = at(whirr, 0, total) + at(metal_hit(clank_f, 0.3, 0.05) * 0.8, d - 0.1, total)
+    return norm(pad(out, total), -5)
+
+
+def v_servo2():
+    return servo_voice(240, 410, 0.55, 200)
+
+
+def v_servo3():
+    return servo_voice(380, 720, 0.34, 340)
+
+
+def v_hurt2():
+    return norm(fade_end(body_hit(0.8)), -3)
+
+
+def v_hurt3():
+    return norm(fade_end(mix(body_hit(1.2), hp(noise(0.04), 2000) * env(0.04, 0.0005, 0.01) * 0.4)), -3)
+
+
+VOICES = {name[2:]: fn for name, fn in globals().items() if name.startswith('v_') and callable(fn)}
+
+
 # ---------------------------------------------------------------- ambience (stereo loops)
 
 def loop_xfade(x, fade):
@@ -750,6 +812,15 @@ if __name__ == '__main__':
         pos += len(x) / SR + gap
         # Keep starts on whole samples.
         pos = sum(len(p) for p in parts) / SR
+    # The voices go after the rest, on random numbers of their own, so nothing above changes (3.4.1).
+    kept = rng.bit_generator.state
+    rng.bit_generator.state = np.random.default_rng(341).bit_generator.state
+    for name, fn in VOICES.items():
+        x = fade_end(np.asarray(fn(), dtype=float), 0.01)
+        index[name] = [round(sum(len(p) for p in parts) / SR, 4), round(len(x) / SR, 4)]
+        parts.append(x)
+        parts.append(np.zeros(int(gap * SR)))
+    rng.bit_generator.state = kept
     sprite = np.concatenate(parts)
     write(sprite[:, None], 'out/sfx.ogg', 64)
     write(sprite[:, None], 'out/sfx.wav')
