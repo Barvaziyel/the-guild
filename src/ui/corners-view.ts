@@ -58,8 +58,8 @@ export function cornersHelp(state: GameState, now: number): string {
   return (
     searchLine(state, now) ??
     (state.corners.searched.length === 0
-      ? 'Nobody has been through the old depot yet. Send someone who’s home to search a corner: one at a time, a few minutes each.'
-      : 'Pick a corner and send someone who’s home to search it.')
+      ? 'Send someone who’s home to search a corner.'
+      : '')
   );
 }
 

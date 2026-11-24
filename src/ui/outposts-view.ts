@@ -31,11 +31,13 @@ import {
   watchStress,
   type GameState,
   type LocationDef,
+  type ResourceId,
   type RunPlan,
   type Survivor,
 } from '../engine/index.ts';
 import { joinNames, type Choice } from './runs-view.ts';
 import { RESOURCE_NAMES } from './view.ts';
+import { supplyChips, type Chip, type GlyphName } from './glyphs.ts';
 
 // ---------------------------------------------------------------- levels
 
@@ -104,6 +106,13 @@ export function mostlyFinds(def: LocationDef): string {
   return joinNames(main.map((r) => RESOURCE_NAMES[r].toLowerCase()));
 }
 
+/** The supplies a place mostly gives up, most first, for pictures. */
+export function mostlyFindsIds(def: LocationDef): ResourceId[] {
+  const top = Math.max(...RESOURCE_IDS.map((r) => def.loot[r]));
+  if (top <= 0) return [];
+  return [...RESOURCE_IDS].filter((r) => def.loot[r] * 2 >= top).sort((a, b) => def.loot[b] - def.loot[a]);
+}
+
 /** ", mostly scrap and tech", or nothing for a place with no supplies. */
 function mostly(def: LocationDef): string {
   const finds = mostlyFinds(def);
@@ -149,6 +158,10 @@ export interface OutpostView {
   nearLine: string;
   repairCost: string;
   repairProblem?: string;
+  /** What it does and what it costs to live there, as pictures (3.6.0): the lines above are their labels. */
+  chips: Chip[];
+  buildChips: Chip[];
+  repairChips: Chip[];
   /** People who could move out here now. */
   candidates: OutpostPerson[];
 }
@@ -187,8 +200,27 @@ export function outpostView(state: GameState, id: string): OutpostView {
     nearLine: `Runs to ${joinNames(served)} set out from here and take ${shortcutWords()}, and crews stop here to rest on the way home.`,
     repairCost: costText(OUTPOST_REPAIR),
     ...(repairProblem ? { repairProblem } : {}),
+    chips: outpostChips(def, lo, hi, outpost?.damaged ?? false),
+    buildChips: supplyChips(OUTPOST_COST, { have: state.resources }),
+    repairChips: supplyChips(OUTPOST_REPAIR, { have: state.resources }),
     candidates,
   };
+}
+
+/** An outpost in pictures: who lives there, what they send home and eat, the shortcut, and the hard life. */
+function outpostChips(def: LocationDef, lo: number, hi: number, damaged: boolean): Chip[] {
+  const top = [...RESOURCE_IDS].sort((a, b) => def.loot[b] - def.loot[a])[0]!;
+  const watch = watchStress(def.id) - OUTPOST_RELIEF;
+  const yieldGlyph: GlyphName = def.loot[top] > 0 ? top : 'crate';
+  return [
+    { glyph: 'seat', text: `${OUTPOST_STAFF}`, label: `Up to ${OUTPOST_STAFF} live here` },
+    { glyph: yieldGlyph, text: damaged ? `${Math.floor(lo / 2)}–${Math.ceil(hi / 2)}/day` : `${lo}–${hi}/day`, tone: damaged ? 'bad' : 'good', label: `Each sends home ${lo} to ${hi} supplies a day${mostly(def)}${damaged ? ', half while it is damaged' : ''}` },
+    { glyph: 'rations', text: '−1/day', tone: 'bad', label: 'Each eats a ration a day from the Depot' },
+    { glyph: 'clock', text: `−${Math.round((1 - OUTPOST_SHORTCUT) * 100)}%`, tone: 'good', label: `Runs here and next door take ${shortcutWords()}` },
+    { glyph: 'heart', text: '⅓', tone: 'bad', label: 'Heal a third as fast as at home' },
+    ...(watch > 0 ? [{ glyph: 'stress' as const, text: `+${watch}/day`, tone: 'bad' as const, label: `About ${watch} more stress a day than they shed` }] : []),
+    { glyph: 'war', text: 'raids', tone: 'bad', label: 'Raiders come now and then; the better the shots, the likelier they hold it' },
+  ];
 }
 
 function person(state: GameState, s: Survivor): OutpostPerson {

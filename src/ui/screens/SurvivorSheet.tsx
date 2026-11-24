@@ -36,6 +36,8 @@ import { seeChronicle, sheetDots } from '../attention-view.ts';
 import type { SheetTab } from '../route.ts';
 import { backIn, runOfSurvivor } from '../runs-view.ts';
 import { ItemIcon } from '../components/Art.tsx';
+import { BOND_KEY, bondChips, bondGlyph } from '../bonds-view.ts';
+import { Chips, Glyph } from '../components/Glyph.tsx';
 import {
   SLOT_NAMES,
   bonds,
@@ -560,9 +562,10 @@ function BondsPanel({ state, survivor: s }: { state: GameState; survivor: Surviv
                     {b.other.firstName} {b.other.lastName}
                   </span>
                   <span className="bond-label">
-                    {b.labelName}, {b.score > 0 ? `+${b.score}` : b.score}
+                    {bondGlyph(b.label, b.partners) && <Glyph name={bondGlyph(b.label, b.partners)!} />} {b.partners ? 'Partners' : b.labelName}
                   </span>
                   <BondBar score={b.score} />
+                  <Chips chips={bondChips(b.label, b.partners)} className="bond-chips" />
                   {b.ties.map((t) => (
                     <span key={t} className="bond-tie">
                       {t}
@@ -570,6 +573,15 @@ function BondsPanel({ state, survivor: s }: { state: GameState; survivor: Surviv
                   ))}
                 </span>
               </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {list.some((b) => bondChips(b.label, b.partners).length > 0) && (
+        <ul className="glyph-key" aria-hidden="true">
+          {BOND_KEY.map((k) => (
+            <li key={k.glyph}>
+              <Glyph name={k.glyph} /> {k.text}
             </li>
           ))}
         </ul>

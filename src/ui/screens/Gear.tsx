@@ -10,6 +10,7 @@ import { vehiclesLine } from '../vehicles-view.ts';
 import { navigate, useAction, useMarkSeen, useSeen } from '../hooks.ts';
 import type { ItemView } from '../view.ts';
 import { ItemIcon } from '../components/Art.tsx';
+import { Chips, Glyph } from '../components/Glyph.tsx';
 
 /** The guild's stash, with a way to hand each piece to someone, and what everyone carries. */
 export function Gear({ state }: { state: GameState }) {
@@ -75,7 +76,7 @@ export function Gear({ state }: { state: GameState }) {
           <h3 id="spares-title" className="panel-title">
             Spare gear
           </h3>
-          <p className="panel-help">{spares.text}</p>
+          {spares.chips ? <Chips chips={spares.chips} className="spares-chips" /> : <p className="panel-help">{spares.text}</p>}
           {spares.button && (
             <button
               type="button"
@@ -100,7 +101,7 @@ export function Gear({ state }: { state: GameState }) {
           </p>
         )}
         {groups.length === 0 ? (
-          <p className="panel-help">Nothing here. Crews bring gear home from runs, and the Workshop makes it.</p>
+          <p className="empty">Nothing here.</p>
         ) : (
           groups.map((g) => (
             <div key={g.slot} className="stash-group">
@@ -165,7 +166,7 @@ export function Gear({ state }: { state: GameState }) {
           Vehicles
         </h3>
         <button type="button" className="link-row" onClick={() => navigate({ screen: 'vehicles' })}>
-          {vehiclesLine(state)} Gas: {state.resources.gas}.
+          {state.vehicles.length === 0 ? 'None yet.' : vehiclesLine(state)} <Glyph name="gas" /> {state.resources.gas}
         </button>
       </section>
     </section>

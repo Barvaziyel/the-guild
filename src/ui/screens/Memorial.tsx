@@ -37,7 +37,6 @@ export function Memorial({ state, day }: { state: GameState; day: number }) {
       {state.departed.length > 0 && (
         <div className="panel departed">
           <h3 className="panel-title">Gone their own way</h3>
-          <p className="panel-help">People who walked out of the guild. Wherever they are, they took their stories with them.</p>
           <ul className="out-list">
             {[...state.departed].reverse().map((s) => (
               <li key={s.id}>

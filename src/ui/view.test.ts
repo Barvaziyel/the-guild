@@ -121,7 +121,10 @@ describe('bonds', () => {
     assert.equal(partnerLine(state, a!), `Together with ${b!.firstName} ${b!.lastName}.`);
     const list = bonds(state, a!);
     assert.equal(list[0]!.other.id, b!.id);
-    assert.deepEqual(list[0]!.ties, ['Partners.']);
+    // A ring says it (3.6.0), not a word.
+    assert.equal(list[0]!.partners, true);
+    assert.deepEqual(list[0]!.ties, []);
+    assert.equal(list[1]!.partners, false);
     assert.equal(list[1]!.other.id, c!.id);
   });
 

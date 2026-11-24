@@ -32,6 +32,7 @@ import { Settings } from './screens/Settings.tsx';
 import { SurvivorSheet } from './screens/SurvivorSheet.tsx';
 import { tourStep } from './tour.ts';
 import { UrgentStrip } from './components/UrgentStrip.tsx';
+import { Glyph } from './components/Glyph.tsx';
 import { dots, type Dots } from './attention-view.ts';
 import { resourceList } from './view.ts';
 import { useSound } from './use-sound.ts';
@@ -274,7 +275,9 @@ function TopBar({ state, day, now }: { state: GameState; day: number; now: numbe
       </div>
       <ul className="resources" aria-label="Supplies at the Depot" data-tour="resources">
         {resourceList(state).map((r) => (
-          <li key={r.id}>
+          <li key={r.id} aria-label={`${r.name} ${r.amount}`}>
+            {/* A picture for each supply (3.6.0); the name is still read out. */}
+            <Glyph name={r.id} className={`res-glyph res-${r.id}`} />
             <span className="res-name">{r.name}</span> <Amount value={r.amount} />
           </li>
         ))}

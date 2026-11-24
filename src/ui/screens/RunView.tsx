@@ -32,6 +32,7 @@ import {
   firstNames,
   formatCountdown,
   formatDuration,
+  haulView,
   lootList,
   vehicleOutcomes,
   outcomeHeadline,
@@ -47,7 +48,8 @@ import { HavenFindNote } from '../components/HavenFind.tsx';
 import { followedHome } from '../animals-view.ts';
 import { findAnySurvivor } from '../view.ts';
 import { TRADE_JOB } from '../market-view.ts';
-import { PlacePicture } from '../components/Art.tsx';
+import { ItemIcon, PlacePicture } from '../components/Art.tsx';
+import { Chips } from '../components/Glyph.tsx';
 
 export function RunView({ state, id }: { state: GameState; id: string }) {
   const run = state.runs.find((r) => r.id === id);
@@ -189,6 +191,7 @@ function Report({ state, report }: { state: GameState; report: RunReport }) {
   const havenFind = s.haven?.lead?.found ? findView(state, s.haven.lead.clue) : undefined;
   const crew = report.plan.crew.map((cid) => ({ id: cid, name: names[cid] ?? cid, survivor: findAnySurvivor(state, cid) }));
   const loot = lootList(s);
+  const haul = haulView(s);
   const rescue = rescueLine(s);
   const rescuedAt = rescuedWhere(state, s);
   const changes = changesByPerson(report);
@@ -232,7 +235,23 @@ function Report({ state, report }: { state: GameState; report: RunReport }) {
             )}
           </p>
         )}
-        <p>{loot.length > 0 ? `Brought home ${loot.join(', ')}.` : 'Brought nothing home.'}</p>
+        {loot.length > 0 ? (
+          <div className="haul" aria-label={`Brought home ${loot.join(', ')}`}>
+            <Chips chips={haul.supplies} className="haul-supplies" />
+            {haul.items.map((i, n) => (
+              <span key={n} className="haul-item">
+                <ItemIcon defId={i.defId} quality={i.quality} /> {i.name}
+              </span>
+            ))}
+            {haul.vehicles.map((v) => (
+              <span key={v} className="haul-item">
+                {v}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <p>Brought nothing home.</p>
+        )}
         {radioReportLine(report) && <p className="summary-radio">{radioReportLine(report)}</p>}
         {leadReportLine(report) && <p className="summary-radio">{leadReportLine(report)}</p>}
         {/* A find for Haven, whole (2.9.1): what it says, where, and where it points on to. */}

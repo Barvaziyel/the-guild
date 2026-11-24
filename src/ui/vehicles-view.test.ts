@@ -3,7 +3,7 @@ import { describe, test } from 'node:test';
 import { build, createVehicle, getVehicleDef } from '../engine/index.ts';
 import { openGame, testGame, testPlan } from '../engine/test-utils.ts';
 import { lootList, vehicleOutcomes } from './runs-view.ts';
-import { conditionText, toggleVehicle, vehicleBuildRows, vehicleChoices, vehicleFacts, vehicleNote, vehicleRows, vehiclesLine } from './vehicles-view.ts';
+import { conditionText, rideChips, toggleVehicle, vehicleBuildRows, vehicleChips, vehicleChoices, vehicleFacts, vehicleRows, vehiclesLine } from './vehicles-view.ts';
 
 describe('vehicles on screen', () => {
   test('what a vehicle does, in a line', () => {
@@ -12,6 +12,21 @@ describe('vehicles on screen', () => {
     assert.equal(conditionText(20), 'In poor shape');
     assert.equal(conditionText(50), 'Worn');
     assert.equal(conditionText(90), 'Good');
+  });
+
+  test('what a vehicle does, in pictures (3.6.0): seats, faster, carries more, gas, noise', () => {
+    const chips = vehicleChips(getVehicleDef('motorcycle'));
+    assert.deepEqual(
+      chips.map((c) => [c.glyph, c.text, c.tone ?? '']),
+      [
+        ['seat', '2', ''],
+        ['clock', '−55%', 'good'],
+        ['cargo', '+4', 'good'],
+        ['gas', '1/leg', ''],
+        ['noise', '+25%', 'bad'],
+      ],
+    );
+    assert.match(chips[4]!.label!, /more fights/);
   });
 
   test('the Depot says what the guild has, or how to get one', () => {
@@ -32,7 +47,13 @@ describe('vehicles on screen', () => {
     const [row] = vehicleRows(state);
     assert.equal(row!.conditionLabel, 'Broken down, 0%');
     assert.match(row!.status, /won’t run until it’s repaired/);
-    assert.deepEqual(row!.repair, { cost: '30 scrap, 4 tech', problem: 'Build the Workshop first.' });
+    assert.equal(row!.repair?.cost, '30 scrap, 4 tech');
+    assert.equal(row!.repair?.problem, 'Build the Workshop first.');
+    // What the guild is short of is marked on the cost.
+    assert.deepEqual(row!.repair?.costChips.map((c) => [c.glyph, c.text, c.tone ?? '']), [
+      ['scrap', '30', state.resources.scrap >= 30 ? '' : 'bad'],
+      ['tech', '4', state.resources.tech >= 4 ? '' : 'bad'],
+    ]);
     bike.condition = 100;
     assert.equal(vehicleRows(state)[0]!.repair, undefined);
   });
@@ -57,13 +78,20 @@ describe('vehicles on screen', () => {
     state.vehicles.push(car, broken);
     const choices = vehicleChoices(state);
     assert.equal(choices[0]!.label, 'Seats 5, 70%');
+    assert.equal(choices[0]!.condition, 70);
+    assert.equal(choices[0]!.chips[0]!.text, '5');
     assert.equal(choices[1]!.reason, 'The Pickup Truck needs repairs before it will run.');
     const plan = testPlan(state, 'drowned_mall', { approach: 'sneaky' });
-    assert.match(vehicleNote(state, plan), /^On foot, a crew is up to 4\./);
+    assert.deepEqual(rideChips(state, plan), [], 'on foot, nothing to say');
     const riding = toggleVehicle(plan, car.id);
     assert.deepEqual(riding.vehicles, [car.id]);
     assert.equal(riding.approach, 'balanced');
-    assert.equal(vehicleNote(state, riding), 'Seats 5. 4 gas there and back (2 legs), of 9 at the Depot.');
+    assert.deepEqual(rideChips(state, riding).map((c) => [c.glyph, c.text, c.tone ?? '']), [
+      ['seat', '5', ''],
+      ['gas', '4 of 9', ''],
+    ]);
+    state.resources.gas = 3;
+    assert.equal(rideChips(state, riding)[1]!.tone, 'bad', 'not enough gas');
     assert.equal(toggleVehicle(riding, car.id).vehicles, undefined);
   });
 

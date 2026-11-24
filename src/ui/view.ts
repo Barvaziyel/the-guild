@@ -276,6 +276,7 @@ export interface BondView {
   labelName: string;
   /** Sentences about special ties: "Owes Mara a life." */
   ties: string[];
+  partners: boolean;
 }
 
 export function flagText(flag: RelationshipFlag, self: Survivor, other: Survivor): string | undefined {
@@ -299,7 +300,9 @@ export function bonds(state: GameState, s: Survivor): BondView[] {
     score: r.score,
     label: r.label,
     labelName: labelName(r.label),
-    ties: r.flags.map((f) => flagText(f, s, r.other)).filter((t): t is string => t !== undefined),
+    // Partners show as a ring (3.6.0), so the word isn't needed.
+    ties: r.flags.filter((f) => f.kind !== 'partners').map((f) => flagText(f, s, r.other)).filter((t): t is string => t !== undefined),
+    partners: r.flags.some((f) => f.kind === 'partners'),
   }));
 }
 

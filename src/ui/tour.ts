@@ -125,7 +125,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     title: 'Welcome to the Depot',
     route: () => ({ screen: 'depot' }),
     text: () =>
-      'Your guild lives in an old rail depot, forty years after the Burn. This tour shows what everything is for. Skip a part you know, or the whole tour; Settings can show it again.',
+      'Your guild lives in an old rail depot, forty years after the Burn. This tour shows what everything is for; skip any part you know.',
   },
   {
     id: 'yard',
@@ -134,7 +134,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     route: () => ({ screen: 'depot' }),
     target: 'yard',
     text: () =>
-      "The Depot opens on the Yard: the place as it is right now, who's at work, who's by the fire, who's resting, and who's at the gate. It darkens with the evening. Tap anyone or anything to see what it is.",
+      'The Depot as it is right now: who’s at work, by the fire, resting or at the gate. Tap anyone or anything to see what it is.',
   },
   {
     id: 'corners',
@@ -148,7 +148,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
       const left = cornersLeft(state).length;
       if (left === 0) return 'The old depot had corners nobody had been through, and this guild has searched them all, so their list under the yard is gone.';
       const opening = left === CORNERS.length ? 'Nobody has been through the old depot yet.' : `${countOf(left, 'corner', 'corners')} of the old depot ${left === 1 ? 'is' : 'are'} still to search.`;
-      return `${opening} Under the yard, pick a corner and send someone who’s home to search it: ${Math.min(...minutes)} to ${Math.max(...minutes)} minutes, one at a time, and each holds something. Someone just back from a run can go; whoever is searching can’t go out.`;
+      return `${opening} Under the yard, send someone who’s home to search one: ${Math.min(...minutes)} to ${Math.max(...minutes)} minutes, one at a time, and each holds something.`;
     },
   },
   {
@@ -157,7 +157,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     title: 'Red dots',
     route: depot,
     target: 'tabbar',
-    text: () => 'A red dot means something new or waiting. Follow the dots: the tab, then the tab inside it, then the thing itself. A fight or raid that needs your orders shows as a strip up top.',
+    text: () => 'A red dot means something new or waiting: follow the dots to it. A fight or raid that needs your orders shows as a strip up top.',
   },
   {
     id: 'notices',
@@ -165,7 +165,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     title: 'Notices',
     route: () => ({ screen: 'settings' }),
     target: 'notices',
-    text: () => 'The game keeps going while it’s closed. Turn this on to get a notice when a crew is due home or waiting for your orders, raiders come, or something needs deciding.',
+    text: () => 'The game keeps going while it’s closed. Turn this on for a notice when a crew is home or waiting for you, raiders come, or something needs deciding.',
   },
   {
     id: 'days',
@@ -175,7 +175,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     target: 'day',
     text: () => {
       const hours = Math.round(DAY_MS / 3_600_000);
-      return `A day passes every ${hours === 1 ? 'hour' : `${hours} real hours`}, open or closed: the Garden grows, people eat, heal and rest, and visitors come and go. The dial by the day up top fills as it goes, and under the day is when the next one starts. When you come back, the last ${MAX_CATCHUP_DAYS} days you missed are played; any before that are skipped.`;
+      return `A day passes every ${hours === 1 ? 'hour' : `${hours} real hours`}, open or closed: the Garden grows, people eat, heal and rest. The dial by the day fills as it goes. Away longer than ${MAX_CATCHUP_DAYS} days? Only the last ${MAX_CATCHUP_DAYS} are played.`;
     },
   },
 
@@ -187,7 +187,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     route: depot,
     target: 'resources',
     text: () =>
-      'Scrap builds buildings and gear. Rations feed everyone. Meds patch people up, on runs and in the Infirmary. Ammo feeds guns. Tech goes into better buildings and gear. Gas runs vehicles, once you have one.',
+      'Each supply has its picture, here and wherever it’s spent: scrap builds, rations feed, meds patch people up, ammo feeds guns, tech goes into better things, gas runs vehicles.',
   },
   {
     id: 'more-supplies',
@@ -196,7 +196,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     route: depot,
     target: 'resources',
     text: () =>
-      'Almost everything comes home with crews from runs in the Reach. The Garden grows rations, the Scrapyard strips the old station for scrap once it\u2019s built, the Workshop turns scrap into ammo, and outposts send some home. Too much of one thing? Trade it at the market at the Drive-In.',
+      'Almost everything comes home with crews from runs. The Garden grows rations, the Scrapyard strips scrap, the Workshop makes ammo. Too much of one thing? Trade it at the Drive-In.',
   },
   {
     id: 'garden',
@@ -213,7 +213,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     title: 'Running out',
     route: () => ({ screen: 'building', id: 'garden' }),
     text: () =>
-      `Rations keep ${RATION_KEEP_DAYS} days; after that, half of what's left goes off each day, so a hoard shrinks. If the rations run out, nobody starves, but hungry people can't rest, heal slowly, and grow tense. Hunting runs bring back food, and a bigger Garden feeds a bigger guild.`,
+      `Rations keep ${RATION_KEEP_DAYS} days, then start to go off. Run out and nobody starves, but hungry people can't rest, heal slowly and grow tense.`,
   },
 
   // ---------------------------------------------------------------- your people
@@ -223,7 +223,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     title: 'Your survivors',
     route: () => ({ screen: 'roster' }),
     text: (state) =>
-      `${countOf(state.survivors.length, 'survivor', 'survivors')}, each with health and stress. Every run costs some stress, more the longer and more dangerous it is, and it fades at home: the Firepit decides how fast, so rest people between runs. At ${STRESS_MAX}, someone breaks, and comes out of it changed.`,
+      `${countOf(state.survivors.length, 'survivor', 'survivors')}, each with health and stress. Runs cost stress and home takes it away, so rest people between runs. At ${STRESS_MAX}, someone breaks, and comes out of it changed.`,
   },
   {
     id: 'stats',
@@ -232,7 +232,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     route: (state) => firstSurvivorRoute(state, 'stats'),
     target: 'stats',
     text: () =>
-      'Five stats: Grit, Brawn, Aim, Wits and Nerve. Nobody spends points. People get better at what they actually do, on runs and at their posts. The i beside Stats says what each one is for and how it grows.',
+      'Nobody spends points: people get better at what they do, on runs and at their posts. The i beside Stats says what each one is for.',
   },
   {
     id: 'bonds',
@@ -241,7 +241,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     route: (state) => firstSurvivorRoute(state, 'bonds'),
     target: 'bonds',
     text: () =>
-      'People grow closer or further apart with everything they go through. Bonded friends look after each other on runs and help each other rest at home; rivals make it all harder, and a feud can end with someone walking out. Now and then two Bonded people become partners, and partners sometimes have a baby, who grows up at the Depot and joins the guild at 16.',
+      'Hearts are friends, a bolt rivals, a flag a feud, a ring partners. The pictures under each say what it does on a run together and at home, and the planner shows who gets on with the crew you’ve picked.',
   },
   {
     id: 'story',
@@ -249,7 +249,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     title: 'Their story',
     route: (state) => firstSurvivorRoute(state, 'story'),
     text: () =>
-      "What happens to people changes them: scars, new traits, friends and feuds, and the years, a birthday every game year. It's all written in their Chronicle, here on their sheet.",
+      'Scars, new traits, friends and feuds, birthdays: what happens to people is written in their Chronicle.',
   },
   {
     id: 'gear',
@@ -267,7 +267,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     text: (state) => {
       const { beds, cap } = homeCounts(state);
       const room = beds >= cap ? `all ${cap} beds are taken, so build the Bunks up first` : `${cap - beds} ${cap - beds === 1 ? 'bed is' : 'beds are'} free`;
-      return `Most new people come from the Reach: someone found on a run, or, once there's a Radio Tower, someone you rescue after a call for help. Others answer the radio or turn up at the gate. Taking someone in is free, but needs a free bed (partners share one): ${room}. Strays turn up at the gate too.`;
+      return `New people turn up at the gate, or are found and rescued on runs. Taking someone in is free, but needs a free bed (partners share one): ${room}.`;
     },
   },
 
@@ -279,7 +279,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     route: () => ({ screen: 'reach' }),
     target: 'map',
     text: (state) =>
-      `You know ${countOf(knownLocations(state).length, 'place', 'places').toLowerCase()}. Each has a danger from 1 to 5, and a ring that fills as you explore it. Question marks are roads to places nobody has found yet. Crews out walk the roads here.`,
+      `You know ${countOf(knownLocations(state).length, 'place', 'places').toLowerCase()}. Each has a danger from 1 to 5 and a ring that fills as you explore it. Question marks are roads nobody has followed yet.`,
   },
   {
     id: 'why-runs',
@@ -288,7 +288,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     route: () => ({ screen: 'reach' }),
     target: 'map',
     text: () =>
-      'Runs are how the guild gets nearly everything. Scavenge for supplies, scout to explore and find new places, or hunt for food. Each place mostly finds one or two things (tap it to see which), and dangerous places pay better and hurt more.',
+      'Runs bring home nearly everything. The pictures by each place are what it mostly gives up; dangerous places pay better and hurt more.',
   },
   {
     id: 'market',
@@ -297,7 +297,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     route: () => ({ screen: 'reach', id: 'drive_in' }),
     target: 'market',
     text: () =>
-      'The Drive-In is a market, not a place to search. Send a crew with goods, rations say, and they bring back something else: scrap, gas, anything. Packed with nothing but goods, they carry three times as much. The more of one thing the guild trades there, the worse the price, until it settles back over a day or two.',
+      'The Drive-In is a market. Send a crew with goods, rations say, and they bring back something else. The more of one thing the guild trades, the worse the price, until it settles back.',
   },
   {
     id: 'plan',
@@ -311,7 +311,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     text: (state) => {
       const place = easiestPlace(state);
       const first = place ? ` A good first run: three people scavenging ${place.name.replace(/^The /, 'the ')}.` : '';
-      return `First pick a crew of 1 to ${MAX_CREW}, then their orders: the job, how careful to be, when to pull out. Under the orders it says how risky the run is.${first}`;
+      return `Pick a crew of 1 to ${MAX_CREW}, then their orders; the pictures under each order say what it does, and the bottom says how risky the run is.${first}`;
     },
   },
   {
@@ -322,7 +322,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     text: () => {
       const minutes = LOCATIONS.map((l) => l.durationMin);
       const hours = Math.round(DAY_MS / 3_600_000);
-      return `Runs take real time, ${proseDuration(Math.min(...minutes))} to ${proseDuration(Math.max(...minutes))}, and crews come home even with the game closed. Each person goes out once a game day, which is ${hours} real hours. The report tells you what happened out there, and who came back changed.`;
+      return `Runs take real time, ${proseDuration(Math.min(...minutes))} to ${proseDuration(Math.max(...minutes))}, even with the game closed. Each person goes out once a game day (${hours} real hours). The report says what happened.`;
     },
   },
   {
@@ -335,7 +335,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     },
     target: 'lead',
     text: () =>
-      `At a fight a crew stops and waits up to ${Math.round(LEAD_WAIT / 60_000)} minutes for your orders (switch it off here to let them fight alone). You see what each enemy means to do. Give each person a move and a target: blades reach only the front rank, shots anyone. Some fights come with a job, like holding a door. Nobody answers? They fight on their own.`,
+      `At a fight a crew waits up to ${Math.round(LEAD_WAIT / 60_000)} minutes for your orders (switch it off to let them fight alone). You see what each enemy means to do; give each person a move and a target. Nobody answers? They fight on their own.`,
   },
 
   {
@@ -344,7 +344,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     title: 'On the radio',
     route: () => ({ screen: 'runs' }),
     text: () =>
-      `Now and then a crew comes to a fork: a sealed door, raiders on the road, the Vultures. They get on the radio: you get a notice and a card with their options, and they wait ${Math.round(RADIO_WAIT / 60_000)} minutes for your answer before deciding themselves.`,
+      `Now and then a crew comes to a fork: a sealed door, raiders on the road. They call in with their options and wait ${Math.round(RADIO_WAIT / 60_000)} minutes for your answer.`,
   },
 
   // ---------------------------------------------------------------- building
@@ -355,7 +355,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     route: depotBuildings,
     target: 'buildings',
     text: () =>
-      'Buildings cost scrap and tech, and the bigger ones other supplies too; their upper levels use a little every day. The Bunks hold beds, the Garden grows food, the Firepit eases stress. Tap a building to see what its next level does.',
+      'The Bunks hold beds, the Garden grows food, the Firepit eases stress. Tap a building to see what its next level does and costs.',
   },
   {
     id: 'posts',
@@ -364,7 +364,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     route: depotBuildings,
     target: 'buildings',
     text: () =>
-      "People at home work a post, and practice its stat every day: gardeners sharpen their Wits, firekeepers their Nerve, the Scrapyard's workers their Brawn. Change posts from a building or from someone's sheet.",
+      "People at home work a post and practice its stat every day. Change posts from a building or from someone's sheet.",
   },
   {
     id: 'build-first',
@@ -387,7 +387,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     title: 'Raids',
     route: depot,
     text: () =>
-      `Raiders sometimes come for the Depot or an outpost, and so do ferals, hollows and scrapbots. A Watchtower may see them coming, in time to shore up the fence, hide stores or, with a Radio Tower, call a crew home. At the gate they wait ${Math.round(RAID_WAIT / 3_600_000)} hours for you: pay raiders off, stare them down, or fight. Only those home when they arrive can hold it.`,
+      `Raiders and worse come for the Depot or an outpost. A Watchtower may see them coming, in time to shore up the fence, hide stores or, with a Radio Tower, call a crew home. At the gate they wait ${Math.round(RAID_WAIT / 3_600_000)} hours for you: pay, talk, or fight.`,
   },
   {
     id: 'decisions',
@@ -395,7 +395,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     title: 'Decisions',
     route: depot,
     text: () =>
-      `About once a real day something needs deciding: two people at odds, a stranger at the gate, a find nobody will share. It shows at the top of the Today tab with four answers, and what follows isn't written on the buttons. Leave it ${Math.round((DILEMMA_DAYS * DAY_MS) / 3_600_000)} hours and they settle it themselves, usually badly.`,
+      `About once a real day something needs deciding, on the Today tab. What follows isn't written on the buttons. Leave it ${Math.round((DILEMMA_DAYS * DAY_MS) / 3_600_000)} hours and they settle it themselves, usually badly.`,
   },
 
   // ---------------------------------------------------------------- later on
@@ -406,7 +406,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     route: () => ({ screen: 'vehicles' }),
     target: 'vehicles',
     text: () =>
-      `On foot a crew is at most ${MAX_CREW}. A motorcycle carries two, cars and vans five or more. Vehicles get there faster and carry more, but burn gas, draw trouble and wear down. They're rare: scouting turns up the odd wreck, traders sometimes sell one, and the Workshop can build some.`,
+      `On foot a crew is at most ${MAX_CREW}. Each vehicle's pictures say what it does: seats, how much faster, how much more it carries, gas a leg, and the noise that draws trouble. They're rare: found, bought, or built in the Workshop.`,
   },
   {
     id: 'further',
@@ -418,7 +418,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     },
     target: 'place-tabs',
     text: () =>
-      "Explore a place's outskirts fully and two things open: the way deeper in, deadlier but richer, and an outpost, a camp that sends supplies home and shortens runs nearby. Outposts need the Radio Tower: each level keeps in touch with one more.",
+      "Explore a place's outskirts fully and two things open: the way deeper in, deadlier but richer, and an outpost, which sends supplies home and shortens runs nearby.",
   },
   {
     id: 'projects',
@@ -427,7 +427,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     route: () => ({ screen: 'depot', tab: 'projects' }),
     target: 'projects',
     text: () =>
-      'Once the Depot is built up, big works change it for good: rails to the far places, a wall, a clinic. Each opens once its building is far enough along and comes in three stages. Pay for a stage, put a crew on it, and they work it off day by day.',
+      'Big works that change the Depot for good: rails to the far places, a wall, a clinic. Pay for a stage, put a crew on it, and they work it off; three stages each.',
   },
   {
     id: 'vultures',
@@ -436,7 +436,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     route: () => ({ screen: 'reach' }),
     target: 'vultures',
     text: () =>
-      `Another guild, the Vultures, works the Reach too. Around game day ${VULTURES_ARRIVE_DAY}, about ${proseDays((VULTURES_ARRIVE_DAY * DAY_MS) / 86_400_000)} in, they set up camp and send someone to the gate. They compete for places, people and trade; deal with them, trade with them or fight them. This panel shows how things stand.`,
+      `Another guild, the Vultures. Around game day ${VULTURES_ARRIVE_DAY}, about ${proseDays((VULTURES_ARRIVE_DAY * DAY_MS) / 86_400_000)} in, they set up camp nearby. Deal with them, trade with them or fight them.`,
   },
   {
     id: 'haven',
@@ -446,8 +446,8 @@ export const TOUR_STEPS: readonly TourStep[] = [
     route: (state) => (state.haven ? { screen: 'haven' } : { screen: 'depot' }),
     text: (state) =>
       state.haven
-        ? 'The long goal: find Haven. This tab is the guild’s notebook on it. The road at the top fills in as clues turn up; under it are what you know, the leads to follow (a run there might turn one up, or a building), what crews found, and what was heard on the roads. Once the guild knows the way, the road east opens here, and the whole guild sets out together.'
-        : 'The long goal comes over the radio at the end of the first week. From then on a Haven tab keeps what the guild learns about it: leads to follow on runs, what crews find, and what people hear on the roads.',
+        ? 'The long goal: find Haven. The road at the top fills in as clues turn up; under it are the leads to follow. Once the guild knows the way, the road east opens here.'
+        : 'The long goal comes over the radio at the end of the first week. From then on a Haven tab keeps what the guild learns about it.',
   },
   {
     id: 'done',
@@ -457,7 +457,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     // The first week's note waits until the tour is over (2.8.1), so this step hands over to it.
     text: (state) =>
       storyStep(state)
-        ? 'When you close this, a note above the yard says what to do first: the first week, one thing at a time, each with a reward. Settings can show this tour again.'
+        ? 'When you close this, a note above the yard says what to do first, one thing at a time. Settings can show this tour again.'
         : "Send your first crew out when you're ready. Settings can show this tour again.",
   },
 ];

@@ -3,6 +3,7 @@
  * and what everyone is carrying. Plain TypeScript so it can be tested in Node.
  */
 import { SLOTS, buildingLevel, canChangeGear, costText, itemDef, itemName, salvageProblem, salvageValue, spareGear, spareValue, type GameState, type ItemInstance, type Slot, type Survivor } from '../engine/index.ts';
+import { supplyChips, type Chip } from './glyphs.ts';
 import { missingGear } from './attention-view.ts';
 import { itemView, stashFor, type ItemView } from './view.ts';
 
@@ -79,7 +80,7 @@ export function salvageButton(state: GameState, uid: string): { label: string; p
 }
 
 /** The spare gear panel: Rusty and Common weapons and armor nobody needs, or undefined if there are none. */
-export function sparesPanel(state: GameState): { text: string; button?: string } | undefined {
+export function sparesPanel(state: GameState): { text: string; button?: string; chips?: Chip[] } | undefined {
   if (buildingLevel(state, 'workshop') === 0) {
     const plain = state.stash.filter((i) => i.quality === 'rusty' || i.quality === 'common').length;
     return plain > 0 ? { text: 'With a Workshop, spare gear can be taken apart for scrap.' } : undefined;
@@ -88,7 +89,12 @@ export function sparesPanel(state: GameState): { text: string; button?: string }
   if (spares.length === 0) return undefined;
   const value = costText(spareValue(state));
   const what = spares.length === 1 ? `One Rusty or Common piece of gear` : `${spares.length} Rusty and Common weapons and pieces of armor`;
-  return { text: `${what} in the stash would come to ${value} in the Workshop.`, button: `Take ${spares.length === 1 ? 'it' : 'them all'} apart` };
+  return {
+    text: `${what} in the stash would come to ${value} in the Workshop.`,
+    button: `Take ${spares.length === 1 ? 'it' : 'them all'} apart`,
+    // 3.6.0: shown instead of the sentence: how many pieces, and what they come to.
+    chips: [{ glyph: 'crate', text: `${spares.length}`, label: what }, { glyph: 'arrow', text: '' }, ...supplyChips(spareValue(state), { tone: 'good' })],
+  };
 }
 
 /** One of someone's four slots, for the row of little pictures on their card (3.5.0). */

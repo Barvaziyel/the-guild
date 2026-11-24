@@ -107,9 +107,7 @@ export function Yard({ state, now }: { state: GameState; now: number }) {
               </button>
             )}
           </>
-        ) : (
-          <p className="panel-help">Tap anyone or anything to see who or what it is.</p>
-        )}
+        ) : null}
       </div>
       {away.length > 0 && (
         <div className="panel">
@@ -139,7 +137,6 @@ function Animals({ state }: { state: GameState }) {
   return (
     <div className="panel" id="animals">
       <h3 className="panel-title">Animals</h3>
-      <p className="panel-help">Whoever looks after an animal sheds a little more stress at home with it.</p>
       <ul className="animal-list">
         {rows.map((r) => (
           <li key={r.id} className="animal">

@@ -3,6 +3,7 @@
  * behind, held at the Depot, and what can be done with each.
  */
 import { CAPTIVE_JOIN_CHANCE, captiveProblem, questionChance, questioner, type GameState, type Survivor } from '../engine/index.ts';
+import type { Chip } from './glyphs.ts';
 
 export interface CaptiveRow {
   id: string;
@@ -42,3 +43,10 @@ export function captiveRows(state: GameState): CaptiveRow[] {
 
 /** The panel's one-line help. */
 export const CAPTIVES_HELP = 'Held at the Depot. They eat a little, might slip out one night, and their own may come back for them.';
+
+/** The same, as pictures (3.6.0). */
+export const CAPTIVES_CHIPS: readonly Chip[] = [
+  { glyph: 'rations', text: '−', tone: 'bad', label: 'They eat a little' },
+  { glyph: 'slip', text: 'may slip out', tone: 'bad', label: 'Might slip out one night' },
+  { glyph: 'war', text: 'may be fetched', tone: 'bad', label: 'Their own may come back for them' },
+];

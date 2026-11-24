@@ -7,7 +7,6 @@ import {
   buildableVehicles,
   costText,
   crewLimit,
-  gasLegs,
   gasNeeded,
   repairCost,
   repairProblem,
@@ -19,10 +18,28 @@ import {
   type Vehicle,
   type VehicleDef,
 } from '../engine/index.ts';
+import { supplyChips, type Chip } from './glyphs.ts';
 
 /** "Seats 5. Carries 10 more loads. Gets there in 55% of the walking time. Burns 2 gas a leg." */
 export function vehicleFacts(def: VehicleDef): string {
   return `Seats ${def.seats}. Carries ${def.cargo} more loads. Gets there in ${Math.round(def.speed * 100)}% of the walking time. Burns ${def.gas} gas a leg.`;
+}
+
+/**
+ * What a vehicle does, as pictures (3.6.0; Aviel: "what are the benefits of taking the motorcycle
+ * and vehicles", without more text): seats, how much faster, what more it carries, gas a leg, and
+ * the noise that draws trouble.
+ */
+export function vehicleChips(def: VehicleDef): Chip[] {
+  const faster = Math.round((1 - def.speed) * 100);
+  const noise = Math.round(def.noise * 100);
+  return [
+    { glyph: 'seat', text: String(def.seats), label: `Seats ${def.seats}` },
+    { glyph: 'clock', text: `−${faster}%`, tone: 'good', label: `Gets there ${faster}% faster than walking` },
+    { glyph: 'cargo', text: `+${def.cargo}`, tone: 'good', label: `Carries ${def.cargo} more loads home` },
+    { glyph: 'gas', text: `${def.gas}/leg`, label: `Burns ${def.gas} gas a leg` },
+    { glyph: 'noise', text: `+${noise}%`, tone: 'bad', label: `Loud: about ${noise}% more fights, and ambushes are harder to spot` },
+  ];
 }
 
 /** Condition in words, for the bar's label. */
@@ -38,13 +55,14 @@ export interface VehicleRow {
   name: string;
   description: string;
   facts: string;
+  chips: Chip[];
   condition: number;
   /** "Good, 82%". */
   conditionLabel: string;
   /** Where it is: "At the Depot", "Out on a run", "Needs repairs before it runs". */
   status: string;
   /** "Repair: 24 scrap, 3 tech", if it needs it. */
-  repair?: { cost: string; problem?: string };
+  repair?: { cost: string; costChips: Chip[]; problem?: string };
 }
 
 export function vehicleRows(state: GameState): VehicleRow[] {
@@ -52,12 +70,16 @@ export function vehicleRows(state: GameState): VehicleRow[] {
     const def = vehicleDef(v);
     const status = v.runId ? 'Out on a run.' : v.condition <= 0 ? 'At the Depot, and won’t run until it’s repaired.' : 'At the Depot.';
     const problem = repairProblem(state, v.id);
-    const repair = v.condition < 100 ? { cost: costText(repairCost(v)), ...(problem && !/good shape/.test(problem) ? { problem } : {}) } : undefined;
+    const repair =
+      v.condition < 100
+        ? { cost: costText(repairCost(v)), costChips: supplyChips(repairCost(v), { have: state.resources }), ...(problem && !/good shape/.test(problem) ? { problem } : {}) }
+        : undefined;
     return {
       vehicle: v,
       name: def.name,
       description: def.description,
       facts: vehicleFacts(def),
+      chips: vehicleChips(def),
       condition: v.condition,
       conditionLabel: `${conditionText(v.condition)}, ${v.condition}%`,
       status,
@@ -70,7 +92,10 @@ export interface BuildRow {
   id: string;
   name: string;
   facts: string;
+  chips: Chip[];
   cost: string;
+  /** The cost as pictures, with what the guild is short of marked. */
+  costChips: Chip[];
   problem?: string;
 }
 
@@ -78,7 +103,15 @@ export interface BuildRow {
 export function vehicleBuildRows(state: GameState): BuildRow[] {
   return buildableVehicles().map((def) => {
     const problem = buildVehicleProblem(state, def.id);
-    return { id: def.id, name: def.name, facts: vehicleFacts(def), cost: costText(def.build!.cost), ...(problem ? { problem } : {}) };
+    return {
+      id: def.id,
+      name: def.name,
+      facts: vehicleFacts(def),
+      chips: vehicleChips(def),
+      cost: costText(def.build!.cost),
+      costChips: supplyChips(def.build!.cost, { have: state.resources }),
+      ...(problem ? { problem } : {}),
+    };
   });
 }
 
@@ -97,6 +130,9 @@ export interface VehicleChoice {
   name: string;
   /** "Seats 5, 82%". */
   label: string;
+  /** What it does, as pictures. */
+  chips: Chip[];
+  condition: number;
   /** Why it can't go, if it can't. */
   reason?: string;
 }
@@ -106,7 +142,7 @@ export function vehicleChoices(state: GameState): VehicleChoice[] {
   return state.vehicles.map((v) => {
     const why = vehicleProblem(v);
     const label = `Seats ${vehicleDef(v).seats}, ${v.condition}%`;
-    return { vehicle: v, name: vehicleName(v), label, ...(why ? { reason: `The ${vehicleName(v)} ${why}.` } : {}) };
+    return { vehicle: v, name: vehicleName(v), label, chips: vehicleChips(vehicleDef(v)), condition: v.condition, ...(why ? { reason: `The ${vehicleName(v)} ${why}.` } : {}) };
   });
 }
 
@@ -125,11 +161,14 @@ export function toggleVehicle(plan: RunPlan, id: string): RunPlan {
   return { ...plan, vehicles: [...current, id], ...(plan.approach === 'sneaky' ? { approach: 'balanced' as const } : {}) };
 }
 
-/** The planner's line about gas and seats. */
-export function vehicleNote(state: GameState, plan: RunPlan): string {
-  const picked = plan.vehicles ?? [];
-  if (picked.length === 0) return `On foot, a crew is up to ${crewLimit(state, plan)}. Vehicles seat more and get there faster, but burn gas and draw trouble.`;
+/** The planner's seats and gas once a vehicle is picked, as pictures: "seats 5, gas 4 of 9". */
+export function rideChips(state: GameState, plan: RunPlan): Chip[] {
+  if ((plan.vehicles ?? []).length === 0) return [];
   const gas = gasNeeded(state, plan);
-  const legs = gasLegs(state, plan);
-  return `Seats ${crewLimit(state, plan)}. ${gas} gas there and back (${legs} ${legs === 1 ? 'leg' : 'legs'}), of ${state.resources.gas} at the Depot.`;
+  const have = state.resources.gas;
+  return [
+    { glyph: 'seat', text: String(crewLimit(state, plan)), label: `Seats ${crewLimit(state, plan)}` },
+    { glyph: 'gas', text: `${gas} of ${have}`, ...(gas > have ? { tone: 'bad' as const } : {}), label: `${gas} gas there and back, of ${have} at the Depot` },
+  ];
 }
+

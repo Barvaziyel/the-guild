@@ -4,6 +4,11 @@
  */
 import {
   amountOf,
+  AGGRESSIVE_AMBUSH_PENALTY,
+  AGGRESSIVE_ATTACK_BONUS,
+  EXPLORE_GAIN,
+  SNEAKY_AMBUSH_BONUS,
+  SNEAKY_DURATION_MULT,
   dueBack,
   heldAt,
   returnUnsure,
@@ -31,6 +36,7 @@ import {
   type Beat,
   type CheckInfo,
   type GameState,
+  type ItemInstance,
   type LocationDef,
   type ResourceId,
   type RetreatOrder,
@@ -45,6 +51,7 @@ import {
   rationsNeeded,
   rationsPacked,
 } from '../engine/index.ts';
+import { supplyChips, type Chip } from './glyphs.ts';
 import { clockTime } from './time.ts';
 import { RESOURCE_NAMES } from './view.ts';
 
@@ -92,24 +99,104 @@ export interface Choice<T extends string> {
   description: string;
   /** A shorter name for a row of buttons, when the name is long. */
   short?: string;
+  /** What it does, as pictures (3.6.0): shown on the button instead of the description, which is only read out. */
+  chips?: readonly Chip[];
 }
 
+/** How much of a place a job maps, on average: "+12%". */
+const explored = (job: keyof typeof EXPLORE_GAIN): string => `+${Math.round((EXPLORE_GAIN[job][0] + EXPLORE_GAIN[job][1]) / 2)}%`;
+
 export const JOBS: readonly Choice<RunJob>[] = [
-  { id: 'scavenge', name: 'Scavenge', description: 'Search the place for supplies. The most loot.' },
-  { id: 'scout', name: 'Scout', description: 'Map the place and look for new ones. Finds new locations three times as often.' },
-  { id: 'hunt', name: 'Hunt', description: 'Go looking for a fight. Rations from ferals, and practice for the fighters.' },
+  {
+    id: 'scavenge',
+    name: 'Scavenge',
+    description: 'Search the place for supplies. The most loot.',
+    chips: [
+      { glyph: 'crate', text: 'most', tone: 'good', label: 'The most loot' },
+      { glyph: 'compass', text: explored('scavenge'), label: `Maps about ${explored('scavenge')} of the place` },
+    ],
+  },
+  {
+    id: 'scout',
+    name: 'Scout',
+    description: 'Map the place and look for new ones. Finds new locations three times as often.',
+    chips: [
+      { glyph: 'compass', text: explored('scout'), tone: 'good', label: `Maps about ${explored('scout')} of the place` },
+      { glyph: 'pin', text: '×3', tone: 'good', label: 'Finds new places three times as often' },
+      { glyph: 'crate', text: 'less', tone: 'bad', label: 'Less loot' },
+    ],
+  },
+  {
+    id: 'hunt',
+    name: 'Hunt',
+    description: 'Go looking for a fight. Rations from ferals, and practice for the fighters.',
+    chips: [
+      { glyph: 'swords', text: 'more', tone: 'bad', label: 'Goes looking for fights' },
+      { glyph: 'rations', text: '+', tone: 'good', label: 'Rations from ferals' },
+      { glyph: 'rise', text: 'practice', tone: 'good', label: 'Practice for the fighters' },
+    ],
+  },
 ];
 
+/**
+ * How a crew goes about it (§7.2), with what each does as pictures (3.6.0; Aviel: "it should be clearer
+ * (without more text) what is the difference between an aggressive and a balanced run"). The numbers
+ * are the game's own (SNEAKY_AMBUSH_BONUS, SNEAKY_DURATION_MULT, AGGRESSIVE_ATTACK_BONUS, AGGRESSIVE_AMBUSH_PENALTY).
+ */
 export const APPROACHES: readonly Choice<Approach>[] = [
-  { id: 'sneaky', name: 'Sneaky', description: 'Better at spotting trouble and slipping past it. Takes 15% longer.' },
-  { id: 'balanced', name: 'Balanced', description: 'No tricks either way.' },
-  { id: 'aggressive', name: 'Aggressive', description: 'Hit harder, but walk into more ambushes.' },
+  {
+    id: 'sneaky',
+    name: 'Sneaky',
+    description: 'Better at spotting trouble and slipping past it. Takes 15% longer.',
+    chips: [
+      { glyph: 'eye', text: `+${SNEAKY_AMBUSH_BONUS}`, tone: 'good', label: `Spots ambushes, plus ${SNEAKY_AMBUSH_BONUS}` },
+      { glyph: 'slip', text: 'past', tone: 'good', label: 'Can slip past a fight' },
+      { glyph: 'clock', text: `+${Math.round((SNEAKY_DURATION_MULT - 1) * 100)}%`, tone: 'bad', label: `Takes ${Math.round((SNEAKY_DURATION_MULT - 1) * 100)}% longer` },
+    ],
+  },
+  { id: 'balanced', name: 'Balanced', description: 'No tricks either way.', chips: [{ glyph: 'scales', text: 'even', label: 'No tricks either way' }] },
+  {
+    id: 'aggressive',
+    name: 'Aggressive',
+    description: 'Hit harder, but walk into more ambushes.',
+    chips: [
+      { glyph: 'swords', text: `+${AGGRESSIVE_ATTACK_BONUS}`, tone: 'good', label: `Hits harder, plus ${AGGRESSIVE_ATTACK_BONUS} to hit` },
+      { glyph: 'eye', text: `−${Math.abs(AGGRESSIVE_AMBUSH_PENALTY)}`, tone: 'bad', label: `Walks into ambushes, minus ${Math.abs(AGGRESSIVE_AMBUSH_PENALTY)} to spot them` },
+    ],
+  },
 ];
 
 export const RETREATS: readonly Choice<RetreatOrder>[] = [
-  { id: 'wounded', name: 'Someone is hurt', short: 'Hurt', description: 'Pull out once anyone drops below half health.' },
-  { id: 'downed', name: 'Someone goes down', short: 'Down', description: 'Pull out once anyone is knocked down.' },
-  { id: 'never', name: 'Never', description: 'Fight to the end. Brave, and sometimes fatal.' },
+  {
+    id: 'wounded',
+    name: 'Someone is hurt',
+    short: 'Hurt',
+    description: 'Pull out once anyone drops below half health.',
+    chips: [
+      { glyph: 'hurt', text: '½', label: 'Once anyone drops below half health' },
+      { glyph: 'shield', text: 'safest', tone: 'good', label: 'The safest' },
+      { glyph: 'crate', text: 'less', tone: 'bad', label: 'Less loot' },
+    ],
+  },
+  {
+    id: 'downed',
+    name: 'Someone goes down',
+    short: 'Down',
+    description: 'Pull out once anyone is knocked down.',
+    chips: [
+      { glyph: 'down', text: 'one', label: 'Once anyone is knocked down' },
+      { glyph: 'scales', text: 'middle', label: 'Between the two' },
+    ],
+  },
+  {
+    id: 'never',
+    name: 'Never',
+    description: 'Fight to the end. Brave, and sometimes fatal.',
+    chips: [
+      { glyph: 'crate', text: 'most', tone: 'good', label: 'The most loot' },
+      { glyph: 'skull', text: 'risky', tone: 'bad', label: 'Brave, and sometimes fatal' },
+    ],
+  },
 ];
 
 export const LOOT_PRIORITIES: readonly { id: ResourceId | 'any'; name: string }[] = [
@@ -235,16 +322,16 @@ export function locationView(state: GameState, id: string): LocationView {
   };
 }
 
-/** The line under a place's facts: visits, roads on, and what exploring it fully opens. */
-export function placeNote(v: LocationView, fullyExplored: boolean): string {
+
+/**
+ * The place's history as pictures (3.6.0): how often the guild has been, and roads nobody has found
+ * the end of yet. The map shows the known roads, and the levels list what opens deeper in.
+ */
+export function placeChips(v: LocationView): Chip[] {
   return [
-    v.runs === 0 ? 'Nobody from the guild has been here yet.' : `The guild has been here ${v.runs === 1 ? 'once' : `${v.runs} times`}.`,
-    v.leadsTo.length > 0 ? `Roads lead on to ${joinNames(v.leadsTo.map((l) => l.name))}.` : '',
-    v.unknownLeads > 0 ? `${v.unknownLeads === 1 ? 'One road leads' : `${v.unknownLeads} roads lead`} somewhere nobody has found yet.` : '',
-    fullyExplored ? '' : 'Explore the outskirts fully to open the way deeper in, and to set up an outpost.',
-  ]
-    .filter(Boolean)
-    .join(' ');
+    { glyph: 'pin', text: v.runs === 0 ? 'never' : `${v.runs}×`, label: v.runs === 0 ? 'Nobody from the guild has been here yet' : `The guild has been here ${v.runs === 1 ? 'once' : `${v.runs} times`}` },
+    ...(v.unknownLeads > 0 ? [{ glyph: 'compass' as const, text: `${v.unknownLeads} ?`, tone: 'good' as const, label: `${v.unknownLeads === 1 ? 'One road leads' : `${v.unknownLeads} roads lead`} somewhere nobody has found yet` }] : []),
+  ];
 }
 
 // ---------------------------------------------------------------- crews out
@@ -327,6 +414,18 @@ export function lootList(summary: RunSummary): string[] {
   for (const item of summary.items) out.push(itemName(item));
   for (const v of summary.foundVehicles ?? []) out.push(`a ${vehicleName(v)} that only just runs (${v.condition}%)`);
   return out;
+}
+
+/**
+ * What came home, as pictures (3.6.0): the supplies as icons and numbers, then each piece of gear
+ * and any vehicle by name (the report shows the gear's own picture next to it).
+ */
+export function haulView(summary: RunSummary): { supplies: Chip[]; items: { defId: string; quality: ItemInstance['quality']; name: string }[]; vehicles: string[] } {
+  return {
+    supplies: supplyChips(summary.loot, { sign: true }),
+    items: summary.items.map((i) => ({ defId: i.defId, quality: i.quality, name: itemName(i) })),
+    vehicles: (summary.foundVehicles ?? []).map((v) => `A ${vehicleName(v)} that only just runs (${v.condition}%)`),
+  };
 }
 
 /** What became of the vehicles a crew took: ["The Hatchback: 72%", "The Motorcycle was wrecked"]. */
@@ -446,6 +545,21 @@ export function paceNote(state: GameState, plan: RunPlan): string | undefined {
   if (parts.length === 0) return undefined;
   const line = parts.join(', and ');
   return `Slower on foot: ${line}.`;
+}
+
+/**
+ * Before they go, as pictures (3.6.0): how long they're away and when they're back, and the rations
+ * packed, marked if the Depot can't pack them all (they go hungry).
+ */
+export function departChips(state: GameState, plan: RunPlan, duration: number, now: number): Chip[] {
+  const need = rationsNeeded(state, plan);
+  const packed = rationsPacked(state, plan);
+  return [
+    { glyph: 'clock', text: `${formatDuration(duration)}, back ${clockTime(now + duration)}`, label: `Away for ${formatDuration(duration)}, back at ${clockTime(now + duration)}` },
+    ...(need > 0
+      ? [{ glyph: 'rations' as const, text: packed >= need ? String(need) : `${packed} of ${need}`, ...(packed < need ? { tone: 'bad' as const } : {}), label: rationsNote(state, plan) }]
+      : []),
+  ];
 }
 
 /** The planner's line about rations: what's packed, and what happens when the Depot is short. */

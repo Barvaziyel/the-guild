@@ -101,7 +101,17 @@ describe('salvage on the Gear screen', () => {
     build(state, 'workshop', 1);
     assert.deepEqual(salvageButton(state, pipe.uid), { label: 'Take apart for 1 scrap' });
     assert.equal(salvageButton(state, named.uid).problem, 'Nobody will take apart Old Faithful.');
-    assert.deepEqual(sparesPanel(state), { text: 'One Rusty or Common piece of gear in the stash would come to 1 scrap in the Workshop.', button: 'Take it apart' });
+    const one = sparesPanel(state)!;
+    assert.equal(one.text, 'One Rusty or Common piece of gear in the stash would come to 1 scrap in the Workshop.');
+    assert.equal(one.button, 'Take it apart');
+    assert.deepEqual(
+      one.chips?.map((c) => [c.glyph, c.text]),
+      [
+        ['crate', '1'],
+        ['arrow', ''],
+        ['scrap', '1'],
+      ],
+    );
     state.stash.push(createItem(state, 'leather_jacket', 'common'));
     assert.equal(sparesPanel(state)?.button, 'Take them all apart');
     state.stash = [named];

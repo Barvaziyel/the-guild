@@ -1,5 +1,7 @@
 import { buildVehicle, dayAt, repairVehicle, type GameState } from '../../engine/index.ts';
 import { Meter } from '../components/Bars.tsx';
+import { Chips, Glyph } from '../components/Glyph.tsx';
+import { problemNote } from '../glyphs.ts';
 import { goBack, navigate, useAction } from '../hooks.ts';
 import { vehicleBuildRows, vehicleRows } from '../vehicles-view.ts';
 
@@ -23,8 +25,7 @@ export function Vehicles({ state }: { state: GameState }) {
           Vehicles
         </h2>
         <p className="place-facts">
-          They seat more than four, get there faster and carry more home. They&rsquo;re loud, burn gas every run and wear down, and a worn one can be
-          wrecked out there. Gas: {state.resources.gas}.
+          <Glyph name="gas" /> {state.resources.gas}
         </p>
       </header>
 
@@ -33,20 +34,20 @@ export function Vehicles({ state }: { state: GameState }) {
           In the yard
         </h3>
         {rows.length === 0 ? (
-          <p className="panel-help">None yet. Scouting turns up the odd wreck worth getting running, traders sometimes sell one, and the Workshop can build a motorcycle or a car.</p>
+          <p className="empty">None yet.</p>
         ) : (
           <ul className="vehicles">
             {rows.map((r) => (
               <li key={r.vehicle.id} className="vehicle">
                 <h4 className="vehicle-name">{r.name}</h4>
                 <p className="vehicle-desc">{r.description}</p>
-                <p className="item-stats">{r.facts}</p>
+                <Chips chips={r.chips} className="vehicle-chips" />
                 <Meter label="Condition" value={r.condition} max={100} reading={r.conditionLabel} kind="hp" />
                 <p className="vehicle-status">{r.status}</p>
                 {r.repair && (
                   <div className="recipe">
                     <span className="recipe-body">
-                      <span className="recipe-cost">{r.repair.problem ?? `Repair to full: ${r.repair.cost}.`}</span>
+                      {problemNote(r.repair.problem) ? <span className="recipe-cost">{problemNote(r.repair.problem)}</span> : <Chips chips={r.repair.costChips} className="recipe-cost" />}
                     </span>
                     <button type="button" className="btn btn-small" disabled={r.repair.problem !== undefined} onClick={() => act((s) => void repairVehicle(s, r.vehicle.id, today(s)))}>
                       Repair
@@ -73,8 +74,9 @@ export function Vehicles({ state }: { state: GameState }) {
             <li key={b.id} className="recipe">
               <span className="recipe-body">
                 <span className="item-name">{b.name}</span>
-                <span className="item-stats">{b.facts}</span>
-                <span className="recipe-cost">{b.problem && b.problem !== `Needs ${b.cost}.` ? b.problem : `Costs ${b.cost}.`}</span>
+                <Chips chips={b.chips} className="vehicle-chips" />
+                <Chips chips={b.costChips} className="recipe-cost" />
+                {problemNote(b.problem) && <span className="recipe-cost">{problemNote(b.problem)}</span>}
               </span>
               <button type="button" className="btn btn-small" disabled={b.problem !== undefined} onClick={() => act((s) => void buildVehicle(s, b.id, today(s)))}>
                 Build

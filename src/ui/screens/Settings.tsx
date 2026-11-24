@@ -131,7 +131,6 @@ function TourSettings({ state }: { state: GameState }) {
   return (
     <div className="panel">
       <h3 className="panel-title">Tour</h3>
-      <p className="panel-help">A walk through what the supplies are for, why crews go out, and what to build first. Skip any part you know.</p>
       <button type="button" className="btn" onClick={() => startTour(prefs, state)}>
         Show the tour
       </button>
@@ -149,7 +148,7 @@ function SaveSettings({ state, now, day }: Props) {
   return (
     <div className="panel">
       <h3 className="panel-title">Save</h3>
-      <p className="panel-help">The game saves on this phone after every change. Export the save to keep a copy or move it to another device.</p>
+      <p className="panel-help">Saved on this phone after every change.</p>
 
       {showExport ? (
         <CopyBox text={serialize(state)} fileName={exportFileName(day)} />

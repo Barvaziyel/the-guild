@@ -3,6 +3,7 @@ import { dayAt, decidePrisoner, type GameState, type PrisonerAction } from '../.
 import { Portrait } from '../components/Portrait.tsx';
 import { goBack, navigate, useAction } from '../hooks.ts';
 import { vulturesView, type PrisonerRow } from '../vultures-view.ts';
+import { Chips } from '../components/Glyph.tsx';
 
 /** The rival guild (§7.11): how things stand, what they do, their people and camps, and the guild's prisoners. */
 export function Vultures({ state }: { state: GameState }) {
@@ -20,7 +21,6 @@ export function Vultures({ state }: { state: GameState }) {
         <h2 id="vultures-title" className="plan-title">
           The Vultures
         </h2>
-        <p className="place-facts">Another scavenger guild that works the Reach. They compete for places, people, outposts and trade, and they can be dealt with.</p>
       </header>
 
       {v.note && (
@@ -44,10 +44,6 @@ export function Vultures({ state }: { state: GameState }) {
               ))}
             </ul>
           )}
-          <p className="panel-help">
-            Fights, raids on their camps and killing their people turn them against the guild; tribute, trade and letting prisoners go warm them. Their envoys come to the
-            gate now and then with something to decide.
-          </p>
         </section>
       )}
 
@@ -62,7 +58,12 @@ export function Vultures({ state }: { state: GameState }) {
           <h3 id="prisoners-title" className="panel-title">
             Prisoners
           </h3>
-          <p className="panel-help">Held at the Depot. Each eats a ration a day, and might slip out one night.</p>
+          <Chips
+            chips={[
+              { glyph: 'rations', text: '−1/day', tone: 'bad', label: 'Each eats a ration a day' },
+              { glyph: 'slip', text: 'may slip out', tone: 'bad', label: 'Might slip out one night' },
+            ]}
+          />
           <ul className="vulture-people">
             {v.prisoners.map((p) => (
               <PrisonerCard key={p.id} row={p} onDone={setSaid} />
@@ -89,7 +90,6 @@ export function Vultures({ state }: { state: GameState }) {
               </li>
             ))}
           </ul>
-          <p className="panel-help">A crew can hit a camp from the planner. It&rsquo;s a hard fight, and it means war.</p>
         </section>
       )}
 
