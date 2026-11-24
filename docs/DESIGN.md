@@ -1362,6 +1362,12 @@ Aviel, 2026-11-23 and 24: tweening in all five places, things that happened whil
 
   Before, a front-facing body crossed its legs like scissors and flapped both arms.
 - **Packs on the road**: a crew walking out or in through the gate carries a pack. It's small for a run under 45 minutes and big, with a bedroll, for a longer one, and it bulges on the way home (`YardTrip.pack`, `BIG_PACK_MS`).
+- **Riding** (3.7.2; Aviel: a pair on the motorcycle "just sped out without the characters"):
+  - A crew that drives rides in its vehicles, filling each one's seats in turn (`YardTrip.vehicle.riders`). Coming home, only those back at the Depot ride.
+  - On a motorcycle the driver sits leaning into the bars and the passenger holds on behind (`rider`).
+  - In anything else, each rider is a head and shoulders in a window, under faint glass (`inWindow`). A pickup's bed carries two more.
+  - On the Reach, a crew that took only motorcycles shows on one (`CrewMarker.ride`). The map's little car now faces the way it drives; it drove backwards.
+- **The ride's time**: once a vehicle is picked, the planner's header says how long the ride takes ("about 5 min by motorcycle", `tripLine`) instead of the place's walk. Aviel saw "4.5 minutes" for the Rail Yard after the header had said "about 10 min on foot".
 - Marks from before 3.7.0 have no record of the map, the yard or the stores, so nothing moves the first time.
 
 ## 15. Roadmap

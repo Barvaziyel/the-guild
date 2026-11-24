@@ -30,6 +30,7 @@ import {
   radiationText,
   paceNote,
   departChips,
+  tripLine,
   riskLine,
   suggestedAmmo,
   toggleCrew,
@@ -145,7 +146,7 @@ function PlannerForm({ state, locationId, step }: { state: GameState; locationId
         {loc.name}
       </h2>
       <p className="place-facts">
-        {dangerText(loc.danger)}, {radiationText(loc.radiation).toLowerCase()}, about {formatDuration(loc.durationMin * 60_000)} on foot.
+        {dangerText(loc.danger)}, {radiationText(loc.radiation).toLowerCase()}, {tripLine(state, plan, loc.durationMin * 60_000, duration)}.
       </p>
       <ol className="plan-steps" aria-label="Steps">
         <li aria-current={step === 'crew' ? 'step' : undefined}>

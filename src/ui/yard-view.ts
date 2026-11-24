@@ -23,6 +23,7 @@ import {
   partnerOf,
   postText,
   resting,
+  vehicleDef,
   vehicleName,
   workerSlots,
   workingAt,
@@ -100,10 +101,20 @@ export function yardTrips(state: GameState, now: number, parked: readonly { id: 
   const recent = (t: number): boolean => t <= now && now - t < TRIP_WINDOW_MS;
   const add = (way: 'out' | 'in', at: number, crew: string[], vehicles: string[], away: number): void => {
     if (vehicles.length > 0) {
+      // The crew rides (3.7.2): filling each vehicle's seats in turn, those coming home only if they're back here.
+      const riders = crew
+        .map((cid) => state.survivors.find((x) => x.id === cid))
+        .filter((s): s is NonNullable<typeof s> => s !== undefined && (way === 'out' || (s.status === 'ready' && s.outpost === undefined)))
+        .map((s) => figureLook(s));
+      let taken = 0;
       vehicles.forEach((id, order) => {
         const v = state.vehicles.find((x) => x.id === id);
         const slot = parked.findIndex((x) => x.id === id);
-        if (v && (way === 'out' || slot >= 0)) trips.push({ id, vehicle: { defId: v.defId, id, slot: Math.max(0, slot) }, way, at, order });
+        if (!v) return;
+        const seats = vehicleDef(v).seats;
+        const aboard = riders.slice(taken, taken + seats);
+        taken += seats;
+        if (way === 'out' || slot >= 0) trips.push({ id, vehicle: { defId: v.defId, id, slot: Math.max(0, slot), ...(aboard.length > 0 ? { riders: aboard } : {}) }, way, at, order });
       });
       return;
     }

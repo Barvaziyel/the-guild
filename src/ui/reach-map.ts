@@ -198,6 +198,8 @@ export interface CrewMarker {
   stage: 'out' | 'there' | 'back';
   /** With vehicles, a vehicle; on foot, a walker. */
   driving: boolean;
+  /** What they drive, as the map draws it (3.7.2): a motorcycle when that's all they took, a car otherwise. */
+  ride?: 'motorcycle' | 'car';
   label: string;
 }
 
@@ -213,7 +215,9 @@ export function crewMarker(state: GameState, run: Run, now: number, label = ''):
   const ahead = pointAlong(route, Math.min(1, along + 0.02));
   const behind = pointAlong(route, Math.max(0, along - 0.02));
   const dx = stage === 'back' ? behind.x - at.x : ahead.x - at.x;
-  return { runId: run.id, x: at.x, y: at.y, facing: dx < 0 ? -1 : 1, stage, driving: (run.plan.vehicles ?? []).length > 0, label };
+  const taken = (run.plan.vehicles ?? []).map((id) => state.vehicles.find((v) => v.id === id)?.defId);
+  const ride = taken.length === 0 ? undefined : taken.every((d) => d === 'motorcycle') ? 'motorcycle' : 'car';
+  return { runId: run.id, x: at.x, y: at.y, facing: dx < 0 ? -1 : 1, stage, driving: taken.length > 0, ...(ride ? { ride } : {}), label };
 }
 
 function pointAlong(route: readonly MapSpot[], share: number): { x: number; y: number } {

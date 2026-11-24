@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { startRun } from '../engine/index.ts';
+import { createVehicle, startRun } from '../engine/index.ts';
 import { T0, openGame, testGame, testPlan } from '../engine/test-utils.ts';
 import { DEPOT_SPOT, MAP_SPOTS, ROAD_SHARE, crewMarker, routeTo } from './reach-map.ts';
 
@@ -42,5 +42,20 @@ describe('crews on the map (3.2.0)', () => {
     // The Rail Yard is west of the Depot: out they face left, home they face right.
     assert.equal(crewMarker(state, run, run.departAt + span * 0.1)!.facing, -1);
     assert.equal(crewMarker(state, run, run.departAt + span * 0.9)!.facing, 1);
+  });
+
+  test('a crew on a motorcycle shows on one; with a car, a car (3.7.2)', () => {
+    const state = openGame('ride');
+    state.vehicles.push(createVehicle(state, 'motorcycle', 80), createVehicle(state, 'car', 80));
+    const [bike, car] = state.vehicles.map((v) => v.id) as [string, string];
+    const two = state.survivors.slice(0, 2).map((s) => s.id);
+    state.resources.gas = 10;
+    const onBike = startRun(state, { ...testPlan(state, 'rail_yard'), crew: two, vehicles: [bike] }, T0);
+    const marker = crewMarker(state, onBike, onBike.departAt + 1)!;
+    assert.deepEqual([marker.driving, marker.ride], [true, 'motorcycle']);
+    onBike.plan.vehicles = [car];
+    assert.equal(crewMarker(state, onBike, onBike.departAt + 1)!.ride, 'car');
+    onBike.plan.vehicles = [];
+    assert.equal(crewMarker(state, onBike, onBike.departAt + 1)!.ride, undefined);
   });
 });

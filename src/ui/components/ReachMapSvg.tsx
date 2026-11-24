@@ -91,7 +91,7 @@ function Crews({ state }: { state: GameState }) {
         >
           <circle r={4.2} fill="transparent" />
           <ellipse cx={0} cy={-0.4} rx={2.6} ry={3.4} fill={PAPER} opacity={0.75} />
-          <g transform={`scale(${m.facing * 1.55} 1.55)`}>{m.driving ? <MapCar /> : <MapWalker still={m.stage === 'there'} />}</g>
+          <g transform={`scale(${m.facing * 1.55} 1.55)`}>{m.ride === 'motorcycle' ? <MapBike /> : m.driving ? <MapCar /> : <MapWalker still={m.stage === 'there'} />}</g>
         </g>
       ))}
     </g>
@@ -111,13 +111,28 @@ function MapWalker({ still }: { still: boolean }) {
   );
 }
 
-/** A tiny vehicle for a crew that drove. */
+/** A tiny car for a crew that drove, facing right like the walker: the bonnet ahead, the windscreen sloping back (3.7.2: it faced left, so it drove backwards). */
 function MapCar() {
   return (
     <g className="map-car">
-      <path d="M -2 0.6 L -2 -0.6 L -0.9 -0.8 L -0.3 -1.7 L 1.1 -1.7 L 1.7 -0.7 L 2.2 -0.5 L 2.2 0.6 Z" fill="#a64d27" stroke={INK} strokeWidth={0.25} strokeLinejoin="round" />
-      <circle cx={-1.1} cy={0.8} r={0.55} fill={INK} />
-      <circle cx={1.3} cy={0.8} r={0.55} fill={INK} />
+      <path d="M 2 0.6 L 2 -0.6 L 0.9 -0.8 L 0.3 -1.7 L -1.1 -1.7 L -1.7 -0.7 L -2.2 -0.5 L -2.2 0.6 Z" fill="#a64d27" stroke={INK} strokeWidth={0.25} strokeLinejoin="round" />
+      <circle cx={1.1} cy={0.8} r={0.55} fill={INK} />
+      <circle cx={-1.3} cy={0.8} r={0.55} fill={INK} />
+    </g>
+  );
+}
+
+/** A tiny motorcycle with its rider, facing right (3.7.2). */
+function MapBike() {
+  return (
+    <g className="map-car">
+      <circle cx={-1.5} cy={0.7} r={0.7} fill="none" stroke={INK} strokeWidth={0.35} />
+      <circle cx={1.5} cy={0.7} r={0.7} fill="none" stroke={INK} strokeWidth={0.35} />
+      <path d="M -1.5 0.7 L -0.4 -0.5 L 0.9 -0.5 L 1.5 0.7 M 0.9 -0.5 L 1.3 -1.3" fill="none" stroke={INK} strokeWidth={0.3} strokeLinejoin="round" />
+      <path d="M -0.9 -0.5 L 0.6 -0.5 L 0.5 -0.9 L -0.7 -0.9 Z" fill="#a64d27" stroke={INK} strokeWidth={0.2} />
+      <line x1={-0.3} y1={-0.9} x2={0} y2={-2} stroke="#7d6c4f" strokeWidth={0.7} strokeLinecap="round" />
+      <line x1={0.1} y1={-1.6} x2={1.2} y2={-1.3} stroke={INK} strokeWidth={0.3} strokeLinecap="round" />
+      <circle cx={0.15} cy={-2.6} r={0.6} fill="#a64d27" stroke={INK} strokeWidth={0.2} />
     </g>
   );
 }

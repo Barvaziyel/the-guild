@@ -3,6 +3,8 @@
  * A broken-down one sits on bricks with a wheel off.
  */
 import { C, circle, darken, hash, ink, line, pathEl, rect } from './draw.ts';
+import { inWindow, rider } from './figures.ts';
+import type { FigureLook } from './model.ts';
 
 const FINE = ink(0.9);
 const PAINT = ['#5f7f78', '#a8603f', '#7d6c4f', '#4f5b66', '#868b63', '#8c6f56'] as const;
@@ -61,11 +63,52 @@ function van(paint: string, broken: boolean): string {
 
 const SHAPES: Record<string, (paint: string, broken: boolean) => string> = { motorcycle, car, pickup, van };
 
-/** A vehicle parked with its middle at x, wheels on the ground at y. */
-export function vehicle(defId: string, id: string, x: number, y: number, broken: boolean): string {
+/**
+ * Where those riding show (3.7.2), driver first: on a motorcycle's seat, sitting on it; in anything else,
+ * a head and shoulders in a window (under the glass, so the frame shows), or in a pickup's bed.
+ */
+const SEATS: Record<string, readonly { x: number; y: number; window: boolean }[]> = {
+  motorcycle: [
+    { x: -3, y: -17, window: false },
+    { x: -9, y: -17.5, window: false },
+  ],
+  car: [
+    { x: 9, y: -23.5, window: true },
+    { x: -9, y: -23.5, window: true },
+  ],
+  pickup: [
+    { x: 17, y: -23.5, window: true },
+    { x: -14, y: -21, window: true },
+    { x: -24, y: -21, window: true },
+  ],
+  van: [
+    { x: 26, y: -30.5, window: true },
+    { x: -22, y: -28.5, window: true },
+    { x: -30, y: -28.5, window: true },
+  ],
+};
+
+/** A vehicle parked with its middle at x, wheels on the ground at y; with riders, those riding in it. */
+export function vehicle(defId: string, id: string, x: number, y: number, broken: boolean, riders: readonly FigureLook[] = []): string {
   const shape = SHAPES[defId] ?? car;
   const paint = PAINT[hash(id) % PAINT.length]!;
+  const seats = SEATS[defId] ?? SEATS.car!;
+  const shown = riders.slice(0, seats.length);
+  // In a window: over the body, under the glass, which is drawn again over them, faint, so they show
+  // through it. On a motorcycle they sit on top, the passenger behind the driver.
+  let inside = '';
+  let onTop = '';
+  shown.forEach((look, i) => {
+    const s = seats[i]!;
+    if (s.window) inside += `<g transform="translate(${s.x} ${s.y})">${inWindow(look)}</g>`;
+    else onTop = `<g transform="translate(${s.x} ${s.y})">${rider(look, i > 0)}</g>` + onTop;
+  });
   const body = shape(broken ? darken(paint, 0.2) : paint, broken);
   const shadow = `<ellipse cx="0" cy="0.5" rx="${defId === 'motorcycle' ? 18 : 40}" ry="2.5" fill="${C.dirtDark}" stroke="none"/>`;
-  return `<g transform="translate(${x} ${y})">${shadow}${body}</g>`;
+  return `<g transform="translate(${x} ${y})">${shadow}${body}${inside}${inside ? glassOver(body) : ''}${onTop}</g>`;
+}
+
+/** A vehicle's windows again, faint, over whoever sits behind them (3.7.2). */
+function glassOver(body: string): string {
+  return (body.match(/<(?:path|rect)[^>]*fill="#9fb7b0"[^>]*\/>/g) ?? []).map((p) => p.replace('fill="#9fb7b0"', 'fill="#9fb7b0" fill-opacity="0.25"')).join('');
 }

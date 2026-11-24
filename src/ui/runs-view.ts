@@ -548,6 +548,18 @@ export function paceNote(state: GameState, plan: RunPlan): string | undefined {
 }
 
 /**
+ * How long getting there takes, in the planner's header (3.7.2): the place's walk, or once a vehicle is
+ * picked, the ride. Aviel sent two out on the motorcycle and it "suddenly showed 4.5 minutes", because
+ * the header still said "about 10 min on foot".
+ */
+export function tripLine(state: GameState, plan: RunPlan, walk: number, duration: number): string {
+  const rides = (plan.vehicles ?? []).map((id) => state.vehicles.find((v) => v.id === id)).filter((v): v is NonNullable<typeof v> => v !== undefined);
+  if (rides.length === 0) return `about ${formatDuration(walk)} on foot`;
+  const how = rides.length === 1 ? `by ${vehicleName(rides[0]!).toLowerCase()}` : 'riding';
+  return `about ${formatDuration(duration)} ${how}`;
+}
+
+/**
  * Before they go, as pictures (3.6.0): how long they're away and when they're back, and the rations
  * packed, marked if the Depot can't pack them all (they go hungry).
  */
