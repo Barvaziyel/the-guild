@@ -64,6 +64,8 @@ export interface StageEffect {
   big?: boolean;
   /** What flies off whoever is hit (3.2.0): blood, sparks off a machine; dust where a shot misses. */
   splash?: 'blood' | 'sparks' | 'dust';
+  /** The health of whoever was acted on, before this act (3.7.0): the bar drains from it, or fills up from it. */
+  was?: number;
 }
 
 export interface StageModel {
@@ -343,6 +345,15 @@ function overhead(f: StageFighter, slot: Slot, height: number, room: number, mod
     const color = share > 0.5 ? '#6f9a52' : share > 0.25 ? '#b8892a' : '#b5432f';
     out += `<rect x="${n1(x)}" y="${n1(top)}" width="${n1(w)}" height="${HP_BAR_H}" rx="2" fill="#1d1915" stroke="${BONE}" stroke-width="0.8"/>`;
     if (share > 0) out += `<rect x="${n1(x + 0.9)}" y="${n1(top + 0.9)}" width="${n1((w - 1.8) * share)}" height="${HP_BAR_H - 1.8}" rx="1.4" fill="${color}" class="bt-bar"/>`;
+    // The bar drains (3.7.0): what was just lost stays as a pale chunk that shrinks away, and what was healed grows in.
+    const was = model.effect?.at === f.key ? model.effect.was : undefined;
+    if (was !== undefined && was !== hp) {
+      const wasShare = Math.max(0, Math.min(1, was / f.maxHp));
+      const lo = Math.min(share, wasShare);
+      const hi = Math.max(share, wasShare);
+      const cls = was > hp ? 'bt-ghost' : 'bt-grow';
+      out += `<rect x="${n1(x + 0.9 + (w - 1.8) * lo)}" y="${n1(top + 0.9)}" width="${n1((w - 1.8) * (hi - lo))}" height="${HP_BAR_H - 1.8}" rx="1.4" fill="${was > hp ? '#efe6d2' : '#9cc27f'}" class="${cls}"/>`;
+    }
     out += `<text x="${n1(slot.x)}" y="${n1(top + 8.3)}" class="bt-hp" text-anchor="middle">${hpText(hp, f.maxHp, w)}</text>`;
   }
   const lines = labelLines(f.label, room);

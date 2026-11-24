@@ -258,6 +258,7 @@ export function roundFrames(before: FightView, after: FightView): StageFrame[] {
   for (const a of after.acts.slice(before.acts.length)) {
     const by = keyFor(a.by);
     const at = a.at !== undefined ? keyFor(a.at) : undefined;
+    const was = at !== undefined ? hp[at] : undefined;
     switch (a.kind) {
       case 'hit':
         if (at) {
@@ -309,7 +310,10 @@ export function roundFrames(before: FightView, after: FightView): StageFrame[] {
       default:
         break;
     }
-    frames.push({ round: a.round, line: a.line, act: a, effect: effectOf(a, after), hp: { ...hp }, state: { ...state }, stunned: { ...stunned }, ...(job ? { job } : {}) });
+    const effect = effectOf(a, after);
+    // The bar drains from what they had (3.7.0).
+    if (at !== undefined && was !== undefined && hp[at] !== was) effect.was = was;
+    frames.push({ round: a.round, line: a.line, act: a, effect, hp: { ...hp }, state: { ...state }, stunned: { ...stunned }, ...(job ? { job } : {}) });
   }
   // How the job stands once the round is over: done, or lost at the end of it.
   const last = frames.at(-1);

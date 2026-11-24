@@ -93,6 +93,16 @@ describe('the battle stage', () => {
     assert.ok(!gone.includes('data-key="e:2"'));
   });
 
+  test('a bar drains from what they had, and a heal grows in (3.7.0)', () => {
+    const base: StageModel = { place: 'rail_yard', crew: crew(2), enemies: foes(['raider_scav']), targets: [] };
+    const hit = stageSvg({ ...base, effect: { by: 'c:s0', at: 'e:0', motion: 'lunge', reaction: 'hit', pop: '-3', tone: 'hit', was: 6 } });
+    assertWellFormed(hit);
+    assert.equal(hit.match(/class="bt-ghost"/g)?.length, 1);
+    const heal = stageSvg({ ...base, effect: { by: 'c:s0', at: 'c:s1', motion: 'act', reaction: 'heal', pop: '+4', tone: 'heal', was: 4 } });
+    assert.equal(heal.match(/class="bt-grow"/g)?.length, 1);
+    assert.ok(!stageSvg(base).includes('bt-ghost'), 'nothing without an act');
+  });
+
   test('crowds fit on the stage: up to eight a side, nobody off the edge', () => {
     for (let n = 1; n <= 8; n++) {
       for (const side of ['crew', 'enemy'] as const) {

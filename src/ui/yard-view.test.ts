@@ -3,7 +3,8 @@ import { describe, test } from 'node:test';
 import { Rng, becomePartners, birth, build, createVehicle, expecting, getRelationship, addRadioRecruit, startRun, postBuilding } from '../engine/index.ts';
 import { T0, openGame, testGame, testPlan } from '../engine/test-utils.ts';
 import type { Survivor } from '../engine/index.ts';
-import { awayLines, buildingCaption, childSize, figureLook, yardModel, yardTrips, TRIP_WINDOW_MS } from './yard-view.ts';
+import { awayLines, BIG_PACK_MS, buildingCaption, childSize, figureLook, yardModel, yardTrips, TRIP_WINDOW_MS } from './yard-view.ts';
+import { walker } from '../scene/figures.ts';
 
 describe('the yard', () => {
   test('workers stand at their posts, the rest hang out by the fire', () => {
@@ -136,6 +137,20 @@ describe('crews through the gate (3.2.0)', () => {
     assert.deepEqual(yardTrips(state, T0 + TRIP_WINDOW_MS + 1, []), []);
     assert.equal(yardModel(state, 12, 1, T0 + 5000).trips?.length, 2);
     assert.equal(yardModel(state, 12, 1).trips, undefined, 'without a clock, nobody moves');
+  });
+
+  test('packs on their backs (3.7.0): small for a short run, big for a long one', () => {
+    const state = testGame('packs');
+    const run = startRun(state, testPlan(state, 'maple_street', {}, 2), T0);
+    const short = run.returnAt - run.departAt < BIG_PACK_MS;
+    assert.ok(yardTrips(state, T0 + 1000, []).every((t) => t.pack === (short ? 'day' : 'big')));
+    run.returnAt = run.departAt + BIG_PACK_MS;
+    assert.ok(yardTrips(state, T0 + 1000, []).every((t) => t.pack === 'big'));
+    const look = yardTrips(state, T0 + 1000, [])[0]!.look!;
+    const big = walker(look, { step: 0.4, phase: 0 }, 'big');
+    const day = walker(look, { step: 0.4, phase: 0 }, 'day');
+    assert.ok(big.length > day.length && day.length > walker(look).length, 'a big pack has a bedroll; no pack, nothing on the back');
+    assert.ok(walker(look).includes('yard-pump') && walker(look).includes('yard-step-b'), 'side-on: arms and legs swing against each other');
   });
 
   test('a crew that drove: the vehicle goes, the crew rides', () => {

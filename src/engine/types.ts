@@ -706,6 +706,8 @@ export interface RunReport {
   crewNames: Record<string, string>;
   /** Whether the player has opened the report. */
   read: boolean;
+  /** What the crew set out with besides meds and ammo, all of it used up out there (3.7.0). Missing on older reports. */
+  packed?: { rations: number; gas: number };
 }
 
 export interface LocationState {

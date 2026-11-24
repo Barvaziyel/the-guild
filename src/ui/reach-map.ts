@@ -81,6 +81,9 @@ export interface MapNode {
 export interface MapRoad {
   from: MapSpot;
   to: MapSpot;
+  /** The places at each end ('depot' for the Depot), so a road to somewhere new can draw in (3.7.0). */
+  fromId: string;
+  toId: string;
   /** A road to somewhere not yet found is drawn faint. */
   known: boolean;
 }
@@ -103,10 +106,10 @@ export function reachMap(state: GameState): ReachMap {
 
   for (const loc of LOCATIONS) {
     if (!known(loc.id)) continue;
-    if (loc.startKnown) roads.push({ from: DEPOT_SPOT, to: spot(loc.id), known: true });
+    if (loc.startKnown) roads.push({ from: DEPOT_SPOT, to: spot(loc.id), fromId: 'depot', toId: loc.id, known: true });
     for (const next of loc.leadsTo) {
       if (!findLocation(next)) continue;
-      roads.push({ from: spot(loc.id), to: spot(next), known: known(next) });
+      roads.push({ from: spot(loc.id), to: spot(next), fromId: loc.id, toId: next, known: known(next) });
       if (!known(next)) frontier.add(next);
     }
   }

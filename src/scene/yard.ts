@@ -204,6 +204,21 @@ function animalSpot(model: YardModel, kind: AnimalKind, keeperId?: string): { x:
   return { ...ANIMAL_SPOTS[kind], facing: 1 };
 }
 
+/**
+ * A building put up or improved since the last look (3.7.0): it rises from its footing with a little
+ * bounce, and dust puffs out along the ground.
+ */
+export function goingUp(a: { x: number; y: number; w: number; h: number }, base: number, drawn: string): string {
+  const cx = a.x + a.w / 2;
+  let dust = '';
+  for (let k = 0; k < 7; k++) {
+    const x = a.x + (a.w * (k + 0.5)) / 7;
+    const dx = (x - cx) * 0.35 + (k % 2 ? 4 : -4);
+    dust += `<circle class="yard-dust" cx="${x.toFixed(1)}" cy="${(base - 2).toFixed(1)}" r="${(4 + (k % 3) * 1.5).toFixed(1)}" fill="#cfc2a6" style="--dx:${dx.toFixed(1)}px;animation-delay:${(0.25 + (k % 3) * 0.05).toFixed(2)}s"/>`;
+  }
+  return `<g class="yard-built" style="transform-origin:${cx.toFixed(1)}px ${base.toFixed(1)}px">${drawn}</g><g class="yard-dusts">${dust}</g>`;
+}
+
 /** What people do with their hands at each post (3.2.0). Projects' crews hammer. */
 const WORK: Partial<Record<BuildingId, Work>> = {
   workshop: 'hammer',
@@ -259,7 +274,8 @@ export function yardSvg(model: YardModel, clock = 0): string {
     const a = BUILDING_AREAS[id];
     const level = model.buildings[id] ?? 0;
     const label = level > 0 ? `${BUILDING_NAMES[id]}, level ${level}.` : `${BUILDING_NAMES[id]}: not built yet.`;
-    items.push({ y: BUILDING_BASE[id], svg: tappable(`b:${id}`, `#/b/${id}`, label, hit(a.x, a.y, a.w, a.h) + BUILDING_DRAWINGS[id](level)) });
+    const drawn = BUILDING_DRAWINGS[id](level);
+    items.push({ y: BUILDING_BASE[id], svg: tappable(`b:${id}`, `#/b/${id}`, label, hit(a.x, a.y, a.w, a.h) + (model.fresh?.includes(id) && level > 0 ? goingUp(a, BUILDING_BASE[id], drawn) : drawn)) });
   }
 
   for (const p of model.people) {

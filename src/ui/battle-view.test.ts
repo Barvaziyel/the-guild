@@ -114,6 +114,7 @@ describe('a round on the stage', () => {
 
   test('played back act by act, it ends where the fight stands', () => {
     let checked = 0;
+    let drained = 0;
     for (let k = 0; k < 8; k++) {
       const { state, run, view } = commanded(`frames-${k}`);
       const next = commandRound(state, run.id, { moves: {} }, run.lead!.fights[0]!.at + 5000);
@@ -127,15 +128,24 @@ describe('a round on the stage', () => {
       }
       for (const c of next.crew) assert.equal(last.state[crewKey(c.id)], c.state === 'dead' ? 'down' : c.state, `${c.name} state`);
       assert.deepEqual(frames.map((f) => f.act), next.acts.slice(view.acts.length), 'each frame carries its act, for its sound');
-      for (const f of frames) {
+      for (const [i, f] of frames.entries()) {
         assert.ok(f.effect.by.startsWith('c:') || f.effect.by.startsWith('e:'));
         assert.ok(f.line >= view.lines.length && f.line <= next.lines.length, 'its line is in this round');
+        // The bar drains from what they had before this act (3.7.0).
+        if (f.effect.was !== undefined) {
+          const at = f.effect.at!;
+          const before = i === 0 ? [...view.crew.map((c) => [crewKey(c.id), c.hp] as const), ...view.enemies.map((e) => [enemyKey(e.index), e.hp] as const)].find(([k]) => k === at)?.[1] : frames[i - 1]!.hp[at];
+          assert.equal(f.effect.was, before, 'was is the health before the act');
+          assert.notEqual(f.hp[at], f.effect.was);
+          drained++;
+        }
       }
       const m = stageModel(state, { place: run.plan.locationId, seed: run.id }, next, { picks: {} }, frames[0]);
       assert.ok(m.effect && m.targets.length === 0, 'no rings while a round plays');
       checked++;
     }
     assert.ok(checked >= 5, `rounds checked: ${checked}`);
+    assert.ok(drained > 0, 'some bar drained');
   });
 
   test('nothing to play when the fight hasn’t moved on', () => {

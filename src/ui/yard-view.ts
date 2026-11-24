@@ -92,10 +92,13 @@ export const TRIP_WINDOW_MS = 3 * 60_000;
  * foot each one walks; with vehicles, the vehicles drive and the crew rides.
  * Coming home, only those back at the Depot (not sent on to an outpost).
  */
+/** A run this long or longer takes a big pack (3.7.0). */
+export const BIG_PACK_MS = 45 * 60_000;
+
 export function yardTrips(state: GameState, now: number, parked: readonly { id: string }[]): YardTrip[] {
   const trips: YardTrip[] = [];
   const recent = (t: number): boolean => t <= now && now - t < TRIP_WINDOW_MS;
-  const add = (way: 'out' | 'in', at: number, crew: string[], vehicles: string[]): void => {
+  const add = (way: 'out' | 'in', at: number, crew: string[], vehicles: string[], away: number): void => {
     if (vehicles.length > 0) {
       vehicles.forEach((id, order) => {
         const v = state.vehicles.find((x) => x.id === id);
@@ -107,11 +110,12 @@ export function yardTrips(state: GameState, now: number, parked: readonly { id: 
     crew.forEach((id, order) => {
       const s = state.survivors.find((x) => x.id === id);
       if (!s || (way === 'in' && (s.status !== 'ready' || s.outpost !== undefined))) return;
-      trips.push({ id, look: figureLook(s), way, at, order });
+      // A short run takes a small pack; a long one a big pack with a bedroll (3.7.0).
+      trips.push({ id, look: figureLook(s), way, pack: away >= BIG_PACK_MS ? 'big' : 'day', at, order });
     });
   };
-  for (const r of state.runs) if (recent(r.departAt)) add('out', r.departAt, r.plan.crew, r.plan.vehicles ?? []);
-  for (const r of state.reports) if (recent(r.returnAt)) add('in', r.returnAt, r.plan.crew, r.plan.vehicles ?? []);
+  for (const r of state.runs) if (recent(r.departAt)) add('out', r.departAt, r.plan.crew, r.plan.vehicles ?? [], r.returnAt - r.departAt);
+  for (const r of state.reports) if (recent(r.returnAt)) add('in', r.returnAt, r.plan.crew, r.plan.vehicles ?? [], r.returnAt - r.departAt);
   return trips;
 }
 

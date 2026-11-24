@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import { addChronicle, createItem, ensureLocationState, equipFromStash, type GameState } from '../engine/index.ts';
 import { T0, testGame } from '../engine/test-utils.ts';
-import { baselineSeen, dots, missingGear, newChronicle, seeChronicle, seeNews, seePlace, seeStash, seenFor, sheetDots, todayReasons, urgentItems } from './attention-view.ts';
+import { baselineSeen, dots, mapNews, missingGear, newChronicle, newlyBuilt, seeBuilt, seeChronicle, seeMap, seeNews, seePlace, seeStash, seeStores, seenFor, sheetDots, storesNews, todayReasons, urgentItems } from './attention-view.ts';
 import { slotViews } from './gear-view.ts';
 
 function bare(state: GameState): void {
@@ -87,5 +87,43 @@ describe('where to look (3.5.0)', () => {
     const state = testGame('runs');
     assert.deepEqual(urgentItems(state, T0), []);
     assert.equal(dots(state, T0, baselineSeen(state)).tabs.runs, undefined);
+  });
+});
+
+describe('what moved since the last look (3.7.0)', () => {
+  test('the map: a place first drawn now, and rings explored further', () => {
+    const state = testGame('map-news');
+    let seen = baselineSeen(state);
+    assert.deepEqual(mapNews(state, seen), { fresh: [], from: {} }, 'nothing at first');
+    const known = Object.keys(seen.mapped!)[0]!;
+    const was = state.locations[known]!.explored;
+    state.locations[known]!.explored = Math.min(100, was + 20);
+    ensureLocationState(state, 'old_metro').discovered = true;
+    const news = mapNews(state, seen);
+    assert.deepEqual(news.fresh, ['old_metro']);
+    assert.deepEqual(news.from, { [known]: was });
+    seen = seeMap(state, seen);
+    assert.deepEqual(mapNews(state, seen), { fresh: [], from: {} });
+    assert.equal(seeMap(state, seen), seen, 'the same marks when nothing changed');
+    const { mapped: _old, ...before } = seen;
+    assert.deepEqual(mapNews(state, before), { fresh: [], from: {} }, 'marks from before 3.7.0: nothing moves');
+  });
+
+  test('the yard: buildings put up or improved since; the header: supplies that changed', () => {
+    const state = testGame('yard-news');
+    let seen = baselineSeen(state);
+    assert.deepEqual(newlyBuilt(state, seen), []);
+    state.buildings.watchtower = 1;
+    state.buildings.garden = (state.buildings.garden ?? 0) + 1;
+    assert.deepEqual(newlyBuilt(state, seen).sort(), ['garden', 'watchtower']);
+    seen = seeBuilt(state, seen);
+    assert.deepEqual(newlyBuilt(state, seen), []);
+
+    const before = state.resources.scrap;
+    state.resources.scrap += 12;
+    assert.deepEqual(storesNews(state, seen), { scrap: before });
+    seen = seeStores(state, seen);
+    assert.deepEqual(storesNews(state, seen), {});
+    assert.equal(seeStores(state, seen), seen);
   });
 });

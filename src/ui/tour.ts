@@ -322,7 +322,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     text: () => {
       const minutes = LOCATIONS.map((l) => l.durationMin);
       const hours = Math.round(DAY_MS / 3_600_000);
-      return `Runs take real time, ${proseDuration(Math.min(...minutes))} to ${proseDuration(Math.max(...minutes))}, even with the game closed. Each person goes out once a game day (${hours} real hours). The report says what happened.`;
+      return `Runs take real time, ${proseDuration(Math.min(...minutes))} to ${proseDuration(Math.max(...minutes))}, even with the game closed. Each person goes out once a game day (${hours} real hours). The report says what happened, what they took and what they brought back.`;
     },
   },
   {

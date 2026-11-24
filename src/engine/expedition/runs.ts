@@ -638,6 +638,7 @@ export function completeRun(state: GameState, runId: string, now: number): RunRe
     summary: summaryOf(run),
     crewNames,
     read: false,
+    packed: { rations: run.rations, gas: run.gas ?? 0 },
   };
   state.reports.unshift(report);
   state.reports.length = Math.min(state.reports.length, MAX_REPORTS);

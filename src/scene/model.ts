@@ -75,6 +75,8 @@ export interface YardTrip {
   look?: FigureLook;
   vehicle?: { defId: string; id: string; slot: number };
   way: 'out' | 'in';
+  /** What they carry on their back (3.7.0): a small pack for a short run, a big one for a long one; fuller on the way home. */
+  pack?: 'day' | 'big';
   /** When it began, epoch ms. */
   at: number;
   /** Their place in the line through the gate. */
@@ -99,6 +101,8 @@ export interface YardModel {
   phase: DayPhase;
   /** Crews and vehicles going out through the gate or coming home just now (3.2.0). */
   trips?: YardTrip[];
+  /** Buildings put up or improved since the yard was last looked at (3.7.0): they go up before your eyes, in a cloud of dust. */
+  fresh?: BuildingId[];
 }
 
 /** The light by the hour on the player's clock. */
