@@ -27,8 +27,14 @@ import { storyCard } from './story-view.ts';
 export interface Seen {
   /** Which guild this is about: a new game starts over. */
   guild: string;
-  /** How many lines of Depot news. */
+  /** How many lines of Depot news (before 3.7.1; kept so older marks still read). */
   news: number;
+  /**
+   * The newest line the News tab showed when it was last opened (3.7.1). A count didn't work: run
+   * lines, which the News tab leaves to the Runs tab, lit the dot with nothing new to read, and once
+   * the log was full (it keeps the last 300) new lines didn't.
+   */
+  newsKey?: string;
   /** How many lines of each person's Chronicle. */
   chronicle: Record<string, number>;
   /** Places opened on the Reach. */
@@ -55,6 +61,7 @@ export function baselineSeen(state: GameState): Seen {
   return {
     guild: guildKey(state),
     news: state.log.length,
+    newsKey: latestNews(state),
     chronicle: Object.fromEntries(state.survivors.map((s) => [s.id, s.chronicle.length])),
     places: knownLocations(state).map((l) => l.id),
     stash: state.stash.map((i) => i.uid),
@@ -119,15 +126,29 @@ export function seeBuilt(state: GameState, seen: Seen): Seen {
   return same ? seen : { ...seen, built: { ...state.buildings } };
 }
 
-/** What's been seen of this guild: what's kept, or (a new guild, or the first time) everything there is. */
+/** The newest line of news the News tab shows (not the run lines), as a mark; empty with none. */
+export function latestNews(state: GameState): string {
+  for (let i = state.log.length - 1; i >= 0; i--) {
+    const e = state.log[i]!;
+    if (!e.tags?.includes('run')) return `${e.day}|${e.text}`;
+  }
+  return '';
+}
+
+/**
+ * What's been seen of this guild: what's kept, or (a new guild, or the first time) everything there is.
+ * Marks from before 3.7.1 count the news as read up to now.
+ */
 export function seenFor(state: GameState, seen: Seen | undefined): Seen {
-  return seen && seen.guild === guildKey(state) ? seen : baselineSeen(state);
+  if (!seen || seen.guild !== guildKey(state)) return baselineSeen(state);
+  return seen.newsKey === undefined ? { ...seen, newsKey: latestNews(state) } : seen;
 }
 
 // ---------------------------------------------------------------- marking things seen
 
 export function seeNews(state: GameState, seen: Seen): Seen {
-  return seen.news === state.log.length ? seen : { ...seen, news: state.log.length };
+  const key = latestNews(state);
+  return seen.newsKey === key ? seen : { ...seen, news: state.log.length, newsKey: key };
 }
 
 export function seeChronicle(state: GameState, seen: Seen, id: string): Seen {
@@ -204,7 +225,7 @@ export function dots(state: GameState, now: number, seen: Seen, opts: { touring?
   const out: Dots = { tabs: {}, depot: {}, survivors: {}, places: {} };
   if (yardWaiting(state, opts.touring === true)) out.depot.yard = true;
   if (todayReasons(state, now).length > 0) out.depot.today = true;
-  if (state.log.length > seen.news) out.depot.news = true;
+  if (seen.newsKey !== undefined && latestNews(state) !== seen.newsKey) out.depot.news = true;
   if (out.depot.yard || out.depot.today || out.depot.news) out.tabs.depot = true;
 
   for (const s of state.survivors) {

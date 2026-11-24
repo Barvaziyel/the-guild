@@ -6,7 +6,7 @@ import { BattleStage } from '../components/BattleStage.tsx';
 import { SceneStage } from '../components/SceneStage.tsx';
 import { gateScene } from '../gate-scene.ts';
 import { Sheet } from '../components/Sheet.tsx';
-import { crewChips, endFrom, endLines, fightCard, fightStatus, jobPanel, jobTakenBy, livePicks, needsTarget, nerveLine, orderHint, roundOrders, stagePlace, targetName, theirMoves, tickerLines, whatTheyAre, withRanks, type Picks, type Ranks } from '../fight-view.ts';
+import { crewChips, endFrom, endLines, fightCard, fightStatus, jobPanel, jobTakenBy, livePicks, needsTarget, nerveLine, orderHint, roundOrders, stagePlace, targetName, targetPrompt, theirMoves, tickerLines, whatTheyAre, withRanks, type Picks, type Ranks } from '../fight-view.ts';
 import { goBack, navigate, useAction, useNow } from '../hooks.ts';
 
 /** A fight on a led run, under the player's command (§7.13). */
@@ -302,18 +302,8 @@ export function Command({
                 ))}
               </div>
             )}
-            {choosing ? (
-              <div className="fight-grid" role="group" aria-label={`${choosing.name}: who`}>
-                {choosing.targets.map((t) => (
-                  <button key={String(t)} type="button" className="chip chip-target" onClick={() => pick(m, choosing.move, t)}>
-                    {targetName(view, t)}
-                  </button>
-                ))}
-                <button type="button" className="chip chip-back" onClick={() => pick(m, undefined)}>
-                  Back to moves
-                </button>
-              </div>
-            ) : (
+            {/* The moves stay up while a target is picked, so another can be tapped instead (3.7.1). */}
+            {
               <div className="fight-grid" role="group" aria-label={`${m.name}'s move`}>
                 {m.moves.map((c) => {
                   // The job is one person's a round: whoever has it, nobody else.
@@ -336,8 +326,20 @@ export function Command({
                   On their own
                 </button>
               </div>
-            )}
+            }
             <p className="fight-hint">{orderHint(view, m, picks, ranks[m.id] !== undefined && ranks[m.id] !== fight.crew.find((c) => c.id === m.id)?.rank)}</p>
+            {choosing && (
+              <div className="fight-targets" role="group" aria-label={`${choosing.name}: ${targetPrompt(choosing)}`}>
+                <p className="fight-who">{targetPrompt(choosing)}</p>
+                <div className="fight-grid">
+                  {choosing.targets.map((t) => (
+                    <button key={String(t)} type="button" className="chip chip-target" onClick={() => pick(m, choosing.move, t)}>
+                      {targetName(view, t)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </>
         ) : (
           <p className="fight-hint">{standing.length > 0 ? 'Everyone has orders. Tap someone to change theirs, or give the orders.' : 'Nobody can take orders this round.'}</p>

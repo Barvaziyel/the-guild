@@ -31,6 +31,7 @@ import { RunView } from './screens/RunView.tsx';
 import { Settings } from './screens/Settings.tsx';
 import { SurvivorSheet } from './screens/SurvivorSheet.tsx';
 import { tourStep } from './tour.ts';
+import { TagTips } from './components/TagTips.tsx';
 import { UrgentStrip } from './components/UrgentStrip.tsx';
 import { Glyph } from './components/Glyph.tsx';
 import { dots, seeStores, storesNews, type Dots } from './attention-view.ts';
@@ -136,6 +137,7 @@ export function App() {
       {/* Not over the report it points to: it's already open (3.7.0). */}
       {time.current && !(route.screen === 'run' && route.id === time.current) && <ReturnToast state={s} reportId={time.current} more={time.more} onClose={time.dismiss} />}
       {touring && tour && <TourCard state={s} stepId={tour} />}
+      <TagTips />
       <TabBar current={tabFor(route)} state={s} now={now} touring={touring} />
     </div>
   );

@@ -3,7 +3,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, test } from 'node:test';
 import { AGGRESSIVE_ATTACK_BONUS, RESOURCE_IDS, SNEAKY_AMBUSH_BONUS } from '../engine/index.ts';
-import { GLYPHS, problemNote, supplyChips } from './glyphs.ts';
+import { GLYPHS, problemNote, supplyChips, tipPlacement } from './glyphs.ts';
 import { APPROACHES, JOBS, RETREATS } from './runs-view.ts';
 
 describe('pictures for the UI (3.6.0)', () => {
@@ -44,6 +44,14 @@ describe('pictures for the UI (3.6.0)', () => {
         ['−2', 'bad'],
       ],
     );
+  });
+
+  test('a tapped picture’s words show over it, or under it near the top, inside the screen (3.7.1)', () => {
+    const screen = { width: 390, height: 844 };
+    assert.deepEqual(tipPlacement({ left: 180, top: 400, width: 30, height: 18 }, screen, 220), { left: 85, top: 394, below: false });
+    assert.deepEqual(tipPlacement({ left: 180, top: 40, width: 30, height: 18 }, screen, 220), { left: 85, top: 64, below: true });
+    assert.equal(tipPlacement({ left: 2, top: 400, width: 30, height: 18 }, screen, 220).left, 8, 'kept off the left edge');
+    assert.equal(tipPlacement({ left: 370, top: 400, width: 18, height: 18 }, screen, 220).left, 390 - 220 - 8, 'and the right');
   });
 
   test('being short is said by the cost, so only other problems are said in words', () => {

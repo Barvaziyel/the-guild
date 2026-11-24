@@ -187,7 +187,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     route: depot,
     target: 'resources',
     text: () =>
-      'Each supply has its picture, here and wherever it’s spent: scrap builds, rations feed, meds patch people up, ammo feeds guns, tech goes into better things, gas runs vehicles.',
+      'Each supply has its picture, here and wherever it’s spent: scrap builds, rations feed, meds patch people up, ammo feeds guns, tech goes into better things, gas runs vehicles. Tap any small picture in the game to see what it means.',
   },
   {
     id: 'more-supplies',

@@ -91,6 +91,7 @@ export function Homecoming({ state, report, fresh }: { state: GameState; report:
               className="tag is-good home-pop"
               style={{ '--at': `${shownAt[c.glyph] ?? HOME_BACK_AT}ms` } as CSSProperties}
               aria-label={c.label}
+              {...(c.label ? { 'data-tip': c.label } : {})}
             >
               <Glyph name={c.glyph} className={`res-${c.glyph}`} />
               <span aria-hidden="true">{c.text}</span>

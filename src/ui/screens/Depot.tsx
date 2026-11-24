@@ -16,7 +16,7 @@ import { RaidCard } from '../components/RaidCard.tsx';
 import { Projects } from '../components/Projects.tsx';
 import { Portrait } from '../components/Portrait.tsx';
 import { navigate, useAction, useMarkSeen, usePrefs, useSeen } from '../hooks.ts';
-import { dots, seeNews, todayReasons } from '../attention-view.ts';
+import { dots, latestNews, seeNews, todayReasons } from '../attention-view.ts';
 import { tourStep } from '../tour.ts';
 import { DEPOT_TABS, type DepotTab } from '../route.ts';
 import { Yard } from '../components/Yard.tsx';
@@ -49,7 +49,7 @@ export function Depot({ state, now, tab, away, onDismissAway }: Props) {
   const touring = tourStep(usePrefs().tour) !== undefined;
   const marks = dots(state, now, seen, { touring }).depot;
   // Opening the News tab reads the news.
-  useMarkSeen(state, (st, s) => (tab === 'news' ? seeNews(st, s) : s), [tab, state.log.length]);
+  useMarkSeen(state, (st, s) => (tab === 'news' ? seeNews(st, s) : s), [tab, latestNews(state)]);
 
   return (
     <section aria-labelledby="depot-title">

@@ -450,12 +450,16 @@ export function tickerLines(view: FightView, lastRound: readonly LogLine[], coun
  * for a target, where they stand if they were just moved, or that they can't
  * reach anything from there.
  */
+/** Over the targets of a move that needs one: who it can go at. */
+export function targetPrompt(choice: { target: string }): string {
+  return choice.target === 'ally' ? 'Which of the crew? Here or on the stage.' : 'At whom? Here or on the stage.';
+}
+
 export function orderHint(view: FightView, m: FightMemberView, picks: Picks, moved: boolean): string {
   const raw = picks[m.id];
   const choice = raw ? m.moves.find((c) => c.move === raw.move) : undefined;
-  if (choice && choice.target !== 'none' && (raw!.target === undefined || !choice.targets.includes(raw!.target))) {
-    return choice.target === 'ally' ? `${choice.name}: who? Tap one of the crew, here or on the stage.` : `${choice.name}: who? Tap one of them, here or on the stage.`;
-  }
+  // What a move does comes first, even before it has a target (3.7.1; Aviel: picking Called shot asked
+  // "who?" before he could see what it meant). The targets come in under the moves.
   if (choice) return choice.detail;
   if (moved) return rankHelp(m, m.rank);
   if (!m.moves.some((c) => c.target === 'enemy' && c.targets.length > 0)) return `${m.name} can’t reach any of them from ${m.rank === 'back' ? 'the back' : 'here'}. Pick a move, or move them.`;

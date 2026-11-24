@@ -7,6 +7,7 @@ import {
   crewChips,
   fightStatus,
   orderHint,
+  targetPrompt,
   tickerLines,
   fightCard,
   fightCards,
@@ -424,7 +425,11 @@ describe('the fight on one screen (2.6.0)', () => {
   test('the hint under the moves: whom to tap, what the move does, where they stand, or that nothing is in reach', () => {
     const mara = view.crew[0]!;
     assert.equal(orderHint(view, mara, {}, false), 'Tap an enemy for Mara to go after, or pick a move.');
-    assert.equal(orderHint(view, mara, { a: { move: 'attack' } }, false), 'Shoot: who? Tap one of them, here or on the stage.');
+    // What the move does, before it has a target (3.7.1); the targets come in under it.
+    const shoot = mara.moves.find((c) => c.move === 'attack')!;
+    assert.equal(orderHint(view, mara, { a: { move: 'attack' } }, false), shoot.detail);
+    assert.equal(targetPrompt(shoot), 'At whom? Here or on the stage.');
+    assert.equal(targetPrompt({ target: 'ally' }), 'Which of the crew? Here or on the stage.');
     assert.equal(orderHint(view, mara, { a: { move: 'attack', target: 0 } }, false), 'Go for one of them.');
     assert.equal(orderHint(view, mara, { a: { move: 'cover' } }, false), 'No attack: harder to hit this round.');
     assert.match(orderHint(view, { ...mara, rank: 'back' }, {}, true), /^At the back:/);

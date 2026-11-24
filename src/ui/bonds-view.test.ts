@@ -20,7 +20,7 @@ describe('what getting on does, in pictures (3.6.0)', () => {
 
   test('the Bonds tab says what each tie does, with the game’s numbers', () => {
     const bonded = bondChips('bonded');
-    assert.deepEqual(bonded[0], { glyph: 'dice', text: `+${BONDED_CHECK_BONUS}`, tone: 'good', label: `On a run together: plus ${BONDED_CHECK_BONUS} to every roll` });
+    assert.deepEqual(bonded[0], { glyph: 'dice', text: `+${BONDED_CHECK_BONUS} rolls`, tone: 'good', label: `On a run together: plus ${BONDED_CHECK_BONUS} to every roll` });
     assert.ok(bonded.every((c) => c.label), 'every picture is read out');
     assert.deepEqual(bondChips('neutral'), []);
     assert.ok(bondChips('rival').some((c) => c.glyph === 'stress' && c.text === `+${STRESS_RIVAL_PER_BEAT}` && c.tone === 'bad'));
@@ -64,7 +64,7 @@ describe('what getting on does, in pictures (3.6.0)', () => {
     const [a, b, c] = state.survivors.map((s) => s.id) as [string, string, string];
     for (const r of Object.values(state.relationships)) r.score = 0;
     assert.deepEqual(crewChips(state, [a]), [], 'nobody to get on with');
-    assert.deepEqual(crewChips(state, [a, b]).map((x) => x.text), ['0']);
+    assert.deepEqual(crewChips(state, [a, b]).map((x) => x.text), ['±0 together']);
     set(state, a, b, 80);
     const close = crewChips(state, [a, b]);
     assert.equal(close[0]!.tone, 'good');
