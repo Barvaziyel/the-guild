@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { describe, test } from 'node:test';
 import { createItem, startRun, type FightAct, type FightActKind, type FightView, type GameState, type RunReport } from '../engine/index.ts';
 import { T0, openGame, testPlan } from '../engine/test-utils.ts';
-import { actCues, alertCues, ambienceFor, endCue, gainOf, musicFor, stateCues, tapCue, type Alerts } from './sound-view.ts';
+import { actCues, alertCues, ambienceFor, endCue, enemyVoice, gainOf, musicFor, stateCues, tapCue, type Alerts } from './sound-view.ts';
 import { AMBIENCE, MUSIC, SPRITE } from './sounds.ts';
 
 const NOON = 12;
@@ -178,11 +178,24 @@ describe('fights (3.1.0)', () => {
   a!.equipment.weapon = createItem(state, 'hunting_rifle');
   b!.equipment.weapon = createItem(state, 'machete');
 
+  const ids = (cues: readonly { id: string }[]): string[] => cues.map((c) => c.id.replace(/^hurt\d$/, 'hurt'));
+
   test('a shot sounds like the gun, and lands or flies wide', () => {
-    assert.deepEqual(actCues(state, view, act('hit', a!.id, 0, { shot: true, amount: 4 })).cues.map((c) => c.id), ['rifle', 'hurt']);
+    assert.deepEqual(ids(actCues(state, view, act('hit', a!.id, 0, { shot: true, amount: 4 })).cues), ['rifle', 'hurt']);
     assert.deepEqual(actCues(state, view, act('miss', a!.id, 0, { shot: true })).cues.map((c) => c.id), ['rifle', 'ricochet']);
-    assert.deepEqual(actCues(state, view, act('hit', 0, a!.id, { shot: true, amount: 2 })).cues.map((c) => c.id), ['rifle', 'hurt']);
-    assert.deepEqual(actCues(state, view, act('hit', 2, a!.id, { shot: true, amount: 2 })).cues.map((c) => c.id), ['laser', 'hurt']);
+    assert.deepEqual(ids(actCues(state, view, act('hit', 0, a!.id, { shot: true, amount: 2 })).cues), ['rifle', 'hurt']);
+    assert.deepEqual(ids(actCues(state, view, act('hit', 2, a!.id, { shot: true, amount: 2 })).cues), ['laser', 'hurt']);
+  });
+
+  test('eight of the same enemy each sound like themselves (3.4.1)', () => {
+    const voices = Array.from({ length: 8 }, (_, i) => enemyVoice(i));
+    assert.equal(new Set(voices.map((v) => `${v.variant}@${v.rate}`)).size, 8, 'no two of the first eight alike');
+    for (let i = 1; i < 8; i++) assert.ok(voices[i]!.variant !== voices[i - 1]!.variant || voices[i]!.rate !== voices[i - 1]!.rate, 'never the same twice in a row');
+    assert.ok(voices.every((v) => v.rate >= 0.85 && v.rate <= 1.15));
+    // A hound's snarl is its own voice, at its own pitch.
+    const cue = actCues(state, view, act('hit', 1, a!.id, { amount: 2 })).cues[0]!;
+    assert.equal(cue.id, 'snarl2');
+    assert.equal(cue.rate, enemyVoice(1).rate);
   });
 
   test('a blow swings, then lands by the weapon; a kill falls', () => {
@@ -192,7 +205,7 @@ describe('fights (3.1.0)', () => {
 
   test('a hound bites; one of ours going down buzzes the phone hard, a big hit lightly', () => {
     const down = actCues(state, view, act('hit', 1, a!.id, { amount: 3, down: true }));
-    assert.deepEqual(down.cues.map((c) => c.id), ['snarl', 'bite', 'fall']);
+    assert.deepEqual(down.cues.map((c) => c.id), ['snarl2', 'bite', 'fall']);
     assert.equal(down.buzz, 'heavy');
     assert.equal(actCues(state, view, act('hit', 1, a!.id, { amount: 5 })).buzz, 'light');
     assert.equal(actCues(state, view, act('hit', 1, a!.id, { amount: 2 })).buzz, undefined);

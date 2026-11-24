@@ -69,6 +69,14 @@ export const SPRITE = {
   work: [53.65, 0.8],
   stare: [54.53, 1.4],
   bark: [56.01, 0.6],
+  groan2: [56.69, 1.3],
+  groan3: [58.07, 0.85],
+  snarl2: [59.0, 0.45],
+  snarl3: [59.53, 0.75],
+  servo2: [60.36, 0.63],
+  servo3: [61.07, 0.42],
+  hurt2: [61.57, 0.3],
+  hurt3: [61.95, 0.3],
 } as const;
 
 export type MusicId = keyof typeof MUSIC;

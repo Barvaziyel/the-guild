@@ -25,6 +25,20 @@ export const RUN = 38;
 const MARCH = 26;
 const DRIVE = 70;
 
+/**
+ * How long a step takes at each pace (3.4.1), so the feet keep up with the ground: a stride is about
+ * 8 units. Before, everyone stepped every 0.56 s whatever their pace, and in step with each other.
+ */
+export function stepSeconds(speed: number): number {
+  return +(8.4 / speed).toFixed(3);
+}
+
+/** Someone's own way of walking: how long a step takes, and where in the step they are at the start. */
+export function gaitFor(id: string, speed: number): { step: number; phase: number } {
+  const step = stepSeconds(speed);
+  return { step, phase: +(((hash(`gait:${id}`) % 1000) / 1000) * step * 2).toFixed(3) };
+}
+
 /** Where people stroll to: a lane in front of each row of buildings, and spots along it. */
 const LANES = [
   { from: 395, to: 440, y: 448, stops: [26, 118, 292, 376] },
@@ -62,9 +76,12 @@ export function errandFor(person: YardPerson, spot: Spot): Errand | undefined {
   const laneY = child || !lane ? spot.y + 6 + ((h >>> 4) % 12) : lane.y + ((h >>> 4) % 3) * 6;
   const stops = child || !lane ? [spot.x - 46, spot.x + 46] : lane.stops.filter((x) => Math.abs(x - spot.x) >= 50);
   const stopX = stops[(h >>> 7) % stops.length]!;
-  const path: Point[] = [{ x: spot.x, y: spot.y }];
-  if (Math.abs(laneY - spot.y) > 3) path.push({ x: spot.x, y: laneY });
-  path.push({ x: Math.max(10, Math.min(W - 10, stopX)), y: laneY });
+  // Straight there, slanting across the ground (3.4.1). Before, they walked up or down to the lane
+  // first, side-on, which looked like sliding.
+  const path: Point[] = [
+    { x: spot.x, y: spot.y },
+    { x: Math.max(10, Math.min(W - 10, stopX)), y: laneY },
+  ];
   const pause = child ? 1 + ((h >>> 11) % 3) : 3 + ((h >>> 11) % 5);
   const walk = pathLength(path) / speed;
   const busy = walk * 2 + pause;
@@ -92,16 +109,23 @@ function keyframes(name: string, frames: Frame[], total: number): string {
   return `@keyframes ${name}{${frames.map((f) => `${pct(Math.min(total, Math.max(0, f.t)), total)}{${f.css}}`).join('')}}`;
 }
 
+/** Setting off, getting going, and slowing to a stop (3.4.1; before, everyone moved at one speed from the first step to the last). */
+const EASE_IN = 'cubic-bezier(0.45,0,1,1)';
+const EASE_OUT = 'cubic-bezier(0,0,0.55,1)';
+const EASE_BOTH = 'cubic-bezier(0.45,0,0.55,1)';
+
 /** Frames walking a path from `t0`, visible while moving; returns them and when it arrives. */
 function walk(path: readonly Point[], t0: number, speed: number, scale: number, facing0: number): { frames: Frame[]; end: number; facing: number } {
   const frames: Frame[] = [];
   let t = t0;
   let facing = facing0;
+  const legs = path.length - 1;
   for (let i = 1; i < path.length; i++) {
     const a = path[i - 1]!;
     const b = path[i]!;
     if (b.x !== a.x) facing = b.x > a.x ? 1 : -1;
-    frames.push({ t: t + 0.001, css: `opacity:1;${at(a, facing, scale)}` });
+    const ease = legs === 1 ? EASE_BOTH : i === 1 ? EASE_IN : i === legs ? EASE_OUT : 'linear';
+    frames.push({ t: t + 0.001, css: `opacity:1;${at(a, facing, scale)};animation-timing-function:${ease}` });
     t += Math.hypot(b.x - a.x, b.y - a.y) / speed;
     frames.push({ t, css: `opacity:1;${at(b, facing, scale)}` });
   }
@@ -128,7 +152,7 @@ export function errandMotion(person: YardPerson, spot: Spot, e: Errand, clock: n
   const end = back.end;
   const total = e.cycle;
   const hidden = (t: number, p: Point, f: number): Frame => ({ t, css: `opacity:0;${at(p, f, scale)}` });
-  const walker = [hidden(0, spot, spot.facing), hidden(e.start, spot, spot.facing), ...out.frames, hidden(out.end + 0.001, there, out.facing), hidden(leave, there, -out.facing), ...back.frames, hidden(end + 0.001, spot, spot.facing), hidden(total, spot, spot.facing)];
+  const walkerFrames = [hidden(0, spot, spot.facing), hidden(e.start, spot, spot.facing), ...out.frames, hidden(out.end + 0.001, there, out.facing), hidden(leave, there, -out.facing), ...back.frames, hidden(end + 0.001, spot, spot.facing), hidden(total, spot, spot.facing)];
   const home: Frame[] = [
     { t: 0, css: 'opacity:1' },
     { t: e.start, css: 'opacity:1' },
@@ -147,11 +171,11 @@ export function errandMotion(person: YardPerson, spot: Spot, e: Errand, clock: n
   ];
   const delay = -(((clock / 1000) + (hash(k) % 97)) % total);
   const run = (cls: string): string => `.yard .${k}-${cls}{animation:${k}-${cls} ${total}s linear ${delay.toFixed(2)}s infinite}`;
-  const css = keyframes(`${k}-w`, walker, total) + keyframes(`${k}-h`, home, total) + keyframes(`${k}-s`, stand, total) + run('w') + run('h') + run('s');
+  const css = keyframes(`${k}-w`, walkerFrames, total) + keyframes(`${k}-h`, home, total) + keyframes(`${k}-s`, stand, total) + run('w') + run('h') + run('s');
   // At the far end they stand and look back the way they came.
   const facing = -out.facing;
   const standing = `<g class="${k}-s" opacity="0" pointer-events="none"><g transform="translate(${there.x} ${there.y}) scale(${facing * scale} ${scale})"><g class="yard-bob">${walkerStill(person.look)}</g></g></g>`;
-  const moving = `<g class="${k}-w" opacity="0" pointer-events="none">${walker_(person.look)}</g>`;
+  const moving = `<g class="${k}-w" opacity="0" pointer-events="none">${walker(person.look, gaitFor(person.id, e.speed))}</g>`;
   return {
     css,
     items: [
@@ -162,7 +186,6 @@ export function errandMotion(person: YardPerson, spot: Spot, e: Errand, clock: n
   };
 }
 
-const walker_ = (look: FigureLook): string => walker(look);
 /** Standing still at the far end: a walker whose legs don't move. */
 const walkerStill = (look: FigureLook): string => `<g class="yard-still">${walker(look)}</g>`;
 
@@ -213,7 +236,7 @@ export function tripMotion(trip: YardTrip, clock: number): Motion | undefined {
   const moving = walk(path, lead, trip.vehicle ? DRIVE : MARCH, scale, first.x < last.x ? 1 : -1);
   const start: Frame = { t: 0, css: `opacity:${trip.way === 'out' && !trip.vehicle ? 1 : 0};${at(first, moving.frames[0] ? facingOf(moving.frames[0].css) : 1, scale)}` };
   const frames = [start, { ...start, t: lead }, ...moving.frames, { t: total, css: `opacity:0;${at(last, moving.facing, scale)}` }];
-  const body = trip.vehicle ? vehicle(trip.vehicle.defId, trip.vehicle.id, 0, 0, false) : walker(trip.look!);
+  const body = trip.vehicle ? vehicle(trip.vehicle.defId, trip.vehicle.id, 0, 0, false) : walker(trip.look!, gaitFor(trip.id, MARCH));
   const delay = (-elapsed).toFixed(2);
   let css = keyframes(`${k}-m`, frames, total) + `.yard .${k}-m{animation:${k}-m ${total.toFixed(2)}s linear ${delay}s 1 both}`;
   let homeClass: string | undefined;

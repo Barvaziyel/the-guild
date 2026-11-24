@@ -143,8 +143,14 @@ export function figure(look: FigureLook, spot: Spot, seedKey: string, work?: Wor
 }
 
 /** Someone on the move (3.2.0), drawn at the origin facing right: the walk is placed and turned by whoever draws it. */
-export function walker(look: FigureLook): string {
-  return walking(look, 1);
+/**
+ * Someone walking, facing right. `gait` sets how long a step takes and where in it they start, so the
+ * feet keep up with the pace and nobody marches in step with anyone else (3.4.1); the body rises a
+ * little with each step.
+ */
+export function walker(look: FigureLook, gait?: { step: number; phase: number }): string {
+  const style = gait ? ` style="--sd:${gait.step}s;--ph:${-gait.phase}s"` : '';
+  return `<g class="yard-gait"${style}><g class="yard-walkbob">${walking(look, 1)}</g></g>`;
 }
 
 /** The trader: a generic figure in a long coat and a wide hat. */
