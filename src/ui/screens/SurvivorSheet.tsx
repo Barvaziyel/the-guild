@@ -31,7 +31,8 @@ import { ItemDetails } from '../components/ItemDetails.tsx';
 import { Sheet } from '../components/Sheet.tsx';
 import { scoresToSettle } from '../stories-view.ts';
 import { Portrait } from '../components/Portrait.tsx';
-import { goBack, navigate, useAction, useServices } from '../hooks.ts';
+import { goBack, navigate, useAction, useMarkSeen, useSeen, useServices } from '../hooks.ts';
+import { seeChronicle, sheetDots } from '../attention-view.ts';
 import type { SheetTab } from '../route.ts';
 import { backIn, runOfSurvivor } from '../runs-view.ts';
 import { ItemIcon } from '../components/Art.tsx';
@@ -68,6 +69,9 @@ const TAB_LABELS: Record<SheetTab, string> = { stats: 'Stats and gear', bonds: '
 
 export function SurvivorSheet({ state, id, tab, day, now }: Props) {
   const s = findAnySurvivor(state, id);
+  // A dot on a tab with something new; opening the Chronicle reads it (3.5.0).
+  const marks = sheetDots(state, useSeen(state), id);
+  useMarkSeen(state, (st, seen) => (tab === 'story' ? seeChronicle(st, seen, id) : seen), [tab, id, s?.chronicle.length]);
   if (!s) {
     return (
       <div className="sheet">
@@ -101,6 +105,7 @@ export function SurvivorSheet({ state, id, tab, day, now }: Props) {
             onClick={() => navigate({ screen: 'survivor', id, tab: t }, { replace: true, keepScroll: true })}
           >
             {t === 'stats' && (dead || child) ? 'Stats' : TAB_LABELS[t]}
+            {marks[t] && t !== current && <span className="dot" aria-label=", something new" />}
           </button>
         ))}
       </div>

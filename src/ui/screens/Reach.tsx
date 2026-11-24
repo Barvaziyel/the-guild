@@ -15,7 +15,7 @@ import {
 } from '../../engine/index.ts';
 import { Portrait } from '../components/Portrait.tsx';
 import { ReachMapSvg } from '../components/ReachMapSvg.tsx';
-import { navigate, useAction } from '../hooks.ts';
+import { navigate, useAction, useMarkSeen, useSeen } from '../hooks.ts';
 import { depthRows, exploredShort, mostlyFinds, outpostView } from '../outposts-view.ts';
 import { leadPlaces, placeLeadLine } from '../haven-view.ts';
 import { PLACE_TABS, type PlaceTab } from '../route.ts';
@@ -24,6 +24,7 @@ import { dangerText, formatDuration, joinNames, locationView, placeNote, radiati
 import { nemesesAt, nemesisRows } from '../stories-view.ts';
 import { vulturePlaceLine, vulturesSummary, vultureTag } from '../vultures-view.ts';
 import { PlacePicture } from '../components/Art.tsx';
+import { dots, seePlace } from '../attention-view.ts';
 import { priceRows } from '../market-view.ts';
 
 const today = (s: GameState): number => dayAt(s, Date.now());
@@ -34,6 +35,9 @@ export function Reach({ state, selected, tab = 'about' }: { state: GameState; se
   const pick = (id: string): void => navigate({ screen: 'reach', id }, { replace: true, keepScroll: true });
   const sel = selected && findLocation(selected) ? selected : undefined;
   const leads = leadPlaces(state);
+  // A dot on each place with something new; opening it is seeing it (3.5.0).
+  const marks = dots(state, Date.now(), useSeen(state)).places;
+  useMarkSeen(state, (_, seen) => (sel ? seePlace(seen, sel) : seen), [sel]);
 
   return (
     <section aria-labelledby="reach-title">
@@ -41,12 +45,10 @@ export function Reach({ state, selected, tab = 'about' }: { state: GameState; se
         <h2 id="reach-title" className="screen-title">
           The Reach
         </h2>
-        <p className="screen-sub">
-          {places.length} places known. Tap one to see it, or a question mark to see how to find it.
-        </p>
+        <p className="screen-sub">{places.length} places known</p>
       </div>
       <div className="map-page" data-tour="map">
-        <ReachMapSvg state={state} selected={sel} onPick={pick} />
+        <ReachMapSvg state={state} selected={sel} onPick={pick} marks={marks} />
       </div>
       {sel && <PlacePanel state={state} id={sel} tab={tab} />}
       <div className="panel">
@@ -66,6 +68,7 @@ export function Reach({ state, selected, tab = 'about' }: { state: GameState; se
                     <span className="place-body">
                       <span className="place-name">
                         {loc.name}
+                        {marks[loc.id] && loc.id !== sel && <span className="dot" aria-label=", something new" />}
                         {outpost && <span className={`place-tag${outpost.damaged ? ' is-damaged' : ''}`}>{outpost.damaged ? 'Outpost, damaged' : 'Outpost'}</span>}
                         {state.rescue.call?.locationId === loc.id && <span className="place-tag is-calling">Calling for help</span>}
                         {vultureTag(state, loc.id) && <span className="place-tag is-vultures">{vultureTag(state, loc.id)}</span>}

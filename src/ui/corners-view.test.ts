@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import { CORNERS, Rng, finishSearch, getCorner, startSearch } from '../engine/index.ts';
 import { T0, testGame } from '../engine/test-utils.ts';
-import { bellItems } from './bell-view.ts';
+import { baselineSeen, dots } from './attention-view.ts';
 import { noticeRoute } from './radio-view.ts';
 import { cornerNotices, cornerRows, cornerWakeTimes, cornersSummary, resultCard, searchLine, searchedLine, searcherChoices } from './corners-view.ts';
 
@@ -43,7 +43,7 @@ describe('the Depot’s corners on the Yard tab (2.7.0)', () => {
     assert.deepEqual(noticeRoute(n!.id), { screen: 'depot' });
   });
 
-  test('what it found, until read: the story, the stores, the gear; and a line in the bell', () => {
+  test('what it found, until read: the story, the stores, the gear; and a dot on the Yard tab', () => {
     const state = testGame('found');
     const a = state.survivors[0]!;
     a.stats.wits = 10;
@@ -57,11 +57,12 @@ describe('the Depot’s corners on the Yard tab (2.7.0)', () => {
     assert.equal(card.supplies, 'Scrap +8.');
     assert.equal(card.gear, 'In the stash: Multitool.');
     assert.equal(searchedLine(state), 'Searched: the signal box, the engine shed.');
-    const bell = bellItems(state, T0 + 30 * MIN).find((b) => b.id === 'corner')!;
-    assert.equal(bell.text, `The engine shed: ${a.firstName} is done searching.`);
-    assert.deepEqual(bell.to, { screen: 'depot' });
+    const d = dots(state, T0 + 30 * MIN, baselineSeen(state));
+    assert.equal(d.depot.yard, true);
+    assert.equal(d.tabs.depot, true);
     state.corners.last!.seen = true;
     assert.equal(resultCard(state), undefined);
+    assert.equal(dots(state, T0 + 30 * MIN, baselineSeen(state)).depot.yard, undefined);
   });
 
   test('once every corner is searched, the list goes', () => {

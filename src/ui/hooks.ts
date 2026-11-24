@@ -4,6 +4,7 @@ import type { GameState } from '../engine/index.ts';
 import type { SoundSystem } from './audio.ts';
 import type { Notifier } from './notify.ts';
 import type { Prefs, PrefsStore } from './prefs.ts';
+import { seenFor, type Seen } from './attention-view.ts';
 import { DEFAULT_ROUTE, parseRoute, routeHash, type Route } from './route.ts';
 import type { GameStore, Snapshot } from './store.ts';
 
@@ -187,4 +188,30 @@ export function useTopOnChange(key: unknown): void {
     }
     if (window.scrollY > 0) window.scrollTo({ top: 0, behavior: scrollBehavior() });
   }, [key]);
+}
+
+/**
+ * What the player has seen of this guild (3.5.0): kept on the phone, or everything there is now the
+ * first time (which is then kept, so what comes after it gets a dot).
+ */
+export function useSeen(state: GameState): Seen {
+  const { prefs } = useServices();
+  const kept = usePrefs().seen;
+  const seen = seenFor(state, kept);
+  useEffect(() => {
+    if (kept !== seen) prefs.set({ seen });
+  }, [kept, seen, prefs]);
+  return seen;
+}
+
+/** Marks something seen once it's on screen: `mark` returns the marks with it added (or the same marks). */
+export function useMarkSeen(state: GameState, mark: (state: GameState, seen: Seen) => Seen, deps: readonly unknown[]): void {
+  const { prefs } = useServices();
+  useEffect(() => {
+    const kept = prefs.get().seen;
+    const seen = seenFor(state, kept);
+    const next = mark(state, seen);
+    if (next !== kept) prefs.set({ seen: next });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps);
 }

@@ -2,6 +2,7 @@
  * Display preferences that belong to this device, not to the guild (they are
  * not part of the save).
  */
+import type { Seen } from './attention-view.ts';
 import type { KeyValueStore } from './persist.ts';
 
 export interface Prefs {
@@ -20,6 +21,8 @@ export interface Prefs {
   ambienceVolume: number;
   /** A short buzz of the phone when someone in a fight is hit hard or goes down. */
   buzz: boolean;
+  /** What the player has looked at, so the red dots mark only what's new (3.5.0; `attention-view.ts`). */
+  seen?: Seen;
 }
 
 export const PREFS_KEY = 'the-guild:prefs';

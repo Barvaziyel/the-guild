@@ -43,6 +43,7 @@ import { clockTime } from '../time.ts';
 import { leadChoice } from '../fight-view.ts';
 import { planLeadLine } from '../haven-view.ts';
 import { PlacePicture } from '../components/Art.tsx';
+import { GearSlots } from '../components/GearSlots.tsx';
 import { fitTrade, getChoices, giveChoices, marketJobs, maxTrade, tradeLine, withAmount, withGet, withGive } from '../market-view.ts';
 import { RESOURCE_NAMES } from '../view.ts';
 
@@ -209,6 +210,7 @@ function PlannerForm({ state, locationId, step }: { state: GameState; locationId
                       </span>
                       {reason ? <span className="crew-reason">{reason}</span> : <span className="crew-stats">{stats}</span>}
                       {!reason && <Vitals survivor={s} />}
+                      {!reason && <GearSlots state={state} survivor={s} />}
                     </span>
                   </label>
                 </li>

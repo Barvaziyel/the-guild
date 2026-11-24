@@ -2,7 +2,8 @@
  * The Gear screen: what's in the guild's stash, who could take each piece,
  * and what everyone is carrying. Plain TypeScript so it can be tested in Node.
  */
-import { SLOTS, buildingLevel, canChangeGear, costText, itemDef, itemName, salvageProblem, salvageValue, spareGear, spareValue, type GameState, type Slot, type Survivor } from '../engine/index.ts';
+import { SLOTS, buildingLevel, canChangeGear, costText, itemDef, itemName, salvageProblem, salvageValue, spareGear, spareValue, type GameState, type ItemInstance, type Slot, type Survivor } from '../engine/index.ts';
+import { missingGear } from './attention-view.ts';
 import { itemView, stashFor, type ItemView } from './view.ts';
 
 export const SLOT_GROUPS: Record<Slot, string> = { weapon: 'Weapons', armor: 'Armor', tool: 'Tools', trinket: 'Trinkets' };
@@ -88,4 +89,24 @@ export function sparesPanel(state: GameState): { text: string; button?: string }
   const value = costText(spareValue(state));
   const what = spares.length === 1 ? `One Rusty or Common piece of gear` : `${spares.length} Rusty and Common weapons and pieces of armor`;
   return { text: `${what} in the stash would come to ${value} in the Workshop.`, button: `Take ${spares.length === 1 ? 'it' : 'them all'} apart` };
+}
+
+/** One of someone's four slots, for the row of little pictures on their card (3.5.0). */
+export interface SlotView {
+  slot: Slot;
+  item?: { defId: string; quality: ItemInstance['quality']; name: string };
+  /** Empty, though the stash has something for it: weapon and armor only. */
+  wanting: boolean;
+}
+
+/**
+ * What someone carries, slot by slot, with the empty weapon and armor slots the stash could fill
+ * marked (a player didn't notice his people were going out with nothing on).
+ */
+export function slotViews(state: GameState, s: Survivor): SlotView[] {
+  const wanting = missingGear(state, s);
+  return SLOTS.map((slot) => {
+    const it = s.equipment[slot];
+    return it ? { slot, item: { defId: it.defId, quality: it.quality, name: itemName(it) }, wanting: false } : { slot, wanting: wanting.includes(slot) };
+  });
 }

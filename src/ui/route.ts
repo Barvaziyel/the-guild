@@ -48,7 +48,7 @@ export type Route =
   | { screen: 'fight'; id: string };
 
 /** The screens in the tab bar. */
-export type TabScreen = 'depot' | 'roster' | 'reach' | 'runs' | 'haven' | 'settings';
+export type TabScreen = 'depot' | 'roster' | 'gear' | 'reach' | 'runs' | 'haven' | 'settings';
 
 export const DEFAULT_ROUTE: Route = { screen: 'depot' };
 
@@ -143,10 +143,12 @@ export function tabFor(route: Route): TabScreen {
     case 'depot':
     case 'building':
     case 'recruits':
-    case 'gear':
-    case 'vehicles':
     case 'raid':
       return 'depot';
+    // Gear is a tab of its own (3.5.0: a player didn't notice his people had nothing on).
+    case 'gear':
+    case 'vehicles':
+      return 'gear';
     case 'roster':
     case 'survivor':
     case 'memorial':

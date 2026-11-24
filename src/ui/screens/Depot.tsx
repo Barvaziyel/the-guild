@@ -15,7 +15,9 @@ import { FightCalls } from '../components/FightCard.tsx';
 import { RaidCard } from '../components/RaidCard.tsx';
 import { Projects } from '../components/Projects.tsx';
 import { Portrait } from '../components/Portrait.tsx';
-import { navigate, useAction } from '../hooks.ts';
+import { navigate, useAction, useMarkSeen, usePrefs, useSeen } from '../hooks.ts';
+import { dots, seeNews, todayReasons } from '../attention-view.ts';
+import { tourStep } from '../tour.ts';
 import { DEPOT_TABS, type DepotTab } from '../route.ts';
 import { Yard } from '../components/Yard.tsx';
 import { Corners } from '../components/Corners.tsx';
@@ -25,9 +27,7 @@ import { outpostRows } from '../outposts-view.ts';
 import { projectNote } from '../projects-view.ts';
 import { vulturesShort } from '../vultures-view.ts';
 import { bedsLine, buildingRows, depotNews, foodWarning, homeCounts, offerView, summaryLines, type BuildingRow } from '../depot-view.ts';
-import { stashLine } from '../gear-view.ts';
 import { EMPTY_DEPOT } from '../haven-view.ts';
-import { vehiclesLine } from '../vehicles-view.ts';
 import { callCard } from '../rescue-view.ts';
 import { strayRows } from '../animals-view.ts';
 import { ItemIcon } from '../components/Art.tsx';
@@ -44,6 +44,11 @@ const TAB_LABELS: Record<DepotTab, string> = { yard: 'Yard', today: 'Today', bui
 
 export function Depot({ state, now, tab, away, onDismissAway }: Props) {
   const counts = homeCounts(state);
+  const seen = useSeen(state);
+  const touring = tourStep(usePrefs().tour) !== undefined;
+  const marks = dots(state, now, seen, { touring }).depot;
+  // Opening the News tab reads the news.
+  useMarkSeen(state, (st, s) => (tab === 'news' ? seeNews(st, s) : s), [tab, state.log.length]);
 
   return (
     <section aria-labelledby="depot-title">
@@ -80,6 +85,7 @@ export function Depot({ state, now, tab, away, onDismissAway }: Props) {
             onClick={() => navigate(t === 'yard' ? { screen: 'depot' } : { screen: 'depot', tab: t }, { replace: true, keepScroll: true })}
           >
             {TAB_LABELS[t]}
+            {marks[t] && t !== tab && <span className="dot" aria-label=", something new" />}
           </button>
         ))}
       </div>
@@ -160,39 +166,19 @@ function Today({ state, now, away, onDismissAway }: Omit<Props, 'tab'>) {
         </div>
       )}
 
-      <div className="panel">
-        <h3 className="panel-title">At the gate</h3>
-        <p className="panel-help">
-          {atGate === 0
-            ? 'Nobody is waiting. Now and then someone answers the radio or turns up, and crews bring people home from the Reach.'
-            : `${atGate} ${atGate === 1 ? 'person is' : 'people are'} asking to join.`}
-          {counts.beds >= counts.cap && atGate > 0 ? ' Every bed is taken, so improve the Bunks to make room.' : ''}
-        </p>
-        {atGate > 0 && (
-          <button type="button" className="btn" onClick={() => navigate({ screen: 'recruits' })}>
-            See who&rsquo;s at the gate
-          </button>
-        )}
-        <Strays state={state} now={now} />
-      </div>
-
-      <div className="panel" data-tour="gear">
-        <h3 className="panel-title">Gear</h3>
-        <p className="panel-help">{stashLine(state)} Hand it out, or see who carries what.</p>
-        <button type="button" className="btn" onClick={() => navigate({ screen: 'gear' })}>
-          See the gear
-        </button>
-      </div>
-
-      <div className="panel" data-tour="vehicles-panel">
-        <h3 className="panel-title">Vehicles</h3>
-        <p className="panel-help">
-          {vehiclesLine(state)} Gas: {state.resources.gas}.
-        </p>
-        <button type="button" className="btn" onClick={() => navigate({ screen: 'vehicles' })}>
-          {state.vehicles.length === 0 ? 'About vehicles' : 'See the vehicles'}
-        </button>
-      </div>
+      {(atGate > 0 || strayRows(state, now).length > 0) && (
+        <div className="panel">
+          <h3 className="panel-title">At the gate</h3>
+          {atGate > 0 && (
+            <button type="button" className="btn gate-button" onClick={() => navigate({ screen: 'recruits' })}>
+              {atGate === 1 ? 'Someone wants to join' : `${atGate} want to join`}
+              {counts.beds >= counts.cap && <span className="gate-full"> · no bed free</span>}
+            </button>
+          )}
+          <Strays state={state} now={now} />
+        </div>
+      )}
+      {todayReasons(state, now).length === 0 && out.length === 0 && outposts.length === 0 && !project && (!away || away.days === 0) && <p className="empty quiet-day">All quiet.</p>}
     </>
   );
 }

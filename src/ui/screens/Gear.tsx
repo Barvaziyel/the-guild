@@ -1,9 +1,13 @@
 import { useState } from 'react';
-import { dayAt, equipFromStash, getSurvivor, salvage, salvageSpares, type GameState } from '../../engine/index.ts';
+import { canChangeGear, dayAt, equipFromStash, getSurvivor, salvage, salvageSpares, type GameState } from '../../engine/index.ts';
 import { ItemDetails } from '../components/ItemDetails.tsx';
 import { Portrait } from '../components/Portrait.tsx';
-import { carriedRows, gearTakers, salvageButton, sparesPanel, stashGroups, stashLine } from '../gear-view.ts';
-import { goBack, navigate, useAction } from '../hooks.ts';
+import { gearTakers, salvageButton, sparesPanel, stashGroups, stashLine } from '../gear-view.ts';
+import { GearSlots } from '../components/GearSlots.tsx';
+import { seeStash } from '../attention-view.ts';
+import { rosterOrder } from '../view.ts';
+import { vehiclesLine } from '../vehicles-view.ts';
+import { navigate, useAction, useMarkSeen, useSeen } from '../hooks.ts';
 import type { ItemView } from '../view.ts';
 import { ItemIcon } from '../components/Art.tsx';
 
@@ -13,8 +17,12 @@ export function Gear({ state }: { state: GameState }) {
   const [open, setOpen] = useState<string | null>(null);
   const [given, setGiven] = useState<string | null>(null);
   const groups = stashGroups(state);
-  const carried = carriedRows(state);
   const spares = sparesPanel(state);
+  // What came in since the last look keeps its dot while the tab is open; leaving, it's seen (3.5.0).
+  const seen = useSeen(state);
+  const [fresh] = useState(() => new Set(state.stash.filter((i) => !seen.stash.includes(i.uid)).map((i) => i.uid)));
+  useMarkSeen(state, seeStash, [state.stash.length]);
+  const people = rosterOrder(state);
 
   const takeApart = (item: ItemView): void => {
     if (!act((st) => salvage(st, item.uid, dayAt(st, Date.now())))) return;
@@ -32,18 +40,35 @@ export function Gear({ state }: { state: GameState }) {
   };
 
   return (
-    <article className="sheet" aria-labelledby="gear-title">
-      <div className="sheet-nav">
-        <button type="button" className="back" onClick={() => goBack({ screen: 'depot' })}>
-          <span aria-hidden="true">&lsaquo;</span> The Depot
-        </button>
-      </div>
-      <header className="sheet-head">
-        <h2 id="gear-title" className="plan-title">
+    <section aria-labelledby="gear-title">
+      <div className="screen-head">
+        <h2 id="gear-title" className="screen-title">
           Gear
         </h2>
-        <p className="place-facts">{stashLine(state)} People change gear only while they&rsquo;re at the Depot. What nobody needs can be taken apart in the Workshop for scrap.</p>
-      </header>
+        <p className="screen-sub">{stashLine(state)}</p>
+      </div>
+
+      <section className="panel" aria-labelledby="everyone-title" data-tour="gear">
+        <h3 id="everyone-title" className="panel-title">
+          Everyone
+        </h3>
+        <ul className="carried">
+          {people.map((s) => (
+            <li key={s.id}>
+              <button type="button" className="pick pick-person carried-row" onClick={() => navigate({ screen: 'survivor', id: s.id, tab: 'stats' })}>
+                <Portrait survivor={s} size={40} decorative />
+                <span className="pick-text">
+                  <span className="item-name">
+                    {s.firstName} {s.lastName}
+                    {!canChangeGear(s) && <span className="carried-away"> · out</span>}
+                  </span>
+                  <GearSlots state={state} survivor={s} />
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </section>
 
       {spares && (
         <section className="panel" aria-labelledby="spares-title" data-tour="salvage">
@@ -84,7 +109,10 @@ export function Gear({ state }: { state: GameState }) {
                 {g.items.map((item) => (
                   <li key={item.uid} className="gear-slot">
                     <div className="gear-row">
-                      <ItemIcon defId={item.defId} quality={item.quality} />
+                      <span className="fresh-wrap">
+                        <ItemIcon defId={item.defId} quality={item.quality} />
+                        {fresh.has(item.uid) && <span className="dot dot-corner" aria-label="New" />}
+                      </span>
                       <div className="gear-item">
                         <ItemDetails view={item} />
                       </div>
@@ -132,34 +160,15 @@ export function Gear({ state }: { state: GameState }) {
         {error && <p className="field-error">{error}</p>}
       </section>
 
-      <section className="panel" aria-labelledby="carried-title">
-        <h3 id="carried-title" className="panel-title">
-          Carried
+      <section className="panel" aria-labelledby="vehicles-title" data-tour="vehicles-panel">
+        <h3 id="vehicles-title" className="panel-title">
+          Vehicles
         </h3>
-        {carried.length === 0 ? (
-          <p className="panel-help">Nobody is carrying anything.</p>
-        ) : (
-          <ul className="carried">
-            {carried.map((r) => (
-              <li key={r.survivor.id}>
-                <button type="button" className="pick pick-person" onClick={() => navigate({ screen: 'survivor', id: r.survivor.id, tab: 'stats' })}>
-                  <Portrait survivor={r.survivor} size={40} decorative />
-                  <span className="pick-text">
-                    <span className="item-name">
-                      {r.survivor.firstName} {r.survivor.lastName}
-                    </span>
-                    <span className="item-desc">
-                      {r.items.join(', ')}
-                      {r.away ? '. Out on a run.' : ''}
-                    </span>
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
+        <button type="button" className="link-row" onClick={() => navigate({ screen: 'vehicles' })}>
+          {vehiclesLine(state)} Gas: {state.resources.gas}.
+        </button>
       </section>
-    </article>
+    </section>
   );
 }
 

@@ -27,12 +27,9 @@ export function Runs({ state }: { state: GameState }) {
       <div className="panel">
         <h3 className="panel-title">Out now</h3>
         {out.length === 0 ? (
-          <>
-            <p className="panel-help">Nobody is out. Pick a place on the Reach map to send a crew.</p>
-            <button type="button" className="btn" onClick={() => navigate({ screen: 'reach' }, { replace: true })}>
-              Open the map
-            </button>
-          </>
+          <button type="button" className="btn" onClick={() => navigate({ screen: 'reach' }, { replace: true })}>
+            Send a crew
+          </button>
         ) : (
           <ul className="run-cards">
             {out.map((run) => {
@@ -65,7 +62,7 @@ export function Runs({ state }: { state: GameState }) {
       <div className="panel">
         <h3 className="panel-title">Reports</h3>
         {reports.length === 0 ? (
-          <p className="panel-help">When a crew comes home, the story of their run is kept here.</p>
+          <p className="empty">None yet.</p>
         ) : (
           <>
             <ul className="report-list">
@@ -91,9 +88,12 @@ function ReportRow({ r }: { r: ReportItem }) {
       <button type="button" className={`report-row${r.report.read ? '' : ' is-unread'}`} onClick={() => navigate({ screen: 'run', id: r.report.id })}>
         <span className={`report-dot tone-${r.tone}`} aria-hidden="true" />
         <span className="report-body">
-          <span className="report-headline">{r.headline}</span>
+          <span className="report-headline">
+            {r.headline}
+            {!r.report.read && <span className="dot" aria-label=", new" />}
+          </span>
           <span className="report-meta">
-            {r.crew}. Day {r.day}.{r.report.read ? '' : ' New.'}
+            {r.crew}. Day {r.day}.
           </span>
         </span>
       </button>

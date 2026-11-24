@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import { FIRST_WEEK, claimStory, equipFromStash, getGear, seenStory, type GameState } from '../engine/index.ts';
 import { T0, testGame } from '../engine/test-utils.ts';
-import { bellItems } from './bell-view.ts';
+import { baselineSeen, dots } from './attention-view.ts';
 import { giftsText, storyCard, storyEnding } from './story-view.ts';
 import { TOUR_STEPS } from './tour.ts';
 
@@ -35,7 +35,7 @@ describe('the first week on the Yard (2.8.0)', () => {
     assert.deepEqual(corners.go, { label: 'Show the corners', scrollTo: 'corners' });
   });
 
-  test('done: it says so, the bell says the reward is waiting, and collecting it shows how it went', () => {
+  test('done: it says so, a dot on the Yard tab says the reward is waiting, and collecting it shows how it went', () => {
     const state = testGame('met');
     for (const item of [...state.stash]) {
       const s = state.survivors.find((x) => !x.equipment[getGear(item.defId).slot]);
@@ -45,17 +45,15 @@ describe('the first week on the Yard (2.8.0)', () => {
     assert.equal(card.met, true);
     assert.equal(card.goal, 'Done: hand out the gear in the stash.');
     assert.equal(card.go, undefined);
-    const bell = bellItems(state, T0).find((i) => i.id === 'story')!;
-    assert.equal(bell.text, 'Kit them out: done. The reward is waiting.');
-    assert.deepEqual(bell.to, { screen: 'depot' });
-    // While the tour is on, the note is hidden, so the bell doesn't point at it (2.8.1).
-    assert.equal(bellItems(state, T0, { touring: true }).some((i) => i.id === 'story'), false);
+    assert.equal(dots(state, T0, baselineSeen(state)).depot.yard, true);
+    // While the tour is on, the note is hidden, so no dot points at it (2.8.1).
+    assert.equal(dots(state, T0, baselineSeen(state), { touring: true }).depot.yard, undefined);
 
     claimStory(state, T0);
     // How it went comes first; the next step waits until it's read.
     assert.equal(storyCard(state), undefined);
     assert.deepEqual(storyEnding(state), { title: 'Kit them out', text: FIRST_WEEK[0]!.done, supplies: 'Ammo +6.', last: false });
-    assert.equal(bellItems(state, T0).some((i) => i.id === 'story'), false);
+    assert.equal(dots(state, T0, baselineSeen(state)).depot.yard, undefined);
     seenStory(state);
     assert.equal(storyEnding(state), undefined);
     assert.equal(storyCard(state)!.title, 'Get the Garden going');
