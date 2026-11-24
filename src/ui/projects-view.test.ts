@@ -23,7 +23,10 @@ describe('the Projects tab', () => {
     const line = projectRow(state, 'the_line');
     assert.equal(line.state, 'ready');
     assert.equal(line.status, 'Not started');
-    assert.deepEqual(line.next, { label: 'Start', cost: '700 scrap, 100 tech, 50 rations' });
+    assert.equal(line.next?.label, 'Start');
+    assert.equal(line.next?.cost, '700 scrap, 100 tech, 50 rations');
+    // As pictures, in the header's order (3.6.0).
+    assert.deepEqual(line.next?.costChips.map((c) => `${c.glyph} ${c.text}`), ['scrap 700', 'rations 50', 'tech 100']);
     assert.equal(line.crewRoom, 0, 'no crew before it starts');
   });
 

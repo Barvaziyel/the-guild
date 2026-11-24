@@ -26,11 +26,12 @@ import { activeRuns, backIn, joinNames, runCrewNames } from '../runs-view.ts';
 import { outpostRows } from '../outposts-view.ts';
 import { projectNote } from '../projects-view.ts';
 import { vulturesShort } from '../vultures-view.ts';
-import { bedsLine, buildingRows, depotNews, foodWarning, homeCounts, offerView, summaryLines, type BuildingRow } from '../depot-view.ts';
+import { bedsLine, buildingRows, depotNews, foodWarning, homeCounts, offerView, summaryChips, summaryTitle, summaryWarnings, type BuildingRow } from '../depot-view.ts';
 import { EMPTY_DEPOT } from '../haven-view.ts';
 import { callCard } from '../rescue-view.ts';
 import { strayRows } from '../animals-view.ts';
 import { ItemIcon } from '../components/Art.tsx';
+import { Chips } from '../components/Glyph.tsx';
 
 interface Props {
   state: GameState;
@@ -275,17 +276,23 @@ function BuildingCard({ row: r }: { row: BuildingRow }) {
       <button type="button" className={`building-card${r.built ? '' : ' is-unbuilt'}`} onClick={() => navigate({ screen: 'building', id: r.id })}>
         <span className="building-head">
           <span className="building-name">{r.name}</span>
-          <span className="building-level">{r.built ? `Level ${r.level}` : r.next?.cost}</span>
+          <span className="building-level">{r.built ? `Level ${r.level}` : r.next && <Chips chips={r.next.costChips} />}</span>
         </span>
-        <span className="building-status">{r.built ? r.status : r.description}</span>
+        {r.built && r.statusChips.length > 0 ? (
+          <span className="building-status" aria-label={r.status}>
+            <Chips chips={[...r.statusChips, ...(r.upkeepChip ? [r.upkeepChip] : [])]} />
+          </span>
+        ) : (
+          <span className="building-status">{r.built ? r.status : r.next?.effect}</span>
+        )}
         {r.slots > 0 && (
-          <span className="building-workers">
+          <span className="building-workers" aria-label={`${r.workers.length} of ${r.slots} ${r.slots === 1 ? 'post' : 'posts'} filled`}>
             {r.workers.map((s) => (
               <Portrait key={s.id} survivor={s} size={32} decorative />
             ))}
-            <span className="building-slots">
-              {r.workers.length} of {r.slots} {r.slots === 1 ? 'post' : 'posts'} filled
-            </span>
+            {Array.from({ length: Math.max(0, r.slots - r.workers.length) }, (_, i) => (
+              <span key={i} className="empty-post" aria-hidden="true" />
+            ))}
           </span>
         )}
       </button>
@@ -297,9 +304,12 @@ function AwayNote({ state, summary, onDismiss }: { state: GameState; summary: De
   const news = summary.news.filter((n) => !n.tags?.includes('run'));
   return (
     <div className="panel away-note" role="status">
-      <h3 className="panel-title">Since you last looked</h3>
-      {summaryLines(summary, state).map((line) => (
-        <p key={line}>{line}</p>
+      <h3 className="panel-title">{summaryTitle(summary)}</h3>
+      <Chips chips={summaryChips(summary)} className="away-chips" />
+      {summaryWarnings(summary, state).map((line) => (
+        <p key={line} className="away-warning">
+          {line}
+        </p>
       ))}
       {news.length > 0 && (
         <ul className="away-news">

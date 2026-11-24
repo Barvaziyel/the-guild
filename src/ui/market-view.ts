@@ -4,6 +4,7 @@
  */
 import {
   RESOURCE_IDS,
+  TRADE_LOAD,
   amountOf,
   findLocation,
   isMarket,
@@ -24,6 +25,10 @@ export const TRADE_JOB: Choice<RunJob> = {
   id: 'trade',
   name: 'Trade',
   description: 'Take goods to the market and bring back something else. The packs hold three times as much when they’re full of nothing but goods.',
+  chips: [
+    { glyph: 'scales', text: 'swap', label: 'Goods for other goods' },
+    { glyph: 'cargo', text: `×${TRADE_LOAD}`, tone: 'good', label: `Packs hold ${TRADE_LOAD} times as much` },
+  ],
 };
 
 /** The jobs a place offers: only Trade at a market, and never Trade anywhere else. */

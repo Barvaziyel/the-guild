@@ -16,16 +16,19 @@ import {
 import { Portrait } from '../components/Portrait.tsx';
 import { ReachMapSvg } from '../components/ReachMapSvg.tsx';
 import { navigate, useAction, useMarkSeen, useSeen } from '../hooks.ts';
-import { depthRows, exploredShort, mostlyFinds, outpostView } from '../outposts-view.ts';
+import { depthRows, exploredShort, mostlyFinds, mostlyFindsIds, outpostView } from '../outposts-view.ts';
 import { leadPlaces, placeLeadLine } from '../haven-view.ts';
 import { PLACE_TABS, type PlaceTab } from '../route.ts';
 import { callCard } from '../rescue-view.ts';
-import { dangerText, formatDuration, joinNames, locationView, placeNote, radiationText, runCrewNames } from '../runs-view.ts';
+import { dangerText, formatDuration, joinNames, locationView, placeChips, radiationText, runCrewNames } from '../runs-view.ts';
 import { nemesesAt, nemesisRows } from '../stories-view.ts';
 import { vulturePlaceLine, vulturesSummary, vultureTag } from '../vultures-view.ts';
 import { PlacePicture } from '../components/Art.tsx';
 import { dots, seePlace } from '../attention-view.ts';
 import { priceRows } from '../market-view.ts';
+import { Chips, Glyph } from '../components/Glyph.tsx';
+import { RESOURCE_NAMES } from '../view.ts';
+import { problemNote } from '../glyphs.ts';
 
 const today = (s: GameState): number => dayAt(s, Date.now());
 const PLACE_TAB_LABELS: Record<PlaceTab, string> = { about: 'About', outpost: 'Outpost' };
@@ -77,7 +80,19 @@ export function Reach({ state, selected, tab = 'about' }: { state: GameState; se
                       <span className="place-facts">
                         {dangerText(loc.danger)}, {radiationText(loc.radiation).toLowerCase()}, {formatDuration(loc.durationMin * 60_000)}
                       </span>
-                      {loc.market ? <span className="place-facts">Trades anything for anything</span> : mostlyFinds(loc) && <span className="place-facts">Mostly {mostlyFinds(loc)}</span>}
+                      {loc.market ? (
+                        <span className="place-facts">
+                          <Glyph name="scales" /> Trades
+                        </span>
+                      ) : (
+                        mostlyFindsIds(loc).length > 0 && (
+                          <span className="place-facts" aria-label={`Mostly ${mostlyFinds(loc)}`}>
+                            {mostlyFindsIds(loc).map((r) => (
+                              <Glyph key={r} name={r} className={`res-glyph res-${r}`} />
+                            ))}
+                          </span>
+                        )
+                      )}
                     </span>
                     <span className="place-explored">{loc.market ? '' : here.explored >= 100 && deepestOpen(state, loc.id) > 1 ? exploredShort(state, loc.id) : `${here.explored}%`}</span>
                   </button>
@@ -119,7 +134,6 @@ function NemesesPanel({ state }: { state: GameState }) {
       <h3 id="nemeses-title" className="panel-title">
         Known by name
       </h3>
-      <p className="panel-help">Enemies that put someone down and got away. They come back, tougher, where they were met.</p>
       <ul className="nemeses">
         {rows.map((n) => (
           <li key={n.id} className={`nemesis${n.atLarge ? '' : ' is-dead'}`}>
@@ -153,7 +167,7 @@ function PlacePanel({ state, id, tab }: { state: GameState; id: string; tab: Pla
       <div className="panel place-panel" aria-live="polite">
         <h3 className="place-title">Somewhere unexplored</h3>
         <p className="panel-help">
-          A road leads on from {joinNames(from.map((l) => l.name))}. Scouting there is the best way to find out what&rsquo;s at the end of it.
+          <Glyph name="compass" /> {joinNames(from.map((l) => l.name))}
         </p>
         {from[0] && (
           <button type="button" className="btn" onClick={() => navigate({ screen: 'reach', id: from[0]!.id }, { replace: true })}>
@@ -247,9 +261,7 @@ function MarketAbout({ state, id }: { state: GameState; id: string }) {
             ))}
           </tbody>
         </table>
-        {priceRows(state).some((r) => r.trend) && <p className="panel-help">Cheap lately: the guild has sold a lot of it here. Pricey lately: it has bought a lot.</p>}
       </div>
-      <p className="place-note">Nothing to explore here, and nothing to find: crews come with goods and go home with something else. A big load fetches less than the table says, since the more of one thing the guild trades, the worse the price; prices settle back over a day or two.</p>
       {v.crewsOut.map((run) => (
         <button key={run.id} type="button" className="crew-here" onClick={() => navigate({ screen: 'run', id: run.id })}>
           {joinNames(runCrewNames(run))} {run.plan.crew.length === 1 ? 'is' : 'are'} here now. Follow the run.
@@ -293,7 +305,9 @@ function About({ state, id }: { state: GameState; id: string }) {
         {mostlyFinds(loc) && (
           <div className="facts-wide">
             <dt>Mostly finds</dt>
-            <dd>{mostlyFinds(loc).replace(/^./, (c) => c.toUpperCase())}</dd>
+            <dd>
+              <Chips chips={mostlyFindsIds(loc).map((r) => ({ glyph: r, text: RESOURCE_NAMES[r] }))} />
+            </dd>
           </div>
         )}
       </dl>
@@ -310,7 +324,7 @@ function About({ state, id }: { state: GameState; id: string }) {
           </ul>
         </div>
       )}
-      <p className="place-note">{placeNote(v, deeper)}</p>
+      <Chips chips={placeChips(v)} className="place-chips" />
       {placeLeadLine(state, id) && (
         <button type="button" className="haven-here" onClick={() => navigate({ screen: 'haven' })}>
           {placeLeadLine(state, id)}
@@ -352,11 +366,10 @@ function OutpostTab({ state, id }: { state: GameState; id: string }) {
   if (!v.built) {
     return (
       <div className="outpost">
-        <p className="place-desc">{v.pitch}</p>
-        <p className="panel-help">{v.hardship}</p>
-        <p className="panel-help">{v.contactLine}</p>
-        <p className="panel-help">Costs {v.buildCost}.</p>
-        {v.buildProblem && <p className="field-error">{v.buildProblem}</p>}
+        <p className="place-desc">A camp out here, and a hard posting.</p>
+        <Chips chips={v.chips} className="outpost-chips" />
+        <Chips chips={v.buildChips} className="cost-chips" />
+        {problemNote(v.buildProblem) && <p className="field-error">{problemNote(v.buildProblem)}</p>}
         <button type="button" className="btn btn-primary" disabled={v.buildProblem !== undefined} onClick={() => act((s) => void buildOutpost(s, id, today(s)))}>
           Set up an outpost
         </button>
@@ -373,20 +386,19 @@ function OutpostTab({ state, id }: { state: GameState; id: string }) {
       {v.damaged && (
         <div className="recipe">
           <span className="recipe-body">
-            <span className="recipe-cost">{v.repairProblem ?? `Mend it: ${v.repairCost}.`}</span>
+            {problemNote(v.repairProblem) ? <span className="recipe-cost">{problemNote(v.repairProblem)}</span> : <Chips chips={v.repairChips} className="recipe-cost" />}
           </span>
           <button type="button" className="btn btn-small" disabled={v.repairProblem !== undefined} onClick={() => act((s) => repairOutpost(s, id, today(s)))}>
             Mend
           </button>
         </div>
       )}
-      <p className="place-note">{v.yieldLine}</p>
-      <p className="place-note">{v.nearLine}</p>
+      <Chips chips={v.chips} className="outpost-chips" />
 
       <h4 className="levels-title">
         Living here <span className="count">{v.room}</span>
       </h4>
-      {v.staff.length === 0 && <p className="panel-help">Nobody. An empty outpost sends nothing home, and raiders walk right in.</p>}
+      {v.staff.length === 0 && <p className="empty">Nobody.</p>}
       <ul className="workers">
         {v.staff.map(({ survivor: s, aim }) => (
           <li key={s.id} className="worker">
@@ -409,7 +421,7 @@ function OutpostTab({ state, id }: { state: GameState; id: string }) {
         (adding ? (
           <div className="picker">
             {v.candidates.length === 0 ? (
-              <p className="panel-help">Nobody can go right now: everyone is out on a run, resting until healed, or already out here.</p>
+              <p className="empty">Nobody free.</p>
             ) : (
               <ul>
                 {v.candidates.map((c) => (
@@ -444,7 +456,6 @@ function OutpostTab({ state, id }: { state: GameState; id: string }) {
             Send someone to live here
           </button>
         ))}
-      <p className="panel-help outpost-help">{v.hardship}</p>
       {error && <p className="field-error">{error}</p>}
     </div>
   );

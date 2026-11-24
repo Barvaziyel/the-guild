@@ -246,7 +246,16 @@ export function vulturePlaceLine(state: GameState, locationId: string): string |
 export function assaultChoice(state: GameState, locationId: string): Choice<RunJob> | undefined {
   if (!campAt(state, locationId)) return undefined;
   const war = vultureBand(state) === 'war' ? '' : ' It means war with the Vultures.';
-  return { id: 'assault', name: 'Hit their camp', description: `Go straight for the Vultures' camp: a hard fight, and their stores if the crew wins.${war}` };
+  return {
+    id: 'assault',
+    name: 'Hit their camp',
+    description: `Go straight for the Vultures' camp: a hard fight, and their stores if the crew wins.${war}`,
+    chips: [
+      { glyph: 'swords', text: 'hard', tone: 'bad', label: 'A hard fight' },
+      { glyph: 'crate', text: 'stores', tone: 'good', label: 'Their stores if the crew wins' },
+      ...(war ? [{ glyph: 'war' as const, text: 'war', tone: 'bad' as const, label: 'It means war with the Vultures' }] : []),
+    ],
+  };
 }
 
 /** What a run did with the Vultures, for the report. */

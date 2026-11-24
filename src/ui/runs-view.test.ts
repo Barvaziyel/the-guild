@@ -5,6 +5,8 @@ import { clockTime } from './time.ts';
 import { T0, openGame, testGame, testPlan } from '../engine/test-utils.ts';
 import { DEPOT_SPOT, MAP_SPOTS, mapLabel, reachMap } from './reach-map.ts';
 import {
+  departChips,
+  haulView,
   paceNote,
   rationsNote,
   backIn,
@@ -179,6 +181,13 @@ describe('crews out and reports', () => {
       if (report.summary.loot[r] > 0) assert.ok(loot.includes(amountOf(r, report.summary.loot[r])));
     }
     assert.deepEqual(lootList({ ...report.summary, loot: { scrap: 4, rations: 1, meds: 1, ammo: 0, tech: 0, gas: 0 }, items: [] }), ['4 scrap', '1 ration', '1 med']);
+    // The same as pictures (3.6.0): supplies signed, gear by name with its icon.
+    const haul = haulView({ ...report.summary, loot: { scrap: 4, rations: 1, meds: 0, ammo: 0, tech: 0, gas: 0 } });
+    assert.deepEqual(haul.supplies.map((c) => [c.glyph, c.text]), [
+      ['scrap', '+4'],
+      ['rations', '+1'],
+    ]);
+    assert.equal(haul.items.length, report.summary.items.length);
     const check = report.beats.flatMap((b) => b.lines).find((l) => l.check)?.check;
     if (check) assert.match(checkLine(check, { [check.who]: 'Mara' }), /^Mara: \w+ /);
   });
@@ -238,6 +247,13 @@ test('the planner says what rations go, and what happens when the Depot is short
   assert.equal(rationsNote(state, plan), 'Only 2 of the 3 rations the crew needs: all the Depot has.');
   state.resources.rations = 0;
   assert.equal(rationsNote(state, plan), 'No rations at the Depot. The crew can still go, hungry.');
+  // As pictures (3.6.0): away for how long, back when, and the rations, marked when short.
+  const at = T0;
+  const chips = departChips(state, plan, 2 * 3_600_000, at);
+  assert.deepEqual(chips[0], { glyph: 'clock', text: `2 h, back ${clockTime(at + 2 * 3_600_000)}`, label: `Away for 2 h, back at ${clockTime(at + 2 * 3_600_000)}` });
+  assert.deepEqual([chips[1]!.text, chips[1]!.tone], ['0 of 3', 'bad']);
+  state.resources.rations = 10;
+  assert.deepEqual([departChips(state, plan, 1, at)[1]!.text, departChips(state, plan, 1, at)[1]!.tone], ['3', undefined]);
 });
 
 describe('the Runs screen’s report list', () => {

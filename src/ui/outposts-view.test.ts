@@ -17,7 +17,7 @@ import {
   withDepth,
 } from './outposts-view.ts';
 import { reachMap } from './reach-map.ts';
-import { locationView, placeNote } from './runs-view.ts';
+import { locationView, placeChips } from './runs-view.ts';
 import { rosterOrder, survivorStatus } from './view.ts';
 import { awayLines, yardModel } from './yard-view.ts';
 
@@ -51,11 +51,26 @@ describe('levels on screen', () => {
     assert.match(depthChoices(state, 'maple_street')[1]!.description, /Longer and deadlier, with more to find and better gear\.$/);
   });
 
-  test('a place says what exploring it fully opens, until it has been', () => {
+  test('a place shows how often the guild has been, and roads nobody has followed (3.6.0)', () => {
     const state = openGame('note');
     state.locations.maple_street = { discovered: true, explored: 60, runs: 3 };
-    assert.match(placeNote(locationView(state, 'maple_street'), false), /^The guild has been here 3 times\. Roads lead on to .+\. Explore the outskirts fully to open the way deeper in, and to set up an outpost\.$/);
-    assert.doesNotMatch(placeNote(locationView(state, 'maple_street'), true), /Explore|  /);
+    const v = locationView(state, 'maple_street');
+    const chips = placeChips(v);
+    assert.deepEqual(chips[0], { glyph: 'pin', text: '3×', label: 'The guild has been here 3 times' });
+    assert.equal(chips.length, v.unknownLeads > 0 ? 2 : 1);
+    state.locations.maple_street.runs = 0;
+    assert.equal(placeChips(locationView(state, 'maple_street'))[0]!.text, 'never');
+  });
+
+  test('an outpost in pictures: who lives there, what it sends and eats, the shortcut, the hard life', () => {
+    const state = openGame('outpost-chips');
+    const v = outpostView(state, 'maple_street');
+    const glyphs = v.chips.map((c) => c.glyph);
+    assert.deepEqual(glyphs.slice(0, 1), ['seat']);
+    assert.ok(glyphs.includes('rations') && glyphs.includes('clock') && glyphs.includes('war'));
+    assert.equal(v.chips.find((c) => c.glyph === 'clock')!.text, '−50%');
+    assert.deepEqual(v.buildChips.map((c) => c.glyph), ['scrap', 'tech']);
+    for (const c of v.chips) assert.ok(c.label && c.label.length > 5, `${c.glyph} says what it means`);
   });
 
   test('the plan only carries a level when it is past the outskirts', () => {

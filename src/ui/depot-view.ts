@@ -3,6 +3,8 @@
  * trades and the "while you were away" note. No React, so it can be tested in Node.
  */
 import {
+  AMMO_PER_WITS,
+  AMMO_PER_WORKER,
   DAY_MS,
   dayAt,
   nextDayAt,
@@ -71,8 +73,9 @@ import {
   type StatId,
   type Survivor,
 } from '../engine/index.ts';
-import { itemStats } from './view.ts';
+import { RESOURCE_NAMES, itemStats } from './view.ts';
 import { formatDuration } from './runs-view.ts';
+import { supplyChips, type Chip } from './glyphs.ts';
 import { clockTime } from './time.ts';
 
 const sum = (xs: readonly number[]): number => xs.reduce((a, b) => a + b, 0);
@@ -112,6 +115,39 @@ export function buildingStatus(state: GameState, id: BuildingId): string {
   }
 }
 
+/**
+ * What a building is doing now, as pictures (3.6.0), for its card on the Depot: the status line is
+ * read out with it, and the building's own screen keeps the words.
+ */
+export function statusChips(state: GameState, id: BuildingId): Chip[] {
+  if (buildingLevel(state, id) === 0) return [];
+  const n = workingAt(state, id).length;
+  switch (id) {
+    case 'bunks': {
+      const taken = bedsTaken(state);
+      const cap = bunksCap(state);
+      return [{ glyph: 'home', text: `${taken}/${cap}`, ...(taken > cap ? { tone: 'bad' as const } : {}), label: bedsLine(state) }];
+    }
+    case 'garden': {
+      const grow = gardenYield(state);
+      const eat = dailyUpkeep(state);
+      return [{ glyph: 'rations', text: `+${oneDecimal(grow)} −${eat}/day`, tone: grow >= eat ? 'good' : 'bad', label: `Grows about ${oneDecimal(grow)} rations a day; the guild eats ${eat}` }];
+    }
+    case 'scrapyard':
+      return [{ glyph: 'scrap', text: n === 0 ? 'idle' : `+${oneDecimal(scrapyardYield(state))}/day`, ...(n === 0 ? { tone: 'bad' as const } : { tone: 'good' as const }), label: buildingStatus(state, id) }];
+    case 'firepit':
+      return [{ glyph: 'stress', text: `−${Math.round(REST_RELIEF + firepitRelief(state))}/day`, tone: 'good', label: buildingStatus(state, id) }];
+    case 'infirmary':
+      return [{ glyph: 'heart', text: `+${Math.round(healRate(state) * 100)}%/day`, tone: 'good', label: buildingStatus(state, id) }];
+    case 'workshop': {
+      const ammo = workingAt(state, id).reduce((a, s) => a + AMMO_PER_WORKER + effectiveStat(s, 'wits') * AMMO_PER_WITS, 0);
+      return [{ glyph: 'ammo', text: n === 0 ? 'idle' : `+${oneDecimal(ammo)}/day`, ...(n === 0 ? {} : { tone: 'good' as const }), label: buildingStatus(state, id) }];
+    }
+    default:
+      return [];
+  }
+}
+
 export interface BuildingRow {
   id: BuildingId;
   name: string;
@@ -122,12 +158,15 @@ export interface BuildingRow {
   /** What the current level does (or the first level, if unbuilt). */
   effect: string;
   status: string;
+  statusChips: Chip[];
   /** What it uses up a day at this level, if anything: "Uses 1 ration a day." */
   upkeep?: string;
   /** Set when the upkeep couldn't be paid on the last day: it works a level lower. */
   unpaid?: string;
-  /** Next level's effect and cost, if there is one. */
-  next?: { effect: string; cost: string; problem?: string };
+  /** What it uses up a day, as a picture: "rations −2/day". */
+  upkeepChip?: Chip;
+  /** Next level's effect and cost (in words and as pictures), if there is one. */
+  next?: { effect: string; cost: string; costChips: Chip[]; problem?: string };
   workers: Survivor[];
   slots: number;
 }
@@ -146,8 +185,10 @@ export function buildingRow(state: GameState, id: BuildingId): BuildingRow {
     description: def.description,
     effect: (def.levels[Math.max(0, level - 1)] ?? def.levels[0]!).effect,
     status: buildingStatus(state, id),
+    statusChips: statusChips(state, id),
     ...upkeepLines(state, id),
-    ...(next ? { next: { effect: next.effect, cost: costText(next.cost), ...(problem ? { problem } : {}) } } : {}),
+    ...upkeepChip(state, id),
+    ...(next ? { next: { effect: next.effect, cost: costText(next.cost), costChips: supplyChips(next.cost, { have: state.resources }), ...(problem ? { problem } : {}) } } : {}),
     workers: postedTo(state, id),
     slots: workerSlots(state, id),
   };
@@ -169,6 +210,14 @@ export function upkeepLines(state: GameState, id: BuildingId): { upkeep?: string
   if (state.depot.unpaid?.includes(id)) return { upkeep, unpaid: `Ran out of ${u.res} on the last day, so it worked as level ${lower}.` };
   if (state.resources[u.res] < Math.ceil(u.amount)) return { upkeep, unpaid: `Out of ${u.res}: it works as level ${lower} on days it can't be kept going.` };
   return { upkeep };
+}
+
+function upkeepChip(state: GameState, id: BuildingId): { upkeepChip?: Chip } {
+  const u = upkeepOf(state, id);
+  if (!u) return {};
+  const n = u.amount >= 1 ? `${u.amount}/day` : `1/${Math.round(1 / u.amount)} days`;
+  const short = state.resources[u.res] < Math.ceil(u.amount);
+  return { upkeepChip: { glyph: u.res, text: `−${n}`, ...(short ? { tone: 'bad' as const } : {}), label: upkeepLines(state, id).upkeep ?? '' } };
 }
 
 export function buildingRows(state: GameState): BuildingRow[] {
@@ -220,6 +269,7 @@ export interface RecipeRow {
   name: string;
   stats: string;
   cost: string;
+  costChips: Chip[];
   problem?: string;
 }
 
@@ -232,6 +282,7 @@ export function recipeRows(state: GameState): RecipeRow[] {
       name: def.name,
       stats: itemStats({ uid: '', defId: r.gear, quality: 'common' }) || def.description,
       cost: costText(r.cost),
+      costChips: supplyChips(r.cost, { have: state.resources }),
       ...(problem ? { problem } : {}),
     };
   });
@@ -244,6 +295,7 @@ export interface UpgradeRow {
   holder?: string;
   to: string;
   cost: string;
+  costChips: Chip[];
   problem?: string;
 }
 
@@ -264,6 +316,7 @@ export function upgradeRows(state: GameState): UpgradeRow[] {
         ...(holder ? { holder } : {}),
         to: after,
         cost: costText(up.cost),
+        costChips: supplyChips(up.cost, { have: state.resources }),
         ...(problem ? { problem } : {}),
       };
     });
@@ -361,6 +414,46 @@ export function summaryLines(s: DepotSummary, state?: GameState): string[] {
   if (short.length > 0) out.push(`The ${joinList(short)} ran short and worked a level lower.`);
   const floor = s.floorNights ?? 0;
   if (floor > 0) out.push(`For want of a bed, someone slept on the floor ${floor === 1 ? 'one night' : `${floor} nights`}.`);
+  return out;
+}
+
+/**
+ * The days that passed as pictures (3.6.0): for each supply what came in and what went, and the
+ * health rest gave back. "Rations +12 −8", "Scrap +4", "Health +9".
+ */
+export function summaryChips(s: DepotSummary): Chip[] {
+  if (s.days === 0) return [];
+  const came: Partial<Record<ResourceId, number>> = { ...s.outposts };
+  const went: Partial<Record<ResourceId, number>> = { ...(s.upkeep ?? {}) };
+  came.rations = (came.rations ?? 0) + s.grown;
+  went.rations = (went.rations ?? 0) + s.eaten + (s.spoiled ?? 0);
+  came.scrap = (came.scrap ?? 0) + (s.stripped ?? 0);
+  came.ammo = (came.ammo ?? 0) + s.ammoMade;
+  const out: Chip[] = [];
+  for (const id of RESOURCE_IDS) {
+    const a = Math.round(came[id] ?? 0);
+    const b = Math.round(went[id] ?? 0);
+    if (a === 0 && b === 0) continue;
+    const text = [a > 0 ? `+${a}` : '', b > 0 ? `−${b}` : ''].filter(Boolean).join(' ');
+    out.push({ glyph: id, text, ...(a > b ? { tone: 'good' as const } : a < b ? { tone: 'bad' as const } : {}), label: `${RESOURCE_NAMES[id]}: ${a} in, ${b} used` });
+  }
+  if (s.healed > 0) out.push({ glyph: 'heart', text: `+${s.healed}`, tone: 'good', label: `Rest healed ${s.healed} health` });
+  return out;
+}
+
+/** What the pictures can't say: the days, going hungry, buildings that ran short, the floor. */
+export function summaryTitle(s: DepotSummary): string {
+  return s.days === 1 ? 'A day at the Depot' : `${s.days} days at the Depot`;
+}
+
+export function summaryWarnings(s: DepotSummary, state?: GameState): string[] {
+  const out: string[] = [];
+  if (s.hungryDays > 0) out.push(`The guild went hungry for ${s.hungryDays === 1 ? 'a day' : `${s.hungryDays} days`}.`);
+  if ((s.spoiled ?? 0) > 0) out.push(`${s.spoiled} ${s.spoiled === 1 ? 'ration' : 'rations'} kept too long went off.`);
+  const short = (s.unpaid ?? []).map((id) => (state ? buildingName(state, id) : buildingDef(id).name));
+  if (short.length > 0) out.push(`The ${joinList(short)} ran short and worked a level lower.`);
+  const floor = s.floorNights ?? 0;
+  if (floor > 0) out.push(`Someone slept on the floor ${floor === 1 ? 'one night' : `${floor} nights`}.`);
   return out;
 }
 

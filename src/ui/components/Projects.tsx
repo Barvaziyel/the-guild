@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { assignPost, dayAt, joinProject, startStage, type GameState, type ProjectId } from '../../engine/index.ts';
 import { navigate, useAction } from '../hooks.ts';
-import { crewCandidates, projectRows, type ProjectRow } from '../projects-view.ts';
+import { PROJECT_HOW, crewCandidates, projectRows, type ProjectRow } from '../projects-view.ts';
 import { Portrait } from './Portrait.tsx';
+import { Chips, Glyph } from './Glyph.tsx';
+import { problemNote } from '../glyphs.ts';
 
 const ORDER: Record<ProjectRow['state'], number> = { working: 0, waiting: 1, ready: 2, locked: 3, done: 4 };
 
@@ -13,9 +15,13 @@ export function Projects({ state }: { state: GameState }) {
     <>
       <div className="panel" data-tour="projects">
         <h3 className="panel-title">Projects</h3>
-        <p className="panel-help">
-          Big works that change the Depot for good. Each comes in three stages: pay for a stage, then put a crew on it, and they work it off day by day. One stage at a time, so the crew moves on with the work; they eat a ration more each while they work.
-        </p>
+        <ol className="how-strip" aria-label="Pay for a stage, put a crew on it, and they work it off day by day: three stages, one at a time. Each of the crew eats a ration more a day.">
+          {PROJECT_HOW.map((h) => (
+            <li key={h.text} aria-hidden="true">
+              <Glyph name={h.glyph} /> {h.text}
+            </li>
+          ))}
+        </ol>
       </div>
       {rows.map((r) => (
         <ProjectCard key={r.id} state={state} row={r} />
@@ -49,11 +55,11 @@ function ProjectCard({ state, row: r }: { state: GameState; row: ProjectRow }) {
 
       {r.next && !r.needs && (
         <div className="project-next">
-          <span className="project-cost">{r.next.cost}</span>
+          <Chips chips={r.next.costChips} className="project-cost" />
           <button type="button" className="btn btn-primary btn-small" disabled={r.next.problem !== undefined} onClick={() => act((st) => startStage(st, r.id, dayAt(st, Date.now())))}>
             {r.next.label}
           </button>
-          {r.next.problem && <p className="panel-help project-problem">{r.next.problem}</p>}
+          {problemNote(r.next.problem) && <p className="panel-help project-problem">{problemNote(r.next.problem)}</p>}
         </div>
       )}
 

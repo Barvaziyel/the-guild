@@ -46,7 +46,7 @@ export function Corners({ state, now }: { state: GameState; now: number }) {
 
       {summary && (
         <>
-          <p className="panel-help">{cornersHelp(state, now)}</p>
+          {cornersHelp(state, now) && <p className="panel-help">{cornersHelp(state, now)}</p>}
           <ul className="corner-list">
             {rows
               .filter((r) => r.status !== 'searched')

@@ -1,4 +1,5 @@
 import type { Choice } from '../runs-view.ts';
+import { Chips } from './Glyph.tsx';
 
 interface ChoiceListProps<T extends string> {
   legend: string;
@@ -18,7 +19,7 @@ export function ChoiceList<T extends string>({ legend, name, choices, value, onC
           <input type="radio" name={name} value={c.id} checked={c.id === value} onChange={() => onChange(c.id)} />
           <span className="choice-text">
             <span className="choice-name">{c.name}</span>
-            <span className="choice-desc">{c.description}</span>
+            {c.chips ? <Chips chips={c.chips} className="choice-chips" /> : <span className="choice-desc">{c.description}</span>}
           </span>
         </label>
       ))}
@@ -61,7 +62,10 @@ export function Stepper({ label, value, min, max, step = 1, note, onChange }: St
   );
 }
 
-/** A row of buttons, one per choice, with a line under it about the one picked. For forms that should fit a screen. */
+/**
+ * A row of buttons, one per choice, and under it what the one picked does: as pictures when it has
+ * them (3.6.0), a line of text when it doesn't. For forms that should fit a screen.
+ */
 export function Segmented<T extends string>({ legend, name, choices, value, onChange }: ChoiceListProps<T>) {
   const picked = choices.find((c) => c.id === value);
   return (
@@ -77,7 +81,13 @@ export function Segmented<T extends string>({ legend, name, choices, value, onCh
           </label>
         ))}
       </div>
-      {picked && <p className="seg-desc">{picked.description}</p>}
+      {picked?.chips ? (
+        <p className="seg-desc seg-chips">
+          <Chips chips={picked.chips} />
+        </p>
+      ) : (
+        picked && <p className="seg-desc">{picked.description}</p>
+      )}
     </div>
   );
 }

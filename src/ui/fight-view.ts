@@ -24,10 +24,11 @@ import {
 import { formatDuration, type PlannedNotice } from './runs-view.ts';
 
 /** The planner's switch: what it says. Any crew can be led (Aviel, 2.2.0: it shouldn't wait for a Radio Tower). */
-export function leadChoice(_state: GameState): { can: boolean; help: string; short: string } {
+export function leadChoice(_state: GameState): { can: boolean; help: string; short: string; wait: string } {
   const wait = formatDuration(LEAD_WAIT);
   return {
     can: true,
+    wait,
     help: `At every fight they call home and wait up to ${wait} for your orders, with a notice. Nobody there? They fight on their own.`,
     short: `At each fight they wait up to ${wait} for your orders.`,
   };

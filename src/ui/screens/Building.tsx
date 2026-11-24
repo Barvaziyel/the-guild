@@ -16,6 +16,8 @@ import { Portrait } from '../components/Portrait.tsx';
 import { goBack, navigate, useAction } from '../hooks.ts';
 import { buildingRow, postCandidates, recipeRows, trainableStats, upgradeRows, workerLine } from '../depot-view.ts';
 import { BuildingPicture, ItemIcon } from '../components/Art.tsx';
+import { Chips } from '../components/Glyph.tsx';
+import { problemNote } from '../glyphs.ts';
 
 const today = (s: GameState): number => dayAt(s, Date.now());
 
@@ -53,7 +55,7 @@ function BuildingBody({ state, id }: { state: GameState; id: BuildingId }) {
             <h3 className="panel-title">Now</h3>
             <p>{r.effect}</p>
             <p className="building-now">{r.status}</p>
-            {r.upkeep && <p className="panel-help">{r.upkeep}</p>}
+            {r.upkeepChip && <Chips chips={[r.upkeepChip]} className="upkeep-chips" />}
             {r.unpaid && <p className="field-error">{r.unpaid}</p>}
           </>
         )}
@@ -61,8 +63,8 @@ function BuildingBody({ state, id }: { state: GameState; id: BuildingId }) {
           <div className={r.built ? 'next-level' : undefined}>
             <h3 className="panel-title">{r.built ? `Level ${r.level + 1}` : 'Build it'}</h3>
             <p>{r.next.effect}</p>
-            <p className="panel-help">Costs {r.next.cost}.</p>
-            {r.next.problem && <p className="field-error">{r.next.problem}</p>}
+            <Chips chips={r.next.costChips} className="cost-chips" />
+            {problemNote(r.next.problem) && <p className="field-error">{problemNote(r.next.problem)}</p>}
             <button type="button" className="btn btn-primary" disabled={r.next.problem !== undefined} onClick={() => act((s) => build(s, id, today(s)))}>
               {r.built ? `Improve to level ${r.level + 1}` : `Build the ${def.name}`}
             </button>
@@ -91,7 +93,6 @@ function Workers({ state, id }: { state: GameState; id: BuildingId }) {
       <h3 id="workers-title" className="panel-title">
         {training ? 'Training here' : 'Working here'} <span className="count">{r.workers.length} of {r.slots}</span>
       </h3>
-      {r.workers.length === 0 && <p className="panel-help">Nobody yet.</p>}
       <ul className="workers">
         {r.workers.map((s) => {
           const line = workerLine(state, s);
@@ -179,7 +180,6 @@ function Workshop({ state }: { state: GameState }) {
         <h3 id="make-title" className="panel-title">
           Make
         </h3>
-        <p className="panel-help">New gear goes to the stash. Hand it out from a survivor&rsquo;s sheet.</p>
         <ul className="recipes">
           {recipes.map((r) => (
             <li key={r.gear} className="recipe recipe-with-icon">
@@ -187,7 +187,8 @@ function Workshop({ state }: { state: GameState }) {
               <span className="recipe-body">
                 <span className="item-name">{r.name}</span>
                 <span className="item-stats">{r.stats}</span>
-                <span className="recipe-cost">{r.problem && r.problem !== `Needs ${r.cost}.` ? r.problem : `Costs ${r.cost}.`}</span>
+                <Chips chips={r.costChips} className="recipe-cost" />
+                {problemNote(r.problem) && <span className="recipe-cost">{problemNote(r.problem)}</span>}
               </span>
               <button type="button" className="btn btn-small" disabled={r.problem !== undefined} onClick={() => act((s) => void craft(s, r.gear, today(s)))}>
                 Make
@@ -201,7 +202,7 @@ function Workshop({ state }: { state: GameState }) {
           Improve
         </h3>
         {upgrades.length === 0 ? (
-          <p className="panel-help">Nothing at the Depot can be improved.</p>
+          <p className="empty">Nothing to improve.</p>
         ) : (
           <ul className="recipes">
             {upgrades.map((u) => (
@@ -212,8 +213,11 @@ function Workshop({ state }: { state: GameState }) {
                     {u.name}
                     {u.holder && <span className="holder"> ({u.holder})</span>}
                   </span>
-                  <span className="item-stats">Becomes {u.to}.</span>
-                  <span className="recipe-cost">{u.problem && u.problem !== `Needs ${u.cost}.` ? u.problem : `Costs ${u.cost}.`}</span>
+                  <span className="item-stats">
+                    <span aria-hidden="true">&rarr;</span> {u.to}
+                  </span>
+                  <Chips chips={u.costChips} className="recipe-cost" />
+                  {problemNote(u.problem) && <span className="recipe-cost">{problemNote(u.problem)}</span>}
                 </span>
                 <button type="button" className="btn btn-small" disabled={u.problem !== undefined} onClick={() => act((s) => void upgradeItem(s, u.item.uid, today(s)))}>
                   Improve
@@ -226,7 +230,6 @@ function Workshop({ state }: { state: GameState }) {
       </section>
       <section className="panel">
         <h3 className="panel-title">Vehicles</h3>
-        <p className="panel-help">The Workshop also repairs vehicles, and builds motorcycles and cars.</p>
         <button type="button" className="btn btn-small" onClick={() => navigate({ screen: 'vehicles' })}>
           Go to the vehicles
         </button>

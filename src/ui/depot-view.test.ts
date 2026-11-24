@@ -19,7 +19,11 @@ import {
   postCandidates,
   postChoices,
   recipeRows,
+  statusChips,
+  summaryChips,
   summaryLines,
+  summaryTitle,
+  summaryWarnings,
   upgradeRows,
   upkeepLines,
   workerLine,
@@ -128,6 +132,16 @@ describe('while you were away', () => {
       'The Workshop made 3 ammo.',
       'Rest healed 6 health, and the Infirmary treated one patient.',
     ]);
+    // As pictures (3.6.0): what came in and went for each supply, and health.
+    const both = mergeSummaries(a, b);
+    assert.deepEqual(summaryChips(both).map((c) => [c.glyph, c.text, c.tone ?? '']), [
+      ['rations', '+15 −12', 'good'],
+      ['ammo', '+3', 'good'],
+      ['heart', '+6', 'good'],
+    ]);
+    assert.equal(summaryTitle(both), '3 days at the Depot');
+    assert.deepEqual(summaryWarnings(both), ['The guild went hungry for a day.']);
+    assert.deepEqual(summaryChips(emptySummary()), []);
     const state = testGame();
     state.log.push({ day: 2, text: 'The crew returned from X.', tags: ['run'] }, { day: 2, text: 'A stray dog nosed around.', tags: ['animal'] });
     assert.equal(depotNews(state)[0]!.text, 'A stray dog nosed around.');
@@ -149,6 +163,20 @@ describe('while you were away', () => {
     assert.equal(homeCounts(state).beds, 3);
     const s = { ...emptySummary(), days: 2, floorNights: 3 };
     assert.ok(summaryLines(s).includes('For want of a bed, someone slept on the floor 3 nights.'));
+  });
+});
+
+describe('building cards in pictures (3.6.0)', () => {
+  test('what each built building is doing now', () => {
+    const state = testGame('status-chips');
+    assert.deepEqual(statusChips(state, 'watchtower'), [], 'not built');
+    const garden = statusChips(state, 'garden')[0]!;
+    assert.equal(garden.glyph, 'rations');
+    assert.match(garden.text, /^\+[\d.]+ −\d+\/day$/);
+    assert.equal(statusChips(state, 'bunks')[0]!.text, `${homeCounts(state).beds}/${homeCounts(state).cap}`);
+    state.buildings.scrapyard = 1;
+    for (const s of state.survivors) if (s.post && 'building' in s.post && s.post.building === 'scrapyard') delete s.post;
+    assert.deepEqual([statusChips(state, 'scrapyard')[0]!.text, statusChips(state, 'scrapyard')[0]!.tone], ['idle', 'bad']);
   });
 });
 

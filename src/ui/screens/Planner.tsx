@@ -29,7 +29,7 @@ import {
   formatDuration,
   radiationText,
   paceNote,
-  rationsNote,
+  departChips,
   riskLine,
   suggestedAmmo,
   toggleCrew,
@@ -38,12 +38,13 @@ import { errorMessage } from '../persist.ts';
 import { depthChoices, outpostPlanNote, withDepth } from '../outposts-view.ts';
 import { jobChoices, withRescue } from '../rescue-view.ts';
 import { assaultChoice } from '../vultures-view.ts';
-import { toggleVehicle, vehicleChoices, vehicleNote } from '../vehicles-view.ts';
-import { clockTime } from '../time.ts';
+import { rideChips, toggleVehicle, vehicleChoices } from '../vehicles-view.ts';
 import { leadChoice } from '../fight-view.ts';
 import { planLeadLine } from '../haven-view.ts';
 import { PlacePicture } from '../components/Art.tsx';
 import { GearSlots } from '../components/GearSlots.tsx';
+import { Chips, Glyph } from '../components/Glyph.tsx';
+import { crewChips, pairChips } from '../bonds-view.ts';
 import { fitTrade, getChoices, giveChoices, marketJobs, maxTrade, tradeLine, withAmount, withGet, withGive } from '../market-view.ts';
 import { RESOURCE_NAMES } from '../view.ts';
 
@@ -180,14 +181,18 @@ function PlannerForm({ state, locationId, step }: { state: GameState; locationId
                       <input type="checkbox" checked={picked} disabled={v.reason !== undefined && !picked} onChange={() => toggleRide(v.vehicle.id)} />
                       <span className="crew-body">
                         <span className="crew-name">{v.name}</span>
-                        {v.reason ? <span className="crew-reason">{v.reason}</span> : <span className="crew-stats">{v.label}</span>}
+                        {v.reason ? (
+                          <span className="crew-reason">{v.reason}</span>
+                        ) : (
+                          <Chips chips={[...v.chips, { glyph: 'wrench', text: `${v.condition}%`, ...(v.condition < 30 ? { tone: 'bad' as const } : {}), label: `In ${v.condition}% condition` }]} className="ride-chips" />
+                        )}
                       </span>
                     </label>
                   </li>
                 );
               })}
             </ul>
-            <p className="panel-help">{vehicleNote(state, plan)}</p>
+            {(plan.vehicles ?? []).length > 0 && <Chips chips={rideChips(state, plan)} className="ride-total" />}
           </section>
         )}
 
@@ -199,6 +204,7 @@ function PlannerForm({ state, locationId, step }: { state: GameState; locationId
             {options.map(({ survivor: s, reason, stats }) => {
               const picked = plan.crew.includes(s.id);
               const full = !picked && plan.crew.length >= limit;
+              const pairs = reason ? [] : pairChips(state, s.id, plan.crew);
               return (
                 <li key={s.id}>
                   <label className={`crew-option${reason ? ' is-unavailable' : ''}${picked ? ' is-picked' : ''}`}>
@@ -211,6 +217,7 @@ function PlannerForm({ state, locationId, step }: { state: GameState; locationId
                       {reason ? <span className="crew-reason">{reason}</span> : <span className="crew-stats">{stats}</span>}
                       {!reason && <Vitals survivor={s} />}
                       {!reason && <GearSlots state={state} survivor={s} />}
+                      {pairs.length > 0 && <Chips chips={pairs} className="pair-chips" />}
                     </span>
                   </label>
                 </li>
@@ -222,6 +229,7 @@ function PlannerForm({ state, locationId, step }: { state: GameState; locationId
         <div className="action-bar">
           <div className="action-summary">
             <span className="action-sub">{plan.crew.length === 0 ? 'Pick at least one survivor.' : crewLine(state, plan.crew)}</span>
+            <Chips chips={crewChips(state, plan.crew)} className="crew-together" />
           </div>
           <button type="button" className="btn btn-primary" disabled={plan.crew.length === 0} onClick={() => navigate({ screen: 'plan', locationId, step: 'orders' })}>
             Orders <span aria-hidden="true">&rsaquo;</span>
@@ -236,7 +244,7 @@ function PlannerForm({ state, locationId, step }: { state: GameState; locationId
       <PlannerNav step="orders" locationId={locationId} />
       {header}
       <section className="panel orders-panel" aria-label="Orders">
-        {(plan.vehicles ?? []).length > 0 && <p className="panel-help orders-crew">{vehicleNote(state, plan)}</p>}
+        {(plan.vehicles ?? []).length > 0 && <Chips chips={rideChips(state, plan)} className="ride-total orders-crew" />}
         {depths.length > 0 && (
           <div data-tour="depth">
             <Segmented legend="How far in" name="depth" choices={depths} value={String(plan.depth ?? 1)} onChange={(d) => setPlan((p) => withDepth(p, Number(d)))} />
@@ -290,7 +298,9 @@ function PlannerForm({ state, locationId, step }: { state: GameState; locationId
         <label className="toggle lead-toggle" data-tour="lead">
           <span className="toggle-text">
             <span className="toggle-label">Lead the fights</span>
-            <span className="toggle-help">{lead.short}</span>
+            <span className="toggle-help" aria-label={lead.short}>
+              <Glyph name="clock" /> {lead.wait}
+            </span>
           </span>
           <input
             type="checkbox"
@@ -338,11 +348,14 @@ function PlannerForm({ state, locationId, step }: { state: GameState; locationId
           <p className="panel-help">Pick a crew first.</p>
         ) : (
           <>
-            <p>
-              Away for {formatDuration(duration)}, back at {clockTime(now + duration)}. <span className="panel-help">{rationsNote(state, plan)}</span>
-              {pace && <span className="panel-help"> {pace}</span>}
-              {fromOutpost && <span className="panel-help"> {fromOutpost}</span>}
-            </p>
+            <Chips chips={departChips(state, plan, duration, now)} className="depart-chips" />
+            {(pace || fromOutpost) && (
+              <p className="panel-help">
+                {pace}
+                {pace && fromOutpost && ' '}
+                {fromOutpost}
+              </p>
+            )}
             {havenLead && <p className="haven-plan-line">{havenLead}</p>}
             {problems.length > 0 && (
               <ul className="problems">

@@ -5,10 +5,11 @@ import { Portrait } from '../components/Portrait.tsx';
 import { navigate, useAction, useSeen } from '../hooks.ts';
 import { dots } from '../attention-view.ts';
 import { GearSlots } from '../components/GearSlots.tsx';
-import { CAPTIVES_HELP, captiveRows, type CaptiveRow } from '../captives-view.ts';
+import { CAPTIVES_CHIPS, captiveRows, type CaptiveRow } from '../captives-view.ts';
 import { childRows, childrenSummary, type ChildRow } from '../family-view.ts';
 import { backIn, runOfSurvivor } from '../runs-view.ts';
 import { headlineTraits, nameWithNickname, originLine, rosterOrder, survivorStatus } from '../view.ts';
+import { Chips } from '../components/Glyph.tsx';
 
 export function Roster({ state, day, now }: { state: GameState; day: number; now: number }) {
   const people = rosterOrder(state);
@@ -36,9 +37,7 @@ export function Roster({ state, day, now }: { state: GameState; day: number; now
       {(state.children.length > 0 || state.survivors.some((s) => s.expecting)) && (
         <div className="panel children">
           <h3 className="panel-title">Children</h3>
-          <p className="panel-help">
-            {childrenSummary(state)} Children eat, take a bed and lift everyone&rsquo;s spirits. They never go out, and join the guild at 16.
-          </p>
+          <p className="panel-help">{childrenSummary(state)}</p>
           {state.children.length > 0 && (
             <ul className="roster children-list">
               {childRows(state, day).map((row) => (
@@ -118,7 +117,7 @@ function Captives({ state }: { state: GameState }) {
       <h3 id="captives-title" className="panel-title">
         Captives
       </h3>
-      <p className="panel-help">{CAPTIVES_HELP}</p>
+      <Chips chips={CAPTIVES_CHIPS} />
       {said && (
         <p className="vulture-meaning" role="status">
           {said}

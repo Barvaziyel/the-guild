@@ -28,6 +28,7 @@ import {
   type ProjectId,
   type Survivor,
 } from '../engine/index.ts';
+import { supplyChips, type Chip, type GlyphName } from './glyphs.ts';
 
 export interface ProjectRow {
   id: ProjectId;
@@ -40,7 +41,7 @@ export interface ProjectRow {
   /** 0..1 through the whole project, for a bar. */
   progress: number;
   /** The next stage to pay for: its cost, and why it can't start now. */
-  next?: { label: string; cost: string; problem?: string };
+  next?: { label: string; cost: string; costChips: Chip[]; problem?: string };
   /** What's needed before it can start at all. */
   needs?: string;
   crew: { survivor: Survivor; line: string; away?: string }[];
@@ -93,7 +94,7 @@ export function projectRow(state: GameState, id: ProjectId): ProjectRow {
     status,
     state: rowState,
     progress,
-    ...(!done && stage && !working ? { next: { label: ps.done === 0 ? 'Start' : `Start stage ${ps.done + 1}`, cost: costText(stage.cost), ...(problem ? { problem } : {}) } } : {}),
+    ...(!done && stage && !working ? { next: { label: ps.done === 0 ? 'Start' : `Start stage ${ps.done + 1}`, cost: costText(stage.cost), costChips: supplyChips(stage.cost, { have: state.resources }), ...(problem ? { problem } : {}) } } : {}),
     ...(needs && !done ? { needs } : {}),
     crew,
     crewRoom: done || !state.projects[id] ? 0 : PROJECT_CREW - crew.length,
@@ -101,6 +102,14 @@ export function projectRow(state: GameState, id: ProjectId): ProjectRow {
     ...(eta ? { eta } : {}),
   };
 }
+
+/** How a project goes, as a strip of pictures (3.6.0), instead of a paragraph: pay, a crew, days; three times. */
+export const PROJECT_HOW: readonly { glyph: GlyphName; text: string }[] = [
+  { glyph: 'scrap', text: 'Pay' },
+  { glyph: 'seat', text: 'Crew' },
+  { glyph: 'clock', text: 'Days' },
+  { glyph: 'rations', text: '+1 each' },
+];
 
 /** "About 2 real days left at this pace", or a nudge when nobody is working. Eight Depot days make a real day. */
 export function etaText(workLeft: number, perDay: number): string {
