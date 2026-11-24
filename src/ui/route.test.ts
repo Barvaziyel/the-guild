@@ -50,7 +50,7 @@ describe('routes', () => {
     assert.equal(tabFor({ screen: 'settings' }), 'settings');
     assert.equal(tabFor({ screen: 'building', id: 'garden' }), 'depot');
     assert.equal(tabFor({ screen: 'recruits' }), 'depot');
-    assert.equal(tabFor({ screen: 'gear' }), 'depot');
-    assert.equal(tabFor({ screen: 'vehicles' }), 'depot');
+    assert.equal(tabFor({ screen: 'gear' }), 'gear', 'Gear is a tab of its own (3.5.0)');
+    assert.equal(tabFor({ screen: 'vehicles' }), 'gear');
   });
 });

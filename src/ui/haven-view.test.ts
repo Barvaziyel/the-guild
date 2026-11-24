@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import { FIRST_WEEK, HAVEN_CLUES, HAVEN_DREAMER, LOCATIONS, buyCaravan, claimStory, newGame, setOutForHaven, startHaven, type GameState } from '../engine/index.ts';
 import { testSurvivor } from '../engine/test-utils.ts';
-import { bellItems } from './bell-view.ts';
+import { baselineSeen, dots, todayReasons } from './attention-view.ts';
 import { childrenSummary } from './family-view.ts';
 import { fightCard } from './fight-view.ts';
 import { discoveredLeadLine, findView, havenReady, havenReport, havenView, leadPlaces, placeLeadLine, planLeadLine, reportGoneLine, reportHavenLine, roadEastView, roadPoints, roadView, smoothPath } from './haven-view.ts';
@@ -118,9 +118,7 @@ describe('the Haven tab (§9.11)', () => {
     band = havenView(state)!.leads.find((l) => l.id === 'convoy_band')!;
     assert.equal(band.action, 'Listen in');
     assert.deepEqual(havenReady(state), ['convoy_band']);
-    const bell = bellItems(state, T0).find((i) => i.id === 'haven-convoy_band')!;
-    assert.equal(bell.text, 'For Haven: the Radio Tower is up. Listen in.');
-    assert.deepEqual(bell.to, { screen: 'haven' });
+    assert.equal(dots(state, T0, baselineSeen(state)).tabs.haven, true, 'a dot on the Haven tab');
   });
 
   test('a lead deeper in waits for that level to open; one tried before says so', () => {
@@ -350,7 +348,7 @@ describe('the road east (§9.12)', () => {
     assert.equal(east.runId, run.id);
     assert.match(east.lines[0]!, /the child too/);
     assert.equal(childrenSummary(state), '1 child on the road east with the guild.');
-    assert.ok(!bellItems(state, T0 + 1000).some((i) => i.id === 'empty'), 'no raid comes while they’re away, so an empty Depot is no warning');
+    assert.ok(!todayReasons(state, T0 + 1000).includes('empty'), 'no raid comes while they’re away, so an empty Depot is no warning');
     // The road's fights say where they are, and have their own backdrops.
     const first = run.lead!.fights[0]!;
     assert.equal(first.site, 'haven_toll');

@@ -37,7 +37,7 @@ export const MAP_SPOTS: Record<string, MapSpot> = {
   the_glow: { x: 92, y: 7, label: 'left' },
   blackwater: { x: 88, y: 90, label: 'left' },
   // The market (3.4.0), straight down the road from the Depot, between the roads to the Water Plant and Blackwater.
-  drive_in: { x: 48, y: 87, label: 'right' },
+  drive_in: { x: 50, y: 85, label: 'left' },
 };
 
 /** Map labels drop a leading "The" (except The Glow) and break onto two lines when long. */

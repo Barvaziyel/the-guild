@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { decideCaptive, getLocation, type CaptiveAction, type GameState, type Survivor } from '../../engine/index.ts';
 import { Vitals } from '../components/Bars.tsx';
 import { Portrait } from '../components/Portrait.tsx';
-import { navigate, useAction } from '../hooks.ts';
+import { navigate, useAction, useSeen } from '../hooks.ts';
+import { dots } from '../attention-view.ts';
+import { GearSlots } from '../components/GearSlots.tsx';
 import { CAPTIVES_HELP, captiveRows, type CaptiveRow } from '../captives-view.ts';
 import { childRows, childrenSummary, type ChildRow } from '../family-view.ts';
 import { backIn, runOfSurvivor } from '../runs-view.ts';
@@ -10,6 +12,7 @@ import { headlineTraits, nameWithNickname, originLine, rosterOrder, survivorStat
 
 export function Roster({ state, day, now }: { state: GameState; day: number; now: number }) {
   const people = rosterOrder(state);
+  const marks = dots(state, now, useSeen(state)).survivors;
   const ready = people.filter((s) => survivorStatus(s).tone === 'ready').length;
   return (
     <section aria-labelledby="roster-title">
@@ -26,7 +29,7 @@ export function Roster({ state, day, now }: { state: GameState; day: number; now
       ) : (
         <ul className="roster">
           {people.map((s) => (
-            <RosterRow key={s.id} state={state} survivor={s} day={day} now={now} />
+            <RosterRow key={s.id} state={state} survivor={s} day={day} now={now} dot={marks[s.id] === true} />
           ))}
         </ul>
       )}
@@ -58,7 +61,7 @@ export function Roster({ state, day, now }: { state: GameState; day: number; now
   );
 }
 
-function RosterRow({ state, survivor: s, day, now }: { state: GameState; survivor: Survivor; day: number; now: number }) {
+function RosterRow({ state, survivor: s, day, now, dot }: { state: GameState; survivor: Survivor; day: number; now: number; dot: boolean }) {
   const status = survivorStatus(s, day);
   const run = runOfSurvivor(state, s.id);
   const label = run ? `At ${getLocation(run.plan.locationId).name}, ${backIn(run, now)}` : status.label;
@@ -78,8 +81,10 @@ function RosterRow({ state, survivor: s, day, now }: { state: GameState; survivo
           <span className="roster-origin">{originLine(s)}</span>
           <span className={`status status-${status.tone}`}>{label}</span>
           <Vitals survivor={s} />
+          <GearSlots state={state} survivor={s} />
           {traits.length > 0 && <span className="roster-traits">{traits.join(', ')}</span>}
         </span>
+        {dot && <span className="dot dot-corner" aria-label="Something new" />}
       </button>
     </li>
   );

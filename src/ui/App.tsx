@@ -1,17 +1,17 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { advanceTime, dayAt, dueRuns, getLocation, havenNew, nextDayAt, returnUnsure, searchDue, type AdvanceResult, type DepotSummary, type GameState } from '../engine/index.ts';
+import { advanceTime, dayAt, dueRuns, getLocation, nextDayAt, returnUnsure, searchDue, type AdvanceResult, type DepotSummary, type GameState } from '../engine/index.ts';
 import { mergeSummaries, nextDayView } from './depot-view.ts';
 import { TourCard } from './components/TourCard.tsx';
-import { navigate, savedScroll, useHash, useNow, usePrefs, useRoute, useServices, useSnapshot } from './hooks.ts';
+import { navigate, savedScroll, useHash, useNow, usePrefs, useRoute, useSeen, useServices, useSnapshot } from './hooks.ts';
 import { tabFor, type Route, type TabScreen } from './route.ts';
-import { joinNames, noticesFor, reportFirstNames, unreadCount } from './runs-view.ts';
+import { joinNames, noticesFor, reportFirstNames } from './runs-view.ts';
 import { dilemmaNotices } from './dilemma-view.ts';
 import { rescueNotices } from './rescue-view.ts';
 import { familyNoticeKey, familyNotices } from './family-view.ts';
-import { anyoneCalling, radioNoticeKey, radioNotices, radioWakeTimes } from './radio-view.ts';
-import { raidAlert, raidNoticeKey, raidNotices, raidWakeTimes } from './raid-view.ts';
+import { radioNoticeKey, radioNotices, radioWakeTimes } from './radio-view.ts';
+import { raidNoticeKey, raidNotices, raidWakeTimes } from './raid-view.ts';
 import { Raid } from './screens/Raid.tsx';
-import { anyoneFighting, fightNoticeKey, fightNotices, fightWakeTimes } from './fight-view.ts';
+import { fightNoticeKey, fightNotices, fightWakeTimes } from './fight-view.ts';
 import { cornerNoticeKey, cornerNotices, cornerWakeTimes } from './corners-view.ts';
 import { Fight } from './screens/Fight.tsx';
 import { Building } from './screens/Building.tsx';
@@ -22,7 +22,6 @@ import { LoadError } from './screens/LoadError.tsx';
 import { Memorial } from './screens/Memorial.tsx';
 import { Vultures } from './screens/Vultures.tsx';
 import { Haven } from './screens/Haven.tsx';
-import { havenReady } from './haven-view.ts';
 import { Planner } from './screens/Planner.tsx';
 import { Reach } from './screens/Reach.tsx';
 import { Recruits } from './screens/Recruits.tsx';
@@ -32,13 +31,14 @@ import { RunView } from './screens/RunView.tsx';
 import { Settings } from './screens/Settings.tsx';
 import { SurvivorSheet } from './screens/SurvivorSheet.tsx';
 import { tourStep } from './tour.ts';
-import { Bell } from './components/Bell.tsx';
+import { UrgentStrip } from './components/UrgentStrip.tsx';
+import { dots, type Dots } from './attention-view.ts';
 import { resourceList } from './view.ts';
 import { useSound } from './use-sound.ts';
 import { COUNT_MS, changeText, countAt, screenKey } from './motion-view.ts';
 
 /** Screens that have their own back bar instead of the guild header. */
-const DETAIL_SCREENS: Route['screen'][] = ['survivor', 'plan', 'run', 'fight', 'raid', 'building', 'recruits', 'gear', 'vultures'];
+const DETAIL_SCREENS: Route['screen'][] = ['survivor', 'plan', 'run', 'fight', 'raid', 'building', 'recruits', 'vultures'];
 
 export function App() {
   const snap = useSnapshot();
@@ -122,6 +122,7 @@ export function App() {
   return (
     <div className={touring ? 'app is-touring' : 'app'}>
       {!DETAIL_SCREENS.includes(route.screen) && <TopBar state={s} day={day} now={now} />}
+      <UrgentStrip state={s} now={now} route={route} />
       {snap.saveError && (
         <p className="banner" role="alert">
           {snap.saveError} Your progress is kept until you close the game. Export the save from Settings to be safe.
@@ -133,13 +134,7 @@ export function App() {
       </main>
       {time.current && <ReturnToast state={s} reportId={time.current} more={time.more} onClose={time.dismiss} />}
       {touring && tour && <TourCard state={s} stepId={tour} />}
-      <TabBar
-        current={tabFor(route)}
-        unread={unreadCount(s)}
-        deciding={s.dilemmas.active !== undefined || raidAlert(s)}
-        calling={anyoneCalling(s, now) || anyoneFighting(s, now)}
-        haven={s.haven ? { new: route.screen === 'haven' ? 0 : havenNew(s), ready: havenReady(s).length > 0 } : undefined}
-      />
+      <TabBar current={tabFor(route)} state={s} now={now} touring={touring} />
     </div>
   );
 }
@@ -270,7 +265,11 @@ function TopBar({ state, day, now }: { state: GameState; day: number; now: numbe
               </span>
             </span>
           </p>
-          <Bell state={state} now={now} />
+          <button type="button" className="cog-button" aria-label="Settings" onClick={() => navigate({ screen: 'settings' })}>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 8.6a3.4 3.4 0 1 0 0 6.8 3.4 3.4 0 0 0 0-6.8Zm8.2 4.6-.1-2.4 2-1.6-2-3.4-2.4 1a7.6 7.6 0 0 0-2.1-1.2L15.2 3h-4l-.4 2.6c-.8.3-1.5.7-2.1 1.2l-2.4-1-2 3.4 2 1.6a7.4 7.4 0 0 0 0 2.4l-2 1.6 2 3.4 2.4-1c.6.5 1.3.9 2.1 1.2l.4 2.6h4l.4-2.6c.8-.3 1.5-.7 2.1-1.2l2.4 1 2-3.4-2-1.6Z" />
+            </svg>
+          </button>
         </div>
       </div>
       <ul className="resources" aria-label="Supplies at the Depot" data-tour="resources">
@@ -334,17 +333,22 @@ function Amount({ value }: { value: number }) {
 const TABS: { screen: TabScreen; label: string }[] = [
   { screen: 'depot', label: 'Depot' },
   { screen: 'roster', label: 'Roster' },
+  { screen: 'gear', label: 'Gear' },
   { screen: 'reach', label: 'Reach' },
   { screen: 'runs', label: 'Runs' },
   { screen: 'haven', label: 'Haven' },
-  { screen: 'settings', label: 'Settings' },
 ];
 
-/** `haven`: the Haven tab is there once the broadcast is heard (§9.11), with what's new on it. */
-function TabBar({ current, unread, deciding, calling, haven }: { current: TabScreen; unread: number; deciding: boolean; calling: boolean; haven: { new: number; ready: boolean } | undefined }) {
-  const tabs = TABS.filter((t) => t.screen !== 'haven' || haven);
+/**
+ * The tabs, each with a red dot when something on it is new or waiting (3.5.0). Settings is behind the
+ * cog in the header; the Haven tab is there once the broadcast is heard (§9.11).
+ */
+function TabBar({ current, state, now, touring }: { current: TabScreen; state: GameState; now: number; touring: boolean }) {
+  const seen = useSeen(state);
+  const d: Dots = dots(state, now, seen, { touring });
+  const tabs = TABS.filter((t) => t.screen !== 'haven' || state.haven);
   return (
-    <nav className={`tabbar${tabs.length > 5 ? ' is-six' : ''}`} aria-label="Screens">
+    <nav className={`tabbar${tabs.length > 5 ? ' is-six' : ''}`} aria-label="Screens" data-tour="tabbar">
       {tabs.map((t) => (
         <button
           key={t.screen}
@@ -353,34 +357,9 @@ function TabBar({ current, unread, deciding, calling, haven }: { current: TabScr
           aria-current={t.screen === current ? 'page' : undefined}
           onClick={() => navigate({ screen: t.screen }, { replace: true })}
         >
-          {/* The badge sits on the word, not after it: with six tabs it was landing on the next one (2.9.1). */}
           <span className="tab-label">
             {t.label}
-            {t.screen === 'runs' && calling && (
-              <span className="badge" aria-label=", a crew on the radio">
-                !
-              </span>
-            )}
-            {t.screen === 'runs' && !calling && unread > 0 && (
-              <span className="badge" aria-label={`${unread} new`}>
-                {unread}
-              </span>
-            )}
-            {t.screen === 'depot' && deciding && (
-              <span className="badge" aria-label=", something needs you">
-                !
-              </span>
-            )}
-            {t.screen === 'haven' && haven?.ready && (
-              <span className="badge" aria-label=", something to work out">
-                !
-              </span>
-            )}
-            {t.screen === 'haven' && !haven?.ready && (haven?.new ?? 0) > 0 && (
-              <span className="badge" aria-label={`${haven!.new} new`}>
-                {haven!.new}
-              </span>
-            )}
+            {d.tabs[t.screen] && <span className="dot" aria-label=", something new" />}
           </span>
         </button>
       ))}

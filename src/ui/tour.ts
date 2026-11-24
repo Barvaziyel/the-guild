@@ -152,13 +152,12 @@ export const TOUR_STEPS: readonly TourStep[] = [
     },
   },
   {
-    id: 'bell',
+    id: 'dots',
     part: 'depot',
-    title: 'The bell',
+    title: 'Red dots',
     route: depot,
-    target: 'bell',
-    text: () =>
-      'The bell up top keeps track of what needs you: raiders, a crew at a fight or on the radio, a decision, people at the gate, crews back with a report, and warnings. Tap a line to go there. Most of it also waits as a card here, on the Today tab.',
+    target: 'tabbar',
+    text: () => 'A red dot means something new or waiting. Follow the dots: the tab, then the tab inside it, then the thing itself. A fight or raid that needs your orders shows as a strip up top.',
   },
   {
     id: 'notices',
@@ -256,10 +255,9 @@ export const TOUR_STEPS: readonly TourStep[] = [
     id: 'gear',
     part: 'people',
     title: 'Gear',
-    route: depot,
+    route: () => ({ screen: 'gear' }),
     target: 'gear',
-    text: () =>
-      "Weapons, armor, tools and trinkets that crews find, or the Workshop makes, go into the stash. Open it to hand them out, or take apart what nobody needs for scrap once there's a Workshop. People change gear only while they're at the Depot.",
+    text: () => 'Everyone’s four slots: weapon, armor, tool, trinket. A red slot is empty while the stash has something for it. Hand gear out at the Depot, before they go.',
   },
   {
     id: 'gate',

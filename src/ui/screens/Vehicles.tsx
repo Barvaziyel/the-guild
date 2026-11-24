@@ -14,8 +14,8 @@ export function Vehicles({ state }: { state: GameState }) {
   return (
     <article className="sheet" aria-labelledby="vehicles-title">
       <div className="sheet-nav">
-        <button type="button" className="back" onClick={() => goBack({ screen: 'depot' })}>
-          <span aria-hidden="true">&lsaquo;</span> The Depot
+        <button type="button" className="back" onClick={() => goBack({ screen: 'gear' })}>
+          <span aria-hidden="true">&lsaquo;</span> Gear
         </button>
       </div>
       <header className="sheet-head">

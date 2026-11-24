@@ -14,10 +14,12 @@ interface Props {
   state: GameState;
   selected?: string;
   onPick: (id: string) => void;
+  /** Places with something new (3.5.0): a red dot by each. */
+  marks?: Record<string, true>;
 }
 
 /** The Reach, sketched on the journal's map page. */
-export function ReachMapSvg({ state, selected, onPick }: Props) {
+export function ReachMapSvg({ state, selected, onPick, marks = {} }: Props) {
   const { wobble } = usePrefs();
   const map = reachMap(state);
   return (
@@ -46,7 +48,7 @@ export function ReachMapSvg({ state, selected, onPick }: Props) {
       </g>
       <Depot />
       {map.nodes.map((n) => (
-        <Node key={n.id} node={n} selected={n.id === selected} onPick={onPick} />
+        <Node key={n.id} node={n} selected={n.id === selected} onPick={onPick} dot={marks[n.id] === true && n.id !== selected} />
       ))}
       <Crews state={state} />
     </svg>
@@ -123,7 +125,7 @@ function Depot() {
   );
 }
 
-function Node({ node: n, selected, onPick }: { node: MapNode; selected: boolean; onPick: (id: string) => void }) {
+function Node({ node: n, selected, onPick, dot }: { node: MapNode; selected: boolean; onPick: (id: string) => void; dot: boolean }) {
   const { x, y } = n.spot;
   const pick = (): void => onPick(n.id);
   const onKey = (e: KeyboardEvent): void => {
@@ -188,6 +190,7 @@ function Node({ node: n, selected, onPick }: { node: MapNode; selected: boolean;
           </text>
         </g>
       )}
+      {dot && <circle cx={x - 4} cy={y - 4} r={1.5} fill="#e8473a" stroke="#efe6d2" strokeWidth={0.5} />}
       <Label spot={n.spot} lines={n.label} offset={6.6} bold={selected} />
     </g>
   );
