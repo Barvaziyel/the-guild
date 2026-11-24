@@ -68,6 +68,17 @@ describe('the yard drawing', () => {
     }
   });
 
+  test('a building put up since the last look rises in a puff of dust, once it stands (3.7.0)', () => {
+    const svg = yardSvg(model((m) => {
+      m.fresh = ['garden', 'watchtower'];
+      m.buildings.watchtower = 0;
+    }));
+    assertWellFormed(svg);
+    assert.equal(svg.match(/class="yard-built"/g)?.length, 1, 'an empty lot has nothing to raise');
+    assert.equal(svg.match(/class="yard-dust"/g)?.length, 7);
+    assert.ok(!yardSvg(model()).includes('yard-built'));
+  });
+
   test('every project draws at every stage, and the Wall takes the fence\u2019s place', () => {
     for (const done of [0, 1, 2, 3]) {
       for (const working of [false, true]) {

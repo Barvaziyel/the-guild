@@ -24,7 +24,7 @@ import { dangerText, formatDuration, joinNames, locationView, placeChips, radiat
 import { nemesesAt, nemesisRows } from '../stories-view.ts';
 import { vulturePlaceLine, vulturesSummary, vultureTag } from '../vultures-view.ts';
 import { PlacePicture } from '../components/Art.tsx';
-import { dots, seePlace } from '../attention-view.ts';
+import { dots, mapNews, seeMap, seePlace } from '../attention-view.ts';
 import { priceRows } from '../market-view.ts';
 import { Chips, Glyph } from '../components/Glyph.tsx';
 import { RESOURCE_NAMES } from '../view.ts';
@@ -39,8 +39,12 @@ export function Reach({ state, selected, tab = 'about' }: { state: GameState; se
   const sel = selected && findLocation(selected) ? selected : undefined;
   const leads = leadPlaces(state);
   // A dot on each place with something new; opening it is seeing it (3.5.0).
-  const marks = dots(state, Date.now(), useSeen(state)).places;
-  useMarkSeen(state, (_, seen) => (sel ? seePlace(seen, sel) : seen), [sel]);
+  const seen = useSeen(state);
+  const marks = dots(state, Date.now(), seen).places;
+  useMarkSeen(state, (_, s) => (sel ? seePlace(s, sel) : s), [sel]);
+  // What changed on the map since the last look plays once, on opening the Reach (3.7.0).
+  const [news] = useState(() => mapNews(state, seen));
+  useMarkSeen(state, seeMap, []);
 
   return (
     <section aria-labelledby="reach-title">
@@ -51,7 +55,7 @@ export function Reach({ state, selected, tab = 'about' }: { state: GameState; se
         <p className="screen-sub">{places.length} places known</p>
       </div>
       <div className="map-page" data-tour="map">
-        <ReachMapSvg state={state} selected={sel} onPick={pick} marks={marks} />
+        <ReachMapSvg state={state} selected={sel} onPick={pick} marks={marks} news={news} />
       </div>
       {sel && <PlacePanel state={state} id={sel} tab={tab} />}
       <div className="panel">

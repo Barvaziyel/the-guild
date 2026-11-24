@@ -1,4 +1,4 @@
-import type { KeyboardEvent } from 'react';
+import type { CSSProperties, KeyboardEvent } from 'react';
 import type { GameState } from '../../engine/index.ts';
 import { navigate, useNow, usePrefs } from '../hooks.ts';
 import { crewMarker, DEPOT_SPOT, reachMap, type CrewMarker, type LabelSide, type MapNode, type MapSpot } from '../reach-map.ts';
@@ -16,12 +16,18 @@ interface Props {
   onPick: (id: string) => void;
   /** Places with something new (3.5.0): a red dot by each. */
   marks?: Record<string, true>;
+  /** What's new since the map was last looked at (3.7.0): places that draw in, and rings that fill up from where they were. */
+  news?: { fresh: string[]; from: Record<string, number> };
 }
 
 /** The Reach, sketched on the journal's map page. */
-export function ReachMapSvg({ state, selected, onPick, marks = {} }: Props) {
+export function ReachMapSvg({ state, selected, onPick, marks = {}, news }: Props) {
   const { wobble } = usePrefs();
   const map = reachMap(state);
+  const fresh = new Set(news?.fresh ?? []);
+  const newRoad = (r: { fromId: string; toId: string }): boolean => fresh.has(r.fromId) || fresh.has(r.toId);
+  // A question mark is new when every road to it is.
+  const newNode = (id: string): boolean => fresh.has(id) || (map.roads.some((r) => r.toId === id) && map.roads.filter((r) => r.toId === id).every(newRoad));
   return (
     <svg className="reach-map" viewBox="0 0 100 100" role="group" aria-label="Map of the Reach">
       <defs>
@@ -43,12 +49,14 @@ export function ReachMapSvg({ state, selected, onPick, marks = {} }: Props) {
             strokeDasharray={r.known ? undefined : '1.2 1.4'}
             opacity={r.known ? 0.75 : 0.45}
             strokeLinecap="round"
+            // A road to somewhere new draws itself in (3.7.0); a faint one to somewhere unknown fades in after it.
+            {...(newRoad(r) ? (r.known ? { pathLength: 1, className: 'map-draw' } : { className: 'map-fade' }) : {})}
           />
         ))}
       </g>
       <Depot />
       {map.nodes.map((n) => (
-        <Node key={n.id} node={n} selected={n.id === selected} onPick={onPick} dot={marks[n.id] === true && n.id !== selected} />
+        <Node key={n.id} node={n} selected={n.id === selected} onPick={onPick} dot={marks[n.id] === true && n.id !== selected} fresh={newNode(n.id)} from={news?.from[n.id]} />
       ))}
       <Crews state={state} />
     </svg>
@@ -125,8 +133,10 @@ function Depot() {
   );
 }
 
-function Node({ node: n, selected, onPick, dot }: { node: MapNode; selected: boolean; onPick: (id: string) => void; dot: boolean }) {
+function Node({ node: n, selected, onPick, dot, fresh, from }: { node: MapNode; selected: boolean; onPick: (id: string) => void; dot: boolean; fresh: boolean; from: number | undefined }) {
   const { x, y } = n.spot;
+  // A place new to the map pops up once its road has drawn in (3.7.0).
+  const pop = fresh ? { className: 'map-pop', style: { transformOrigin: `${x}px ${y}px` } } : {};
   const pick = (): void => onPick(n.id);
   const onKey = (e: KeyboardEvent): void => {
     if (e.key === 'Enter' || e.key === ' ') {
@@ -137,7 +147,7 @@ function Node({ node: n, selected, onPick, dot }: { node: MapNode; selected: boo
 
   if (!n.known) {
     return (
-      <g className="map-node unknown" role="button" tabIndex={0} aria-label="An unexplored place" onClick={pick} onKeyDown={onKey}>
+      <g className={`map-node unknown${fresh ? ' map-pop' : ''}`} style={pop.style} role="button" tabIndex={0} aria-label="An unexplored place" onClick={pick} onKeyDown={onKey}>
         <circle cx={x} cy={y} r={7} fill="transparent" />
         <circle cx={x} cy={y} r={2.8} fill="none" stroke={INK} strokeWidth={0.45} strokeDasharray="1 0.9" opacity={0.6} />
         <text x={x} y={y + 1.25} textAnchor="middle" fontSize={3.4} fontWeight={700} fill={INK} opacity={0.6}>
@@ -153,7 +163,8 @@ function Node({ node: n, selected, onPick, dot }: { node: MapNode; selected: boo
   const circumference = 2 * Math.PI * ring;
   return (
     <g
-      className="map-node"
+      className={`map-node${fresh ? ' map-pop' : ''}`}
+      style={pop.style}
       role="button"
       tabIndex={0}
       aria-label={`${n.label.join(' ')}, danger ${n.danger}, ${n.market ? 'a market' : `explored ${n.explored}%`}${n.outpost ? `, the guild has an outpost here${n.outpost === 'damaged' ? ' that needs mending' : ''}` : ''}${n.vultureCamp ? ', the Vultures have a camp here' : ''}${n.crewsOut ? `, a crew is there now` : ''}`}
@@ -174,6 +185,8 @@ function Node({ node: n, selected, onPick, dot }: { node: MapNode; selected: boo
           strokeWidth={0.8}
           strokeDasharray={`${(n.explored / 100) * circumference} ${circumference}`}
           transform={`rotate(-90 ${x} ${y})`}
+          // Explored further since the last look: the ring fills up from where it was (3.7.0).
+          {...(from !== undefined ? { className: 'map-fill', style: { '--from': `${(from / 100) * circumference}`, '--c': `${circumference}` } as CSSProperties } : {})}
         />
       )}
       <circle cx={x} cy={y} r={r} fill={DANGER_FILL[n.danger - 1] ?? INK} stroke={INK} strokeWidth={0.55} />

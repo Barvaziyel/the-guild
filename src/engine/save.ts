@@ -205,6 +205,10 @@ const MIGRATIONS: Record<number, (save: Record<string, unknown>) => void> = {
     // missing from `buildings` is unbuilt, and the Drive-In is known from the start through `locationState`. The
     // version still goes up, so an older game refuses a save that may have a trade run out.
   },
+  27: () => {
+    // Coming home (3.7.0): a report keeps the rations and gas the crew set out with (`RunReport.packed`). Older
+    // reports have none, and the report shows what it can without it.
+  },
 };
 
 export function serialize(state: GameState): string {

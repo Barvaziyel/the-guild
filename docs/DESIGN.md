@@ -1336,6 +1336,32 @@ Aviel, 2026-11-23, all four of the art options, in the ink style of the yard and
 - **Small pictures in the log**: a round stamp in red ink beside every moment of a run: setting out (the gate), the road (footprints), scavenging (a crate pried open), a hazard (the warning sign), a fight (crossed blades), the crew among themselves (a fire), a find (a spyglass), a rescue (two hands), the Vultures (a feather), home (the Depot's roof).
 - **Buildings up close**: a building's screen opens with its drawing from the yard at its level (the empty lot before it's built), with sky and ground around it, the Firepit with its fire and smoke moving. Always a landscape (1.9 to 2.8 wide to 1 high).
 
+### 14.4 Coming home, and what happened while you were away (3.7.0)
+
+Aviel, 2026-11-23 and 24: tweening in all five places, things that happened while the game was closed played the first time they're seen, and coming home from a run "satisfying, and clearly showing what was brought back including what they took with them (ammo etc)". As before, nothing moves with *reduce motion* on.
+
+- **Coming home** (`homecoming-view.ts`, `components/Homecoming.tsx`). A report opens on three rows:
+  - *Took*: the meds and ammo packed, the rations and gas, and any goods for the market. A report keeps the rations and gas as `RunReport.packed` (save version 28); older reports show what they can.
+  - *Used*: what of that didn't come back, struck through.
+  - *Back*: what they found or traded for, and the meds and ammo they didn't use, then each piece of gear by its picture.
+
+  The first time a report is opened, the rows come in one after another, each thing back pops up in turn, then flies into a strip of the Depot's stores under it. The store counts up by what this crew brought, with the change floating up. Gear flies into a crate that counts the stash. The "crew is back" toast doesn't sit over the report it points to.
+- **Fights**: a bar drains. What was just lost stays as a pale chunk for a moment and shrinks away; a heal grows in. A frame knows the health before its act (`StageEffect.was`).
+- **The map, since the last look** (`mapNews`, `seeMap`; `Seen.mapped`). The Reach remembers the places it drew and how explored they were:
+  - A place new to the map draws its road in from where it was found, then pops up at its end; the roads on from it fade in.
+  - A ring explored further since fills up from where it was.
+- **The yard, since the last look** (`newlyBuilt`, `seeBuilt`; `Seen.built`): a building put up or improved rises from its footing with a little bounce, and dust puffs out along the ground (`goingUp`), once.
+- **The header, since the last look** (`storesNews`, `seeStores`; `Seen.stores`): opening the game, each supply counts from what it was when last seen to what's there now, with the change floating up.
+- **Bars and dots**: meters and bond bars fill up from empty as they come on screen and slide when they change; a red dot springs in.
+- **Walking, side-on** (Aviel: "walking is still weird looking"). Someone walking is drawn from the side, as they move:
+  - Both legs come from one hip, the far one darker, swinging against each other.
+  - The near arm swings against the near leg, and the far arm moves behind the body.
+  - The body is narrower, and the head is in profile with one eye looking where they go.
+
+  Before, a front-facing body crossed its legs like scissors and flapped both arms.
+- **Packs on the road**: a crew walking out or in through the gate carries a pack. It's small for a run under 45 minutes and big, with a bedroll, for a longer one, and it bulges on the way home (`YardTrip.pack`, `BIG_PACK_MS`).
+- Marks from before 3.7.0 have no record of the map, the yard or the stores, so nothing moves the first time.
+
 ## 15. Roadmap
 
 | # | PR | Model |

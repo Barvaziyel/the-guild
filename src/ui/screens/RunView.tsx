@@ -1,6 +1,5 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import {
-  amountOf,
   dayAt,
   dueBack,
   getLocation,
@@ -33,7 +32,6 @@ import {
   formatCountdown,
   formatDuration,
   haulView,
-  lootList,
   vehicleOutcomes,
   outcomeHeadline,
   outcomeTone,
@@ -48,8 +46,8 @@ import { HavenFindNote } from '../components/HavenFind.tsx';
 import { followedHome } from '../animals-view.ts';
 import { findAnySurvivor } from '../view.ts';
 import { TRADE_JOB } from '../market-view.ts';
-import { ItemIcon, PlacePicture } from '../components/Art.tsx';
-import { Chips } from '../components/Glyph.tsx';
+import { PlacePicture } from '../components/Art.tsx';
+import { Homecoming } from '../components/Homecoming.tsx';
 
 export function RunView({ state, id }: { state: GameState; id: string }) {
   const run = state.runs.find((r) => r.id === id);
@@ -179,6 +177,8 @@ function ActiveRun({ state, run }: { state: GameState; run: Run }) {
 
 function Report({ state, report }: { state: GameState; report: RunReport }) {
   const { store } = useServices();
+  // The first time it's opened, what came home flies into the stores (3.7.0).
+  const [fresh] = useState(() => !report.read);
   useEffect(() => {
     if (!report.read) store.update((s) => markReportRead(s, report.id));
   }, [report.id, report.read, store]);
@@ -190,7 +190,6 @@ function Report({ state, report }: { state: GameState; report: RunReport }) {
   const names = reportFirstNames(report);
   const havenFind = s.haven?.lead?.found ? findView(state, s.haven.lead.clue) : undefined;
   const crew = report.plan.crew.map((cid) => ({ id: cid, name: names[cid] ?? cid, survivor: findAnySurvivor(state, cid) }));
-  const loot = lootList(s);
   const haul = haulView(s);
   const rescue = rescueLine(s);
   const rescuedAt = rescuedWhere(state, s);
@@ -235,23 +234,12 @@ function Report({ state, report }: { state: GameState; report: RunReport }) {
             )}
           </p>
         )}
-        {loot.length > 0 ? (
-          <div className="haul" aria-label={`Brought home ${loot.join(', ')}`}>
-            <Chips chips={haul.supplies} className="haul-supplies" />
-            {haul.items.map((i, n) => (
-              <span key={n} className="haul-item">
-                <ItemIcon defId={i.defId} quality={i.quality} /> {i.name}
-              </span>
-            ))}
-            {haul.vehicles.map((v) => (
-              <span key={v} className="haul-item">
-                {v}
-              </span>
-            ))}
-          </div>
-        ) : (
-          <p>Brought nothing home.</p>
-        )}
+        <Homecoming state={state} report={report} fresh={fresh} />
+        {haul.vehicles.map((v) => (
+          <p key={v} className="haul-item">
+            {v}
+          </p>
+        ))}
         {radioReportLine(report) && <p className="summary-radio">{radioReportLine(report)}</p>}
         {leadReportLine(report) && <p className="summary-radio">{leadReportLine(report)}</p>}
         {/* A find for Haven, whole (2.9.1): what it says, where, and where it points on to. */}
@@ -327,11 +315,6 @@ function Report({ state, report }: { state: GameState; report: RunReport }) {
           </p>
         )}
         {s.leftBehind > 0 && <p className="summary-minor">Left {s.leftBehind} loads behind: too much to carry.</p>}
-        {(s.medsLeft > 0 || s.ammoLeft > 0) && (
-          <p className="summary-minor">
-            Unused supplies back in the store: {[s.medsLeft > 0 && amountOf('meds', s.medsLeft), s.ammoLeft > 0 && amountOf('ammo', s.ammoLeft)].filter(Boolean).join(', ')}.
-          </p>
-        )}
         {s.exploredGain > 0 && <p className="summary-minor">Explored {loc.name} a little more (+{s.exploredGain}%).</p>}
         {s.discovered.map((d) => (
           <p key={d} className="summary-found">

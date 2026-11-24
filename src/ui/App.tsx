@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { advanceTime, dayAt, dueRuns, getLocation, nextDayAt, returnUnsure, searchDue, type AdvanceResult, type DepotSummary, type GameState } from '../engine/index.ts';
 import { mergeSummaries, nextDayView } from './depot-view.ts';
 import { TourCard } from './components/TourCard.tsx';
-import { navigate, savedScroll, useHash, useNow, usePrefs, useRoute, useSeen, useServices, useSnapshot } from './hooks.ts';
+import { navigate, savedScroll, useHash, useNow, usePrefs, useRoute, useMarkSeen, useSeen, useServices, useSnapshot } from './hooks.ts';
 import { tabFor, type Route, type TabScreen } from './route.ts';
 import { joinNames, noticesFor, reportFirstNames } from './runs-view.ts';
 import { dilemmaNotices } from './dilemma-view.ts';
@@ -33,7 +33,7 @@ import { SurvivorSheet } from './screens/SurvivorSheet.tsx';
 import { tourStep } from './tour.ts';
 import { UrgentStrip } from './components/UrgentStrip.tsx';
 import { Glyph } from './components/Glyph.tsx';
-import { dots, type Dots } from './attention-view.ts';
+import { dots, seeStores, storesNews, type Dots } from './attention-view.ts';
 import { resourceList } from './view.ts';
 import { useSound } from './use-sound.ts';
 import { COUNT_MS, changeText, countAt, screenKey } from './motion-view.ts';
@@ -133,7 +133,8 @@ export function App() {
       <main className="screen" key={screenKey(route as { screen: string })}>
         {screen}
       </main>
-      {time.current && <ReturnToast state={s} reportId={time.current} more={time.more} onClose={time.dismiss} />}
+      {/* Not over the report it points to: it's already open (3.7.0). */}
+      {time.current && !(route.screen === 'run' && route.id === time.current) && <ReturnToast state={s} reportId={time.current} more={time.more} onClose={time.dismiss} />}
       {touring && tour && <TourCard state={s} stepId={tour} />}
       <TabBar current={tabFor(route)} state={s} now={now} touring={touring} />
     </div>
@@ -249,6 +250,10 @@ const DIAL_C = 2 * Math.PI * DIAL_R;
 
 function TopBar({ state, day, now }: { state: GameState; day: number; now: number }) {
   const next = nextDayView(state, now);
+  // What changed while the game was closed counts up (or down) the first time it's seen (3.7.0).
+  const seen = useSeen(state);
+  const [was] = useState(() => storesNews(state, seen));
+  useMarkSeen(state, seeStores, [state.resources]);
   return (
     <header className="topbar">
       <div className="topbar-title">
@@ -278,7 +283,7 @@ function TopBar({ state, day, now }: { state: GameState; day: number; now: numbe
           <li key={r.id} aria-label={`${r.name} ${r.amount}`}>
             {/* A picture for each supply (3.6.0); the name is still read out. */}
             <Glyph name={r.id} className={`res-glyph res-${r.id}`} />
-            <span className="res-name">{r.name}</span> <Amount value={r.amount} />
+            <span className="res-name">{r.name}</span> <Amount value={r.amount} start={was[r.id]} />
           </li>
         ))}
       </ul>
@@ -290,10 +295,10 @@ function TopBar({ state, day, now }: { state: GameState; day: number; now: numbe
  * A supply's amount (3.2.0): when it changes, it counts to the new number and
  * flashes, with the change floating up beside it.
  */
-function Amount({ value }: { value: number }) {
-  const [shown, setShown] = useState(value);
+function Amount({ value, start }: { value: number; start?: number | undefined }) {
+  const [shown, setShown] = useState(start ?? value);
   const [change, setChange] = useState<{ text: string; up: boolean; n: number } | null>(null);
-  const last = useRef(value);
+  const last = useRef(start ?? value);
   useEffect(() => {
     const from = last.current;
     last.current = value;

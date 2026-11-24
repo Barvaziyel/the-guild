@@ -10,7 +10,7 @@
  * this guild. The first time, everything there is counts as seen, so an old
  * guild doesn't light up all over.
  */
-import { atDepot, canChangeGear, getLocation, havenNew, itemDef, knownLocations, type GameState, type Slot, type Survivor } from '../engine/index.ts';
+import { atDepot, canChangeGear, getLocation, havenNew, itemDef, knownLocations, locationState, type GameState, type Slot, type Survivor } from '../engine/index.ts';
 import { strayRows } from './animals-view.ts';
 import { resultCard } from './corners-view.ts';
 import { foodWarning } from './depot-view.ts';
@@ -35,6 +35,12 @@ export interface Seen {
   places: string[];
   /** Pieces of gear seen in the stash. */
   stash: string[];
+  /** Places drawn on the map when it was last looked at, and how explored (3.7.0): what's new draws in. Missing on marks from before. */
+  mapped?: Record<string, number>;
+  /** Building levels when the yard was last looked at (3.7.0): a new one goes up before your eyes. */
+  built?: Record<string, number>;
+  /** The supplies when the header last showed them (3.7.0): opening the game, they count to what's there now. */
+  stores?: Record<string, number>;
 }
 
 /** A stress at which someone is close to breaking: a dot on them. */
@@ -52,7 +58,65 @@ export function baselineSeen(state: GameState): Seen {
     chronicle: Object.fromEntries(state.survivors.map((s) => [s.id, s.chronicle.length])),
     places: knownLocations(state).map((l) => l.id),
     stash: state.stash.map((i) => i.uid),
+    mapped: mappedNow(state),
+    built: { ...state.buildings },
+    stores: { ...state.resources },
   };
+}
+
+function mappedNow(state: GameState): Record<string, number> {
+  return Object.fromEntries(knownLocations(state).map((l) => [l.id, locationState(state, l.id).explored]));
+}
+
+// ---------------------------------------------------------------- what moved since the last look (3.7.0)
+
+/**
+ * What's new on the map since it was last looked at: places first drawn now (their roads draw in and
+ * they pop up), and how explored the others were (their rings fill up from it). Marks from before
+ * 3.7.0 have no record, so nothing moves the first time.
+ */
+export function mapNews(state: GameState, seen: Seen): { fresh: string[]; from: Record<string, number> } {
+  const was = seen.mapped;
+  if (!was) return { fresh: [], from: {} };
+  const now = mappedNow(state);
+  const fresh = Object.keys(now).filter((id) => was[id] === undefined);
+  const from: Record<string, number> = {};
+  for (const [id, pct] of Object.entries(now)) if (was[id] !== undefined && was[id]! < pct) from[id] = was[id]!;
+  return { fresh, from };
+}
+
+export function seeMap(state: GameState, seen: Seen): Seen {
+  const now = mappedNow(state);
+  const same = seen.mapped && Object.keys(now).length === Object.keys(seen.mapped).length && Object.entries(now).every(([id, pct]) => seen.mapped![id] === pct);
+  return same ? seen : { ...seen, mapped: now };
+}
+
+/** Supplies as they were last shown, where they've changed since; nothing the first time. */
+export function storesNews(state: GameState, seen: Seen): Record<string, number> {
+  const was = seen.stores;
+  if (!was) return {};
+  return Object.fromEntries(Object.entries(state.resources).filter(([id, n]) => was[id] !== undefined && was[id] !== n).map(([id]) => [id, was[id]!]));
+}
+
+export function seeStores(state: GameState, seen: Seen): Seen {
+  const was = seen.stores;
+  const same = was && Object.entries(state.resources).every(([id, n]) => was[id] === n);
+  return same ? seen : { ...seen, stores: { ...state.resources } };
+}
+
+/** Buildings put up or improved since the yard was last looked at. */
+export function newlyBuilt(state: GameState, seen: Seen): string[] {
+  const was = seen.built;
+  if (!was) return [];
+  return Object.entries(state.buildings)
+    .filter(([id, level]) => level > 0 && level > (was[id] ?? 0))
+    .map(([id]) => id);
+}
+
+export function seeBuilt(state: GameState, seen: Seen): Seen {
+  const was = seen.built;
+  const same = was && Object.entries(state.buildings).every(([id, level]) => (was[id] ?? 0) === level);
+  return same ? seen : { ...seen, built: { ...state.buildings } };
 }
 
 /** What's been seen of this guild: what's kept, or (a new guild, or the first time) everything there is. */

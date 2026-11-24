@@ -77,10 +77,52 @@ function standing(look: FigureLook, facing: number, work?: Work): string {
   );
 }
 
-/** Walking (3.2.0): legs and arms swing, each leg from the hip. */
-function walking(look: FigureLook, facing: number): string {
-  const leg = (x: number, b: boolean): string => `<g class="yard-step${b ? ' yard-step-b' : ''}">${rect(x, -10, 3, 9, C.trousers, FINE)}${rect(x - 0.4, -1.6, 3.6, 1.8, C.boots, FINE)}</g>`;
-  return leg(-3.2, false) + leg(0.2, true) + torso(look, 0, -20, 11) + arms(look, 0, -20, 0, facing, undefined, true) + head(look, 0, -24.5, facing);
+/** What someone on the road carries on their back (3.7.0): a small pack for a short run, a big one with a bedroll for a long one. */
+export type Pack = 'day' | 'big';
+
+/**
+ * Walking, side-on (3.7.0; Aviel: "walking is still weird"). Seen from the side, as they move: both
+ * legs from the same hip, the far one darker, swinging against each other; the near arm swinging
+ * against the near leg and the far arm behind the body; the head in profile, looking where they go.
+ * Facing right; whoever draws them turns them.
+ */
+function walking(look: FigureLook, pack?: Pack, full?: boolean): string {
+  const farTrousers = darken(C.trousers, 0.25);
+  const leg = (far: boolean): string =>
+    `<g class="yard-step${far ? ' yard-step-b' : ''}">${rect(-1.6, -10, 3.2, 9, far ? farTrousers : C.trousers, FINE)}${rect(-1.8, -1.6, 4.4, 1.8, far ? darken(C.boots, 0.25) : C.boots, FINE)}</g>`;
+  const arm = (far: boolean): string =>
+    `<g class="yard-pump${far ? ' yard-pump-b' : ''}">${rect(-1.1, -19.5, 2.2, 8, far ? darken(look.cloth, 0.25) : look.cloth, FINE)}${circle(0, -11, 1.2, far ? darken(look.skin, 0.15) : look.skin, FINE)}</g>`;
+  let body = rect(-3.6, -20, 7.2, 11, look.cloth, FINE);
+  if (look.armor) body += rect(-3, -19.2, 6, 8.5, ARMOR_COLORS[look.armor] ?? darken(look.cloth, 0.3), FINE);
+  return arm(true) + leg(true) + (pack ? backpack(pack, full === true) : '') + leg(false) + body + profileHead(look, 0.4, -24.5) + arm(false);
+}
+
+/** A pack on the back (facing right, so it hangs on the left), with its strap over the shoulder. */
+function backpack(pack: Pack, full: boolean): string {
+  const canvas = '#7a6a4c';
+  const w = pack === 'big' ? 5.2 : 3.8;
+  const h = pack === 'big' ? 10 : 6.5;
+  const bulge = full ? 0.8 : 0;
+  const x = -3.6 - w + 0.6 - bulge;
+  const top = pack === 'big' ? -21.5 : -19.5;
+  let out = rect(x, top, w + bulge, h, canvas, FINE) + rect(x + 0.6, top + h * 0.55, w + bulge - 1.2, 1.4, darken(canvas, 0.25), FINE);
+  if (pack === 'big') out += `<rect x="${(x - 0.4).toFixed(1)}" y="${(top - 2.4).toFixed(1)}" width="${(w + bulge + 0.8).toFixed(1)}" height="2.6" rx="1.3" fill="#8f7d62" ${FINE}/>`;
+  return out + line(-3.2, -19.6, 0.6, -14.5, 0.9, darken(canvas, 0.35));
+}
+
+/** A head seen from the side: one eye ahead, the hair swept back. */
+function profileHead(look: FigureLook, cx: number, cy: number): string {
+  const r = 4.3;
+  let out = '';
+  if (look.longHair && !look.bald) out += rect(cx - 5, cy - 1, 6, 8, look.hair, FINE);
+  out += circle(cx, cy, r, look.skin, FINE);
+  out += circle(cx + 2.2, cy + 0.1, 0.55, INK, 'stroke="none"');
+  if (!look.bald && look.hat !== 'beanie') out += pathEl(`M ${cx + r * 0.7} ${cy - 2.6} A ${r} ${r} 0 0 0 ${cx - r} ${cy + 0.6} L ${cx - r + 0.4} ${cy + 1.8} Q ${cx - 1} ${cy - 1.2} ${cx + r * 0.7} ${cy - 2.6} Z`, look.hair, FINE);
+  if (look.hat === 'beanie') out += pathEl(`M ${cx - r - 0.3} ${cy - 0.8} A ${r + 0.3} ${r + 0.6} 0 0 1 ${cx + r + 0.3} ${cy - 0.8} Z`, look.accent, FINE);
+  if (look.hat === 'bandana') out += rect(cx - r, cy - 2.4, r * 2, 1.6, look.accent, FINE);
+  if (look.hat === 'goggles') out += circle(cx + 2, cy - 2.2, 1.1, '#9fb7b0', FINE);
+  if (look.hurt) out += rect(cx - r, cy - 1.6, r * 2, 1.4, '#efe8da', FINE);
+  return out;
 }
 
 function sitting(look: FigureLook, facing: number): string {
@@ -148,9 +190,9 @@ export function figure(look: FigureLook, spot: Spot, seedKey: string, work?: Wor
  * feet keep up with the pace and nobody marches in step with anyone else (3.4.1); the body rises a
  * little with each step.
  */
-export function walker(look: FigureLook, gait?: { step: number; phase: number }): string {
+export function walker(look: FigureLook, gait?: { step: number; phase: number }, pack?: Pack, full?: boolean): string {
   const style = gait ? ` style="--sd:${gait.step}s;--ph:${-gait.phase}s"` : '';
-  return `<g class="yard-gait"${style}><g class="yard-walkbob">${walking(look, 1)}</g></g>`;
+  return `<g class="yard-gait"${style}><g class="yard-walkbob">${walking(look, pack, full)}</g></g>`;
 }
 
 /** The trader: a generic figure in a long coat and a wide hat. */

@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react';
-import { dayAt, setKeeper, type GameState } from '../../engine/index.ts';
+import { dayAt, setKeeper, type BuildingId, type GameState } from '../../engine/index.ts';
 import { animalRows } from '../animals-view.ts';
-import { navigate, useAction } from '../hooks.ts';
+import { newlyBuilt, seeBuilt } from '../attention-view.ts';
+import { navigate, useAction, useMarkSeen, useSeen } from '../hooks.ts';
 import { yardSvg } from '../../scene/index.ts';
 
 import { parseRoute } from '../route.ts';
@@ -22,8 +23,17 @@ interface Picked {
  */
 export function Yard({ state, now }: { state: GameState; now: number }) {
   const hour = new Date(now).getHours();
+  // A building put up or improved since the last look goes up before your eyes, once (3.7.0).
+  const seen = useSeen(state);
+  const [fresh, setFresh] = useState(() => newlyBuilt(state, seen) as BuildingId[]);
+  useMarkSeen(state, seeBuilt, [state.buildings]);
+  useEffect(() => {
+    if (fresh.length === 0) return;
+    const t = window.setTimeout(() => setFresh([]), 2500);
+    return () => window.clearTimeout(t);
+  }, [fresh]);
   const model = useMemo(() => {
-    const m = yardModel(state, hour, dayAt(state, now), now);
+    const m = { ...yardModel(state, hour, dayAt(state, now), now), ...(fresh.length > 0 ? { fresh } : {}) };
     // A crew that set out a minute ago, seen for the first time, sets out now.
     const trips = m.trips?.map((t) => {
       const k = `${t.way}:${t.id}:${t.at}`;
@@ -31,7 +41,7 @@ export function Yard({ state, now }: { state: GameState; now: number }) {
       return { ...t, at: firstDrawn.get(k)! };
     });
     return trips ? { ...m, trips } : m;
-  }, [state, hour, now]);
+  }, [state, hour, now, fresh]);
   const key = JSON.stringify(model);
   // The drawing only changes when what it shows does, so its animations keep running; what moves is timed by the clock it's drawn at.
   const svg = useMemo(() => yardSvg(model, Date.now()), [key]); // eslint-disable-line react-hooks/exhaustive-deps
