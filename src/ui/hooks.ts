@@ -4,7 +4,7 @@ import type { GameState } from '../engine/index.ts';
 import type { SoundSystem } from './audio.ts';
 import type { Notifier } from './notify.ts';
 import type { Prefs, PrefsStore } from './prefs.ts';
-import { seenFor, type Seen } from './attention-view.ts';
+import { seeGear, seenFor, type Seen } from './attention-view.ts';
 import { DEFAULT_ROUTE, parseRoute, routeHash, type Route } from './route.ts';
 import type { GameStore, Snapshot } from './store.ts';
 
@@ -202,6 +202,16 @@ export function useSeen(state: GameState): Seen {
     if (kept !== seen) prefs.set({ seen });
   }, [kept, seen, prefs]);
   return seen;
+}
+
+/** Marks gear the player moves by hand as seen (3.7.5): what they put on someone, and what comes off. */
+export function useSeeGear(state: GameState): (uids: readonly (string | undefined)[]) => void {
+  const { prefs } = useServices();
+  return (uids) => {
+    const kept = prefs.get().seen;
+    const next = seeGear(seenFor(state, kept), uids);
+    if (next !== kept) prefs.set({ seen: next });
+  };
 }
 
 /** Marks something seen once it's on screen: `mark` returns the marks with it added (or the same marks). */
