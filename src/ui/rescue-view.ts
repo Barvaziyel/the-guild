@@ -18,6 +18,7 @@ import {
   type Survivor,
 } from '../engine/index.ts';
 import { whenText } from './dilemma-view.ts';
+import { clockTime } from './time.ts';
 import { joinNames, runCrewNames, type Choice, type PlannedNotice } from './runs-view.ts';
 
 export interface CallCard {
@@ -114,7 +115,7 @@ export function rescueNotices(state: GameState): PlannedNotice[] {
         id: `rescue-due-${call.day}`,
         at: dayStart(state, call.expiresDay) - Math.min(REMIND_BEFORE, DAY_MS),
         title: 'A voice is fading',
-        body: `${call.person.firstName}, at ${getLocation(call.locationId).name}, won't last much longer.`,
+        body: `${call.person.firstName}, at ${getLocation(call.locationId).name}, won't last past ${clockTime(dayStart(state, call.expiresDay))}.`,
       },
     ];
   }

@@ -22,6 +22,7 @@ import {
   type Survivor,
 } from '../engine/index.ts';
 import { formatDuration, type PlannedNotice } from './runs-view.ts';
+import { clockTime } from './time.ts';
 
 /** The planner's switch: what it says. Any crew can be led (Aviel, 2.2.0: it shouldn't wait for a Radio Tower). */
 export function leadChoice(_state: GameState): { can: boolean; help: string; short: string; wait: string } {
@@ -130,7 +131,7 @@ export function fightNotices(state: GameState): PlannedNotice[] {
         id: `fight-${r.id}-${k}`,
         at: f.at,
         title: `${name} is in a fight`,
-        body: `At ${ledFightPlace(r, f)}, against ${f.against}. ${waitsForWord(r) ? 'They wait for your word.' : `They'll wait ${formatDuration(LEAD_WAIT)} for your orders.`}`,
+        body: `At ${ledFightPlace(r, f)}, against ${f.against}. ${waitsForWord(r) ? 'They wait for your word.' : `They'll wait for your orders until ${clockTime(f.until)}.`}`,
       });
     });
   }

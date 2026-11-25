@@ -1,6 +1,7 @@
 /**
  * The Android app's extras: the hardware back button, catching up when the
- * app comes back to the foreground, and opening a report from its notice.
+ * app comes back to the foreground, opening a report from its notice, and
+ * clearing the game's notices once it's open.
  * In a browser all of this is skipped.
  */
 import { App } from '@capacitor/app';
@@ -24,6 +25,11 @@ export function setupNative(sound: SoundSystem): void {
 
   void App.addListener('pause', () => sound.pause());
 
+  // Notices already in the shade are about what the game now shows: clear them,
+  // or yesterday's are still there tomorrow, looking like new ones.
+  const clearShade = (): void => void LocalNotifications.removeAllDeliveredNotifications().catch(() => undefined);
+  clearShade();
+
   // Back goes back through the screens; from a tab, it puts the game in the background.
   void App.addListener('backButton', () => {
     const depth = (window.history.state as { depth?: number } | null)?.depth ?? 0;
@@ -33,6 +39,7 @@ export function setupNative(sound: SoundSystem): void {
 
   // Coming back to the game: let the clock catch up (useNow listens for this).
   void App.addListener('resume', () => {
+    clearShade();
     sound.resume();
     document.dispatchEvent(new Event('visibilitychange'));
   });

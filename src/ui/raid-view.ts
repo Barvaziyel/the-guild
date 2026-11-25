@@ -6,7 +6,6 @@
 import {
   RAID_SHORE_COST,
   RAID_SHORE_COVER,
-  RAID_WAIT,
   canAfford,
   canDefend,
   canTalk,
@@ -145,7 +144,7 @@ export function raidNotices(state: GameState): PlannedNotice[] {
       id: `raid-${raid.id}`,
       at: raid.arrive,
       title: `${who} ${atPlace(raid)}`,
-      body: `They’ll wait ${formatDuration(RAID_WAIT)} for your orders. After that, whoever is ${raid.outpost ? 'there' : 'home'} fights them on their own.`,
+      body: `They’ll wait for your orders until ${clockTime(raid.until)}. After that, whoever is ${raid.outpost ? 'there' : 'home'} fights them on their own.`,
     });
   }
   return out;

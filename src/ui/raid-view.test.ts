@@ -6,6 +6,7 @@ import { T0, openGame, testGame, testPlan } from '../engine/test-utils.ts';
 import { stageModel } from './battle-view.ts';
 import { noticeRoute } from './radio-view.ts';
 import { gateView, raidAlert, raidCard, raidNoticeKey, raidNotices, raidOver, raidWakeTimes, readyView, regroupView, wantLine } from './raid-view.ts';
+import { clockTime } from './time.ts';
 
 /** A guild whose Watchtower sees raiders coming. */
 function seenComing(seed: string): { state: GameState; raid: NonNullable<ReturnType<typeof scheduleRaid>> } {
@@ -41,7 +42,7 @@ describe('raiders on the road', () => {
     assert.deepEqual(notices.map((n) => n.id), [`raid-seen-${raid.id}`, `raid-${raid.id}`]);
     assert.equal(notices[0]!.at, raid.seen);
     assert.equal(notices[1]!.at, raid.arrive);
-    assert.match(notices[1]!.body, /wait 3 h/);
+    assert.equal(notices[1]!.body, `They’ll wait for your orders until ${clockTime(raid.until)}. After that, whoever is home fights them on their own.`);
     assert.deepEqual(raidWakeTimes(state, raid.seen! - 1), [raid.seen, raid.arrive, raid.until]);
     assert.deepEqual(noticeRoute(notices[0]!.id), { screen: 'raid' });
     const key = raidNoticeKey(state);

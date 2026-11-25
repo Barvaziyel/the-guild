@@ -3,7 +3,7 @@
  * with its four answers, its deadline, and the notices around it. Plain
  * TypeScript so it can be tested in Node.
  */
-import { DAY_MS, RESOURCE_IDS, dayStart, dilemmaRoles, fillRoles, getDilemma, type GameState, type ResourceId, type Survivor } from '../engine/index.ts';
+import { DAY_MS, RESOURCE_IDS, dayStart, dilemmaRoles, fillRoles, getDilemma, returnUnsure, vulturesActive, type GameState, type ResourceId, type Survivor } from '../engine/index.ts';
 import type { PlannedNotice } from './runs-view.ts';
 import { joinNames } from './runs-view.ts';
 import { clockTime } from './time.ts';
@@ -73,16 +73,44 @@ const REMIND_BEFORE = 2 * 3_600_000;
 export function dilemmaNotices(state: GameState): PlannedNotice[] {
   const d = state.dilemmas.active;
   if (d) {
-    const at = dayStart(state, d.deadlineDay) - Math.min(REMIND_BEFORE, DAY_MS);
+    const deadline = dayStart(state, d.deadlineDay);
     return [
       {
         id: `dilemma-due-${d.day}`,
-        at,
+        at: deadline - Math.min(REMIND_BEFORE, DAY_MS),
         title: 'Decide soon',
-        body: `${getDilemma(d.defId).title}: unless you choose, they'll settle it themselves in about two hours.`,
+        // A time, not "in two hours": a notice that comes late should still be right (3.7.4).
+        body: `${getDilemma(d.defId).title}: choose by ${clockTime(deadline)}, or they'll settle it themselves.`,
       },
     ];
   }
-  const next = state.dilemmas.nextDay;
+  // The Vultures send envoys on a day of their own (§7.11).
+  const due = vulturesActive(state) ? Math.min(state.dilemmas.nextDay, state.vultures.nextEnvoyDay) : state.dilemmas.nextDay;
+  const next = decisionDay(state, due);
+  if (next === undefined) return [];
   return [{ id: `dilemma-${next}`, at: dayStart(state, next), title: 'Something needs deciding', body: 'At the Depot. Open the game to choose what happens.' }];
+}
+
+/** Changes when `dilemmaNotices` would (with the crews out, in App's key already). */
+export function dilemmaNoticeKey(state: GameState): string {
+  const d = state.dilemmas.active;
+  return d ? `d${d.day}` : `n${state.dilemmas.nextDay}:${vulturesActive(state) ? state.vultures.nextEnvoyDay : ''}`;
+}
+
+/** How many Depot days ahead the next decision's notice looks for someone at home. */
+const LOOK_AHEAD = 16;
+
+/**
+ * The first Depot day from `from` on that begins with someone at the Depot. A
+ * decision is about people there, so with everyone out it waits a day; a
+ * notice for one that didn't come read like an old one (3.7.4). Crews back
+ * by then count; nobody home for days to come, no notice.
+ */
+export function decisionDay(state: GameState, from: number): number | undefined {
+  for (let day = from; day < from + LOOK_AHEAD; day++) {
+    const t = dayStart(state, day);
+    const back = (s: Survivor): boolean => state.runs.some((r) => r.plan.crew.includes(s.id) && !returnUnsure(r) && r.returnAt <= t);
+    if (state.survivors.some((s) => s.outpost === undefined && (s.status === 'ready' || (s.status === 'away' && back(s))))) return day;
+  }
+  return undefined;
 }

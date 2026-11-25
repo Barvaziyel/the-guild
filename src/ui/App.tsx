@@ -5,7 +5,7 @@ import { TourCard } from './components/TourCard.tsx';
 import { navigate, savedScroll, useHash, useNow, usePrefs, useRoute, useMarkSeen, useSeen, useServices, useSnapshot } from './hooks.ts';
 import { tabFor, type Route, type TabScreen } from './route.ts';
 import { joinNames, noticesFor, reportFirstNames } from './runs-view.ts';
-import { dilemmaNotices } from './dilemma-view.ts';
+import { dilemmaNoticeKey, dilemmaNotices } from './dilemma-view.ts';
 import { rescueNotices } from './rescue-view.ts';
 import { familyNoticeKey, familyNotices } from './family-view.ts';
 import { radioNoticeKey, radioNotices, radioWakeTimes } from './radio-view.ts';
@@ -187,12 +187,11 @@ function useTime(state: GameState | null, now: number, route: Route) {
 function useNotices(state: GameState | null): void {
   const { notifier } = useServices();
   const { notify } = usePrefs();
-  const d = state?.dilemmas.active;
   const call = state?.rescue.call;
   const key = state
     ? [
         ...state.runs.map((r) => `${r.id}@${r.returnAt}`),
-        d ? `d${d.day}` : `n${state.dilemmas.nextDay}`,
+        dilemmaNoticeKey(state),
         call ? `c${call.day}${call.runId ?? ''}` : `h${state.rescue.nextDay}@${state.buildings.radio_tower ?? 0}`,
         familyNoticeKey(state),
         radioNoticeKey(state),
