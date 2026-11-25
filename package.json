@@ -1,7 +1,7 @@
 {
   "name": "the-guild",
   "private": true,
-  "version": "3.7.4",
+  "version": "3.7.5",
   "description": "A post-apocalyptic scavenger-guild management game for Android.",
   "type": "module",
   "engines": {

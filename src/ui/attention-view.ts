@@ -39,7 +39,7 @@ export interface Seen {
   chronicle: Record<string, number>;
   /** Places opened on the Reach. */
   places: string[];
-  /** Pieces of gear seen in the stash. */
+  /** Pieces of gear seen: in the stash, or on someone (3.7.5: a piece taken off someone isn't new). */
   stash: string[];
   /** Places drawn on the map when it was last looked at, and how explored (3.7.0): what's new draws in. Missing on marks from before. */
   mapped?: Record<string, number>;
@@ -64,7 +64,7 @@ export function baselineSeen(state: GameState): Seen {
     newsKey: latestNews(state),
     chronicle: Object.fromEntries(state.survivors.map((s) => [s.id, s.chronicle.length])),
     places: knownLocations(state).map((l) => l.id),
-    stash: state.stash.map((i) => i.uid),
+    stash: gearInSight(state),
     mapped: mappedNow(state),
     built: { ...state.buildings },
     stores: { ...state.resources },
@@ -160,9 +160,24 @@ export function seePlace(seen: Seen, id: string): Seen {
   return seen.places.includes(id) ? seen : { ...seen, places: [...seen.places, id] };
 }
 
+/**
+ * Gear the player has had in front of them: the stash, and what everyone has on. A piece that
+ * comes off someone into the stash isn't new (3.7.5; Aviel: handing out a new piece put the
+ * old one in the stash with a dot).
+ */
+function gearInSight(state: GameState): string[] {
+  return [...state.stash.map((i) => i.uid), ...state.survivors.flatMap((s) => Object.values(s.equipment).flatMap((i) => (i ? [i.uid] : [])))];
+}
+
 export function seeStash(state: GameState, seen: Seen): Seen {
-  const now = state.stash.map((i) => i.uid);
+  const now = gearInSight(state);
   return now.every((uid) => seen.stash.includes(uid)) ? seen : { ...seen, stash: now };
+}
+
+/** Pieces the player just moved by hand (put on someone, or taken off): seen. */
+export function seeGear(seen: Seen, uids: readonly (string | undefined)[]): Seen {
+  const add = uids.filter((uid): uid is string => uid !== undefined && !seen.stash.includes(uid));
+  return add.length === 0 ? seen : { ...seen, stash: [...seen.stash, ...add] };
 }
 
 // ---------------------------------------------------------------- what needs looking at

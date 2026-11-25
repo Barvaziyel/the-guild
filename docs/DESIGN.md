@@ -1210,7 +1210,7 @@ With a Radio Tower, now and then someone calls for help from a known place; `res
 - **A red dot** sits on whatever is new or waiting, on the tab bar, the tabs inside a screen and the row itself, so the dots lead the way down:
   - *Depot:* Yard (a first-week step done, its reward waiting, not while the tour is on; a corner searched), Today (a decision, people or strays at the gate, a trader, a call for help nobody has gone to, food short or gone, nobody home to hold the gate), News (news since it was last opened).
   - *Roster:* each person with new Chronicle lines (the Chronicle tab has the dot), or close to breaking (80 stress), or going without a weapon or armor while the stash has one (Stats and gear).
-  - *Gear:* someone going without a weapon or armor the stash could give them, or gear new to the stash (each new piece keeps its dot while the tab is open).
+  - *Gear:* someone going without a weapon or armor the stash could give them, or gear new to the stash (each new piece keeps its dot while the tab is open). A piece taken off someone isn't new (3.7.5; Aviel: handing out a new piece put the old one in the stash with a dot): what everyone has on counts as seen, and so does gear moved by hand on a person's sheet.
   - *Reach:* a place not opened yet (on the list and the map), a call for help, an outpost that needs mending.
   - *Runs:* a report not read (on the report too), a crew on the radio or at a fight.
   - *Haven:* something new, or something to work out.

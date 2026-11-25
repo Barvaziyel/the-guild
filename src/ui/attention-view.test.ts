@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import { MAX_LOG, addChronicle, addGuildLog, createItem, ensureLocationState, equipFromStash, type GameState } from '../engine/index.ts';
 import { T0, testGame } from '../engine/test-utils.ts';
-import { baselineSeen, dots, latestNews, mapNews, missingGear, newChronicle, newlyBuilt, seeBuilt, seeChronicle, seeMap, seeNews, seePlace, seeStash, seeStores, seenFor, sheetDots, storesNews, todayReasons, urgentItems } from './attention-view.ts';
+import { baselineSeen, dots, latestNews, mapNews, missingGear, newChronicle, newlyBuilt, seeBuilt, seeChronicle, seeGear, seeMap, seeNews, seePlace, seeStash, seeStores, seenFor, sheetDots, storesNews, todayReasons, urgentItems } from './attention-view.ts';
 import { slotViews } from './gear-view.ts';
 
 function bare(state: GameState): void {
@@ -69,6 +69,49 @@ describe('where to look (3.5.0)', () => {
     equipFromStash(state, a, state.stash[0]!.uid);
     assert.equal(slotViews(state, a)[0]!.item?.defId, 'machete');
     assert.equal(dots(state, T0, seen).tabs.gear, undefined, 'everyone who could take one has one');
+  });
+
+  /** Everyone but the first armed, so a spare weapon in the stash isn't a dot for someone going without. */
+  const armAll = (state: GameState): void => {
+    for (const s of state.survivors.slice(1)) s.equipment.weapon = createItem(state, 'pipe');
+  };
+
+  test('a piece taken off someone for a new one is not new in the stash', () => {
+    const state = testGame('swap');
+    bare(state);
+    armAll(state);
+    const a = state.survivors[0]!;
+    state.stash.push(createItem(state, 'machete'));
+    equipFromStash(state, a, state.stash[0]!.uid);
+    let seen = baselineSeen(state);
+    // A new one comes in: a dot.
+    state.stash.push(createItem(state, 'sledge'));
+    assert.equal(dots(state, T0, seen).tabs.gear, true);
+    seen = seeStash(state, seen);
+    // Handed out, the machete comes off into the stash: still no dot (3.7.5: it had one).
+    const old = a.equipment.weapon!.uid;
+    equipFromStash(state, a, state.stash.find((i) => i.defId === 'sledge')!.uid);
+    assert.ok(state.stash.some((i) => i.uid === old));
+    assert.equal(dots(state, T0, seen).tabs.gear, undefined);
+  });
+
+  test('gear moved by hand is seen, even if it came in after the last look', () => {
+    const state = testGame('by-hand');
+    bare(state);
+    armAll(state);
+    const a = state.survivors[0]!;
+    let seen = baselineSeen(state);
+    state.stash.push(createItem(state, 'machete'));
+    const uid = state.stash[0]!.uid;
+    equipFromStash(state, a, uid);
+    // Put on from a sheet, never shown on the Gear tab.
+    seen = seeGear(seen, [uid, undefined]);
+    const sledge = createItem(state, 'sledge');
+    state.stash.push(sledge);
+    equipFromStash(state, a, sledge.uid);
+    seen = seeGear(seen, [sledge.uid, uid]);
+    assert.equal(dots(state, T0, seen).tabs.gear, undefined, 'the machete came off into the stash');
+    assert.equal(seeGear(seen, [uid]), seen, 'nothing to add');
   });
 
   test('the Today tab: what there is to deal with, and nothing when it is quiet', () => {

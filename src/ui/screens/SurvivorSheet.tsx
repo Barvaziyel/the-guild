@@ -31,7 +31,7 @@ import { ItemDetails } from '../components/ItemDetails.tsx';
 import { Sheet } from '../components/Sheet.tsx';
 import { scoresToSettle } from '../stories-view.ts';
 import { Portrait } from '../components/Portrait.tsx';
-import { goBack, navigate, useAction, useMarkSeen, useSeen, useServices } from '../hooks.ts';
+import { goBack, navigate, useAction, useMarkSeen, useSeeGear, useSeen, useServices } from '../hooks.ts';
 import { seeChronicle, sheetDots } from '../attention-view.ts';
 import type { SheetTab } from '../route.ts';
 import { backIn, runOfSurvivor } from '../runs-view.ts';
@@ -475,17 +475,21 @@ function GearSlot({ state, survivor: s, slot, editable, open, onToggle, onDone }
   const view = item ? itemView(item) : undefined;
   const options = stashFor(state, slot);
   const pickerId = `picker-${slot}`;
+  const seeGear = useSeeGear(state);
 
   const equip = (uid: string): void => {
     store.update((st) => {
       equipFromStash(st, getSurvivor(st, s.id), uid);
     });
+    // What they had on goes to the stash: not new (3.7.5).
+    seeGear([uid, item?.uid]);
     onDone();
   };
   const takeOff = (): void => {
     store.update((st) => {
       unequip(st, getSurvivor(st, s.id), slot);
     });
+    seeGear([item?.uid]);
     onDone();
   };
 

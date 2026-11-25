@@ -22,7 +22,8 @@ export function Gear({ state }: { state: GameState }) {
   // What came in since the last look keeps its dot while the tab is open; leaving, it's seen (3.5.0).
   const seen = useSeen(state);
   const [fresh] = useState(() => new Set(state.stash.filter((i) => !seen.stash.includes(i.uid)).map((i) => i.uid)));
-  useMarkSeen(state, seeStash, [state.stash.length]);
+  // Every change, not just the count: handing a piece out puts the old one in its place (3.7.5).
+  useMarkSeen(state, seeStash, [state.stash.map((i) => i.uid).join(',')]);
   const people = rosterOrder(state);
 
   const takeApart = (item: ItemView): void => {
