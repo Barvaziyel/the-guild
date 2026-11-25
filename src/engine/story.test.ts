@@ -135,10 +135,10 @@ describe('the first week (2.8.0)', () => {
     assert.equal(bike.condition, 60);
     assert.deepEqual(endings.find((e) => e.stepId === 'wheels')!.gifts, ['a Motorcycle']);
     assert.match(endings.at(-1)!.text, /This is Haven/);
-    assert.ok(state.log.some((l) => l.text === 'The first week is behind them.'));
+    assert.ok(state.log.some((l) => l.text === 'The guild has found its feet.'));
     assert.equal(storyStep(state), undefined);
-    assert.equal(storyProblem(state), 'The first week is done.');
-    assert.throws(() => claimStory(state, T0), /done/);
+    assert.equal(storyProblem(state), 'The guild has found its feet.');
+    assert.throws(() => claimStory(state, T0), /found its feet/);
   });
 
   test('the same guild gets the same person at the gate', () => {

@@ -375,7 +375,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     text: (state) => {
       const ideas = firstBuildSuggestions(state);
       if (ideas.length === 0) return 'Every building can go higher. Tap one to see its next level and what it costs.';
-      const besides = storyStep(state) ? 'Besides what the first week asks for, good' : 'Good';
+      const besides = storyStep(state) ? 'Besides what the note above the yard asks for, good' : 'Good';
       return `${besides} first goals: ${joinNames(ideas)}. You'll need runs to pay for them.`;
     },
   },
@@ -447,7 +447,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     text: (state) =>
       state.haven
         ? 'The long goal: find Haven. The road at the top fills in as clues turn up; under it are the leads to follow. Once the guild knows the way, the road east opens here.'
-        : 'The long goal comes over the radio at the end of the first week. From then on a Haven tab keeps what the guild learns about it.',
+        : 'The long goal comes over the radio once the guild has found its feet. From then on a Haven tab keeps what the guild learns about it.',
   },
   {
     id: 'done',

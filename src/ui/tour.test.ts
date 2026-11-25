@@ -116,7 +116,7 @@ describe('tour', () => {
     state.corners.searched.push('engine_shed');
     assert.match(text('corners'), /searched them all, so their list under the yard is gone\.$/);
     assert.doesNotMatch(text('plan'), /tries|trial|went down/, 'the tour says how risky, not how that is worked out');
-    assert.match(text('build-first'), /^Besides what the first week asks for, good first goals: /);
+    assert.match(text('build-first'), /^Besides what the note above the yard asks for, good first goals: /);
   });
 
   test('Next walks every step, then ends', () => {

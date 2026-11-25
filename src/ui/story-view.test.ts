@@ -14,7 +14,7 @@ describe('the first week on the Yard (2.8.0)', () => {
   test('the step under way: where it is in the week, the goal, the reward, and a button to where it’s done', () => {
     const state = testGame('card');
     const card = storyCard(state)!;
-    assert.equal(card.kicker, `The first week · 1 of ${FIRST_WEEK.length}`);
+    assert.equal(card.kicker, `Getting started · 1 of ${FIRST_WEEK.length}`);
     assert.equal(card.title, 'Kit them out');
     assert.equal(card.goal, 'Hand out the gear in the stash.');
     assert.equal(card.reward, 'Reward: 6 ammo.');
