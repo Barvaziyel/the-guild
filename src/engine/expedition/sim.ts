@@ -111,6 +111,7 @@ import { vulturesBeat } from './vultures.ts';
 import { tradeBeat } from './trade.ts';
 import { tryFork } from './radio.ts';
 import type { FightView } from './command.ts';
+import type { RoundOrders } from '../types.ts';
 import { campAt, campLeader, neighbours, onTurf, vultureBand, vulturesActive } from '../vultures.ts';
 
 type MidKind = Exclude<BeatKind, 'depart' | 'return'>;
@@ -496,6 +497,8 @@ export interface SimOptions {
   taken?: readonly string[];
   /** Called home over the radio this long after setting out (ms, §9.8): the crew turns back instead of going on. */
   recallAt?: number;
+  /** On a led run, a stand-in for the player that gives every round's orders as it's played (3.8.0; tests and measuring only). */
+  commander?: (view: FightView) => RoundOrders;
 }
 
 /**
@@ -581,7 +584,7 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
     ...(opts.answer !== undefined ? { answer: opts.answer, answerWait: opts.answerWait ?? 0 } : {}),
   };
   // A led run stops at every fight and calls home (§7.13). Any crew can be led (2.2.0).
-  if (plan.lead) sim.lead = { plans: opts.fights ?? [], stops: [], ends: [] };
+  if (plan.lead) sim.lead = { plans: opts.fights ?? [], stops: [], ends: [], ...(opts.commander ? { commander: opts.commander } : {}) };
   // A rescue run carries the person who called for help, and what trouble they're in (§10.1).
   const call = state.rescue?.call;
   if (plan.job === 'rescue' && call && call.locationId === plan.locationId) sim.rescue = { person: structuredClone(call.person), trouble: call.trouble };

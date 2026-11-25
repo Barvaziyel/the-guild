@@ -945,6 +945,20 @@ export const GOAL_RESCUE_JOINS = 0.5;
 export const GOAL_RESCUE_MEDS: [number, number] = [1, 2];
 /** A crew that can't reach what's left (drones, and nobody who can shoot) pulls out and leaves this share of what it found. */
 export const UNREACHABLE_DROP = 1 / 3;
+
+// ---------------------------------------------------------------- fights that need thought (§7.4, 3.8.0)
+/** Shove (a blow) or Pin down (a shot): this much easier to land than an attack. It does no harm. */
+export const SHOVE_TO_HIT = 2;
+/** Shoved or pinned down, an enemy is off balance: everyone else is this much more likely to hit it this round. */
+export const OFF_BALANCE_TO_HIT = 2;
+/** A shot an enemy lined up the round before: this much easier to land, and this many times its damage. */
+export const LINED_UP_TO_HIT = 0;
+export const LINED_UP_MULT = 2;
+/** A patcher mends one of its own hurt to this share of its HP or less. */
+export const MEND_BELOW = 0.75;
+/** Breaking free of a hollow's grip: Brawn against this + danger. */
+export const BREAK_FREE_DC = 8;
+
 /** Intimidate, Soothe, Short out: checks against this + danger. */
 export const INTIMIDATE_DC = 10;
 export const SOOTHE_DC = 9;

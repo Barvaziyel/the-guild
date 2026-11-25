@@ -48,6 +48,12 @@ import {
   RUN_CHANCE,
   RUN_NERVE,
   UNREACHABLE_DROP,
+  BREAK_FREE_DC,
+  LINED_UP_MULT,
+  LINED_UP_TO_HIT,
+  MEND_BELOW,
+  OFF_BALANCE_TO_HIT,
+  SHOVE_TO_HIT,
 } from '../constants.ts';
 import { getEnemy, type EncounterDef, type EnemyDef } from '../content/index.ts';
 import { ENEMIES_BREAK, FLEE_LINES, STALEMATE_LINES, WITHDRAW_FAIL, WITHDRAW_SUCCESS } from '../content/flavor.ts';
@@ -58,7 +64,7 @@ import { maxHp } from '../stats.ts';
 import { fullName } from '../text.ts';
 import { anyTraitHook, getTraitInstance, maxTraitHook, mulTraitHook } from '../traits.ts';
 import { pronounForms } from '../text.ts';
-import type { MoveOrder, Nemesis, ResourceId, RoundOrders, StatId } from '../types.ts';
+import type { MoveOrder, Nemesis, Rank, ResourceId, RoundOrders, StatId } from '../types.ts';
 import {
   absorbRads,
   active,
@@ -83,6 +89,7 @@ import {
   startBeat,
   toughened,
   type FightPlan,
+  type SimLead,
 } from './context.ts';
 import { FightPause, attackKind, defaultRank, enemyNames, fightView, movesFor, validOrder, type FightAct } from './command.ts';
 import { enemyReaches, reaches } from './reach.ts';
@@ -118,14 +125,49 @@ export interface Enemy {
   rose?: boolean;
   /** Behind a door nobody has held yet (2.5.0): not in the fight until it comes through. */
   waiting?: boolean;
+  /** Lined up a shot last round (3.8.0): it goes at this one now, unless something spoils it. */
+  aiming?: Member;
+  /** Has one of the crew in its grip (3.8.0). */
+  holding?: Member;
+  /** Shoved or pinned down this round (3.8.0): everyone else hits it more easily. */
+  offBalance?: boolean;
 }
 
-/** What an enemy means to do this round (§7.4, 2.3.0): a hit or a big hit at someone, or a run for it. Shown to a commander before the orders. */
+/**
+ * What an enemy means to do this round (§7.4, 2.3.0), shown to a commander before the orders: a hit or a big
+ * hit at someone, or a run for it; since 3.8.0 also lining up a shot (`aim`) and taking it (`shot`), mending
+ * one of its own, throwing a firebomb at a rank, grabbing someone, or biting the one it holds.
+ */
 export interface EnemyIntent {
-  kind: 'strike' | 'heavy' | 'run';
+  kind: EnemyIntentKind;
   at?: Member;
   /** Its second blow's target, for one that strikes twice (the Shepherd, 3.0.0): someone else when it can reach them. */
   also?: Member;
+  /** The one of its own it mends. */
+  ally?: Enemy;
+  /** The rank a firebomb is thrown at. */
+  rank?: Rank;
+}
+
+export type EnemyIntentKind = 'strike' | 'heavy' | 'run' | 'aim' | 'shot' | 'mend' | 'throw' | 'grab' | 'hold';
+
+/** What a shove or a pin down breaks (3.8.0): anything wound up, and a grip. A plain hit just comes off balance. */
+const WIND_UPS: readonly EnemyIntentKind[] = ['heavy', 'aim', 'shot', 'mend', 'throw', 'grab', 'hold'];
+
+/** Let go of whoever it holds (3.8.0). */
+function letGo(e: Enemy): Member | undefined {
+  const held = e.holding;
+  if (held) held.heldBy = undefined;
+  e.holding = undefined;
+  return held;
+}
+
+/** Grips that can't last: the holder down, gone or dead, or the one held down or gone. */
+function settleGrips(enemies: readonly Enemy[]): void {
+  for (const e of enemies) {
+    const held = e.holding;
+    if (held && (e.dead || e.fled || e.down || held.down || held.dead || held.fled)) letGo(e);
+  }
 }
 
 /** A group's nerve (§7.4, 2.3.0): deaths, their leader falling and big hits wear it down, one of the crew going down builds it up; at 0 those that can run do. */
@@ -191,6 +233,15 @@ export function buildEncounter(sim: Sim, type?: string): Enemy[] {
     const e = nemesisEnemy(nemesis, sim.loc.danger);
     out.push(e);
     budget -= e.def.threat * NEMESIS_HP_MULT;
+  }
+  // A patcher or a firebug comes along now and then (3.8.0), bought first so there's room for it.
+  const support = encounter.support;
+  if (support && sim.rng.chance(support.chance)) {
+    const def = getEnemy(sim.rng.pick(support.ids));
+    if (def.threat <= budget) {
+      out.push(newEnemy(def, sim.loc.danger));
+      budget -= def.threat;
+    }
   }
   while (out.length < MAX_ENEMIES) {
     const affordable = defs.filter((d) => d.threat <= budget);
@@ -290,7 +341,14 @@ function survivorAttack(sim: Sim, m: Member, target: Enemy, ctx: AttackContext, 
   if (ranged) m.aimed = false;
   // At the gate the Workshop's people know where to hit a scrapbot (§9.8).
   const machines = sim.gate?.machines && target.def.type === 'scrapbot' ? sim.gate.machines * RAID_WORKSHOP_TO_HIT : 0;
-  const extra = toHit + (sim.plan.approach === 'aggressive' ? AGGRESSIVE_ATTACK_BONUS : 0) + grudgeBonus(m, target) + (mods.toHit ?? 0) + (aimed ? AIM_TO_HIT : 0) + machines;
+  const extra =
+    toHit +
+    (sim.plan.approach === 'aggressive' ? AGGRESSIVE_ATTACK_BONUS : 0) +
+    grudgeBonus(m, target) +
+    (mods.toHit ?? 0) +
+    (aimed ? AIM_TO_HIT : 0) +
+    machines +
+    (target.offBalance ? OFF_BALANCE_TO_HIT : 0);
   const bonus = simBonus(sim, m, stat, ['combat', ...enemyContexts(m.s, target.def.type)], { extra });
   const roll = sim.rng.d10();
   practice(sim, m, stat, target.defense);
@@ -307,12 +365,21 @@ function survivorAttack(sim: Sim, m: Member, target: Enemy, ctx: AttackContext, 
   const raw = (damage + (mods.damage ?? 0) + (aimed ? AIM_DAMAGE : 0)) * (mods.double ? 2 : 1);
   const dealt = Math.max(1, raw - (mods.throughArmor ? 0 : target.def.armor));
   target.hp -= dealt;
+  // Put down or stunned, it lets go of whoever it holds (3.8.0), once the blow is told. A plain hit doesn't do it: that takes a shove.
+  const loosen = (): void => {
+    if (target.hp > 0 && !mods.stun) return;
+    const freed = letGo(target);
+    if (!freed) return;
+    act(sim, { by: freed.s.id, kind: 'free', ok: true });
+    say(sim, `${ctx.commanded ? capitalize(label) : capitalize(withArticle(target.def.name))} lets go of ${freed.s.firstName}.`, { tone: 'good' });
+  };
   // A big hit shakes the rest of them.
   if (dealt >= BIG_HIT) loseNerve(ctx.morale, NERVE_BIG_HIT);
   if (target.hp > 0) {
     if (mods.stun) target.stunned = true;
     act(sim, { by: m.s.id, at, kind: 'hit', amount: dealt, shot: ranged, ...(mods.stun ? { stun: true } : {}) });
     if (ctx.commanded) say(sim, `${m.s.firstName} ${hitVerb} ${label} (-${dealt})${mods.stun ? ', and it reels' : ''}.`, { tone: 'good' });
+    loosen();
     maybeNemesisEscape(sim, target);
     if (target.fled) act(sim, { by: at, kind: 'escape' }, true);
     return;
@@ -324,10 +391,12 @@ function survivorAttack(sim: Sim, m: Member, target: Enemy, ctx: AttackContext, 
     target.stunned = false;
     act(sim, { by: m.s.id, at, kind: 'hit', amount: dealt, shot: ranged, down: true });
     say(sim, `${m.s.firstName} ${ranged ? 'drops' : 'knocks down'} ${ctx.commanded ? label : withArticle(target.def.name)}. It's still moving.`, { tone: 'good' });
+    loosen();
     return;
   }
   act(sim, { by: m.s.id, at, kind: 'kill', amount: dealt, shot: ranged });
   creditKill(sim, m, target, ctx, ranged, ranged ? 'drops' : 'takes down');
+  loosen();
 }
 
 /** One of them dead for good: the kill goes to `m` (counters, the weapon's tally, a nemesis's end) and a line says so. */
@@ -438,20 +507,63 @@ function attention(sim: Sim, enemy: Enemy, m: Member): number {
  * one up, or (hurt, with their nerve going) a run for it.
  */
 function chooseIntents(sim: Sim, fight: FightState): void {
-  for (const enemy of fight.enemies) enemy.intent = undefined;
+  settleGrips(fight.enemies);
+  for (const enemy of fight.enemies) {
+    enemy.intent = undefined;
+    enemy.offBalance = false;
+  }
   for (const enemy of fight.enemies) {
     if (enemy.dead || enemy.fled || enemy.down || enemy.stunned) continue;
     const morale = fight.morale;
     const canRun = enemy.def.morale === 'breaks' && !enemy.nemesis && !enemy.def.leader;
     if (canRun && morale && morale.nerve < RUN_NERVE && enemy.hp * 2 <= enemy.maxHp && sim.rng.chance(RUN_CHANCE)) {
       enemy.intent = { kind: 'run' };
+      enemy.aiming = undefined;
       continue;
+    }
+    // One with someone in its grip keeps at them (3.8.0).
+    if (enemy.holding) {
+      enemy.intent = { kind: 'hold', at: enemy.holding };
+      continue;
+    }
+    // A shot lined up last round goes now, at the same one, if they're still up (3.8.0).
+    const lined = enemy.aiming;
+    enemy.aiming = undefined;
+    if (lined && !lined.down && !lined.dead && !lined.fled && reachableBy(sim, enemy).includes(lined)) {
+      enemy.intent = { kind: 'shot', at: lined };
+      continue;
+    }
+    // A patcher mends the worst hurt of its own (3.8.0).
+    if (enemy.def.mends) {
+      const hurt = living(fight.enemies).filter((o) => o !== enemy && o.hp <= o.maxHp * MEND_BELOW);
+      const ally = hurt.sort((a, b) => a.hp / a.maxHp - b.hp / b.maxHp)[0];
+      if (ally) {
+        enemy.intent = { kind: 'mend', ally };
+        continue;
+      }
     }
     const targets = reachableBy(sim, enemy);
     if (targets.length === 0) continue;
+    // A firebug throws at whatever rank its mark stands in (3.8.0).
+    const throws = enemy.def.throws;
+    if (throws && sim.rng.chance(throws.chance)) {
+      const at = sim.rng.weightedBy(targets, (m) => attention(sim, enemy, m));
+      enemy.intent = { kind: 'throw', at, rank: at.rank ?? 'front' };
+      continue;
+    }
     // A pack goes for one of the crew together (2.4.0).
     const packmate = enemy.def.pack ? fight.enemies.find((o) => o !== enemy && o.def.pack && o.intent?.kind === 'strike' && o.intent.at && targets.includes(o.intent.at)) : undefined;
     const at = packmate?.intent?.at ?? sim.rng.weightedBy(targets, (m) => attention(sim, enemy, m));
+    // A shooter may line one up for next round instead (3.8.0).
+    if (enemy.def.aims && sim.rng.chance(enemy.def.aims)) {
+      enemy.intent = { kind: 'aim', at };
+      continue;
+    }
+    // A hollow may go for a grip on someone in front, if nobody has them already (3.8.0).
+    if (enemy.def.grabs && !at.heldBy && !fight.enemies.some((o) => o.intent?.kind === 'grab' && o.intent.at === at) && sim.rng.chance(enemy.def.grabs)) {
+      enemy.intent = { kind: 'grab', at };
+      continue;
+    }
     const heavy = enemy.def.heavy !== undefined && sim.rng.chance(enemy.def.heavy);
     enemy.intent = { kind: heavy ? 'heavy' : 'strike', at };
     // A second blow goes at someone else when it can (3.0.0). Only enemies that strike twice roll for it, so every other fight is as it was.
@@ -472,10 +584,12 @@ function packBonus(enemy: Enemy, target: Member, enemies: readonly Enemy[]): num
 function enemyRound(sim: Sim, fight: FightState, tactics: Tactics, commanded: boolean): void {
   for (const enemy of living(fight.enemies)) {
     const label = commanded ? (fight.names[fight.enemies.indexOf(enemy)] ?? enemyRef(enemy)) : enemyRef(enemy);
-    // A stunned enemy loses this attack.
+    const index = fight.enemies.indexOf(enemy);
+    // A stunned enemy loses this attack, and whatever it had lined up (3.8.0).
     if (enemy.stunned) {
       enemy.stunned = false;
-      act(sim, { by: fight.enemies.indexOf(enemy), kind: 'reel' });
+      enemy.aiming = undefined;
+      act(sim, { by: index, kind: 'reel' });
       continue;
     }
     const intent = enemy.intent;
@@ -483,8 +597,31 @@ function enemyRound(sim: Sim, fight: FightState, tactics: Tactics, commanded: bo
     if (intent?.kind === 'run') {
       enemy.fled = true;
       loseNerve(fight.morale, (fight.morale?.perDeath ?? 0) / 2);
-      act(sim, { by: fight.enemies.indexOf(enemy), kind: 'break' });
+      act(sim, { by: index, kind: 'break' });
       say(sim, `${capitalize(label)} breaks away and runs.`);
+      continue;
+    }
+    // Shoved or pinned down, it lost what it was winding up (3.8.0).
+    if (!intent) continue;
+    // Lining up a shot for next round (3.8.0).
+    if (intent.kind === 'aim' && intent.at) {
+      enemy.aiming = intent.at;
+      act(sim, { by: index, at: intent.at.s.id, kind: 'aim' });
+      if (commanded) say(sim, `${capitalize(label)} lines up a shot at ${intent.at.s.firstName}.`);
+      continue;
+    }
+    if (intent.kind === 'mend') {
+      mend(sim, fight, enemy, intent.ally, label, commanded);
+      continue;
+    }
+    if (intent.kind === 'throw') {
+      firebomb(sim, fight, enemy, intent.rank ?? 'front', label, tactics);
+      continue;
+    }
+    // Its teeth in the one it holds: no roll (3.8.0). Let go of in the meantime, it lost its turn.
+    if (intent.kind === 'hold') {
+      const held = enemy.holding;
+      if (held && held === intent.at) bite(sim, fight, enemy, held, label);
       continue;
     }
     // Most strike once a round; the Shepherd strikes twice (3.0.0). Its big hit is the first blow.
@@ -512,31 +649,96 @@ function enemyRound(sim: Sim, fight: FightState, tactics: Tactics, commanded: bo
         (sim.gate?.shored ? RAID_SHORE_COVER : 0);
       const shot = /shot|zapped/.test(enemy.def.hitVerb);
       const heavy = blow === 0 && intent?.kind === 'heavy';
-      if (sim.rng.d10() + enemy.attack + (heavy ? HEAVY_TO_HIT : 0) + packBonus(enemy, target, fight.enemies) < SURVIVOR_DEFENSE + armor + extra) {
-        act(sim, { by: fight.enemies.indexOf(enemy), at: target.s.id, kind: 'miss', shot });
-        if (commanded && intent?.kind === 'heavy') say(sim, `${capitalize(label)}'s big hit misses ${target.s.firstName}.`);
+      // A shot lined up the round before (3.8.0).
+      const lined = blow === 0 && intent?.kind === 'shot';
+      const toHit = (heavy ? HEAVY_TO_HIT : 0) + (lined ? LINED_UP_TO_HIT : 0) + packBonus(enemy, target, fight.enemies);
+      if (sim.rng.d10() + enemy.attack + toHit < SURVIVOR_DEFENSE + armor + extra) {
+        act(sim, { by: index, at: target.s.id, kind: 'miss', shot });
+        if (commanded && heavy) say(sim, `${capitalize(label)}'s big hit misses ${target.s.firstName}.`);
+        if (commanded && lined) say(sim, `${capitalize(label)}'s careful shot misses ${target.s.firstName}.`);
+        if (commanded && blow === 0 && intent?.kind === 'grab') say(sim, `${capitalize(label)} grabs at ${target.s.firstName} and misses.`);
         continue;
       }
 
-      const damage = damageThrough(enemy.damage * (heavy ? HEAVY_HIT_MULT : 1), armor);
+      const damage = damageThrough(enemy.damage * (heavy ? HEAVY_HIT_MULT : lined ? LINED_UP_MULT : 1), armor);
       if (enemy.def.rads) absorbRads(target, enemy.def.rads);
       const wentDown = hurt(sim, target, damage, enemyRef(enemy), enemy.def.type, enemy.nemesis?.id);
-      act(sim, { by: fight.enemies.indexOf(enemy), at: target.s.id, kind: 'hit', amount: damage, shot, ...(wentDown ? { down: true } : {}) });
-      say(sim, `${target.s.firstName} is ${heavy ? 'hit hard, ' : ''}${enemy.def.hitVerb} ${label} (-${damage} HP)${wentDown ? ' and goes down.' : '.'}`, { tone: 'bad' });
+      act(sim, { by: index, at: target.s.id, kind: 'hit', amount: damage, shot, ...(wentDown ? { down: true } : {}) });
+      say(sim, `${target.s.firstName} is ${heavy ? 'hit hard, ' : lined ? 'hit square, ' : ''}${enemy.def.hitVerb} ${label} (-${damage} HP)${wentDown ? ' and goes down.' : '.'}`, { tone: 'bad' });
       if (wentDown) {
-        // One of the crew down gives the rest of them heart.
-        if (fight.morale) fight.morale.nerve = Math.min(NERVE_FULL, fight.morale.nerve + NERVE_DOWN);
-        enemy.downed.push(target);
-        fight.downedHere.push(target);
-        for (const other of active(sim)) maybeFlee(sim, other, fight);
-      } else if (isHurt(target)) {
-        maybeFlee(sim, target, fight);
+        crewDown(sim, fight, enemy, target);
+      } else {
+        // A grab that lands holds on (3.8.0).
+        if (blow === 0 && intent?.kind === 'grab' && !target.heldBy && !enemy.holding) {
+          target.heldBy = enemy;
+          enemy.holding = target;
+          act(sim, { by: index, at: target.s.id, kind: 'grab' });
+          say(sim, `${capitalize(label)} has ${target.s.firstName} in its grip.`, { tone: 'bad' });
+        }
+        if (isHurt(target)) maybeFlee(sim, target, fight);
       }
     }
   }
 }
 
 const capitalize = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);
+
+/** One of the crew down: it gives the rest of them heart, and may shake the crew (2.3.0). */
+function crewDown(sim: Sim, fight: FightState, enemy: Enemy, target: Member): void {
+  if (fight.morale) fight.morale.nerve = Math.min(NERVE_FULL, fight.morale.nerve + NERVE_DOWN);
+  enemy.downed.push(target);
+  fight.downedHere.push(target);
+  settleGrips(fight.enemies);
+  for (const other of active(sim)) maybeFlee(sim, other, fight);
+}
+
+/** A patcher mends one of its own (3.8.0), if it's still there and still hurt. */
+function mend(sim: Sim, fight: FightState, enemy: Enemy, ally: Enemy | undefined, label: string, commanded: boolean): void {
+  if (!ally || ally.dead || ally.fled || ally.down || ally.hp >= ally.maxHp) return;
+  const healed = Math.min(enemy.def.mends ?? 0, ally.maxHp - ally.hp);
+  ally.hp += healed;
+  const at = fight.enemies.indexOf(ally);
+  act(sim, { by: fight.enemies.indexOf(enemy), at, kind: 'mend', amount: healed });
+  const name = commanded ? (fight.names[at] ?? enemyRef(ally)) : enemyRef(ally);
+  say(sim, `${capitalize(label)} patches up ${name} (+${healed}).`, { tone: 'bad' });
+}
+
+/** A firebomb at a rank of the crew (3.8.0): everyone standing there is burned, half as badly in cover. */
+function firebomb(sim: Sim, fight: FightState, enemy: Enemy, rank: Rank, label: string, tactics: Tactics): void {
+  const throws = enemy.def.throws;
+  if (!throws) return;
+  const index = fight.enemies.indexOf(enemy);
+  // Worse in dangerous places, like every hit (1.6.1).
+  const burn = throws.damage + (enemy.damage - enemy.def.damage);
+  const there = active(sim).filter((m) => !m.perch && (m.rank ?? 'front') === rank);
+  act(sim, { by: index, kind: 'throw' });
+  if (there.length === 0) {
+    say(sim, `${capitalize(label)} throws a firebomb. It bursts where nobody is standing.`, { tone: 'good' });
+    return;
+  }
+  say(sim, `${capitalize(label)} throws a firebomb ${rank === 'front' ? 'into the front' : 'over them, into the back'}.`, { tone: 'bad' });
+  for (const m of there) {
+    const armor = m.s.equipment.armor ? armorValue(m.s.equipment.armor) : 0;
+    const covered = tactics.cover.has(m);
+    const damage = damageThrough(covered ? Math.max(1, Math.floor(burn / 2)) : burn, armor);
+    const wentDown = hurt(sim, m, damage, enemyRef(enemy), enemy.def.type, enemy.nemesis?.id);
+    act(sim, { by: index, at: m.s.id, kind: 'burn', amount: damage, ...(wentDown ? { down: true } : {}) });
+    say(sim, `${m.s.firstName} is burned (-${damage} HP)${covered ? ', down behind cover' : ''}${wentDown ? ' and goes down.' : '.'}`, { tone: 'bad' });
+    if (wentDown) crewDown(sim, fight, enemy, m);
+    else if (isHurt(m)) maybeFlee(sim, m, fight);
+  }
+}
+
+/** A hollow's teeth in the one it holds (3.8.0): no roll. */
+function bite(sim: Sim, fight: FightState, enemy: Enemy, held: Member, label: string): void {
+  const armor = held.s.equipment.armor ? armorValue(held.s.equipment.armor) : 0;
+  const damage = damageThrough(enemy.damage, armor);
+  if (enemy.def.rads) absorbRads(held, enemy.def.rads);
+  const wentDown = hurt(sim, held, damage, enemyRef(enemy), enemy.def.type, enemy.nemesis?.id);
+  act(sim, { by: fight.enemies.indexOf(enemy), at: held.s.id, kind: 'hit', amount: damage, ...(wentDown ? { down: true } : {}) });
+  say(sim, `${held.s.firstName}, in its grip, is ${enemy.def.hitVerb} ${label} (-${damage} HP)${wentDown ? ' and goes down.' : '.'}`, { tone: 'bad' });
+  if (wentDown) crewDown(sim, fight, enemy, held);
+}
 
 /** The guild's dog joins in at the gate (§9.8): a bite at whichever raider is closest to the people. */
 function dogBite(sim: Sim, enemies: readonly Enemy[], ctx: AttackContext): void {
@@ -648,7 +850,7 @@ function callHome(sim: Sim, enemies: readonly Enemy[]): FightPlan | undefined {
   if (!lead) return undefined;
   if (lead.home) {
     // A raid at the Depot (§9.8): the player is there or isn't; nobody calls.
-    const plan = lead.plans[lead.stops.length];
+    const plan = lead.plans[lead.stops.length] ?? standIn(lead);
     lead.stops.push({ at: sim.offset, by: standing(sim)[0]?.s.id ?? '', against: describeGroup(enemies), fromBeat: sim.beats.length });
     startBeat(sim, 'combat', 'At the gate');
     if (plan && (plan.rounds.length > 0 || plan.live)) say(sim, 'You take command at the gate.');
@@ -657,7 +859,7 @@ function callHome(sim: Sim, enemies: readonly Enemy[]): FightPlan | undefined {
   // One of the guild calls, never a Vulture beside them (§9.12).
   const caller = bestBy(standing(sim).filter((m) => !m.ally), (m) => simBonus(sim, m, 'nerve', []));
   if (!caller) return undefined;
-  const plan = lead.plans[lead.stops.length];
+  const plan = lead.plans[lead.stops.length] ?? standIn(lead);
   const kind = sim.beats.at(-1)?.kind ?? 'combat';
   // On the road east nobody is left at the Depot to call (§9.12): they wait for the word.
   const road = sim.plan.job === 'haven';
@@ -682,6 +884,11 @@ function callHome(sim: Sim, enemies: readonly Enemy[]): FightPlan | undefined {
   return plan;
 }
 
+/** A stand-in for the player (tests and measuring, 3.8.0): every fight is under command, with no wait. */
+function standIn(lead: SimLead): FightPlan | undefined {
+  return lead.commander ? { rounds: [], live: false, delay: 0 } : undefined;
+}
+
 function noTactics(): Tactics {
   return { cover: new Set(), drawFire: new Set(), charging: new Set(), guards: new Map() };
 }
@@ -692,7 +899,8 @@ function prepareRound(sim: Sim, enemies: readonly Enemy[], orders: RoundOrders):
   // Where people stand comes first: it decides what they can reach (2.3.0).
   for (const m of active(sim)) {
     const rank = orders.ranks?.[m.s.id];
-    if (rank && !m.perch) m.rank = rank;
+    // Someone in a hollow's grip stays where they are (3.8.0).
+    if (rank && !m.perch && !m.heldBy) m.rank = rank;
   }
   for (const m of active(sim)) {
     const order = orders.moves[m.s.id];
@@ -835,7 +1043,83 @@ function actOnOrder(sim: Sim, m: Member, given: MoveOrder, enemies: readonly Ene
       act(sim, { by: m.s.id, kind: 'aim' });
       say(sim, `${m.s.firstName} takes careful aim.`);
       return true;
+    case 'shove':
+      shove(sim, m, foe!, ctx);
+      return true;
+    case 'break_free':
+      breakFree(sim, m);
+      return true;
   }
+}
+
+/**
+ * A shove, or a shot to pin it down (3.8.0): no harm, but it breaks what the enemy was winding up (a big hit,
+ * a lined-up shot, a mend, a firebomb, a grab, a grip), and it's off balance: the others hit it more easily
+ * this round. A firebug drops its bomb at its own feet.
+ */
+function shove(sim: Sim, m: Member, target: Enemy, ctx: AttackContext): void {
+  const shot = attackKind(sim, m) === 'shoot';
+  const weapon = m.s.equipment.weapon;
+  const def = weapon ? itemDef(weapon) : undefined;
+  if (shot && def?.usesAmmo) sim.ammo -= 1;
+  const stat: StatId = shot ? 'aim' : 'brawn';
+  const at = ctx.enemies.indexOf(target);
+  const label = ctx.names[at] ?? target.def.name;
+  const bonus = simBonus(sim, m, stat, ['combat', ...enemyContexts(m.s, target.def.type)], { extra: SHOVE_TO_HIT + (weapon && def ? (def.toHit ?? 0) + qualityMod(weapon) : 0) });
+  practice(sim, m, stat, target.defense);
+  if (sim.rng.d10() + bonus < target.defense) {
+    act(sim, { by: m.s.id, at, kind: 'shove', ok: false, shot });
+    say(sim, shot ? `${m.s.firstName} fires to pin ${label} down, and misses.` : `${m.s.firstName} tries to shove ${label} and can't.`);
+    return;
+  }
+  target.offBalance = true;
+  const was = target.intent?.kind;
+  const spoils = was !== undefined && WIND_UPS.includes(was);
+  act(sim, { by: m.s.id, at, kind: 'shove', ok: true, shot });
+  const what =
+    was === 'heavy'
+      ? 'and the big hit goes nowhere'
+      : was === 'aim' || was === 'shot'
+        ? 'and it loses its aim'
+        : was === 'mend'
+          ? 'and the meds go flying'
+          : was === 'grab'
+            ? 'before it can grab anyone'
+            : was === 'hold'
+              ? `and it lets go of ${target.holding?.s.firstName ?? 'them'}`
+              : was === 'throw'
+                ? 'and it drops the firebomb at its own feet'
+                : 'off balance';
+  say(sim, `${m.s.firstName} ${shot ? 'pins' : 'shoves'} ${label} ${spoils ? `back, ${what}` : 'off balance'}.`, { tone: 'good' });
+  if (!spoils) return;
+  if (was === 'hold') {
+    const freed = letGo(target);
+    if (freed) act(sim, { by: freed.s.id, kind: 'free', ok: true });
+  }
+  target.aiming = undefined;
+  target.intent = undefined;
+  if (was === 'throw' && target.def.throws) {
+    // Its own firebomb, at its own feet.
+    const burn = target.def.throws.damage + (target.damage - target.def.damage);
+    target.hp -= burn;
+    if (target.hp > 0) {
+      act(sim, { by: at, at, kind: 'burn', amount: burn });
+      return;
+    }
+    act(sim, { by: at, at, kind: 'burn', amount: burn });
+    creditKill(sim, m, target, ctx, shot, shot ? 'drops' : 'takes down', false);
+    say(sim, `${capitalize(label)} goes up in its own fire.`, { tone: 'good' });
+  }
+}
+
+/** Wrenching out of a hollow's grip (3.8.0): Brawn against 8 + danger. */
+function breakFree(sim: Sim, m: Member): void {
+  const holder = m.heldBy;
+  if (!holder) return;
+  const result = check(sim, m, 'brawn', BREAK_FREE_DC + sim.loc.danger, ['combat']);
+  act(sim, { by: m.s.id, kind: 'free', ok: result.success });
+  if (result.success) letGo(holder);
+  say(sim, result.success ? `${m.s.firstName} wrenches free.` : `${m.s.firstName} can't get out of its grip.`, { check: result.info, tone: result.success ? 'good' : 'bad' });
 }
 
 /**
@@ -844,10 +1128,27 @@ function actOnOrder(sim: Sim, m: Member, given: MoveOrder, enemies: readonly Ene
  * takes cover from. A single ordinary hit isn't worth ducking.
  */
 function blowsWouldDrop(m: Member, enemies: readonly Enemy[]): boolean {
+  if (m.heldBy) return false;
   const armor = m.s.equipment.armor ? armorValue(m.s.equipment.armor) : 0;
-  const coming = living(enemies).filter((e) => e.intent?.at === m && e.intent.kind !== 'run' && !e.stunned);
-  if (coming.length < 2 && !coming.some((e) => e.intent!.kind === 'heavy')) return false;
-  return coming.reduce((sum, e) => sum + damageThrough(e.damage * (e.intent!.kind === 'heavy' ? HEAVY_HIT_MULT : 1), armor), 0) >= m.s.hp;
+  const up = living(enemies).filter((e) => !e.stunned && e.intent);
+  // Blows and shots at them; a firebomb (3.8.0) at the rank they stand in.
+  const coming = up.filter((e) => e.intent!.at === m && (e.intent!.kind === 'strike' || e.intent!.kind === 'heavy' || e.intent!.kind === 'shot' || e.intent!.kind === 'grab'));
+  const bombs = up.filter((e) => e.intent!.kind === 'throw' && e.intent!.rank === (m.rank ?? 'front'));
+  const big = (e: Enemy): boolean => e.intent!.kind === 'heavy' || e.intent!.kind === 'shot';
+  if (coming.length + bombs.length < 2 && !coming.some(big) && bombs.length === 0) return false;
+  const hits = coming.reduce((sum, e) => sum + damageThrough(e.damage * (e.intent!.kind === 'heavy' ? HEAVY_HIT_MULT : e.intent!.kind === 'shot' ? LINED_UP_MULT : 1), armor), 0);
+  const burns = bombs.reduce((sum, e) => sum + damageThrough((e.def.throws?.damage ?? 0) + (e.damage - e.def.damage), armor), 0);
+  return hits + burns >= m.s.hp;
+}
+
+/**
+ * On their own, how much more the crew goes for an enemy for what it's doing: one winding up a big hit or
+ * lining up a shot, a patcher at work, a firebug, and most of all one with a friend in its grip (3.8.0).
+ */
+function pressing(e: Enemy): number {
+  if (e.holding) return 4;
+  const kind = e.intent?.kind;
+  return kind === 'heavy' || kind === 'aim' || kind === 'shot' || kind === 'mend' || kind === 'throw' ? 2 : 1;
 }
 
 /** What one of their ordinary blows does before armor, for choosing what's worth hitting. */
@@ -935,11 +1236,14 @@ export function fight(sim: Sim, enemies: Enemy[], start: FightStart): FightResul
     const crewActs = !(start.ambushed && round === 1);
 
     // What they mean to do this round, before anyone moves: a commander sees it (2.3.0).
-    chooseIntents(sim, state);
+    // Caught off guard, they do nothing in the first round, so they show nothing (3.8.0).
+    sim.caught = start.drop && round === 1;
+    if (sim.caught) for (const e of enemies) e.intent = undefined;
+    else chooseIntents(sim, state);
 
     let orders: RoundOrders | undefined;
     if (plan && crewActs) {
-      orders = plan.rounds[given];
+      orders = plan.rounds[given] ?? sim.lead?.commander?.(fightView(sim, enemies, round, fightFrom, undefined, morale?.nerve, goal && goalView(goal)));
       // Under command and out of orders: the fight waits for the next round's.
       if (!orders && plan.live) throw new FightPause(fightView(sim, enemies, round, fightFrom, undefined, morale?.nerve, goal && goalView(goal)));
       if (orders) given++;
@@ -954,10 +1258,18 @@ export function fight(sim: Sim, enemies: Enemy[], start: FightStart): FightResul
       // Not someone the blows coming at them would put down: they keep their head down instead.
       const onIt = orders !== undefined && Object.values(orders.moves).some((o) => o.move === 'job');
       const worker = goal && !onIt ? goalWorker(sim, goal, round, active(sim).filter((m) => !orders?.moves[m.s.id] && !blowsWouldDrop(m, enemies)), (m) => attackDamage(sim, m)) : undefined;
-      for (const m of active(sim)) {
+      // Shoves and pins go first, so the others get the good of them (3.8.0).
+      const shoving = (m: Member): boolean => orders?.moves[m.s.id]?.move === 'shove';
+      for (const m of [...active(sim).filter(shoving), ...active(sim).filter((x) => !shoving(x))]) {
         if (living(enemies).length === 0) break;
+        if (m.down || m.dead || m.fled) continue;
         const order = orders?.moves[m.s.id];
         if (order && actOnOrder(sim, m, order, enemies, attackCtx, tactics)) continue;
+        // On their own, someone in a grip tries to get out of it (3.8.0).
+        if (m.heldBy) {
+          breakFree(sim, m);
+          continue;
+        }
         if (m === worker && goal?.state === 'open') {
           act(sim, { by: m.s.id, kind: 'job', amount: workGoal(sim, m, goal) });
           continue;
@@ -985,7 +1297,7 @@ export function fight(sim: Sim, enemies: Enemy[], start: FightStart): FightResul
           continue;
         }
         const blow = attackDamage(sim, m);
-        const target = sim.rng.weightedBy(targets, (e) => (e.hp < e.maxHp ? 3 : 1) * (e.intent?.kind === 'heavy' ? 2 : 1) * Math.max(1, blow - e.def.armor) / blow);
+        const target = sim.rng.weightedBy(targets, (e) => (e.hp < e.maxHp ? 3 : 1) * pressing(e) * Math.max(1, blow - e.def.armor) / blow);
         survivorAttack(sim, m, target, attackCtx, tactics.spotted === target && tactics.spotter !== m ? { toHit: SPOT_TO_HIT } : {});
       }
       if (sim.gate?.dog) dogBite(sim, enemies, attackCtx);
@@ -1027,7 +1339,16 @@ export function fight(sim: Sim, enemies: Enemy[], start: FightStart): FightResul
       }
     }
   }
-  for (const m of sim.members) m.aimed = false;
+  sim.caught = false;
+  for (const m of sim.members) {
+    m.aimed = false;
+    m.heldBy = undefined;
+  }
+  for (const e of enemies) {
+    e.holding = undefined;
+    e.aiming = undefined;
+    e.offBalance = false;
+  }
 
   if (!end) {
     end = 'stalemate';

@@ -43,6 +43,21 @@ export interface EnemyDef {
   rises?: boolean;
   /** Hunts as a pack (§7.4, 2.4.0): they all go for the same one of the crew, +1 to hit for each other one on them (up to +2). */
   pack?: boolean;
+  /**
+   * Chance each round of lining up a shot instead of firing (3.8.0): nothing this round, and next round a
+   * shot at the same one, 3 easier to land and twice the damage. A shove, a stun or a pin down spoils it.
+   */
+  aims?: number;
+  /** A patcher (3.8.0): each round it mends this much on one of its own hurt to 3/4 or less, instead of fighting. */
+  mends?: number;
+  /** Chance each round of throwing a firebomb at a rank of the crew (3.8.0): this much on everyone standing there, halved in cover. Shoved or pinned down, it drops it at its own feet. */
+  throws?: { chance: number; damage: number };
+  /**
+   * Chance each round of grabbing the one it goes for instead of hitting (3.8.0): if it lands, it holds them.
+   * Held, they can only try to break free, and it bites them every round, sure as anything, until it's
+   * hurt, shoved, stunned or put down.
+   */
+  grabs?: number;
   /** Blows a round (§9.12, 3.0.0): the Shepherd's four arms strike twice, at a second one of the crew when it can. One when missing. */
   attacks?: number;
   /** Never met in the Reach: only at Haven (§9.12). Kept out of encounters, raids and the balance table. */
@@ -129,8 +144,51 @@ export const ENEMIES: readonly EnemyDef[] = [
     morale: 'breaks',
     backsOff: 'intimidate',
     ranged: true,
+    aims: 0.3,
     hitVerb: 'shot by',
     loot: { ammo: [1, 3], scrap: [0, 1] },
+  },
+  {
+    // 3.8.0: kill it first, or it puts the others back together.
+    id: 'raider_patcher',
+    type: 'raider',
+    name: 'Raider Patcher',
+    plural: 'Raider Patchers',
+    description: 'Keeps the others on their feet with stolen meds, and a pistol for anyone who minds.',
+    hp: 7,
+    attack: 3,
+    damage: 2,
+    defense: 9,
+    armor: 0,
+    stealth: 8,
+    threat: 3,
+    morale: 'breaks',
+    backsOff: 'intimidate',
+    ranged: true,
+    mends: 6,
+    hitVerb: 'shot by',
+    loot: { meds: [0, 1], scrap: [0, 1] },
+  },
+  {
+    // 3.8.0: spread out, take cover, or pin it down before it throws.
+    id: 'raider_firebug',
+    type: 'raider',
+    name: 'Raider Firebug',
+    plural: 'Raider Firebugs',
+    description: 'A bag of bottles, a rag in each, and a lighter it keeps flicking.',
+    hp: 7,
+    attack: 4,
+    damage: 3,
+    defense: 9,
+    armor: 0,
+    stealth: 8,
+    threat: 4,
+    morale: 'breaks',
+    backsOff: 'intimidate',
+    ranged: true,
+    throws: { chance: 0.4, damage: 3 },
+    hitVerb: 'shot by',
+    loot: { gas: [0, 1], scrap: [0, 2] },
   },
   {
     id: 'raider_brute',
@@ -208,6 +266,7 @@ export const ENEMIES: readonly EnemyDef[] = [
     morale: 'breaks',
     backsOff: 'intimidate',
     ranged: true,
+    aims: 0.3,
     hitVerb: 'shot by',
     loot: { ammo: [1, 4], scrap: [0, 2] },
   },
@@ -249,6 +308,7 @@ export const ENEMIES: readonly EnemyDef[] = [
     morale: 'fearless',
     rads: 4,
     rises: true,
+    grabs: 0.3,
     hitVerb: 'clawed by',
     loot: { scrap: [0, 1] },
   },
@@ -268,6 +328,7 @@ export const ENEMIES: readonly EnemyDef[] = [
     morale: 'fearless',
     rads: 10,
     rises: true,
+    grabs: 0.25,
     hitVerb: 'burned by',
     loot: { tech: [0, 1], scrap: [0, 1] },
   },
@@ -326,6 +387,7 @@ export const ENEMIES: readonly EnemyDef[] = [
     threat: 4,
     morale: 'fearless',
     ranged: true,
+    aims: 0.35,
     havenOnly: true,
     hitVerb: 'shot by',
     loot: { ammo: [1, 3] },

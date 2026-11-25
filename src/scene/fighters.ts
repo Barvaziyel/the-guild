@@ -22,7 +22,7 @@ function limb(x1: number, y1: number, x2: number, y2: number, color: string, w =
 }
 
 /** What a person holds, drawn from the hands. */
-type Held = WeaponLook | 'maul' | 'spiked_bat' | 'claws' | 'saw' | 'hook' | 'none';
+type Held = WeaponLook | 'maul' | 'spiked_bat' | 'claws' | 'saw' | 'hook' | 'bottle' | 'none';
 
 /** How a person-shaped fighter is drawn. */
 export interface Body {
@@ -35,7 +35,7 @@ export interface Body {
   trousers: string;
   boots: string;
   /** A vest, plates or a suit over the clothes. */
-  armor?: { kind: 'vest' | 'riot' | 'hazmat' | 'leather' | 'signs' | 'apron'; color: string };
+  armor?: { kind: 'vest' | 'riot' | 'hazmat' | 'leather' | 'signs' | 'apron' | 'medic' | 'bandolier'; color: string };
   hat?: 'beanie' | 'bandana' | 'goggles' | 'helmet' | 'hood' | 'mask' | 'mohawk';
   /** The Vultures' crest: this many long black feathers fanned up and back from the head; `tips` gives some of them bone-white ends. */
   crest?: { n: number; tips: boolean };
@@ -68,6 +68,9 @@ function hands(held: Held): { back: [number, number]; front: [number, number] } 
       return { back: [10, -30], front: [20, -33] };
     case 'none':
       return { back: [8, -42], front: [14, -45] };
+    case 'bottle':
+      // Raised to throw (3.8.0).
+      return { back: [-2, -32], front: [8, -53] };
     default:
       return { back: [-2, -32], front: [10, -40] };
   }
@@ -125,6 +128,13 @@ function weapon(held: Held, front: [number, number], back: [number, number]): st
         limb(fx - 1, fy + 3, fx + 1, fy - 4, WOOD, 2.6) +
         pathEl(`M ${fx + 1} ${fy - 4} L ${fx + 3} ${fy - 16} Q ${fx + 4} ${fy - 24} ${fx + 10} ${fy - 22} Q ${fx + 14} ${fy - 20} ${fx + 12} ${fy - 15}`, 'none', `stroke="${INK}" stroke-width="4" stroke-linecap="round"`) +
         pathEl(`M ${fx + 1} ${fy - 4} L ${fx + 3} ${fy - 16} Q ${fx + 4} ${fy - 24} ${fx + 10} ${fy - 22} Q ${fx + 14} ${fy - 20} ${fx + 12} ${fy - 15}`, 'none', `stroke="${STEEL}" stroke-width="1.8" stroke-linecap="round"`)
+      );
+    case 'bottle':
+      // A firebomb (3.8.0): a bottle with a burning rag.
+      return (
+        rect(fx - 2.2, fy - 9, 4.4, 9, '#5f7a52', THIN) +
+        rect(fx - 1, fy - 12, 2, 3.2, '#5f7a52', THIN) +
+        pathEl(`M ${fx} ${fy - 21} C ${fx + 4} ${fy - 16} ${fx + 3} ${fy - 12} ${fx} ${fy - 12} C ${fx - 3} ${fy - 12} ${fx - 3} ${fy - 16} ${fx} ${fy - 21} Z`, '#f0a060', 'stroke="#b5432f" stroke-width="0.9"')
       );
     case 'none':
       return '';
@@ -238,6 +248,16 @@ function torso(b: Body): string {
     if (a.kind === 'signs') {
       out += poly([[2, -47], [10, -39], [2, -31], [-6, -39]], '#e0b13a', THIN) + line(-1, -39, 5, -39, 1.2, INK);
       out += poly([[-w - 2, -48], [-w + 3, -51], [-w + 7, -48], [-w + 7, -43], [-w + 3, -40], [-w - 2, -43]], '#b5432f', THIN);
+    }
+    if (a.kind === 'medic') {
+      // A patcher (3.8.0): a white cross on the chest, and a bag at the hip.
+      out += rect(-3.6, -45, 7.2, 7.2, '#efe8da', THIN) + rect(-0.9, -44, 1.8, 5.2, '#b5432f', NONE) + rect(-2.6, -42.3, 5.2, 1.8, '#b5432f', NONE);
+      out += line(-w + 1, -47, w - 1, -29, 1.4, '#3a302a') + rect(w - 5, -33, 8, 6.5, a.color, THIN);
+    }
+    if (a.kind === 'bandolier') {
+      // A firebug (3.8.0): a strap of bottles across the chest.
+      out += line(-w + 1, -47, w - 1, -30, 2.6, '#3a302a');
+      for (const k of [0, 1, 2]) out += rect(-w + 3 + k * 4.6, -45 + k * 4.6, 3, 5.2, a.color, THIN);
     }
     if (a.kind === 'apron') {
       // A rubber apron down over the thighs, stained.
@@ -358,6 +378,10 @@ function raider(kind: string, seed: string): { body: Body; scale: number } {
       return { body: { ...base, hat: 'goggles', held: 'rifle', cloth: '#4f5446', accent: '#7b3a2a', armor: { kind: 'vest', color: '#6f665a' } }, scale: 1 };
     case 'raider_brute':
       return { body: { ...base, bald: true, hat: 'mohawk', hair: '#8e3b2c', held: 'spiked_bat', cloth: '#5e4636', build: 1.3 }, scale: 1.12 };
+    case 'raider_patcher':
+      return { body: { ...base, hat: 'bandana', accent: '#efe8da', held: 'holster', cloth: '#6e6a58', armor: { kind: 'medic', color: '#7a5a3c' } }, scale: 0.96 };
+    case 'raider_firebug':
+      return { body: { ...base, hat: 'goggles', held: 'bottle', cloth: '#3e3833', accent: '#d0703c', armor: { kind: 'bandolier', color: '#5f7a52' } }, scale: 0.96 };
     case 'raider_enforcer':
       return { body: { ...base, hat: 'helmet', accent: '#6b7272', held: 'maul', cloth: '#4a3f36', build: 1.35, armor: { kind: 'signs', color: '#e0b13a' } }, scale: 1.22 };
     case 'haven_orderly':
@@ -565,6 +589,8 @@ export const DRAWN_ENEMIES: readonly string[] = [
   'raider_scav',
   'raider_gunner',
   'raider_brute',
+  'raider_patcher',
+  'raider_firebug',
   'raider_enforcer',
   'vulture_scav',
   'vulture_shot',

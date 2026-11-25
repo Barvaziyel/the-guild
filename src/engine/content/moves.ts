@@ -32,4 +32,6 @@ export const MOVES: Record<MoveId, MoveDef> = {
   intimidate: { id: 'intimidate', name: 'Intimidate', detail: 'Stare one of them into running.', target: 'enemy' },
   soothe: { id: 'soothe', name: 'Soothe', detail: 'Calm an animal until it slinks off.', target: 'enemy' },
   short_out: { id: 'short_out', name: 'Short out', detail: 'Shut a machine down.', target: 'enemy' },
+  shove: { id: 'shove', name: 'Shove', detail: 'No harm: it loses what it was winding up, and the others hit it more easily.', target: 'enemy' },
+  break_free: { id: 'break_free', name: 'Break free', detail: 'Wrench out of its grip.', target: 'none' },
 };

@@ -190,3 +190,69 @@ describe('a job on the stage (2.5.0)', () => {
     assert.equal(stageModel(openGame('job'), at, VIEW, { picks: {} }).job, undefined);
   });
 });
+
+describe('fights that need thought on the stage (3.8.0)', () => {
+  const scav = VIEW.enemies[0]!;
+  /** VIEW with the enemies doing what's given. */
+  const doing = (...intents: NonNullable<FightView['enemies'][number]['intent']>[]): FightView => ({
+    ...VIEW,
+    enemies: intents.map((intent, index) => ({ ...scav, index, name: `Raider ${index + 1}`, hp: 10, intent })),
+  });
+
+  test('over each of the crew, what is coming at them: a number, red when it could put them down', () => {
+    const view = doing({ kind: 'strike', at: 'a' }, { kind: 'heavy', at: 'a' });
+    const m = stageModel(openGame('marks'), { place: 'kessler_farm', seed: 'x' }, view, { picks: {} });
+    const mara = m.crew.find((f) => f.key === crewKey('a'))!;
+    assert.deepEqual(mara.threat, { amount: 9, drop: false, fire: false, next: false });
+    assert.equal(m.crew.find((f) => f.key === crewKey('b'))!.threat, undefined, 'nothing at Kai');
+    const worse = doing({ kind: 'shot', at: 'a' }, { kind: 'heavy', at: 'a' });
+    assert.equal(stageModel(openGame('marks'), { place: 'kessler_farm', seed: 'x' }, worse, { picks: {} }).crew[0]!.threat!.drop, true, '12 on 10 HP');
+  });
+
+  test('a firebomb counts on everyone in the rank it is thrown at; a shot lined up at someone shows for next round', () => {
+    const bug = { ...scav, burn: 4 };
+    const view: FightView = { ...VIEW, enemies: [{ ...bug, intent: { kind: 'throw', at: 'a', rank: 'front' } }, { ...scav, index: 1, intent: { kind: 'aim', at: 'b' } }] };
+    const m = stageModel(openGame('bomb'), { place: 'kessler_farm', seed: 'x' }, view, { picks: {} });
+    assert.deepEqual(m.crew.map((f) => f.threat), [
+      { amount: 4, drop: false, fire: true, next: false },
+      { amount: 4, drop: false, fire: true, next: true },
+    ]);
+    // Sent to the back, the bomb in front misses them.
+    const back = { ...view, crew: view.crew.map((c) => (c.id === 'b' ? { ...c, rank: 'back' as const } : c)) };
+    assert.deepEqual(stageModel(openGame('bomb'), { place: 'kessler_farm', seed: 'x' }, back, { picks: {} }).crew[1]!.threat, { amount: 0, drop: false, fire: false, next: true });
+  });
+
+  test('one of theirs about to be patched up shows how much; someone in a grip is marked', () => {
+    const view: FightView = {
+      ...VIEW,
+      enemies: [{ ...scav, hp: 4 }, { ...scav, index: 1, name: 'Raider Patcher', kind: 'raider_patcher', rank: 'back', mends: 6, intent: { kind: 'mend', ally: 0 } }],
+      crew: [{ ...VIEW.crew[0]!, heldBy: 0 }, VIEW.crew[1]!],
+    };
+    const m = stageModel(openGame('mend'), { place: 'kessler_farm', seed: 'x' }, view, { picks: {} });
+    assert.equal(m.enemies[0]!.mending, 6);
+    assert.equal(m.enemies[1]!.intent?.ally, enemyKey(0));
+    assert.equal(m.crew[0]!.held, true);
+    assert.equal(m.crew[1]!.held, undefined);
+  });
+
+  test('a round played back: a firebomb burns, a patcher mends, a shove lands', () => {
+    const before: FightView = { ...VIEW, enemies: [{ ...scav, hp: 4 }, { ...scav, index: 1, hp: 6 }] };
+    const after: FightView = {
+      ...before,
+      enemies: [{ ...scav, hp: 8 }, { ...scav, index: 1, hp: 2 }],
+      crew: [{ ...VIEW.crew[0]!, hp: 6 }, VIEW.crew[1]!],
+      acts: [
+        { round: 2, line: 0, by: 'b', at: 1, kind: 'shove', ok: true },
+        { round: 2, line: 1, by: 1, kind: 'throw' },
+        { round: 2, line: 1, by: 1, at: 'a', kind: 'burn', amount: 4 },
+        { round: 2, line: 2, by: 1, at: 1, kind: 'burn', amount: 4 },
+        { round: 2, line: 3, by: 0, at: 0, kind: 'mend', amount: 4 },
+      ],
+    };
+    const frames = roundFrames(before, after);
+    assert.deepEqual(frames.map((f) => f.effect.pop), ['Shoved', 'Firebomb!', '-4', '-4', '+4']);
+    assert.equal(frames[2]!.hp[crewKey('a')], 6);
+    assert.equal(frames[3]!.hp[enemyKey(1)], 2);
+    assert.equal(frames[4]!.hp[enemyKey(0)], 8);
+  });
+});

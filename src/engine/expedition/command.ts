@@ -10,7 +10,7 @@ import { maxHp } from '../stats.ts';
 import { visibleTraits } from '../traits.ts';
 import { HAVEN_JOURNEY, getTrait } from '../content/index.ts';
 import type { LogLine, MoveId, Rank } from '../types.ts';
-import type { CombatEnd, Enemy } from './combat.ts';
+import type { CombatEnd, Enemy, EnemyIntentKind } from './combat.ts';
 import { active, type Member, type Sim } from './context.ts';
 import { enemyRank, reaches, type EnemyRank } from './reach.ts';
 import { canWork, type GoalView } from './goals.ts';
@@ -49,8 +49,21 @@ export interface FightEnemyView {
   vulture: boolean;
   /** Where it stands (2.3.0): in front, at the back (it shoots), or in the air (it flies). */
   rank: EnemyRank;
-  /** What it means to do this round, chosen before the crew acts (2.3.0): a hit or a big hit at someone (a survivor id), or a run for it. */
-  intent?: { kind: 'strike' | 'heavy' | 'run'; at?: string; also?: string };
+  /**
+   * What it means to do this round, chosen before the crew acts (2.3.0): a hit or a big hit at someone (a survivor id),
+   * or a run for it; since 3.8.0 lining up a shot (`aim`, for next round) or taking one (`shot`), mending one of its own
+   * (`ally`, its place), a firebomb at a rank, a grab, or biting the one it holds (`hold`).
+   */
+  intent?: { kind: EnemyIntentKind; at?: string; also?: string; ally?: number; rank?: Rank };
+  /** The one of the crew in its grip (3.8.0). */
+  holding?: string;
+  /** What it does besides hitting (3.8.0), for what it is: lines up shots, mends its own (how much), throws firebombs, grabs. */
+  aims?: boolean;
+  mends?: number;
+  throws?: boolean;
+  grabs?: boolean;
+  /** A firebomb's damage on each one there, before cover (3.8.0). */
+  burn?: number;
   /** What one of its hits does, before armor; a big hit does twice that. */
   damage: number;
   /** What comes off every hit on it (2.4.0: a brute's is 3). */
@@ -122,7 +135,17 @@ export type FightActKind =
   /** A turn on the fight's job (2.5.0): `amount` is the work done. */
   | 'job'
   /** One more of them through a door nobody held (2.5.0). */
-  | 'arrive';
+  | 'arrive'
+  /** A shove or a pin down (3.8.0): `ok` when it landed. */
+  | 'shove'
+  /** One of theirs patching another up (3.8.0): `amount` healed. */
+  | 'mend'
+  /** A firebomb thrown (3.8.0); a `burn` for each one it catches. */
+  | 'throw'
+  | 'burn'
+  /** A hollow getting someone in its grip (3.8.0), and someone getting out of one (`by` them; `ok` when free). */
+  | 'grab'
+  | 'free';
 
 export interface FightMemberView {
   id: string;
@@ -142,6 +165,8 @@ export interface FightMemberView {
   perch?: boolean;
   /** One of the Vultures, fighting beside the guild at Haven's gate (§9.12). */
   ally?: boolean;
+  /** In a hollow's grip (3.8.0): its place in the fight. */
+  heldBy?: number;
 }
 
 /** A fight stopped for orders: what the player sees on the fight screen. */
@@ -169,6 +194,8 @@ export interface FightView {
   nerve?: number;
   /** The job the fight came with, if any (2.5.0). */
   goal?: GoalView;
+  /** Caught off guard (3.8.0): they do nothing this round, and show nothing. */
+  caught?: boolean;
 }
 
 /** Thrown inside a replay when a fight under command needs the next round's orders. */
@@ -229,6 +256,8 @@ export function defaultRank(_sim: Sim, m: Member): Rank {
 /** Everything this person can do this round from where they stand (or from `rank`), with what each move can be aimed at. */
 export function movesFor(sim: Sim, m: Member, enemies: readonly Enemy[], rank: Rank = m.rank ?? 'front'): MoveChoice[] {
   if (m.down || m.dead || m.fled) return [];
+  // In a hollow's grip (3.8.0), there's one thing to do.
+  if (m.heldBy) return [{ move: 'break_free', name: MOVES.break_free.name, detail: MOVES.break_free.detail, target: 'none', targets: [] }];
   const foes = living(enemies);
   const kind = attackKind(sim, m);
   const gun = kind === 'shoot';
@@ -253,11 +282,13 @@ export function movesFor(sim: Sim, m: Member, enemies: readonly Enemy[], rank: R
     foes.filter((e) => e.def.type === type && (!unnamed || (!e.nemesis && !e.vulture))).map((e) => enemies.indexOf(e));
 
   // A lookout on the Watchtower (§9.8) can only shoot, aim and point things out from up there.
-  const PERCHED: readonly MoveId[] = ['attack', 'finish', 'aim', 'called_shot', 'spray', 'spot'];
+  const PERCHED: readonly MoveId[] = ['attack', 'finish', 'shove', 'aim', 'called_shot', 'spray', 'spot'];
   if (m.perch && kind === 'shoot') {
     return movesFor(sim, { ...m, perch: false }, enemies, 'back').filter((c) => PERCHED.includes(c.move));
   }
   add('attack', foeIds, ATTACK_NAMES[kind]);
+  // Anyone can spoil what one of them is winding up (3.8.0): a shove within reach, or a shot to pin it down.
+  add('shove', foeIds, gun ? 'Pin down' : 'Shove', gun ? 'A shot to keep its head down: it loses what it was winding up, and the others hit it more easily.' : undefined);
   // The job the fight came with (2.5.0), for anyone on the ground.
   // One at a time: once someone has worked it this round, it isn't anyone else's move until the next.
   if (canWork(sim.goal, m)) add('job', [], sim.goal!.def.move, sim.goal!.def.detail);
@@ -320,7 +351,23 @@ export function fightView(sim: Sim, enemies: readonly Enemy[], round: number, fr
       ...((e.def.attacks ?? 1) > 1 ? { twice: true } : {}),
       pack: e.def.pack === true,
       heavy: e.def.heavy !== undefined,
-      ...(e.intent && !over && !e.dead && !e.fled ? { intent: { kind: e.intent.kind, ...(e.intent.at ? { at: e.intent.at.s.id } : {}), ...(e.intent.also ? { also: e.intent.also.s.id } : {}) } } : {}),
+      ...(e.intent && !over && !e.dead && !e.fled
+        ? {
+            intent: {
+              kind: e.intent.kind,
+              ...(e.intent.at ? { at: e.intent.at.s.id } : {}),
+              ...(e.intent.also ? { also: e.intent.also.s.id } : {}),
+              ...(e.intent.ally ? { ally: enemies.indexOf(e.intent.ally) } : {}),
+              ...(e.intent.rank ? { rank: e.intent.rank } : {}),
+            },
+          }
+        : {}),
+      ...(e.holding && !over ? { holding: e.holding.s.id } : {}),
+      ...(e.def.aims ? { aims: true } : {}),
+      ...(e.def.mends ? { mends: e.def.mends } : {}),
+      ...(e.def.throws ? { throws: true } : {}),
+      ...(e.def.grabs ? { grabs: true } : {}),
+      ...(e.def.throws ? { burn: e.def.throws.damage + (e.damage - e.def.damage) } : {}),
       leader: e.def.leader === true,
       fearless: e.def.morale === 'fearless' || e.nemesis !== undefined,
     })),
@@ -336,6 +383,7 @@ export function fightView(sim: Sim, enemies: readonly Enemy[], round: number, fr
       byRank: { front: movesFor(sim, m, enemies, 'front'), back: movesFor(sim, m, enemies, 'back') },
       ...(m.perch ? { perch: true } : {}),
       ...(m.ally ? { ally: true } : {}),
+      ...(m.heldBy && !over ? { heldBy: enemies.indexOf(m.heldBy) } : {}),
     })),
     ...(sim.gate?.dog ? { dog: sim.gate.dog } : {}),
     meds: sim.meds,
@@ -345,5 +393,6 @@ export function fightView(sim: Sim, enemies: readonly Enemy[], round: number, fr
     ...(over ? { over } : {}),
     ...(nerve !== undefined ? { nerve: Math.max(0, Math.round(nerve)) } : {}),
     ...(goal ? { goal } : {}),
+    ...(sim.caught && !over ? { caught: true } : {}),
   };
 }

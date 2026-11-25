@@ -86,7 +86,7 @@ describe('at the gate', () => {
     const view = raidPreview(state, raid.arrive + 1000)!;
     assert.equal(view.dog, 'Rust');
     assert.equal(view.crew.find((m) => m.id === look.id)!.perch, true);
-    assert.ok(view.crew.find((m) => m.id === look.id)!.moves.every((c) => ['attack', 'aim', 'called_shot', 'spray', 'spot'].includes(c.move)), 'up there they can only shoot');
+    assert.ok(view.crew.find((m) => m.id === look.id)!.moves.every((c) => ['attack', 'shove', 'aim', 'called_shot', 'spray', 'spot'].includes(c.move)), 'up there they can only shoot');
     const m = stageModel(state, { place: 'depot', seed: raid.id }, view, { picks: {} });
     assert.equal(m.place, 'depot');
     assert.equal(m.crew.find((f) => f.key === `c:${look.id}`)!.perch, true);
@@ -265,7 +265,8 @@ describe('who comes and what they want', () => {
       letRaidFight(state, raid.arrive + 1000);
       const over = raidOver(state)!;
       assert.ok(over.lines.length > 0);
-      assert.match(over.lines[0]!, /^Raiders came for the Depot\./);
+      // Held or broken, the news says which.
+      assert.match(over.lines[0]!, state.depot.raid!.end === 'held' ? /^Raiders came for the Depot\./ : /^Raiders broke into the Depot\./);
       if (!over.captive) continue;
       assert.ok(over.lines.some((l) => l.includes(over.captive!.name)));
       return;

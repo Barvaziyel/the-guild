@@ -260,6 +260,27 @@ export function actCues(state: GameState, view: FightView, act: FightAct): { cue
       return { cues: [own('work')] };
     case 'reel':
       return { cues: [] };
+    // 3.8.0
+    case 'shove': {
+      if (act.shot) return { cues: [own(shotSound(state, view, act.by)), at(act.ok ? 'blunt' : 'ricochet', 0.12, 0.6)] };
+      return { cues: [own('swing2', 0, 0.8), ...(act.ok ? [at('blunt', 0.12, 0.7)] : [])] };
+    }
+    case 'mend':
+      return { cues: [own('heal')] };
+    case 'throw':
+      return { cues: [own('swing', 0, 0.8)] };
+    case 'burn': {
+      const onCrew = typeof act.at === 'string';
+      const cues = [at(onCrew ? hurtSound(act.at) : 'blunt', 0, 0.7)];
+      if (act.down) cues.push(at(fallSound(view, act), 0.35));
+      return onCrew ? { cues, buzz: act.down ? 'heavy' : 'light' } : { cues };
+    }
+    case 'grab': {
+      const v = typeof act.by === 'number' ? enemyVoice(act.by) : undefined;
+      return { cues: [v ? { ...own(VOICES.groan![v.variant]), rate: v.rate } : own('groan')] };
+    }
+    case 'free':
+      return { cues: [own(act.ok ? 'shuffle' : 'nope')] };
   }
 }
 

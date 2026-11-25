@@ -19,6 +19,7 @@ import {
   fightNotices,
   fightWakeTimes,
   hpShare,
+  incoming,
   jobPanel,
   leadChoice,
   leadReportLine,
@@ -438,4 +439,51 @@ describe('the fight on one screen (2.6.0)', () => {
     const blade = member('d', 'Dov', { rank: 'back', moves: moves([]) });
     assert.equal(orderHint(view, blade, {}, false), 'Dov can’t reach any of them from the back. Pick a move, or move them.');
   });
+});
+
+describe('their moves, 3.8.0', () => {
+  const base = { index: 0, name: 'Raider Gunner', type: 'raider', kind: 'raider_gunner', hp: 8, maxHp: 8, state: 'up' as const, stunned: false, named: false, nemesis: false, vulture: false, rank: 'back' as const, damage: 4, armor: 1, rises: false, pack: false, heavy: false, leader: false, fearless: false };
+  const crew = (id: string, name: string, extra: Partial<FightMemberView> = {}): FightMemberView => ({ id, name, hp: 10, maxHp: 12, state: 'up', aimed: false, moves: [], rank: 'front', byRank: { front: [], back: [] }, ...extra });
+  const view = (enemies: FightView['enemies'], members = [crew('a', 'Mara'), crew('b', 'Kai')]): FightView => ({ round: 1, maxRounds: 6, place: 'Kessler Farm', enemies, crew: members, meds: 0, ammo: 0, lines: [], acts: [] });
+
+  test('what each means to do, with what it would cost', () => {
+    const v = view([
+      { ...base, aims: true, intent: { kind: 'aim', at: 'a' } },
+      { ...base, index: 1, name: 'Raider Gunner 2', aims: true, intent: { kind: 'shot', at: 'b' } },
+      { ...base, index: 2, name: 'Raider Patcher', mends: 6, intent: { kind: 'mend', ally: 0 } },
+      { ...base, index: 3, name: 'Raider Firebug', burn: 4, intent: { kind: 'throw', at: 'a', rank: 'front' } },
+      { ...base, index: 4, name: 'Hollow', rank: 'front', damage: 3, intent: { kind: 'hold', at: 'b' } },
+    ]);
+    assert.deepEqual(theirMoves(v), [
+      'Raider Gunner: lining up a shot at Mara for next round (up to 8).',
+      'Raider Gunner 2: taking the shot it lined up at Kai (up to 8).',
+      'Raider Patcher: patching up Raider Gunner (+6).',
+      'Raider Firebug: throwing a firebomb at the front (4 each, half in cover).',
+      'Hollow: has Kai in its grip (3 a round, no miss).',
+    ]);
+    assert.ok(whatTheyAre(v).some((l) => l.startsWith('Raider Gunner: lines up a shot a round ahead')));
+  });
+
+  test('what is coming at each: the shot, the firebomb on their rank, the bite; next round’s shot apart', () => {
+    const v = view([
+      { ...base, aims: true, intent: { kind: 'aim', at: 'a' } },
+      { ...base, index: 1, intent: { kind: 'shot', at: 'b' } },
+      { ...base, index: 2, burn: 4, intent: { kind: 'throw', at: 'a', rank: 'front' } },
+    ]);
+    assert.deepEqual(incoming(v, 'a'), { amount: 4, drop: false, fire: true, next: true });
+    assert.deepEqual(incoming(v, 'b'), { amount: 12, drop: true, fire: true, next: false });
+  });
+
+  test('someone in a grip: their chip says who holds them, until they’re told to break free', () => {
+    const held = crew('a', 'Mara', { heldBy: 0, moves: [{ move: 'break_free', name: 'Break free', detail: '', target: 'none', targets: [] }] });
+    const v = view([{ ...base, name: 'Hollow 1', rank: 'front', intent: { kind: 'hold', at: 'a' }, holding: 'a' }], [held]);
+    assert.equal(crewChips(v, {})[0]!.label, 'Held by Hollow 1');
+    assert.equal(crewChips(v, { a: { move: 'break_free' } })[0]!.label, 'Break free');
+  });
+});
+
+test('someone in a grip: the hint says how to get them out', () => {
+  const held: FightMemberView = { id: 'a', name: 'Mara', hp: 10, maxHp: 12, state: 'up', aimed: false, heldBy: 0, moves: [{ move: 'break_free', name: 'Break free', detail: 'Wrench out of its grip.', target: 'none', targets: [] }], rank: 'front', byRank: { front: [], back: [] } };
+  const v: FightView = { round: 1, maxRounds: 6, place: 'The Old Metro', enemies: [{ index: 0, name: 'Hollow 2', type: 'hollow', kind: 'hollow', hp: 8, maxHp: 8, state: 'up', stunned: false, named: false, nemesis: false, vulture: false, rank: 'front', damage: 3, armor: 0, rises: true, pack: false, heavy: false, leader: false, fearless: true, holding: 'a', intent: { kind: 'hold', at: 'a' } }], crew: [held], meds: 0, ammo: 0, lines: [], acts: [] };
+  assert.equal(orderHint(v, held, {}, false), "In Hollow 2's grip. Break free, or have someone shove it off.");
 });

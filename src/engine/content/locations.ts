@@ -6,6 +6,8 @@ export interface EncounterDef {
   /** Enemy ids this encounter is built from (bought against the threat budget). */
   enemies: string[];
   weight: number;
+  /** One of these comes along this often, bought first (3.8.0): a patcher, a firebug. */
+  support?: { ids: string[]; chance: number };
 }
 
 export interface LocationDef {
@@ -76,7 +78,7 @@ export const LOCATIONS: readonly LocationDef[] = [
     durationMin: 15,
     encounters: [
       { enemies: ['rad_hound'], weight: 5 },
-      { enemies: ['raider_scav'], weight: 4 },
+      { enemies: ['raider_scav'], weight: 4, support: { ids: ['raider_patcher'], chance: 0.5 } },
       { enemies: ['hollow'], weight: 1 },
     ],
     loot: { scrap: 7, rations: 5, meds: 1, ammo: 1, tech: 0, gas: 2 },
@@ -101,7 +103,7 @@ export const LOCATIONS: readonly LocationDef[] = [
     durationMin: 25,
     encounters: [
       { enemies: ['rad_hound'], weight: 6 },
-      { enemies: ['raider_scav', 'raider_gunner'], weight: 3 },
+      { enemies: ['raider_scav', 'raider_gunner'], weight: 3, support: { ids: ['raider_patcher', 'raider_firebug'], chance: 0.6 } },
     ],
     loot: { scrap: 5, rations: 8, meds: 1, ammo: 0, tech: 0, gas: 1 },
     gearChance: 0.05,
@@ -148,7 +150,7 @@ export const LOCATIONS: readonly LocationDef[] = [
     durationMin: 35,
     encounters: [
       { enemies: ['hollow'], weight: 5 },
-      { enemies: ['raider_scav', 'raider_gunner'], weight: 4 },
+      { enemies: ['raider_scav', 'raider_gunner'], weight: 4, support: { ids: ['raider_patcher', 'raider_firebug'], chance: 0.6 } },
     ],
     loot: { scrap: 7, rations: 2, meds: 3, ammo: 1, tech: 1, gas: 2 },
     gearChance: 0.1,
@@ -170,7 +172,7 @@ export const LOCATIONS: readonly LocationDef[] = [
     radiation: 0,
     durationMin: 60,
     encounters: [
-      { enemies: ['raider_scav', 'raider_gunner'], weight: 6 },
+      { enemies: ['raider_scav', 'raider_gunner'], weight: 6, support: { ids: ['raider_patcher', 'raider_firebug'], chance: 0.6 } },
       { enemies: ['rad_hound'], weight: 2 },
     ],
     loot: { scrap: 6, rations: 1, meds: 0, ammo: 2, tech: 6, gas: 1 },
@@ -193,7 +195,7 @@ export const LOCATIONS: readonly LocationDef[] = [
     durationMin: 45,
     encounters: [
       { enemies: ['hollow', 'glowing_hollow'], weight: 7 },
-      { enemies: ['raider_scav', 'raider_gunner'], weight: 2 },
+      { enemies: ['raider_scav', 'raider_gunner'], weight: 2, support: { ids: ['raider_patcher', 'raider_firebug'], chance: 0.6 } },
     ],
     loot: { scrap: 5, rations: 1, meds: 8, ammo: 0, tech: 2, gas: 1 },
     gearChance: 0.1,
@@ -261,7 +263,7 @@ export const LOCATIONS: readonly LocationDef[] = [
     durationMin: 60,
     encounters: [
       { enemies: ['scrapbot_sentry', 'scrap_drone'], weight: 6 },
-      { enemies: ['raider_gunner', 'raider_brute', 'raider_enforcer'], weight: 4 },
+      { enemies: ['raider_gunner', 'raider_brute', 'raider_enforcer'], weight: 4, support: { ids: ['raider_patcher', 'raider_firebug'], chance: 0.7 } },
     ],
     loot: { scrap: 6, rations: 1, meds: 2, ammo: 8, tech: 3, gas: 3 },
     gearChance: 0.15,
@@ -283,8 +285,8 @@ export const LOCATIONS: readonly LocationDef[] = [
     radiation: 0,
     durationMin: 100,
     encounters: [
-      { enemies: ['raider_gunner', 'raider_brute', 'raider_scav'], weight: 6 },
-      { enemies: ['raider_enforcer', 'raider_gunner', 'raider_scav'], weight: 4 },
+      { enemies: ['raider_gunner', 'raider_brute', 'raider_scav'], weight: 6, support: { ids: ['raider_patcher', 'raider_firebug'], chance: 0.7 } },
+      { enemies: ['raider_enforcer', 'raider_gunner', 'raider_scav'], weight: 4, support: { ids: ['raider_patcher', 'raider_firebug'], chance: 0.7 } },
       { enemies: ['rad_hound'], weight: 1 },
     ],
     loot: { scrap: 7, rations: 5, meds: 2, ammo: 5, tech: 1, gas: 3 },
@@ -332,7 +334,7 @@ export const LOCATIONS: readonly LocationDef[] = [
     radiation: 0,
     durationMin: 30,
     encounters: [
-      { enemies: ['raider_scav'], weight: 5 },
+      { enemies: ['raider_scav'], weight: 5, support: { ids: ['raider_patcher'], chance: 0.3 } },
       { enemies: ['rad_hound'], weight: 2 },
     ],
     // Nobody scavenges here; this is only for what a crew happens across on the road.
