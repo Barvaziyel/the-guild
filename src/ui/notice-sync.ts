@@ -31,6 +31,20 @@ export function heldAt(p: HeldNotice): number | undefined {
   return Number.isFinite(t) ? t : undefined;
 }
 
+/** A notice with no end of its own is old news this long after its time. */
+export const LATE_MS = 3_600_000;
+
+/**
+ * Whether a notice that just came is old news: Android held it back (a phone
+ * left a day, 3.7.4) past the end of what it was about. Read from the `extra`
+ * it was scheduled with; one without our time is kept.
+ */
+export function staleNotice(extra: unknown, now: number): boolean {
+  const e = extra as { at?: unknown; until?: unknown } | undefined;
+  if (typeof e?.at !== 'number') return false;
+  return now > (typeof e.until === 'number' ? e.until : e.at + LATE_MS);
+}
+
 /**
  * Make what's held match `wanted`: a held notice the game no longer wants, or
  * wants at another time, is dropped; a wanted one still to come that isn't

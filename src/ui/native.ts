@@ -9,6 +9,7 @@ import { Capacitor } from '@capacitor/core';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import type { SoundSystem } from './audio.ts';
 import { navigate } from './hooks.ts';
+import { staleNotice } from './notice-sync.ts';
 import { noticeRoute } from './radio-view.ts';
 
 export function isNative(): boolean {
@@ -29,6 +30,12 @@ export function setupNative(sound: SoundSystem): void {
   // or yesterday's are still there tomorrow, looking like new ones.
   const clearShade = (): void => void LocalNotifications.removeAllDeliveredNotifications().catch(() => undefined);
   clearShade();
+  // One Android held back until what it was about is over (it lets a pile of them go when the game
+  // is opened after a day away) is taken down as it comes. The plugin keeps the event for us until
+  // this listener is added, so ones let go as the game starts are caught too.
+  void LocalNotifications.addListener('localNotificationReceived', (n) => {
+    if (staleNotice(n.extra, Date.now())) void LocalNotifications.removeDeliveredNotificationsById({ ids: [n.id] }).catch(() => undefined);
+  });
 
   // Back goes back through the screens; from a tab, it puts the game in the background.
   void App.addListener('backButton', () => {

@@ -43,6 +43,7 @@ describe('decisions on screen', () => {
     const due = dilemmaNotices(state);
     assert.equal(due[0]!.id, `dilemma-due-${d.day}`);
     assert.ok(due[0]!.at < dayStart(state, d.deadlineDay));
+    assert.equal(due[0]!.until, dayStart(state, d.deadlineDay));
     assert.equal(due[0]!.body, `A good coat: choose by ${clockTime(dayStart(state, d.deadlineDay))}, or they'll settle it themselves.`);
     decideDilemma(state, 0, dayStart(state, 3) + 1000);
     assert.equal(dilemmaNotices(state)[0]!.id, `dilemma-${state.dilemmas.nextDay}`);

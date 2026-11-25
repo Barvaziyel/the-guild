@@ -102,7 +102,7 @@ async function syncNative(notices: readonly PlannedNotice[]): Promise<void> {
       title: n.title,
       body: n.body,
       schedule: { at: new Date(n.at), allowWhileIdle: true },
-      extra: { runId: n.id, at: n.at },
+      extra: { runId: n.id, at: n.at, ...(n.until !== undefined ? { until: n.until } : {}) },
     })),
   });
 }

@@ -137,12 +137,13 @@ export function raidNotices(state: GameState): PlannedNotice[] {
   const who = name.replace(/,$/, '');
   const out: PlannedNotice[] = [];
   if (raid.seen !== undefined && raid.defenders === undefined) {
-    out.push({ id: `raid-seen-${raid.id}`, at: raid.seen, title: `${who} on the road`, body: `Seen from the Watchtower. At the gate around ${clockTime(raid.arrive)}.` });
+    out.push({ id: `raid-seen-${raid.id}`, at: raid.seen, until: raid.arrive, title: `${who} on the road`, body: `Seen from the Watchtower. At the gate around ${clockTime(raid.arrive)}.` });
   }
   if (raid.took === undefined) {
     out.push({
       id: `raid-${raid.id}`,
       at: raid.arrive,
+      until: raid.until,
       title: `${who} ${atPlace(raid)}`,
       body: `They’ll wait for your orders until ${clockTime(raid.until)}. After that, whoever is ${raid.outpost ? 'there' : 'home'} fights them on their own.`,
     });

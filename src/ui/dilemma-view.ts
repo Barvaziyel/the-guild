@@ -3,7 +3,7 @@
  * with its four answers, its deadline, and the notices around it. Plain
  * TypeScript so it can be tested in Node.
  */
-import { DAY_MS, RESOURCE_IDS, dayStart, dilemmaRoles, fillRoles, getDilemma, returnUnsure, vulturesActive, type GameState, type ResourceId, type Survivor } from '../engine/index.ts';
+import { DAY_MS, DILEMMA_DAYS, RESOURCE_IDS, dayStart, dilemmaRoles, fillRoles, getDilemma, returnUnsure, vulturesActive, type GameState, type ResourceId, type Survivor } from '../engine/index.ts';
 import type { PlannedNotice } from './runs-view.ts';
 import { joinNames } from './runs-view.ts';
 import { clockTime } from './time.ts';
@@ -78,6 +78,7 @@ export function dilemmaNotices(state: GameState): PlannedNotice[] {
       {
         id: `dilemma-due-${d.day}`,
         at: deadline - Math.min(REMIND_BEFORE, DAY_MS),
+        until: deadline,
         title: 'Decide soon',
         // A time, not "in two hours": a notice that comes late should still be right (3.7.4).
         body: `${getDilemma(d.defId).title}: choose by ${clockTime(deadline)}, or they'll settle it themselves.`,
@@ -88,7 +89,7 @@ export function dilemmaNotices(state: GameState): PlannedNotice[] {
   const due = vulturesActive(state) ? Math.min(state.dilemmas.nextDay, state.vultures.nextEnvoyDay) : state.dilemmas.nextDay;
   const next = decisionDay(state, due);
   if (next === undefined) return [];
-  return [{ id: `dilemma-${next}`, at: dayStart(state, next), title: 'Something needs deciding', body: 'At the Depot. Open the game to choose what happens.' }];
+  return [{ id: `dilemma-${next}`, at: dayStart(state, next), until: dayStart(state, next + DILEMMA_DAYS), title: 'Something needs deciding', body: 'At the Depot. Open the game to choose what happens.' }];
 }
 
 /** Changes when `dilemmaNotices` would (with the crews out, in App's key already). */

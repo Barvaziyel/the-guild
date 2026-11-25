@@ -5,6 +5,7 @@
  */
 import {
   DAY_MS,
+  RESCUE_DAYS,
   dayStart,
   getLocation,
   openCall,
@@ -114,6 +115,7 @@ export function rescueNotices(state: GameState): PlannedNotice[] {
       {
         id: `rescue-due-${call.day}`,
         at: dayStart(state, call.expiresDay) - Math.min(REMIND_BEFORE, DAY_MS),
+        until: dayStart(state, call.expiresDay),
         title: 'A voice is fading',
         body: `${call.person.firstName}, at ${getLocation(call.locationId).name}, won't last past ${clockTime(dayStart(state, call.expiresDay))}.`,
       },
@@ -121,5 +123,5 @@ export function rescueNotices(state: GameState): PlannedNotice[] {
   }
   if (workingLevel(state, 'radio_tower') === 0) return [];
   const next = state.rescue.nextDay;
-  return [{ id: `rescue-${next}`, at: dayStart(state, next), title: 'A call for help', body: 'Someone is calling for help over the radio.' }];
+  return [{ id: `rescue-${next}`, at: dayStart(state, next), until: dayStart(state, next + RESCUE_DAYS), title: 'A call for help', body: 'Someone is calling for help over the radio.' }];
 }

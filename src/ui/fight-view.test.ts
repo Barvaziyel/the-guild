@@ -93,6 +93,7 @@ describe('a crew at a fight', () => {
     const notice = fightNotices(state)[0]!;
     assert.equal(notice.id, `fight-${run.id}-0`);
     assert.equal(notice.at, f.at);
+    assert.equal(notice.until, f.until, 'old news once they stop waiting');
     assert.match(notice.title, /^\w+ is in a fight$/);
     assert.ok(notice.body.endsWith(`wait for your orders until ${clockTime(f.until)}.`), 'a time, so a late notice is still right');
     assert.equal(fightNoticeRun(notice.id), run.id);

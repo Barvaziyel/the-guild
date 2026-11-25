@@ -95,6 +95,7 @@ export function radioNotices(state: GameState): PlannedNotice[] {
       return {
         id: `radio-${r.id}`,
         at: call.at,
+        until: call.until,
         title: `${name} is on the radio`,
         body: `From ${getLocation(r.plan.locationId).name}: ${titleInLine(call.title)}. ${name} will wait for your answer until ${clockTime(call.until)}.`,
       };

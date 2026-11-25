@@ -130,6 +130,7 @@ export function fightNotices(state: GameState): PlannedNotice[] {
       out.push({
         id: `fight-${r.id}-${k}`,
         at: f.at,
+        ...(waitsForWord(r) ? {} : { until: f.until }),
         title: `${name} is in a fight`,
         body: `At ${ledFightPlace(r, f)}, against ${f.against}. ${waitsForWord(r) ? 'They wait for your word.' : `They'll wait for your orders until ${clockTime(f.until)}.`}`,
       });

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { heldAt, syncNotices, type HeldNotice } from './notice-sync.ts';
+import { LATE_MS, heldAt, staleNotice, syncNotices, type HeldNotice } from './notice-sync.ts';
 import { noticeNumber, type PlannedNotice } from './runs-view.ts';
 
 const NOW = Date.UTC(2026, 10, 25, 7, 13);
@@ -55,5 +55,18 @@ describe('keeping the phone’s notices in step', () => {
     const plan = syncNotices([unreadable], [n], NOW);
     assert.deepEqual(plan.cancel, [noticeNumber(n.id)]);
     assert.deepEqual(plan.schedule.map((x) => x.id), ['r1']);
+  });
+
+  test('one Android held back past the end of what it was about is old news', () => {
+    // The tester, back after a day: a fight, a decision and runs, all at once.
+    const fight = { runId: 'fight-r9-0', at: NOW - 24 * H, until: NOW - 24 * H + 30 * 60_000 };
+    assert.equal(staleNotice(fight, NOW), true);
+    assert.equal(staleNotice(fight, fight.at + 60_000), false, 'on time');
+    assert.equal(staleNotice(fight, fight.until - 1), false, 'late, but they still wait');
+    const back = { runId: 'r9', at: NOW - 2 * H };
+    assert.equal(staleNotice(back, NOW), true, 'no end of its own: old news after an hour');
+    assert.equal(staleNotice(back, back.at + LATE_MS - 1), false);
+    assert.equal(staleNotice({ runId: 'r9' }, NOW), false, 'scheduled before 3.7.4: kept');
+    assert.equal(staleNotice(undefined, NOW), false);
   });
 });
