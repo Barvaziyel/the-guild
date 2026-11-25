@@ -33,7 +33,7 @@ import type { GameState, Resources } from './types.ts';
 /** A guild with a Radio Tower, plenty of supplies, and the outskirts of `place` fully explored. */
 function ready(seed: string, place = 'maple_street', radio = 1): GameState {
   const state = openGame(seed);
-  state.resources = { scrap: 500, rations: 500, meds: 20, ammo: 50, tech: 100, gas: 0 };
+  state.resources = { scrap: 500, rations: 500, meds: 20, ammo: 50, tech: 100, gas: 100 };
   for (let l = 0; l < radio; l++) build(state, 'radio_tower', 1);
   state.locations[place] = { discovered: true, explored: 100, runs: 5 };
   return state;
@@ -42,7 +42,7 @@ function ready(seed: string, place = 'maple_street', radio = 1): GameState {
 describe('outposts: setting up', () => {
   test('needs the outskirts fully explored, a Radio Tower, and room in its range', () => {
     const state = openGame('rules');
-    state.resources = { scrap: 500, rations: 500, meds: 20, ammo: 50, tech: 100, gas: 0 };
+    state.resources = { scrap: 500, rations: 500, meds: 20, ammo: 50, tech: 100, gas: 100 };
     state.locations.maple_street = { discovered: true, explored: 60, runs: 3 };
     assert.match(buildOutpostProblem(state, 'maple_street')!, /Explore the outskirts fully first \(60% so far\)/);
     state.locations.maple_street!.explored = 100;
@@ -55,7 +55,7 @@ describe('outposts: setting up', () => {
     assert.match(buildOutpostProblem(state, 'rail_yard')!, /keep in contact with one outpost/);
     build(state, 'radio_tower', 3);
     assert.equal(buildOutpostProblem(state, 'rail_yard'), undefined);
-    assert.equal(state.resources.scrap, 500 - 30 - 40 - 100);
+    assert.equal(state.resources.scrap, 500 - 30 - 40 - 80);
     assert.ok(state.log.some((l) => l.text === 'Set up an outpost at Maple Street.'));
   });
 

@@ -338,10 +338,12 @@ export const GARDEN_PER_WITS = 0.25;
 /**
  * The Scrapyard (3.4.0, Aviel: always too many rations, never enough scrap): scrap stripped a day =
  * level * sum over workers of (SCRAPYARD_PER_WORKER + Brawn * SCRAPYARD_PER_BRAWN). Nothing without hands.
- * Two at level 1 with Brawn 4 strip about 7 a real day; three at level 3 with Brawn 5, about 36.
+ * Two at level 1 with Brawn 4 strip about 14 a real day; three at level 3 with Brawn 5, about 72 (twice as much since 3.9.0).
  */
-export const SCRAPYARD_PER_WORKER = 0.25;
-export const SCRAPYARD_PER_BRAWN = 0.05;
+export const SCRAPYARD_PER_WORKER = 0.5;
+/** An upgrade that costs rations can't be paid if it would leave less than this many days of food (3.9.0). */
+export const BUILD_KEEPS_FOOD_DAYS = 4;
+export const SCRAPYARD_PER_BRAWN = 0.1;
 
 /** Stress shed per day at the Depot, before Firepit and traits. 5 before 1.6.2: with 8 Depot days a real day, people were calm again by every check-in. */
 export const REST_RELIEF = 2;

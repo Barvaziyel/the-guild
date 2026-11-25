@@ -246,7 +246,7 @@ describe('vehicles: the Depot', () => {
 
   test('a motorcycle needs a level 2 Workshop, a car level 3, and trucks and vans are only found or bought', () => {
     const state = testGame('build');
-    state.resources = { scrap: 500, rations: 10, meds: 0, ammo: 0, tech: 100, gas: 0 };
+    state.resources = { scrap: 500, rations: 100, meds: 0, ammo: 0, tech: 100, gas: 100 };
     build(state, 'workshop', 1);
     assert.equal(buildVehicleProblem(state, 'motorcycle'), 'Needs a level 2 Workshop.');
     build(state, 'workshop', 2);

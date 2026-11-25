@@ -5,7 +5,7 @@ import { testGame } from '../engine/test-utils.ts';
 import { crewCandidates, etaText, postLink, postValue, projectChoices, projectNote, projectRow, projectRows } from './projects-view.ts';
 
 function rich(state: GameState): GameState {
-  state.resources = { scrap: 9000, rations: 9000, meds: 9000, ammo: 9000, tech: 9000, gas: 0 };
+  state.resources = { scrap: 9000, rations: 9000, meds: 9000, ammo: 9000, tech: 9000, gas: 9000 };
   return state;
 }
 
