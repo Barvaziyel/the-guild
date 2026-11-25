@@ -5,7 +5,7 @@
  */
 import type { FightAct, FightView, GameState, MoveId } from '../engine/index.ts';
 import type { StageEffect, StageFighter, StageModel } from '../scene/index.ts';
-import { canStillReach, needsTarget, type Picks } from './fight-view.ts';
+import { canStillReach, incoming, needsTarget, type Picks } from './fight-view.ts';
 import { figureLook } from './yard-view.ts';
 
 type Shown = StageFighter['state'];
@@ -121,6 +121,9 @@ export function stageModel(state: GameState, at: StageAt, view: FightView, order
       ...(m.ally ? { kind: 'vulture_lieutenant', type: 'raider', seed: m.id, vulture: true } : {}),
       aimed: frame ? false : m.aimed,
       ...(m.perch ? { perch: true } : { rank: m.rank }),
+      // What's coming at them, for the round about to be given (3.8.0).
+      ...(!frame && m.state === 'up' ? threatOf(view, m.id) : {}),
+      ...(m.heldBy !== undefined && shown === 'up' ? { held: true } : {}),
     };
   });
   // The guild's dog at the gate: it fights, but nobody can hurt it.
@@ -153,9 +156,12 @@ export function stageModel(state: GameState, at: StageAt, view: FightView, order
               kind: e.intent.kind,
               ...(e.intent.at && canStillReach(view, e, e.intent.at) ? { at: crewKey(e.intent.at) } : {}),
               ...(e.intent.also && canStillReach(view, e, e.intent.also) ? { also: crewKey(e.intent.also) } : {}),
+              ...(e.intent.ally !== undefined ? { ally: enemyKey(e.intent.ally) } : {}),
             },
           }
         : {}),
+      // About to be patched up by one of its own (3.8.0).
+      ...(!frame && shown === 'up' ? mendingOf(view, e.index) : {}),
     };
   }).filter((f) => f.state !== 'waiting');
   const { targets, picked } = frame ? { targets: [], picked: undefined } : stageTargets(view, orders);
@@ -172,6 +178,20 @@ export function stageModel(state: GameState, at: StageAt, view: FightView, order
   };
 }
 
+/** What's coming at one of the crew (3.8.0), when anything is: for the number over them. */
+function threatOf(view: FightView, id: string): { threat?: NonNullable<StageFighter['threat']> } {
+  const t = incoming(view, id);
+  return t.amount > 0 || t.next ? { threat: t } : {};
+}
+
+/** How much an enemy is about to be patched up (3.8.0), when it is. */
+function mendingOf(view: FightView, index: number): { mending?: number } {
+  const by = view.enemies.find((e) => e.state === 'up' && !e.stunned && e.intent?.kind === 'mend' && e.intent.ally === index);
+  const e = view.enemies[index]!;
+  const amount = by ? Math.min(by.mends ?? 0, e.maxHp - e.hp) : 0;
+  return amount > 0 ? { mending: amount } : {};
+}
+
 const ACT_WORDS: Partial<Record<FightAct['kind'], string>> = {
   cover: 'Takes cover',
   aim: 'Aims',
@@ -182,6 +202,7 @@ const ACT_WORDS: Partial<Record<FightAct['kind'], string>> = {
   break: 'Breaks!',
   escape: 'Gets away',
   reel: 'Reels',
+  throw: 'Firebomb!',
 };
 
 /** How one act looks on the stage. */
@@ -221,6 +242,21 @@ function effectOf(a: FightAct, after: FightView): StageEffect {
     case 'break':
     case 'escape':
       return { by, motion: 'none', reaction: 'none', pop: ACT_WORDS[a.kind]!, tone: a.kind === 'flee' ? 'hurt' : 'hit', leaving: [by] };
+    // 3.8.0
+    case 'shove':
+      return { ...base, motion: a.shot ? 'shoot' : 'lunge', reaction: a.ok ? 'hit' : 'miss', pop: a.ok ? (a.shot ? 'Pinned' : 'Shoved') : 'Miss', tone: a.ok ? 'hit' : 'miss', ...(a.shot && !a.ok ? { splash: 'dust' as const } : {}) };
+    case 'mend':
+      return { ...base, motion: 'act', reaction: 'heal', pop: `+${a.amount ?? 0}`, tone: 'heal' };
+    case 'throw':
+      return { by, motion: 'act', reaction: 'none', pop: ACT_WORDS.throw!, tone: 'hurt' };
+    case 'burn':
+      return { ...base, motion: 'none', reaction: 'hit', pop: `-${a.amount ?? 0}`, tone: onCrew ? 'hurt' : 'hit', splash: 'sparks', ...(a.down ? { big: true } : {}) };
+    case 'grab':
+      return { ...base, motion: 'none', reaction: 'hit', pop: 'Grabbed', tone: 'hurt' };
+    case 'free':
+      return { by, motion: 'act', reaction: 'none', pop: a.ok ? 'Free' : 'Stuck', tone: a.ok ? 'heal' : 'miss' };
+    case 'aim':
+      return { ...base, motion: 'act', reaction: 'none', pop: typeof a.by === 'number' ? 'Takes aim' : ACT_WORDS.aim!, tone: typeof a.by === 'number' ? 'hurt' : 'plain' };
     default:
       return { ...base, motion: a.kind === 'reel' ? 'none' : 'act', reaction: 'none', pop: ACT_WORDS[a.kind] ?? '', tone: 'plain' };
   }
@@ -306,6 +342,17 @@ export function roundFrames(before: FightView, after: FightView): StageFrame[] {
         break;
       case 'reel':
         stunned[by] = false;
+        break;
+      // 3.8.0: a firebomb (or one's own, at its feet), and one of theirs patched up.
+      case 'burn':
+        if (at) {
+          hp[at] = Math.max(0, (hp[at] ?? 0) - (a.amount ?? 0));
+          if (a.down) state[at] = 'down';
+          if (hp[at] === 0 && at.startsWith('e:')) state[at] = final(at) ?? 'dead';
+        }
+        break;
+      case 'mend':
+        if (at) hp[at] = Math.min(max[at] ?? 0, (hp[at] ?? 0) + (a.amount ?? 0));
         break;
       default:
         break;

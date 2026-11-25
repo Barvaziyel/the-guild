@@ -108,7 +108,8 @@ describe('nemeses', () => {
     const n = state.nemeses[0]!;
     assert.equal(n.status, 'dead');
     assert.equal(n.killedBy, killer.id);
-    assert.ok(n.history.at(-1)!.text.endsWith(` at ${place}.`) && n.history.at(-1)!.text.startsWith('Killed by '));
+    // The last line, or near it: someone it put down in that fight may die of it after (3.8.0 found one).
+    assert.ok(n.history.some((h) => h.text.endsWith(` at ${place}.`) && h.text.startsWith('Killed by ')));
     const after = [...state.survivors, ...state.memorial].find((s) => s.id === killer.id)!;
     assert.ok(after.chronicle.some((c) => c.text === `Killed Testface at ${place}.`));
     assert.ok(state.log.some((l) => l.text.endsWith(`killed Testface at ${place}.`)));

@@ -16,6 +16,7 @@ import {
   ENEMY_TOUGH_HP,
 } from '../constants.ts';
 import type { FightAct, FightView } from './command.ts';
+import type { Enemy } from './combat.ts';
 import type { FightGoal } from './goals.ts';
 import { getTrait, type LocationDef, type RunTally, type VehicleDef } from '../content/index.ts';
 import { dayAt } from '../game.ts';
@@ -71,6 +72,8 @@ export interface Member {
   aimed?: boolean;
   /** Where they stand in the current fight (§7.4, 2.3.0). */
   rank?: Rank;
+  /** In a hollow's grip (3.8.0): they can only try to break free, and it bites them every round until it lets go. */
+  heldBy?: Enemy;
   /** Name of the nemesis this member killed on the run, for nicknames. */
   killedNemesis?: string;
   /** Weapon kills at departure, to notice milestones. */
@@ -163,6 +166,8 @@ export interface Sim {
   site?: string;
   /** The job the fight being played came with (2.5.0), if any. */
   goal?: FightGoal;
+  /** The crew caught them off guard this round (3.8.0): they do nothing, and show nothing. */
+  caught?: boolean;
 }
 
 /** A led run's fights (§7.13). */
@@ -175,6 +180,11 @@ export interface SimLead {
   ends: (FightView | undefined)[];
   /** A raid at the Depot (§9.8), not a run: nobody calls on the radio, and there's no waiting on one. */
   home?: boolean;
+  /**
+   * A stand-in for the player, for tests and measuring (3.8.0): it gives every round's orders as the fight
+   * is played, with no replays. Never set in the game.
+   */
+  commander?: (view: FightView) => RoundOrders;
 }
 
 /** The player's part in one fight. */

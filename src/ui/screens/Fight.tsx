@@ -293,7 +293,7 @@ export function Command({
           <>
             {m.perch ? (
               <p className="fight-perch">{m.name} is up on the tower: out of reach of blows, shooting from there.</p>
-            ) : (
+            ) : m.heldBy !== undefined ? null : (
               <div className="fight-rank" role="group" aria-label={`Where ${m.name} stands`}>
                 {(['front', 'back'] as const).map((r) => (
                   <button key={r} type="button" className={`seg-option${m.rank === r ? ' is-on' : ''}`} aria-pressed={m.rank === r} onClick={() => setRanks((x) => ({ ...x, [m.id]: r }))}>

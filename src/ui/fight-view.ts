@@ -4,7 +4,9 @@
  * the report's line.
  */
 import {
+  HEAVY_HIT_MULT,
   LEAD_WAIT,
+  LINED_UP_MULT,
   ledFightNow,
   ledFightPlace,
   waitsForWord,
@@ -260,6 +262,44 @@ export function canStillReach(view: FightView, e: FightView['enemies'][number], 
   return !view.crew.some((m) => m.state === 'up' && !m.perch && m.rank === 'front');
 }
 
+/**
+ * What's coming at one of the crew this round, before armor (3.8.0): blows and shots at them, and a firebomb
+ * at the rank they stand in (`fire`); whether it all could put them down; and whether a shot is being lined
+ * up at them for next round (`next`). Blows that can't reach them where they stand now don't count.
+ */
+export interface Incoming {
+  amount: number;
+  drop: boolean;
+  fire: boolean;
+  next: boolean;
+}
+
+export function incoming(view: FightView, id: string): Incoming {
+  const m = view.crew.find((x) => x.id === id);
+  const out: Incoming = { amount: 0, drop: false, fire: false, next: false };
+  if (!m || m.state !== 'up' || m.perch) return out;
+  for (const e of view.enemies) {
+    const it = e.intent;
+    if (e.state !== 'up' || e.stunned || !it) continue;
+    if (it.kind === 'throw') {
+      if (it.rank === m.rank) {
+        out.amount += e.burn ?? 0;
+        out.fire = true;
+      }
+      continue;
+    }
+    if (it.kind === 'aim') {
+      if (it.at === id) out.next = true;
+      continue;
+    }
+    const big = it.kind === 'heavy' ? HEAVY_HIT_MULT : it.kind === 'shot' ? LINED_UP_MULT : 1;
+    if (it.at === id && it.kind !== 'run' && it.kind !== 'mend' && canStillReach(view, e, id)) out.amount += e.damage * big;
+    if (it.also === id && canStillReach(view, e, id)) out.amount += e.damage;
+  }
+  out.drop = out.amount > 0 && out.amount >= m.hp;
+  return out;
+}
+
 /** "Brute: a big hit at Silas (up to 10).", one line for each enemy still in it: what they mean to do this round (2.3.0). */
 export function theirMoves(view: FightView): string[] {
   const out: string[] = [];
@@ -274,8 +314,17 @@ export function theirMoves(view: FightView): string[] {
     const pack = e.pack && e.intent?.at ? Math.min(2, view.enemies.filter((o) => o !== e && o.pack && o.state === 'up' && !o.stunned && o.intent?.kind !== 'run' && o.intent?.at === e.intent?.at).length) : 0;
     const shoots = e.rank !== 'front';
     let what: string;
+    const it = e.intent;
+    const ally = it?.ally !== undefined ? view.enemies[it.ally]?.name : undefined;
     if (e.stunned) what = 'stunned, and loses its turn';
-    else if (e.intent?.kind === 'run') what = 'looking for a way out: it runs at the end of the round';
+    else if (it?.kind === 'run') what = 'looking for a way out: it runs at the end of the round';
+    // 3.8.0: what a shove or a pin down spoils.
+    else if (it?.kind === 'aim' && who) what = `lining up a shot at ${who} for next round (up to ${e.damage * LINED_UP_MULT})`;
+    else if (it?.kind === 'shot' && who) what = `taking the shot it lined up at ${who} (up to ${e.damage * LINED_UP_MULT})`;
+    else if (it?.kind === 'mend' && ally) what = `patching up ${ally} (+${e.mends ?? 0})`;
+    else if (it?.kind === 'throw') what = `throwing a firebomb at ${it.rank === 'back' ? 'the back' : 'the front'} (${e.burn ?? 0} each, half in cover)`;
+    else if (it?.kind === 'grab' && who) what = `grabbing for ${who}`;
+    else if (it?.kind === 'hold' && who) what = `has ${who} in its grip (${e.damage} a round, no miss)`;
     else if (who && e.intent?.at && !canStillReach(view, e, e.intent.at)) what = `${e.intent.kind === 'heavy' ? 'winding up a big hit' : 'going'} for ${who}, who is out of reach at the back now: it turns to someone in front`;
     else if (e.intent?.kind === 'heavy' && who) what = `${shoots ? 'taking careful aim at' : 'winding up a big hit at'} ${who} (up to ${e.damage * 2})`;
     else if (who && pack > 0) what = `going for ${who} with the pack (+${pack} to hit)`;
@@ -308,6 +357,11 @@ export function whatTheyAre(view: FightView): string[] {
     if (e.twice) out.push(`${kind}: strikes twice a round, the second blow at someone else when it can reach two of you.`);
     if (e.heavy) out.push(`${kind}: winds up big hits now and then, for twice the damage. Watch for it and get out of the way.`);
     if (e.leader) out.push(`${kind}: leads them. If it falls, the rest lose heart.`);
+    // 3.8.0: the answer to each is a shove or a pin down.
+    if (e.aims) out.push(`${kind}: lines up a shot a round ahead, for twice the damage. Pin it down or shove it to spoil it, or get the one it's after into cover.`);
+    if (e.mends) out.push(`${kind}: patches up the others. Get to it first, or pin it down.`);
+    if (e.throws) out.push(`${kind}: throws firebombs at a rank of you. Spread out, take cover, or pin it down and it drops one at its own feet.`);
+    if (e.grabs) out.push(`${kind}: grabs one of you and holds on, biting every round. A shove gets them out; hitting it doesn't.`);
   }
   return out;
 }
@@ -428,7 +482,8 @@ export function crewChips(view: FightView, picks: Picks): CrewChip[] {
     const raw = picks[m.id];
     const choice = raw ? m.moves.find((c) => c.move === raw.move) : undefined;
     const pending = canAct && choice !== undefined && current[m.id] === undefined;
-    const label = !canAct ? (m.state === 'up' ? 'Can’t act' : memberState(m)) : pending ? `${choice!.name}: who?` : pickLabel(view, m, current[m.id]);
+    const holder = m.heldBy !== undefined ? view.enemies[m.heldBy]?.name : undefined;
+    const label = !canAct ? (m.state === 'up' ? 'Can’t act' : memberState(m)) : pending ? `${choice!.name}: who?` : holder && !current[m.id] ? `Held by ${holder}` : pickLabel(view, m, current[m.id]);
     return { id: m.id, name: m.name, hp: m.hp, maxHp: m.maxHp, canAct, label, own: canAct && !current[m.id] && !pending, pending };
   });
 }
@@ -463,6 +518,9 @@ export function orderHint(view: FightView, m: FightMemberView, picks: Picks, mov
   // What a move does comes first, even before it has a target (3.7.1; Aviel: picking Called shot asked
   // "who?" before he could see what it meant). The targets come in under the moves.
   if (choice) return choice.detail;
+  // In a hollow's grip (3.8.0): where they stand isn't theirs to choose.
+  const holder = m.heldBy !== undefined ? view.enemies[m.heldBy]?.name : undefined;
+  if (holder) return `In ${holder}'s grip. Break free, or have someone shove it off.`;
   if (moved) return rankHelp(m, m.rank);
   if (!m.moves.some((c) => c.target === 'enemy' && c.targets.length > 0)) return `${m.name} can’t reach any of them from ${m.rank === 'back' ? 'the back' : 'here'}. Pick a move, or move them.`;
   return `Tap an enemy for ${m.name} to go after, or pick a move.`;

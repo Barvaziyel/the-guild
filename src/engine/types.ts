@@ -391,7 +391,11 @@ export type MoveId =
   | 'spot'
   | 'intimidate'
   | 'soothe'
-  | 'short_out';
+  | 'short_out'
+  /** Shove (a blow) or Pin down (a shot), 3.8.0: no harm, but it breaks what the enemy was winding up, and it's off balance. Everyone has it. */
+  | 'shove'
+  /** Held by a hollow (3.8.0): the one move left, getting out of its grip. */
+  | 'break_free';
 
 /** One person's move for a round. `target`: an enemy's place in the fight (a number) or an ally's survivor id. */
 export interface MoveOrder {

@@ -4980,6 +4980,14 @@ p.is-bad {
   min-height: calc(100svh - var(--tabbar-h) - var(--sa-bottom));
 }
 
+/* What's coming at one of the crew, or an enemy about to be patched up (3.8.0). */
+.battle .bt-threat {
+  font-size: 8.5px;
+  font-weight: 700;
+  fill: var(--bone);
+  pointer-events: none;
+}
+
 /* The number on a health bar (2.2.0). */
 .battle .bt-hp {
   font-size: 9px;

@@ -179,7 +179,8 @@ describe('jobs in fights (2.5.0)', () => {
       orders.moves[a!.id] = { move: 'job' };
       orders.moves[b!.id] = { move: 'job' };
       const after = commandRound(state, run.id, orders, at) ?? lastFought(state, run.id)!;
-      const jobs = after.acts.filter((x) => x.kind === 'job' && x.round === 1);
+      // The round given: an ambushed crew's first is round 2.
+      const jobs = after.acts.filter((x) => x.kind === 'job' && x.round === view.round);
       assert.equal(jobs.length, 1, `${g.id}: one turn of work, not two`);
       assert.equal(jobs[0]!.by, a!.id, 'whoever comes first has it');
       const one = jobs[0]!.amount ?? 0;

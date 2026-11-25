@@ -39,13 +39,25 @@ export interface StageFighter {
   perch?: boolean;
   /** Where they stand (2.3.0): the back rank stands behind the front; flyers with the back. */
   rank?: 'front' | 'back' | 'air';
-  /** An enemy's move this round (2.3.0): a hit or a big hit at someone (their key), or a run for it. */
-  intent?: { kind: 'strike' | 'heavy' | 'run'; at?: string; also?: string };
+  /**
+   * An enemy's move this round (2.3.0): a hit or a big hit at someone (their key), or a run for it; since 3.8.0
+   * lining up a shot or taking it, mending one of its own (`ally`, its key), a firebomb, a grab, or a grip held.
+   */
+  intent?: { kind: IntentKind; at?: string; also?: string; ally?: string };
+  /** One of the crew (3.8.0): what's coming at them this round, before armor, and whether it could put them down; a firebomb in it; a shot lined up for next round. */
+  threat?: { amount: number; drop: boolean; fire: boolean; next: boolean };
+  /** One of the crew in a hollow's grip (3.8.0). */
+  held?: boolean;
+  /** An enemy about to be patched up (3.8.0): how much. */
+  mending?: number;
   /** On the ground and getting back up unless finished (a hollow, 2.4.0). */
   rising?: boolean;
   /** Heavy armor (2.4.0): a shield by the name. */
   armored?: boolean;
 }
+
+/** What an enemy means to do, as its badge shows it (2.3.0, 3.8.0). */
+export type IntentKind = 'strike' | 'heavy' | 'run' | 'aim' | 'shot' | 'mend' | 'throw' | 'grab' | 'hold';
 
 /** One act being played: who does it, to whom, and what pops up. */
 export interface StageEffect {
@@ -163,8 +175,28 @@ export function rankedSlots(fighters: readonly StageFighter[], side: 'crew' | 'e
 
 const n1 = (v: number): string => String(Math.round(v * 10) / 10);
 
-/** An enemy's move this round, as a small badge (2.3.0): a hit, a big hit, or running; or, on the ground, getting back up (2.4.0). */
-function intentBadge(kind: 'strike' | 'heavy' | 'run' | 'rise', cx: number, cy: number): string {
+/** A crosshair: a shot lined up (3.8.0). */
+function crosshair(cx: number, cy: number, r: number, color: string): string {
+  return circle(cx, cy, r, 'none', `stroke="${color}" stroke-width="1.2"`) + line(cx - r - 2, cy, cx + r + 2, cy, 1.1, color) + line(cx, cy - r - 2, cx, cy + r + 2, 1.1, color);
+}
+
+/** A flame: a firebomb (3.8.0). */
+function flame(cx: number, cy: number, s: number, color: string): string {
+  return pathEl(`M ${n1(cx)} ${n1(cy - 4.2 * s)} C ${n1(cx + 3.4 * s)} ${n1(cy - 1 * s)} ${n1(cx + 2.8 * s)} ${n1(cy + 3.4 * s)} ${n1(cx)} ${n1(cy + 3.4 * s)} C ${n1(cx - 2.8 * s)} ${n1(cy + 3.4 * s)} ${n1(cx - 3 * s)} ${n1(cy)} ${n1(cx - 1 * s)} ${n1(cy - 1.4 * s)} C ${n1(cx - 0.6 * s)} ${n1(cy)} ${n1(cx + 0.4 * s)} ${n1(cy - 1.6 * s)} ${n1(cx)} ${n1(cy - 4.2 * s)} Z`, color, 'stroke="none"');
+}
+
+/** A claw: a grab, or a grip held (3.8.0). */
+function claw(cx: number, cy: number, color: string): string {
+  const d = [-2.6, 0, 2.6].map((dx) => `M ${n1(cx + dx - 0.8)} ${n1(cy + 3)} Q ${n1(cx + dx - 1)} ${n1(cy - 1.4)} ${n1(cx + dx + 0.8)} ${n1(cy - 3.2)}`).join(' ');
+  return pathEl(d, 'none', `stroke="${color}" stroke-width="1.5" stroke-linecap="round"`);
+}
+
+/** An enemy's move this round, as a small badge (2.3.0): a hit, a big hit, or running; or, on the ground, getting back up (2.4.0); since 3.8.0 the moves a shove or a pin down spoils. */
+function intentBadge(kind: IntentKind | 'rise', cx: number, cy: number): string {
+  if (kind === 'aim' || kind === 'shot') return circle(cx, cy, 6.5, kind === 'shot' ? '#b5432f' : '#1d1915', `stroke="${BONE}" stroke-width="0.9"`) + crosshair(cx, cy, 2.6, kind === 'shot' ? BONE : '#e08a5a');
+  if (kind === 'mend') return circle(cx, cy, 6.5, '#1d1915', `stroke="${BONE}" stroke-width="0.9"`) + rect(cx - 1.2, cy - 3.8, 2.4, 7.6, '#9cc27f', 'stroke="none"') + rect(cx - 3.8, cy - 1.2, 7.6, 2.4, '#9cc27f', 'stroke="none"');
+  if (kind === 'throw') return circle(cx, cy, 6.5, '#d0703c', `stroke="${BONE}" stroke-width="0.9"`) + flame(cx, cy, 1, BONE);
+  if (kind === 'grab' || kind === 'hold') return circle(cx, cy, 6.5, kind === 'hold' ? '#b5432f' : '#1d1915', `stroke="${BONE}" stroke-width="0.9"`) + claw(cx, cy, kind === 'hold' ? BONE : '#e0b84a');
   if (kind === 'rise') {
     return circle(cx, cy, 6.5, '#b8892a', `stroke="${BONE}" stroke-width="1"`) + pathEl(`M ${n1(cx)} ${n1(cy + 3.4)} V ${n1(cy - 3.2)} M ${n1(cx - 2.8)} ${n1(cy - 0.6)} L ${n1(cx)} ${n1(cy - 3.4)} L ${n1(cx + 2.8)} ${n1(cy - 0.6)}`, 'none', `stroke="${INK}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"`);
   }
@@ -182,18 +214,24 @@ function intentBadge(kind: 'strike' | 'heavy' | 'run' | 'rise', cx: number, cy: 
   return circle(cx, cy, 6, '#1d1915', `stroke="${BONE}" stroke-width="0.9"`) + pathEl(`M ${n1(cx + 1.8)} ${n1(cy - 3)} L ${n1(cx - 1.8)} ${n1(cy)} L ${n1(cx + 1.8)} ${n1(cy + 3)}`, 'none', `stroke="#e08a5a" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"`);
 }
 
-/** Marks over one of the crew for the blows coming at them this round (2.3.0): a small notch for each hit, a bigger red one for a big hit. */
-function threatMarks(heavy: number, strikes: number, cx: number, y: number): string {
-  const marks = [...Array<'heavy'>(heavy).fill('heavy'), ...Array<'strike'>(strikes).fill('strike')].slice(0, 4);
-  const w = (k: 'heavy' | 'strike'): number => (k === 'heavy' ? 9 : 6);
-  const total = marks.reduce((a, k) => a + w(k), 0) + (marks.length - 1) * 2;
-  let x = cx - total / 2;
+/**
+ * Over one of the crew (3.8.0; marks for each blow before): what's coming at them this round as a number,
+ * red when it could put them down, with a flame for a firebomb in it, and a crosshair for a shot lined up
+ * at them for next round.
+ */
+function threatTag(t: NonNullable<StageFighter['threat']>, cx: number, y: number): string {
   let out = '';
-  for (const k of marks) {
-    const h = k === 'heavy' ? 8 : 5.5;
-    out += poly([[x, y - h], [x + w(k), y - h], [x + w(k) / 2, y]], k === 'heavy' ? '#b5432f' : '#e08a5a', `stroke="${BONE}" stroke-width="0.8"`);
-    x += w(k) + 2;
+  const text = t.amount > 0 ? `-${t.amount}` : '';
+  const w = text ? 7 + text.length * 5.4 + (t.fire ? 7 : 0) : 0;
+  const total = w + (t.next ? (w ? 15 : 13) : 0);
+  let x = cx - total / 2;
+  if (text) {
+    out += rect(x, y - 11, w, 11, t.drop ? '#b5432f' : '#1d1915', `stroke="${BONE}" stroke-width="0.8" rx="3"`);
+    if (t.fire) out += flame(x + 5.5, y - 5.5, 0.85, '#f0a060');
+    out += `<text x="${n1(x + (t.fire ? 7 : 0) + (w - (t.fire ? 7 : 0)) / 2)}" y="${n1(y - 2.3)}" class="bt-threat" text-anchor="middle">${text}</text>`;
+    x += w + 2;
   }
+  if (t.next) out += circle(x + 6, y - 5.5, 6, '#1d1915', `stroke="${BONE}" stroke-width="0.8"`) + crosshair(x + 6, y - 5.5, 2.4, '#e08a5a');
   return out;
 }
 
@@ -371,18 +409,21 @@ function overhead(f: StageFighter, slot: Slot, height: number, room: number, mod
   if (intent) out += intentBadge(intent.kind, slot.x, badgeY);
   // One on the ground that gets back up unless finished, over its bar (2.4.0).
   if (f.side === 'enemy' && f.state === 'down' && f.rising) out += intentBadge('rise', slot.x, top - 9);
-  // Blows coming at one of the crew this round.
+  // What's coming at one of the crew this round (3.8.0: as a number).
   let threatened = false;
-  if (f.side === 'crew' && f.state === 'up') {
-    const able = model.enemies.filter((e) => e.state === 'up' && !e.stunned && e.intent && e.intent.kind !== 'run');
-    const coming = able.filter((e) => e.intent!.at === f.key);
-    const heavy = coming.filter((e) => e.intent!.kind === 'heavy').length;
-    // A second blow (the Shepherd, §9.12) is always a plain one.
-    const seconds = able.filter((e) => e.intent!.also === f.key).length;
-    if (coming.length + seconds > 0) {
-      threatened = true;
-      out += threatMarks(heavy, coming.length - heavy + seconds, slot.x, slot.rank === 0 ? top - 3 : ly - 11);
-    }
+  const t = f.side === 'crew' && f.state === 'up' ? f.threat : undefined;
+  if (t && (t.amount > 0 || t.next)) {
+    threatened = true;
+    out += threatTag(t, slot.x, slot.rank === 0 ? top - 3 : ly - 11);
+  }
+  // In a hollow's grip (3.8.0): a claw by the bar.
+  if (f.held && f.state === 'up') out += circle(x - 7, top + HP_BAR_H / 2, 5.5, '#b5432f', `stroke="${BONE}" stroke-width="0.8"`) + claw(x - 7, top + HP_BAR_H / 2, BONE);
+  // One of theirs about to be patched up (3.8.0).
+  if (f.mending && f.state === 'up') {
+    const text = `+${f.mending}`;
+    const w = 7 + text.length * 5.4;
+    const my = slot.rank === 0 ? top - 3 : ly - 11;
+    out += rect(slot.x + 9, my - 11, w, 11, '#2f4a2a', `stroke="${BONE}" stroke-width="0.8" rx="3"`) + `<text x="${n1(slot.x + 9 + w / 2)}" y="${n1(my - 2.3)}" class="bt-threat" text-anchor="middle">${text}</text>`;
   }
   // Marks by the name: a Vulture's feather, a nemesis's red notch.
   const mx = lx - lw / 2 - 5;

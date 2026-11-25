@@ -331,7 +331,8 @@ describe('their moves, ranks and nerve (2.3.0)', () => {
     for (let n = 0; n < 6; n++) {
       const { state, run, view, at } = against(`intent-${n}`, 'kessler_farm', ['rad_hound', 'raider_scav'], machete);
       const up = view.enemies.filter((e) => e.state === 'up' && !e.stunned);
-      assert.ok(up.every((e) => e.intent !== undefined), 'every one standing has a move');
+      // Caught off guard, they do nothing the first round, and show nothing (3.8.0).
+      assert.ok(view.caught === true ? up.every((e) => e.intent === undefined) : up.every((e) => e.intent !== undefined), 'every one standing has a move');
       // Everyone keeps their head down, so nothing changes who they go for. Round after round (a crew that got the drop goes first).
       let before: FightView | undefined = view;
       for (let r = 0; before && r < 3; r++) {
@@ -372,13 +373,17 @@ describe('their moves, ranks and nerve (2.3.0)', () => {
 
   test('someone sent to the back is out of reach of blows while anyone stands in front', () => {
     let checked = 0;
-    for (let n = 0; n < 6; n++) {
+    for (let n = 0; n < 12; n++) {
       const { state, run, view, at } = against(`back-${n}`, 'maple_street', ['rad_hound', 'raider_scav'], machete);
       const crew = view.crew.filter((m) => m.moves.length > 0);
       if (crew.length < 2) continue;
       const back = crew[0]!;
       const after = commandRound(state, run.id, { moves: Object.fromEntries(crew.map((m) => [m.id, { move: 'cover' as const }])), ranks: { [back.id]: 'back' } }, at) ?? lastFought(state, run.id)!;
-      for (const a of after.acts.slice(view.acts.length)) if (typeof a.by === 'number' && (a.kind === 'hit' || a.kind === 'miss')) {
+      // A shot reaches anyone (a patcher's pistol, 3.8.0); a bite or a slash doesn't.
+      // Unless it's in a hollow's grip, which keeps them where they stand (3.8.0).
+      const held = (id: string): boolean => [view, after].some((v) => v.crew.find((m) => m.id === id)?.heldBy !== undefined);
+      if (held(back.id)) continue;
+      for (const a of after.acts.slice(view.acts.length)) if (typeof a.by === 'number' && (a.kind === 'hit' || a.kind === 'miss') && !a.shot) {
         assert.notEqual(a.at, back.id, 'nothing that bites or slashes reaches the back');
         checked++;
       }
@@ -505,12 +510,13 @@ describe('the battle stage', () => {
           assert.ok(a.round >= 1 && a.round < view.round + 1);
         }
         if (before && before !== view) {
-          // What the crew did to each enemy since the last view is what it lost.
+          // What the crew did to each enemy since the last view is what it lost, less what a patcher put back (3.8.0).
           const fresh = view.acts.slice(before.acts.length);
           for (const e of view.enemies) {
-            const dealt = fresh.filter((a) => a.at === e.index && (a.kind === 'hit' || a.kind === 'kill')).reduce((t, a) => t + a.amount!, 0);
+            const dealt = fresh.filter((a) => a.at === e.index && (a.kind === 'hit' || a.kind === 'kill' || a.kind === 'burn')).reduce((t, a) => t + a.amount!, 0);
+            const mended = fresh.filter((a) => a.at === e.index && a.kind === 'mend').reduce((t, a) => t + a.amount!, 0);
             const lost: number = before.enemies[e.index]!.hp - e.hp;
-            assert.equal(lost, Math.min(dealt, before.enemies[e.index]!.hp), `${e.name}: lost ${lost}, dealt ${dealt}`);
+            assert.equal(lost, Math.min(dealt, before.enemies[e.index]!.hp) - mended, `${e.name}: lost ${lost}, dealt ${dealt}, mended ${mended}`);
           }
           checked++;
         }
