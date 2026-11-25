@@ -34,7 +34,7 @@ export const BUILDINGS: readonly BuildingDef[] = [
     levels: [
       { effect: 'Beds for 4.', cost: {} },
       { effect: 'Beds for 8.', cost: { scrap: 30 } },
-      { effect: 'Beds for 12.', cost: { scrap: 180, tech: 18, rations: 90 } },
+      { effect: 'Beds for 12.', cost: { scrap: 110, tech: 12, rations: 120, meds: 20 } },
     ],
   },
   {
@@ -46,7 +46,7 @@ export const BUILDINGS: readonly BuildingDef[] = [
     levels: [
       { effect: 'Grows a few rations a day, more with gardeners. Two can work here.', cost: {} },
       { effect: 'Grows twice as much. Three can work here.', cost: { scrap: 25 } },
-      { effect: 'Grows three times as much. Three can work here.', cost: { scrap: 150, tech: 18 } },
+      { effect: 'Grows three times as much. Three can work here.', cost: { scrap: 100, tech: 12, gas: 10, meds: 10, rations: 40 } },
     ],
   },
   {
@@ -56,8 +56,8 @@ export const BUILDINGS: readonly BuildingDef[] = [
     workStat: 'brawn',
     levels: [
       { effect: 'People here strip the old station and the sidings for scrap: wire, pipe, sheet. Nothing without hands. Two can work here.', cost: { scrap: 20 } },
-      { effect: 'A cutting torch: twice as much. Three can work here.', cost: { scrap: 80, tech: 10 } },
-      { effect: 'A winch and a cart on the old track: three times as much. Three can work here.', cost: { scrap: 200, tech: 30 } },
+      { effect: 'A cutting torch: twice as much. Three can work here.', cost: { scrap: 55, tech: 8, gas: 15 } },
+      { effect: 'A winch and a cart on the old track: three times as much. Three can work here.', cost: { scrap: 140, tech: 18, gas: 30, rations: 80 } },
     ],
   },
   {
@@ -68,8 +68,8 @@ export const BUILDINGS: readonly BuildingDef[] = [
     startLevel: 1,
     levels: [
       { name: 'Firepit', effect: 'Everyone at the Depot sheds 3 more stress a day. Whoever keeps it lit helps more.', cost: {} },
-      { name: 'Bar', effect: 'Sheds 4 more stress a day, and people warm to each other over a drink. Keeping it stocked takes a ration a day.', cost: { scrap: 60, tech: 6, rations: 40 } },
-      { name: 'Bar and Stage', effect: 'Sheds 5 more stress a day, and people warm to each other faster. Takes two rations a day.', cost: { scrap: 180, tech: 24, rations: 120 } },
+      { name: 'Bar', effect: 'Sheds 4 more stress a day, and people warm to each other over a drink. Keeping it stocked takes a ration a day.', cost: { scrap: 45, tech: 6, rations: 70 } },
+      { name: 'Bar and Stage', effect: 'Sheds 5 more stress a day, and people warm to each other faster. Takes two rations a day.', cost: { scrap: 140, tech: 16, rations: 120, meds: 15 } },
     ],
   },
   {
@@ -79,8 +79,8 @@ export const BUILDINGS: readonly BuildingDef[] = [
     workStat: 'wits',
     levels: [
       { effect: 'Faster healing. Medics cure rad sickness and fever with meds, one patient a day each.', cost: { scrap: 25, meds: 2 } },
-      { effect: 'Faster still. Wounds close sooner. Uses some meds every day.', cost: { scrap: 90, tech: 16, meds: 20 } },
-      { effect: 'The best care in the Reach. Uses more meds.', cost: { scrap: 210, tech: 45, meds: 60 } },
+      { effect: 'Faster still. Wounds close sooner. Uses some meds every day.', cost: { scrap: 80, tech: 10, meds: 30 } },
+      { effect: 'The best care in the Reach. Uses more meds.', cost: { scrap: 200, tech: 28, meds: 80, rations: 40 } },
     ],
   },
   {
@@ -90,8 +90,8 @@ export const BUILDINGS: readonly BuildingDef[] = [
     workStat: 'wits',
     levels: [
       { effect: 'Craft basic gear and fix up worn kit. Workers turn scrap into ammo.', cost: { scrap: 30 } },
-      { effect: 'Craft guns, armor and instruments, and improve gear to Prime. Uses some tech every day.', cost: { scrap: 100, tech: 16 } },
-      { effect: 'Everything made here comes out Solid. Uses more tech.', cost: { scrap: 240, tech: 54 } },
+      { effect: 'Craft guns, armor and instruments, and improve gear to Prime. Uses some tech every day.', cost: { scrap: 75, tech: 14, gas: 15, rations: 20 } },
+      { effect: 'Everything made here comes out Solid. Uses more tech.', cost: { scrap: 190, tech: 42, gas: 30, meds: 10, rations: 30 } },
     ],
   },
   {
@@ -101,8 +101,8 @@ export const BUILDINGS: readonly BuildingDef[] = [
     workStat: 'wits',
     levels: [
       { effect: 'More people answer the radio, with their stats known, and calls for help come in. Sometimes picks up a place nobody has found. Keeps in touch with one outpost.', cost: { scrap: 30, tech: 5 } },
-      { effect: 'More answer the radio, and better ones. Hears more. Keeps in touch with two outposts. Uses some tech every day.', cost: { scrap: 100, tech: 28 } },
-      { effect: 'The most answer the radio, the best around. Hears the most. Keeps in touch with three outposts. Uses more tech.', cost: { scrap: 240, tech: 66 } },
+      { effect: 'More answer the radio, and better ones. Hears more. Keeps in touch with two outposts. Uses some tech every day.', cost: { scrap: 80, tech: 20, gas: 15, rations: 20 } },
+      { effect: 'The most answer the radio, the best around. Hears the most. Keeps in touch with three outposts. Uses more tech.', cost: { scrap: 200, tech: 45, gas: 30, meds: 10, rations: 30 } },
     ],
   },
   {
@@ -112,8 +112,8 @@ export const BUILDINGS: readonly BuildingDef[] = [
     workStat: 'aim',
     levels: [
       { effect: 'Raiders may be seen coming, with a notice, and the defenders strike first. Lookouts with a gun shoot from up top. Halves what raiders take.', cost: { scrap: 25 } },
-      { effect: 'Raiders seen more often and sooner; lookouts shoot better. Uses some ammo every day for practice.', cost: { scrap: 90, tech: 10, ammo: 30 } },
-      { effect: 'Raiders seen nearly always, well ahead; lookouts shoot best. Uses more ammo.', cost: { scrap: 210, tech: 36, ammo: 90 } },
+      { effect: 'Raiders seen more often and sooner; lookouts shoot better. Uses some ammo every day for practice.', cost: { scrap: 60, tech: 10, ammo: 40, rations: 20 } },
+      { effect: 'Raiders seen nearly always, well ahead; lookouts shoot best. Uses more ammo.', cost: { scrap: 160, tech: 26, ammo: 90, gas: 10, meds: 10, rations: 30 } },
     ],
   },
   {
@@ -123,8 +123,8 @@ export const BUILDINGS: readonly BuildingDef[] = [
     workStat: 'any',
     levels: [
       { effect: 'People here practice a stat of their choice: 2 practice a day.', cost: { scrap: 20 } },
-      { effect: '3 practice a day.', cost: { scrap: 80, tech: 10 } },
-      { effect: '4 practice a day.', cost: { scrap: 180, tech: 36 } },
+      { effect: '3 practice a day.', cost: { scrap: 50, tech: 8, rations: 50, meds: 5 } },
+      { effect: '4 practice a day.', cost: { scrap: 130, tech: 22, rations: 100, meds: 20 } },
     ],
   },
 ];

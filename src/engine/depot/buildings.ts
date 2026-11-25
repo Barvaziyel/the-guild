@@ -2,10 +2,11 @@
  * Building and staffing the Depot: levels, costs, beds and who works where.
  */
 import { addGuildLog } from '../chronicle.ts';
-import { BUILDING_UPKEEP, BUNKS_CAP, MAX_BUILDING_LEVEL, SHARE_BED_AGE, WORKER_SLOTS } from '../constants.ts';
+import { BUILD_KEEPS_FOOD_DAYS, BUILDING_UPKEEP, BUNKS_CAP, MAX_BUILDING_LEVEL, SHARE_BED_AGE, WORKER_SLOTS } from '../constants.ts';
 import { BUILDINGS, getLocation, getProject, getTrait, type BuildingDef, type BuildingLevel } from '../content/index.ts';
 import { partnerOf } from '../relationships.ts';
 import { statName } from '../stats.ts';
+import { guildUpkeep } from './day.ts';
 import type { BuildingId, BuildingPost, GameState, Post, ResourceId, Resources, StatId, Survivor } from '../types.ts';
 import { BUILDING_IDS, RESOURCE_IDS, STAT_IDS } from '../types.ts';
 
@@ -60,7 +61,17 @@ export function buildProblem(state: GameState, id: BuildingId): string | undefin
   const next = nextLevel(state, id);
   if (!next) return `The ${buildingName(state, id)} is as good as it gets.`;
   if (!canAfford(state, next.cost)) return `Needs ${costText(next.cost)}.`;
+  if (leavesHungry(state, next.cost)) return 'That would leave too little to eat.';
   return undefined;
+}
+
+/**
+ * Whether paying a cost in rations would leave less than BUILD_KEEPS_FOOD_DAYS of food (3.9.0: some
+ * upgrades take 150 rations now, and a guild shouldn't starve itself for a building by one tap).
+ */
+export function leavesHungry(state: GameState, cost: Partial<Resources>): boolean {
+  const rations = cost.rations ?? 0;
+  return rations > 0 && state.resources.rations - rations < guildUpkeep(state) * BUILD_KEEPS_FOOD_DAYS;
 }
 
 /** Build or improve a building, paying for it. Throws if it can't be done. */

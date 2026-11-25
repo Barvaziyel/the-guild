@@ -62,6 +62,8 @@ describe('vehicles on screen', () => {
     const state = testGame();
     state.resources.scrap = 200;
     state.resources.tech = 30;
+    state.resources.gas = 20;
+    state.resources.rations = 100;
     build(state, 'workshop', 1);
     build(state, 'workshop', 2);
     const rows = vehicleBuildRows(state);

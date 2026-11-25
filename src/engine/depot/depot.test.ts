@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import {
+  BUILD_KEEPS_FOOD_DAYS,
   BUNKS_CAP,
   DAY_MS,
   FIREPIT_RELIEF,
@@ -36,7 +37,7 @@ import {
   workerSlots,
   postBuilding,
 } from './buildings.ts';
-import { dailyUpkeep, emptySummary, gardenYield, playDepotDay, scrapyardYield } from './day.ts';
+import { dailyUpkeep, emptySummary, gardenYield, guildUpkeep, playDepotDay, scrapyardYield } from './day.ts';
 import { acceptOffer, declineOffer, offerProblem, rollDepotEvents } from './events.ts';
 import { addRadioRecruit, radioAnswerChance, recruitProblem, refreshRecruits, takeIn } from './recruits.ts';
 import { advanceTime, dayStart, nextDayAt } from './time.ts';
@@ -46,7 +47,7 @@ import { craft, craftProblem, salvage, salvageProblem, salvageSpares, salvageVal
 const HOUR = 60 * 60 * 1000;
 
 const rich = (state: GameState): void => {
-  state.resources = { scrap: 500, rations: 500, meds: 50, ammo: 50, tech: 100, gas: 0 };
+  state.resources = { scrap: 500, rations: 500, meds: 50, ammo: 50, tech: 100, gas: 100 };
 };
 
 describe('a new Depot', () => {
@@ -76,15 +77,15 @@ describe('building', () => {
     const state = testGame();
     state.resources.scrap = 100;
     state.resources.tech = 10;
-    state.resources.rations = 50;
-    // The Bar: 60 scrap, 6 tech, 40 rations (1.7.1).
+    state.resources.rations = 100;
+    // The Bar: 45 scrap, 6 tech, 70 rations (3.9.0).
     assert.equal(buildingName(state, 'firepit'), 'Firepit');
     build(state, 'firepit', 3);
     assert.equal(buildingLevel(state, 'firepit'), 2);
     assert.equal(buildingName(state, 'firepit'), 'Bar');
-    assert.equal(state.resources.scrap, 40);
+    assert.equal(state.resources.scrap, 55);
     assert.equal(state.resources.tech, 4);
-    assert.equal(state.resources.rations, 10, 'stocking the Bar takes rations too');
+    assert.equal(state.resources.rations, 30, 'stocking the Bar takes rations too');
     assert.match(state.log[state.log.length - 1]!.text, /Bar is now level 2/);
   });
 
@@ -98,6 +99,32 @@ describe('building', () => {
     build(state, 'bunks', 1);
     assert.equal(bunksCap(state), 12);
     assert.match(buildProblem(state, 'bunks') ?? '', /as good as it gets/);
+  });
+
+  test('an upgrade that takes rations leaves a few days of food (3.9.0)', () => {
+    const state = testGame();
+    rich(state);
+    build(state, 'bunks', 1);
+    const keep = guildUpkeep(state) * BUILD_KEEPS_FOOD_DAYS;
+    state.resources.rations = 120 + keep - 1;
+    assert.equal(buildProblem(state, 'bunks'), 'That would leave too little to eat.');
+    assert.throws(() => build(state, 'bunks', 1));
+    state.resources.rations = 120 + keep;
+    assert.equal(buildProblem(state, 'bunks'), undefined);
+    build(state, 'bunks', 1);
+    assert.equal(state.resources.rations, keep);
+  });
+
+  test('scrap is at most a little over half of what an upgrade is worth (3.9.0)', () => {
+    // Worth by the market (§7.14): tech 3, meds 1.5, gas 1.2, ammo 0.5, rations 0.45, scrap 1.
+    const worth: Record<string, number> = { scrap: 1, tech: 3, meds: 1.5, gas: 1.2, ammo: 0.5, rations: 0.45 };
+    for (const b of BUILDINGS) {
+      for (const level of b.levels.slice(1)) {
+        const total = Object.entries(level.cost).reduce((sum, [r, n]) => sum + worth[r]! * n!, 0);
+        if (total < 60) continue; // the cheap first steps stay plain scrap
+        assert.ok((level.cost.scrap ?? 0) <= total * 0.6, `${b.id}: ${JSON.stringify(level.cost)}`);
+      }
+    }
   });
 });
 
