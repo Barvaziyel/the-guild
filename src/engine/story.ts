@@ -77,7 +77,7 @@ function goalProgress(state: GameState, goal: StoryGoal): { met: boolean; have?:
 /** Why the reward can't be collected yet, or undefined if it can. */
 export function storyProblem(state: GameState): string | undefined {
   const step = storyStep(state);
-  if (!step) return 'The first week is done.';
+  if (!step) return 'The guild has found its feet.';
   if (!storyProgress(state).met) return `Not yet: ${step.goalText.charAt(0).toLowerCase()}${step.goalText.slice(1)}.`;
   return undefined;
 }
@@ -108,7 +108,8 @@ export function claimStory(state: GameState, now: number): StoryEnding {
   story.base = storyBase(state);
   story.last = ending;
   if (story.step >= FIRST_WEEK.length) {
-    addGuildLog(state, day, 'The first week is behind them.', ['story']);
+    // However long it took (3.7.3; Aviel finished on day 14 to "The first week is behind them.").
+    addGuildLog(state, day, 'The guild has found its feet.', ['story']);
     // The week ends with the broadcast: from here on, Haven (§9.11).
     startHaven(state, day);
   }

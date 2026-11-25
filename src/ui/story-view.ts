@@ -8,7 +8,7 @@ import { suppliesLine } from './dilemma-view.ts';
 import type { Route } from './route.ts';
 
 export interface StoryCard {
-  /** "The first week · 3 of 8". */
+  /** "Getting started · 3 of 8" (3.7.3: it said "The first week", but a guild can take two). */
   kicker: string;
   title: string;
   text: string;
@@ -29,7 +29,7 @@ export function storyCard(state: GameState): StoryCard | undefined {
   const p = storyProgress(state);
   const count = p.need !== undefined && p.need > 1 ? `: ${p.have} of ${p.need}` : '';
   return {
-    kicker: `The first week · ${state.story!.step + 1} of ${FIRST_WEEK.length}`,
+    kicker: `Getting started · ${state.story!.step + 1} of ${FIRST_WEEK.length}`,
     title: step.title,
     text: step.text,
     goal: p.met ? `Done: ${lowerFirst(step.goalText)}.` : `${step.goalText}${count}.`,

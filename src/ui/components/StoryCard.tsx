@@ -24,7 +24,7 @@ export function StoryCard({ state }: { state: GameState }) {
   if (ending) {
     return (
       <section className="story is-done" aria-labelledby="story-title" role="status">
-        <p className="story-kicker">{ending.last ? 'The first week is done' : 'Done'}</p>
+        <p className="story-kicker">{ending.last ? 'Settled in' : 'Done'}</p>
         <h3 id="story-title" className="story-title">
           {ending.title}
         </h3>
