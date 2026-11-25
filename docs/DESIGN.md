@@ -305,7 +305,14 @@ The planner shows the duration, warnings (rivals or feuds in the crew, injuries,
 - When the crew **returns**, the effects apply all at once on the report screen, and a local notification fires.
   - The game brings a crew home the moment they're due, or as soon as it's opened after that. The report waits, marked new, until the player opens it. A banner says who is back, and the Runs tab shows a count of new reports.
   - Notices never give away what happened: "Mara and Dex are due back", not "Dex died".
-  - In a browser, notices only fire while the game is open, even in the background. The Android app schedules them with the system, so they fire with the game closed. They are inexact (Android may hold one a few minutes to save battery), which is fine for a crew's return and needs no exact-alarm permission.
+  - In a browser, notices only fire while the game is open, even in the background. The Android app schedules them with the system, so they fire with the game closed.
+  - **On time, and right when late** (3.7.4). A tester left the game for more than a day, then got the notices for his last runs all at once, a day late: a fight, something to decide (he hadn't answered it). Nothing fired twice (a simulated phone, opening the game at random over weeks, found every notice fired when the game wanted it): Android had held them back. Until then they were inexact alarms, since Android 14 won't let an app set exact ones without a permission it isn't given, and it holds an app that hasn't been opened in a while back further, letting a pile go when it's opened. Now:
+    - The app has `USE_EXACT_ALARM` (granted on install; Play keeps it for clock and calendar apps, which doesn't matter sideloaded).
+    - A notice about a wait says until when, not for how long ("choose by 09:13", "until 14:35"), so a late one is still right.
+    - Each notice knows when it stops being true (`until`: the end of a wait, the decision settled; otherwise an hour after its time). One that comes after that is taken down as it comes, if the game is running (`staleNotice`); the plugin keeps the event until the game listens, so ones let go as it starts are caught too.
+    - Opening the game, or coming back to it, clears its notices from the shade.
+    - Each notice carries its own time, since the date the system hands back (`Wed Nov 25 09:13:00 IST 2026`) can't always be read, and a notice that moved then stayed at its old time (`notice-sync.ts`).
+    - A decision's notice waits for a day someone is home (§9.5).
   - Tapping a notice opens that crew's run.
 - The result is fixed at departure, so the game can't be save-scummed. The simulation only depends on the crew, gear and supplies at departure.
 
@@ -851,7 +858,8 @@ Now and then something comes up that the player has to decide (Aviel's idea, 202
 - **On screen:**
   - The Depot's Today tab opens with the card: who it's about (their faces), what's going on, the four answers, and when it has to be decided by. After answering, the card says what happened until dismissed, with a line of what came into the stores or went out ("Ammo +6.", 2.5.1; Aviel asked "What shells?" when a story mentioned shells it hadn't explained).
   - The Depot tab shows a mark while one waits.
-  - With notices on, a notice comes when the next one is due, and a reminder two hours before one is settled without the player. Tapping either opens the Depot.
+  - With notices on, a notice comes when the next one is due, and a reminder two hours before one is settled without the player, saying by when (3.7.4). Tapping either opens the Depot.
+  - A decision is about people at the Depot, so on a day with everyone out it waits for the next. Until 3.7.4 the notice didn't: it came, and the game had nothing to decide, which read like a notice for the last one. Now it's for the first day that begins with someone home (crews back by then count), and for an envoy's day if that's sooner.
 - `dilemmas.test.ts` checks every decision's references and placeholders, and that each can come up and every outcome of every answer (and of leaving it) can happen.
 
 ### 9.6 Projects (1.8.0)

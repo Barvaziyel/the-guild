@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { DILEMMA_DAYS, Rng, dayStart, decideDilemma, getDilemma, startDilemma } from '../engine/index.ts';
-import { testGame } from '../engine/test-utils.ts';
-import { dilemmaCard, dilemmaDeadline, dilemmaNotices, suppliesLine } from './dilemma-view.ts';
+import { DILEMMA_DAYS, Rng, advanceTime, dayAt, dayStart, decideDilemma, getDilemma, playVulturesDay, startDilemma, startRun } from '../engine/index.ts';
+import { openGame, testGame, testPlan } from '../engine/test-utils.ts';
+import { decisionDay, dilemmaCard, dilemmaDeadline, dilemmaNotices, suppliesLine } from './dilemma-view.ts';
+import { clockTime } from './time.ts';
 
 describe('decisions on screen', () => {
   test('the card fills in the people, the four answers and when it has to be decided', () => {
@@ -42,7 +43,8 @@ describe('decisions on screen', () => {
     const due = dilemmaNotices(state);
     assert.equal(due[0]!.id, `dilemma-due-${d.day}`);
     assert.ok(due[0]!.at < dayStart(state, d.deadlineDay));
-    assert.match(due[0]!.body, /^A good coat: unless you choose/);
+    assert.equal(due[0]!.until, dayStart(state, d.deadlineDay));
+    assert.equal(due[0]!.body, `A good coat: choose by ${clockTime(dayStart(state, d.deadlineDay))}, or they'll settle it themselves.`);
     decideDilemma(state, 0, dayStart(state, 3) + 1000);
     assert.equal(dilemmaNotices(state)[0]!.id, `dilemma-${state.dilemmas.nextDay}`);
   });
@@ -54,5 +56,40 @@ describe('what an answer put in the stores (2.5.1)', () => {
     assert.equal(suppliesLine({}), undefined);
     assert.equal(suppliesLine({ ammo: 6 }), 'Ammo +6.');
     assert.equal(suppliesLine({ tech: 2, rations: -6 }), 'Rations −6, Tech +2.');
+  });
+
+  test('with everyone out, the notice waits for the day someone is home, which is when the decision comes', () => {
+    const state = testGame('all-out');
+    const from = state.dilemmas.nextDay;
+    const t = dayStart(state, from) - 60_000;
+    advanceTime(state, t);
+    const run = startRun(state, testPlan(state, 'kessler_farm', {}, state.survivors.length), t);
+    assert.ok(run.returnAt > dayStart(state, from), 'still out when the decision is due');
+    const day = decisionDay(state, from)!;
+    assert.equal(day, dayAt(state, run.returnAt - 1) + 1, 'the first day that begins with them back');
+    assert.deepEqual(dilemmaNotices(state).map((n) => [n.id, n.at]), [[`dilemma-${day}`, dayStart(state, day)]]);
+    // The game agrees: nothing on the day it was due, then a decision the day they're home.
+    const active = (): number | undefined => state.dilemmas.active?.day;
+    advanceTime(state, dayStart(state, day) - 1);
+    assert.equal(active(), undefined);
+    advanceTime(state, dayStart(state, day) + 1);
+    assert.equal(active(), day);
+  });
+
+  test('nobody at the Depot for days to come: no notice', () => {
+    const state = testGame('outposts');
+    for (const s of state.survivors) s.outpost = 'maple_street';
+    assert.deepEqual(dilemmaNotices(state), []);
+  });
+
+  test('an envoy from the Vultures gets a notice too, on its own day', () => {
+    const state = openGame('envoy');
+    state.vultures.arriveDay = 1;
+    playVulturesDay(state, 1, new Rng('a-envoy'));
+    state.dilemmas.nextDay = 20;
+    state.vultures.nextEnvoyDay = 12;
+    assert.equal(dilemmaNotices(state)[0]!.id, 'dilemma-12');
+    state.vultures.nextEnvoyDay = 30;
+    assert.equal(dilemmaNotices(state)[0]!.id, 'dilemma-20');
   });
 });

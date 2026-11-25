@@ -3,6 +3,7 @@ import { describe, test } from 'node:test';
 import { Rng, answerRadio, completeRun, startRun, type GameState, type Run } from '../engine/index.ts';
 import { T0, openGame, testPlan } from '../engine/test-utils.ts';
 import { answeredLine, anyoneCalling, noticeRoute, radioCard, radioCards, radioNoticeKey, radioNoticeRun, radioNotices, radioReportLine, radioWakeTimes, titleInLine } from './radio-view.ts';
+import { clockTime } from './time.ts';
 
 /** A guild with a Radio Tower and a crew out that will call home. */
 function calling(seed: string): { state: GameState; run: Run } {
@@ -42,7 +43,7 @@ describe('a crew on the radio', () => {
     assert.equal(notice!.id, `radio-${run.id}`);
     assert.equal(notice!.at, call.at);
     assert.match(notice!.title, /^\w+ is on the radio$/);
-    assert.match(notice!.body, /will wait 30 min for your answer\.$/);
+    assert.ok(notice!.body.endsWith(`will wait for your answer until ${clockTime(call.until)}.`), 'a time, so a late notice is still right');
     assert.equal(radioNoticeRun(notice!.id), run.id);
     assert.equal(radioNoticeRun(run.id), undefined);
     const key = radioNoticeKey(state);

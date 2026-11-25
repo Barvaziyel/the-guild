@@ -3,6 +3,7 @@ import { describe, test } from 'node:test';
 import { build, dayStart, Rng, startCall, startRun, type GameState } from '../engine/index.ts';
 import { openGame, testPlan } from '../engine/test-utils.ts';
 import { callCard, foundLines, jobChoices, rescueLine, rescueNotices, withRescue } from './rescue-view.ts';
+import { clockTime } from './time.ts';
 import { defaultPlan, JOBS } from './runs-view.ts';
 
 function calling(seed: string): GameState {
@@ -62,7 +63,7 @@ describe('calls for help on screen', () => {
     const call = state.rescue.call!;
     const [reminder] = rescueNotices(state);
     assert.equal(reminder!.at, dayStart(state, call.expiresDay) - 2 * 3_600_000);
-    assert.match(reminder!.body, /won't last much longer/);
+    assert.match(reminder!.body, new RegExp(`won't last past ${clockTime(dayStart(state, call.expiresDay))}\\.$`), 'a time, not "soon": it may come late');
     delete state.rescue.call;
     state.rescue.nextDay = 30;
     assert.deepEqual(rescueNotices(state).map((n) => n.at), [dayStart(state, 30)]);

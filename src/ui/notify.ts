@@ -3,7 +3,8 @@
  * is open (the tab may be in the background). The Android app uses Capacitor's
  * local notifications, which the system fires with the app closed.
  */
-import { LocalNotifications, type PendingLocalNotificationSchema } from '@capacitor/local-notifications';
+import { LocalNotifications } from '@capacitor/local-notifications';
+import { syncNotices } from './notice-sync.ts';
 import { noticeNumber, type PlannedNotice } from './runs-view.ts';
 
 export type NoticePermission = 'granted' | 'denied' | 'default' | 'unsupported';
@@ -60,8 +61,10 @@ export function webNotifier(): Notifier {
 
 /**
  * Android: notices scheduled with the system, so they fire with the game
- * closed. Each run's notice carries the run id, so tapping it opens the report.
- * Timing is inexact (Android may hold it a few minutes to save battery).
+ * closed. Each notice carries its id, so tapping it opens what it's about, and
+ * its time, so it can be moved. They're exact: the app has the alarms
+ * permission (USE_EXACT_ALARM, 3.7.4), or a reminder could come after the
+ * thing it reminds you of.
  */
 export function nativeNotifier(): Notifier {
   let permission: NoticePermission = 'default';
@@ -86,29 +89,20 @@ export function nativeNotifier(): Notifier {
 
 /** Make the system's pending notices match `notices`: cancel the rest, (re)schedule what's missing or moved. */
 async function syncNative(notices: readonly PlannedNotice[]): Promise<void> {
-  const pending = (await LocalNotifications.getPending()).notifications;
-  const wanted = new Map(notices.map((n) => [noticeNumber(n.id), n]));
-  const scheduledAt = (p: PendingLocalNotificationSchema): number => (p.schedule?.at ? new Date(p.schedule.at).getTime() : 0);
-
-  // A notice is stale if its run is over, or the return time moved (a developer skip).
-  const stale = pending.filter((p) => {
-    const n = wanted.get(p.id);
-    return !n || Math.abs(scheduledAt(p) - n.at) > 60_000;
-  });
-  if (stale.length > 0) await LocalNotifications.cancel({ notifications: stale.map((p) => ({ id: p.id })) });
+  const held = (await LocalNotifications.getPending()).notifications;
+  const { cancel, schedule } = syncNotices(held, notices, Date.now());
+  if (cancel.length > 0) await LocalNotifications.cancel({ notifications: cancel.map((id) => ({ id })) });
 
   // Never prompt from here: the player turns notices on in Settings.
   if ((await LocalNotifications.checkPermissions()).display !== 'granted') return;
-  const kept = new Set(pending.filter((p) => !stale.includes(p)).map((p) => p.id));
-  const fresh = notices.filter((n) => !kept.has(noticeNumber(n.id)) && n.at > Date.now() + 1000);
-  if (fresh.length === 0) return;
+  if (schedule.length === 0) return;
   await LocalNotifications.schedule({
-    notifications: fresh.map((n) => ({
+    notifications: schedule.map((n) => ({
       id: noticeNumber(n.id),
       title: n.title,
       body: n.body,
       schedule: { at: new Date(n.at), allowWhileIdle: true },
-      extra: { runId: n.id },
+      extra: { runId: n.id, at: n.at, ...(n.until !== undefined ? { until: n.until } : {}) },
     })),
   });
 }

@@ -6,6 +6,7 @@ import { getLocation, radioWaiting, type GameState, type Run, type RunReport, ty
 import type { Route } from './route.ts';
 import { formatDuration, type PlannedNotice } from './runs-view.ts';
 import { fightNoticeRun } from './fight-view.ts';
+import { clockTime } from './time.ts';
 
 export interface RadioCardView {
   runId: string;
@@ -94,8 +95,9 @@ export function radioNotices(state: GameState): PlannedNotice[] {
       return {
         id: `radio-${r.id}`,
         at: call.at,
+        until: call.until,
         title: `${name} is on the radio`,
-        body: `From ${getLocation(r.plan.locationId).name}: ${titleInLine(call.title)}. ${name} will wait ${formatDuration(call.until - call.at)} for your answer.`,
+        body: `From ${getLocation(r.plan.locationId).name}: ${titleInLine(call.title)}. ${name} will wait for your answer until ${clockTime(call.until)}.`,
       };
     });
 }

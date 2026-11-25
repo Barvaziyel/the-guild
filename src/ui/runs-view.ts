@@ -497,6 +497,8 @@ export interface PlannedNotice {
   at: number;
   title: string;
   body: string;
+  /** When it stops being true (a wait that runs out). One that comes later is cleared at once; without this, an hour after `at` (`staleNotice`). */
+  until?: number;
 }
 
 /**
