@@ -10,7 +10,9 @@ import { App } from './App.tsx';
 import { ServicesContext, type AppServices } from './hooks.ts';
 import { isNative, setupNative } from './native.ts';
 import { nativeNotifier, webNotifier } from './notify.ts';
-import { memoryStore, type KeyValueStore } from './persist.ts';
+import { appDisk } from './files.ts';
+import { SAVE_KEY, memoryStore, type KeyValueStore } from './persist.ts';
+import { dayStamp, mirrorSaves, reconcileSave, type Disk } from './save-disk.ts';
 import { createPrefsStore } from './prefs.ts';
 import { createGameStore, randomSeed } from './store.ts';
 import { startTour } from './components/TourCard.tsx';
@@ -34,23 +36,42 @@ function deviceStorage(): KeyValueStore {
   }
 }
 
-window.history.scrollRestoration = 'manual';
-const kv = deviceStorage();
-const prefs = createPrefsStore(kv);
-const services: AppServices = {
-  // A new guild starts with the tour.
-  store: createGameStore(kv, { now: () => Date.now(), newSeed: randomSeed, onNewGuild: (state) => startTour(prefs, state) }),
-  prefs,
-  notifier: isNative() ? nativeNotifier() : webNotifier(),
-  sound: new SoundSystem(),
-};
+/**
+ * Start the game. In the app the save also lives in a file (3.9.1): before the game loads, a save
+ * that only the file still has is put back, and from then on every save is written there too.
+ */
+async function boot(): Promise<void> {
+  window.history.scrollRestoration = 'manual';
+  const device = deviceStorage();
+  let kv: KeyValueStore = device;
+  let disk: Disk | null = null;
+  let flush: (() => Promise<void>) | undefined;
+  if (isNative()) {
+    disk = appDisk();
+    const { seq, fileBehind } = await reconcileSave(device, disk);
+    const mirror = mirrorSaves(device, disk, { seq, today: () => dayStamp(Date.now()), initial: fileBehind ? device.getItem(SAVE_KEY) : null });
+    kv = mirror.kv;
+    flush = mirror.flush;
+  }
+  const prefs = createPrefsStore(kv);
+  const services: AppServices = {
+    // A new guild starts with the tour.
+    store: createGameStore(kv, { now: () => Date.now(), newSeed: randomSeed, onNewGuild: (state) => startTour(prefs, state) }),
+    prefs,
+    notifier: isNative() ? nativeNotifier() : webNotifier(),
+    sound: new SoundSystem(),
+    disk,
+  };
 
-setupNative(services.sound);
+  setupNative(services.sound, flush);
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <ServicesContext.Provider value={services}>
-      <App />
-    </ServicesContext.Provider>
-  </StrictMode>,
-);
+  createRoot(document.getElementById('root')!).render(
+    <StrictMode>
+      <ServicesContext.Provider value={services}>
+        <App />
+      </ServicesContext.Provider>
+    </StrictMode>,
+  );
+}
+
+void boot();

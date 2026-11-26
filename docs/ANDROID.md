@@ -50,7 +50,7 @@ Every build gets a higher version code than the last (it is the build time in mi
 
 ## First launch
 
-- **Notices:** open *Settings* and turn on *Tell me when crews come back*. Android asks for permission. Notices are scheduled with the system as exact alarms, so they arrive with the game closed and on time (the app has `USE_EXACT_ALARM`, granted on install, since 3.7.4). Opening the game clears its notices from the shade.
+- **Notices:** open *Settings* and turn on *Tell me when crews come back*. Android asks for permission. Notices are scheduled with the system, so they arrive with the game closed. To have them on the minute, tap *Allow* by *On time* under that switch and turn on *Alarms & reminders* for the game (3.9.1; until then the app had `USE_EXACT_ALARM`, which Google Play only allows in alarm clock and calendar apps). Without it Android may hold a notice back a while. Opening the game clears its notices from the shade.
   - Some phones (Samsung, Xiaomi, OnePlus and others) are aggressive about this. If notices don't arrive, set the app's battery use to *Unrestricted* in its App info.
 - **Bringing a browser save over:** the app keeps its own save, separate from any browser. In the browser game, go to *Settings → Export save → Copy*; in the app, *Settings → Import save* and paste it.
 - **The back button** goes back a screen, and on a main tab it puts the game in the background.

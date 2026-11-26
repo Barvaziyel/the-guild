@@ -307,7 +307,7 @@ The planner shows the duration, warnings (rivals or feuds in the crew, injuries,
   - Notices never give away what happened: "Mara and Dex are due back", not "Dex died".
   - In a browser, notices only fire while the game is open, even in the background. The Android app schedules them with the system, so they fire with the game closed.
   - **On time, and right when late** (3.7.4). A tester left the game for more than a day, then got the notices for his last runs all at once, a day late: a fight, something to decide (he hadn't answered it). Nothing fired twice (a simulated phone, opening the game at random over weeks, found every notice fired when the game wanted it): Android had held them back. Until then they were inexact alarms, since Android 14 won't let an app set exact ones without a permission it isn't given, and it holds an app that hasn't been opened in a while back further, letting a pile go when it's opened. Now:
-    - The app has `USE_EXACT_ALARM` (granted on install; Play keeps it for clock and calendar apps, which doesn't matter sideloaded).
+    - Exact alarms (3.9.1): the app asks for none on install. 3.7.4 used `USE_EXACT_ALARM`, granted on install, but Google Play only allows it in alarm clock and calendar apps, and the game is built as if for the store (§15). Now it's `SCHEDULE_EXACT_ALARM` (Android's *Alarms & reminders*), which the player grants: Settings shows *On time* with an *Allow* button under the notices switch while it's missing. Without it a notice is scheduled inexact and may come late, which the points below make harmless. Asking for an exact one without it would open the settings page on every sync, so each notice says which it wants; when that changes (the player allowed it, or took it back) every held notice is scheduled again.
     - A notice about a wait says until when, not for how long ("choose by 09:13", "until 14:35"), so a late one is still right.
     - Each notice knows when it stops being true (`until`: the end of a wait, the decision settled; otherwise an hour after its time). One that comes after that is taken down as it comes, if the game is running (`staleNotice`); the plugin keeps the event until the game listens, so ones let go as it starts are caught too.
     - Opening the game, or coming back to it, clears its notices from the shade.
@@ -1267,7 +1267,9 @@ With a Radio Tower, now and then someone calls for help from a known place; `res
   - Logic that can be tested without a browser lives in plain `.ts` files (`store.ts`, `persist.ts`, `route.ts`, `view.ts`, `runs-view.ts`, `depot-view.ts`, `reach-map.ts`, `dev.ts`) with Node tests. Components are `.tsx`.
   - Time moves in one place: `App.tsx` calls the engine's `advanceTime` when the clock reaches a crew's return or a new Depot day, and on opening the game.
   - The engine is type-checked without DOM types (root `tsconfig.json`), the UI with them (`src/ui/tsconfig.json`).
-- **Persistence.** A versioned JSON save with migrations, stored in localStorage (in the Android app too: the WebView keeps it with the app's data).
+- **Persistence.** A versioned JSON save with migrations, stored in localStorage after every change.
+  - **In the app, also in a file** (3.9.1, `save-disk.ts`). The WebView's storage belongs to the WebView and its web address and can be lost on its own, so each save also goes to a file in the app's own data (`the-guild/save.json`), 1.5 s later or when the game goes to the background. Every save is counted, the count kept in the file and beside the save in storage; on opening, whichever is further along wins, so storage that lost its save, can't read it or stopped taking writes is put back from the file before the game loads.
+  - **A copy a real day**, the day's first save, in `the-guild/copies/`; the last 3 are kept. Settings → Save → *Copies on this phone* loads one like an import (the current save becomes the backup copy).
   - Saves can be exported (copy, or download in a browser and share in the app) and imported (paste or file). Text that isn't a save, or a damaged one, is rejected with a reason.
   - Importing or starting over keeps the replaced save as a **backup copy**, which Settings can load again.
   - If the save on the device can't be read, the game shows it for copying and overwrites nothing until the player starts a new guild.
@@ -1496,6 +1498,29 @@ Not picked: choosing the rooms before a scavenge, raids you see coming, feasts a
 
 **Later ideas:** weather and seasons, planned Depot defense during raids. (Interactive combat is picked, above.) Runs are decided at departure, so a hands-on fight would fit where the player is there when it happens: a raid on the Depot, or a nemesis met again.
 
+### Built as if for the store (Aviel, 2026-11-26)
+
+From the design review of 3.8.0 (the project doc `claude/design-review-3.8.md`; the plan in `claude/plan-4.0.md`). Aviel: build the game **as if it's going on Google Play, but don't publish yet**; the goal would be at least to pay back the US$25 registration fee, and for fun. **Free, then a one-time $1 unlock** when Haven's broadcast arrives at the end of the first week; after it the Depot and runs keep going, and Haven and everything the story opens after the first week wait for the $1. **No multiplayer for now, just cloud saves.** He agreed to this order, and that **4.0.0 is store-ready**:
+
+| # | Version | Step | Status |
+|---|---|---|---|
+| 1 | 3.9.1 | Store blockers: exact alarms the player allows (not `USE_EXACT_ALARM`, which Play keeps for clock and calendar apps); the save also in a file, with a copy a real day (§7.3, §13) | **this PR** |
+| 2 | 3.10.0 | Fewer, bigger fights (a crew calls home for fights that matter, or that would go badly without the player), and one *press on or come home* call a run; the radio's crackle | planned |
+| 3 | 3.11.0 | Places that need the right people: locked, heavy, radiation, machines, flooded, carrying out, traps, animals; crew perks from pairs and traits | planned |
+| 4 | 3.12.0 | Systems unlocked through the story, the first session for a stranger (an opening scene, a short first run, the first led fight), the tour cut to the first day; sound in scenes, and the gate scene redone with it | planned |
+| 5 | 3.13.0 | The broadcast as the hook: seeds from day one, the night of the broadcast as a scene, a name on the air (someone a guild member lost), the goal made plain, a pull to go ("until the first snow"), the unlock page in the journal's style; with its sound (radio static, the dial, the voice through crackle) | planned |
+| 6 | 3.14.0 | The storyteller: one director paces trouble with warnings and quiet stretches; *Gentle / Standard / Hard* at a new game | planned |
+| 7 | 3.15.0 | People who speak (short lines in the yard, reports, fights, the planner) and want things, with refusals | planned |
+| 8 | 3.16.0 | Runs you watch: the report opens on a short reel | planned |
+| 9 | 3.17.0 | What kind of guild you become: open or closed, merciful or hard | planned |
+| 10 | 3.18.0 | A Reach that changes: seasons, things that show up and go away, threats that move | planned |
+| 11 | **4.0.0** | Store-ready: the $1 unlock (Play Billing), cloud saves, the store page, phones | planned |
+| 12 | 4.1.0+ | Chapters with a time skip: Chapter 2 and the second depot | planned |
+
+- **Not picked:** laying out the Depot by hand; one market for all trading; one kind of prisoner; a real use for gas.
+- **Sound in scenes** (Aviel, 2026-11-26: "the crackling static of the radio as well, and during other 'cutscenes'"): a radio kit (static, squelch, crackle, the dial's whistle, a voice's hum, a dropout) in step 2; beds and cues for each still of a scene from step 4; from then on, every new scene gets a sound pass.
+- **Store rules** (Google's pages, 2026-11-26): a one-time US$25 fee with ID verification; new personal accounts run a closed test with 12 testers for 14 days in a row before going public; new apps target API 36 (the game does).
+
 ## 16. Decisions and open questions
 
 Decided 2026-11-11:
@@ -1516,5 +1541,9 @@ Decided 2026-11-13:
 - The Vultures are rivals you can deal with, with named people, and they compete for places, people, outposts and traders; their meetings on runs become radio calls (1.11.0, then 18b).
 - Picked from the interactive ideas: taking command of a fight (2.0.0 when done), haggling with traders, and names given by the guild's people rather than the player; maybe what people want; possibly long expeditions; prisoners stay as built. The order isn't set (§15).
 - Rations should spoil after some time (planned). An energy plant that runs on solar by day and gas at night or in winter, and powers some things, is an idea Aviel is still thinking about; winter would need seasons, which are on the later list (§15).
+
+Decided 2026-11-26:
+
+- **Built as if for Google Play, not published yet;** free, then a one-time $1 unlock at Haven's broadcast; 4.0.0 is store-ready; no multiplayer for now, just cloud saves (§15, *Built as if for the store*).
 
 No open questions right now.
