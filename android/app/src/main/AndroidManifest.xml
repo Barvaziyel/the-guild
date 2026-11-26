@@ -32,8 +32,7 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <!-- Notices on time: since Android 14 an app may only set exact alarms with this (granted on install), and
-         inexact ones can come late, after what they were about. The game is sideloaded, so Play's rule
-         keeping it for clock and calendar apps doesn't apply. -->
-    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <!-- Notices on time: exact alarms need SCHEDULE_EXACT_ALARM ("Alarms & reminders"), which the
+         local notifications plugin declares and the player grants from Settings (3.9.1). Not
+         USE_EXACT_ALARM: Google Play only allows that one in alarm clock and calendar apps. -->
 </manifest>

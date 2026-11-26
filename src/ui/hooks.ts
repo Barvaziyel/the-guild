@@ -7,12 +7,15 @@ import type { Prefs, PrefsStore } from './prefs.ts';
 import { seeGear, seenFor, type Seen } from './attention-view.ts';
 import { DEFAULT_ROUTE, parseRoute, routeHash, type Route } from './route.ts';
 import type { GameStore, Snapshot } from './store.ts';
+import type { Disk } from './save-disk.ts';
 
 export interface AppServices {
   store: GameStore;
   prefs: PrefsStore;
   notifier: Notifier;
   sound: SoundSystem;
+  /** The app's data folder, where the save's file and its daily copies are (3.9.1). None in a browser. */
+  disk: Disk | null;
 }
 
 export const ServicesContext = createContext<AppServices | null>(null);

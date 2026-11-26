@@ -8,6 +8,8 @@ import { syncNotices } from './notice-sync.ts';
 import { noticeNumber, type PlannedNotice } from './runs-view.ts';
 
 export type NoticePermission = 'granted' | 'denied' | 'default' | 'unsupported';
+/** Whether notices may come exactly on time (Android's "Alarms & reminders"). */
+export type ExactAlarms = 'granted' | 'denied' | 'unsupported';
 
 export interface Notifier {
   permission(): NoticePermission;
@@ -15,6 +17,12 @@ export interface Notifier {
   request(): Promise<boolean>;
   /** Make the scheduled notices exactly these (adds new ones, drops the rest). */
   sync(notices: readonly PlannedNotice[]): void;
+  /** Whether notices may come on the minute, as last read. Without it Android may hold them back a while. */
+  exact(): ExactAlarms;
+  /** Read it again from the system. */
+  checkExact(): Promise<ExactAlarms>;
+  /** Open the system page where the player lets notices come on time. Resolves to whether they may now. */
+  allowExact(): Promise<boolean>;
 }
 
 export function webNotifier(): Notifier {
@@ -34,6 +42,9 @@ export function webNotifier(): Notifier {
   };
 
   return {
+    exact: () => 'unsupported',
+    checkExact: async () => 'unsupported',
+    allowExact: async () => false,
     permission: () => (supported ? Notification.permission : 'unsupported'),
     async request() {
       if (!supported) return false;
@@ -62,35 +73,103 @@ export function webNotifier(): Notifier {
 /**
  * Android: notices scheduled with the system, so they fire with the game
  * closed. Each notice carries its id, so tapping it opens what it's about, and
- * its time, so it can be moved. They're exact: the app has the alarms
- * permission (USE_EXACT_ALARM, 3.7.4), or a reminder could come after the
- * thing it reminds you of.
+ * its time, so it can be moved.
+ *
+ * On time (3.9.1): an exact alarm needs the player's yes since Android 14
+ * (`SCHEDULE_EXACT_ALARM`, "Alarms & reminders"). Until 3.9.1 the app had
+ * `USE_EXACT_ALARM`, granted on install, but Google Play only allows that one
+ * in alarm clock and calendar apps. Without the yes a notice is inexact and
+ * may come late; the notices are written for that (clock times, and late ones
+ * taken down, 3.7.4). Each notice says which it wants: asking for an exact one
+ * without the yes would open the settings page on every sync.
  */
 export function nativeNotifier(): Notifier {
   let permission: NoticePermission = 'default';
+  let exact: ExactAlarms = 'unsupported';
   const toPermission = (display: string): NoticePermission => (display === 'granted' ? 'granted' : display === 'denied' ? 'denied' : 'default');
   void LocalNotifications.checkPermissions().then((p) => (permission = toPermission(p.display)));
 
+  const readExact = async (): Promise<ExactAlarms> => {
+    try {
+      exact = (await LocalNotifications.checkExactNotificationSetting()).exact_alarm === 'granted' ? 'granted' : 'denied';
+    } catch {
+      exact = 'unsupported';
+    }
+    return exact;
+  };
+  void readExact();
+
   // Calls are chained so two syncs never race each other.
   let queue: Promise<void> = Promise.resolve();
+  let last: readonly PlannedNotice[] = [];
+  /**
+   * How the held notices were scheduled; when that changes they're all scheduled again. Kept on the
+   * phone: taking the yes back restarts the app, and Android drops the exact alarms while the
+   * plugin still lists them as pending.
+   */
+  let scheduledExact: boolean | null = readExactMark();
+  const run = (notices: readonly PlannedNotice[]): void => {
+    last = notices;
+    queue = queue
+      .then(async () => {
+        const onTime = (await readExact()) !== 'denied';
+        // Unknown (the first sync since 3.9.1, which took USE_EXACT_ALARM away) counts as changed.
+        await syncNative(notices, onTime, scheduledExact !== onTime);
+        scheduledExact = onTime;
+        writeExactMark(onTime);
+      })
+      .catch(() => undefined);
+  };
 
   return {
     permission: () => permission,
+    exact: () => exact,
+    checkExact: readExact,
     async request() {
       const p = await LocalNotifications.requestPermissions();
       permission = toPermission(p.display);
       return permission === 'granted';
     },
-    sync(notices) {
-      queue = queue.then(() => syncNative(notices)).catch(() => undefined);
+    sync: run,
+    async allowExact() {
+      try {
+        exact = (await LocalNotifications.changeExactNotificationSetting()).exact_alarm === 'granted' ? 'granted' : 'denied';
+      } catch {
+        await readExact();
+      }
+      // Back from the settings page: the ones already set are scheduled again, on time this time.
+      run(last);
+      return exact === 'granted';
     },
   };
 }
 
-/** Make the system's pending notices match `notices`: cancel the rest, (re)schedule what's missing or moved. */
-async function syncNative(notices: readonly PlannedNotice[]): Promise<void> {
+const EXACT_MARK = 'the-guild:notices:exact';
+
+function readExactMark(): boolean | null {
+  try {
+    const v = window.localStorage.getItem(EXACT_MARK);
+    return v === null ? null : v === '1';
+  } catch {
+    return null;
+  }
+}
+
+function writeExactMark(onTime: boolean): void {
+  try {
+    window.localStorage.setItem(EXACT_MARK, onTime ? '1' : '0');
+  } catch {
+    // Nothing to do: at worst the held notices are scheduled again next time.
+  }
+}
+
+/**
+ * Make the system's pending notices match `notices`: cancel the rest, (re)schedule what's missing or moved.
+ * `again`: everything held is scheduled anew (the player let notices come on time, or took that back).
+ */
+async function syncNative(notices: readonly PlannedNotice[], onTime: boolean, again: boolean): Promise<void> {
   const held = (await LocalNotifications.getPending()).notifications;
-  const { cancel, schedule } = syncNotices(held, notices, Date.now());
+  const { cancel, schedule } = again ? { cancel: held.map((p) => p.id), schedule: syncNotices([], notices, Date.now()).schedule } : syncNotices(held, notices, Date.now());
   if (cancel.length > 0) await LocalNotifications.cancel({ notifications: cancel.map((id) => ({ id })) });
 
   // Never prompt from here: the player turns notices on in Settings.
@@ -102,6 +181,7 @@ async function syncNative(notices: readonly PlannedNotice[]): Promise<void> {
       title: n.title,
       body: n.body,
       schedule: { at: new Date(n.at), allowWhileIdle: true },
+      isExactNotification: onTime,
       extra: { runId: n.id, at: n.at, ...(n.until !== undefined ? { until: n.until } : {}) },
     })),
   });

@@ -16,7 +16,8 @@ export function isNative(): boolean {
   return Capacitor.isNativePlatform();
 }
 
-export function setupNative(sound: SoundSystem): void {
+/** `flush` writes the save's file now (3.9.1), for when the game goes to the background. */
+export function setupNative(sound: SoundSystem, flush?: () => Promise<void>): void {
   // Sound stops while the game is in the background, in a browser tab too.
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') sound.pause();
@@ -24,7 +25,10 @@ export function setupNative(sound: SoundSystem): void {
   });
   if (!isNative()) return;
 
-  void App.addListener('pause', () => sound.pause());
+  void App.addListener('pause', () => {
+    sound.pause();
+    void flush?.();
+  });
 
   // Notices already in the shade are about what the game now shows: clear them,
   // or yesterday's are still there tomorrow, looking like new ones.

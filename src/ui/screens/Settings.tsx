@@ -1,4 +1,4 @@
-import { useRef, useState, type ChangeEvent } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { SAVE_VERSION, dayAt, serialize, type GameState } from '../../engine/index.ts';
 import { ConfirmButton } from '../components/Confirm.tsx';
 import { startTour } from '../components/TourCard.tsx';
@@ -7,6 +7,7 @@ import { fastForward, type FastForwardResult } from '../dev.ts';
 import { saveFileLabel, saveTextFile } from '../files.ts';
 import { isNative } from '../native.ts';
 import { exportFileName, parseImport } from '../persist.ts';
+import { dailyCopies, readCopy, type DailyCopy } from '../save-disk.ts';
 
 interface Props {
   state: GameState;
@@ -57,6 +58,10 @@ function GameSettings({ state }: { state: GameState }) {
   const { store, prefs, notifier } = useServices();
   const { wobble, notify } = usePrefs();
   const [noticeNote, setNoticeNote] = useState<string | null>(null);
+  const [exact, setExact] = useState(() => notifier.exact());
+  useEffect(() => {
+    void notifier.checkExact().then(setExact);
+  }, [notifier]);
   return (
     <div className="panel">
       <h3 className="panel-title">Game</h3>
@@ -75,7 +80,7 @@ function GameSettings({ state }: { state: GameState }) {
         tour="notices"
         help={
           isNative()
-            ? 'A notice when a crew is due home, even with the game closed. Android may hold it a few minutes to save battery.'
+            ? 'A notice when a crew is due home, even with the game closed.'
             : 'A notice when a crew is due home, even with the game in the background. In a browser it only works while the game is open; the Android app does it with the game closed.'
         }
         checked={notify}
@@ -87,11 +92,24 @@ function GameSettings({ state }: { state: GameState }) {
           }
           void notifier.request().then((allowed) => {
             prefs.set({ notify: allowed });
+            setExact(notifier.exact());
             if (!allowed) setNoticeNote("This browser won't show notices. The game still tells you who is back when you open it.");
           });
         }}
       />
       {noticeNote && <p className="field-error">{noticeNote}</p>}
+      {notify && exact === 'denied' && (
+        // Android's "Alarms & reminders" (3.9.1): without it a notice may come late.
+        <div className="toggle">
+          <span className="toggle-text">
+            <span className="toggle-label">On time</span>
+            <span className="toggle-help">Without this, Android may hold a notice back a while.</span>
+          </span>
+          <button type="button" className="btn" onClick={() => void notifier.allowExact().then(() => setExact(notifier.exact()))}>
+            Allow
+          </button>
+        </div>
+      )}
       <Toggle
         label="Hand-drawn lines"
         help="The wobble on portrait lines. Turn it off if lists scroll slowly on this phone."
@@ -162,6 +180,8 @@ function SaveSettings({ state, now, day }: Props) {
 
       {backup && <RestoreBackup raw={backup} />}
 
+      <DailyCopies current={state} now={now} />
+
       <div className="setting-block">
         <h4 className="setting-title">Start over</h4>
         <ConfirmButton
@@ -225,6 +245,71 @@ export function CopyBox({ text, fileName }: { text: string; fileName: string }) 
       {fileError && (
         <p className="field-error" role="status">
           {fileError}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** The day's copies of the save kept on the phone (3.9.1, `save-disk.ts`): load one like an import. */
+function DailyCopies({ current, now }: { current: GameState; now: number }) {
+  const { store, disk } = useServices();
+  const [copies, setCopies] = useState<DailyCopy[]>([]);
+  const [pending, setPending] = useState<{ copy: DailyCopy; state: GameState } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (disk) void dailyCopies(disk).then(setCopies);
+  }, [disk]);
+  if (!disk || copies.length === 0) return null;
+
+  const pick = async (copy: DailyCopy): Promise<void> => {
+    setError(null);
+    setDone(null);
+    const result = parseImport((await readCopy(disk, copy)) ?? '');
+    if (result.ok) setPending({ copy, state: result.state });
+    else setError(`That copy can't be read: ${result.message}`);
+  };
+
+  const load = (): void => {
+    if (!pending) return;
+    store.replace(pending.state);
+    setDone(`Loaded ${pending.state.guildName} as it was on ${pending.copy.label}.`);
+    setPending(null);
+  };
+
+  return (
+    <div className="setting-block">
+      <h4 className="setting-title">Copies on this phone</h4>
+      {pending ? (
+        <div className="confirm">
+          <p className="confirm-warning">
+            This loads {pending.state.guildName} as it was on {pending.copy.label}: {pending.state.survivors.length} survivors, day{' '}
+            {dayAt(pending.state, now)}. It replaces {current.guildName}, which is kept as the backup copy.
+          </p>
+          <div className="btn-row">
+            <button type="button" className="btn btn-primary" onClick={load}>
+              Load copy
+            </button>
+            <button type="button" className="btn btn-quiet" onClick={() => setPending(null)}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="btn-row">
+          {copies.map((copy) => (
+            <button key={copy.name} type="button" className="btn" onClick={() => void pick(copy)}>
+              {copy.label}
+            </button>
+          ))}
+        </div>
+      )}
+      {error && <p className="field-error">{error}</p>}
+      {done && (
+        <p className="ok-note" role="status">
+          {done}
         </p>
       )}
     </div>
