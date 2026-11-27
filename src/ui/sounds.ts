@@ -1,6 +1,7 @@
 /**
  * The sound files in public/audio, written by tools/audio/build.py: do not edit by hand.
- * Music is FluidR3_GM instruments (Frank Wen, CC BY 3.0); the effects and ambience are synthesized.
+ * Music is FluidR3_GM instruments (Frank Wen, CC BY 3.0); the effects and ambience are synthesized,
+ * apart from the voices on the radio, recorded for the game (tools/audio/radio_voice.py).
  */
 
 /** Each piece of music and the length of its loop, in seconds. */
@@ -77,8 +78,20 @@ export const SPRITE = {
   servo3: [61.07, 0.42],
   hurt2: [61.57, 0.3],
   hurt3: [61.95, 0.3],
-  radio_call: [62.33, 2.3],
-  radio_answer: [64.7099, 1.05],
+  radio_call_m1: [62.33, 3.9841],
+  radio_call_m2: [66.394, 4.35],
+  radio_call_m3: [70.824, 5.9561],
+  radio_call_m4: [76.8601, 4.2661],
+  radio_answer_m1: [81.2062, 1.14],
+  radio_answer_m2: [82.4261, 2.3241],
+  radio_answer_m3: [84.8302, 1.412],
+  radio_call_f1: [86.3222, 3.252],
+  radio_call_f2: [89.6543, 3.792],
+  radio_call_f3: [93.5263, 4.2581],
+  radio_call_f4: [97.8644, 4.774],
+  radio_answer_f1: [102.7185, 1.0],
+  radio_answer_f2: [103.7985, 2.262],
+  radio_answer_f3: [106.1405, 1.492],
 } as const;
 
 export type MusicId = keyof typeof MUSIC;

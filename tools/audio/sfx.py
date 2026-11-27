@@ -688,10 +688,10 @@ VOICES = {name[2:]: fn for name, fn in globals().items() if name.startswith('v_'
 
 # ---------------------------------------------------------------- the radio (3.11.0)
 # Aviel (2026-11-26): "the crackling static of the radio". A crew calling home opens on a squelch,
-# static with crackle, and a voice too far gone to make out; answering keys the mic and gets a
-# short reply through the crackle. Made after the voices on random numbers of their own, so every
-# sound above and the ambience come out exactly as before. Kept in 400 Hz - 4 kHz: it's heard
-# through a phone's speaker.
+# static with crackle, and a real voice too far gone to make out (recorded for the game, then
+# muffled by radio_voice.py); answering keys the mic and a word comes back through the crackle.
+# Made after the voices on random numbers of their own, so every sound above and the ambience
+# come out exactly as before. Kept in 400 Hz - 4 kHz: it's heard through a phone's speaker.
 
 def radio_static(d, level=1.0):
     """Hiss in the radio's band, fluttering, with crackles."""
@@ -710,50 +710,45 @@ def squelch(d=0.07):
     return bp(noise(d), 1200, 4500) * env(d, 0.001, 0.025)
 
 
-def garbled(d, base=135):
-    """A voice too far gone to make out: a buzz with a moving intonation through vowels that change by the syllable."""
-    t = t_(d)
-    n = len(t)
-    syl = max(2, int(d * rng.uniform(4.5, 6.0)))
-    edges = np.linspace(0, n, syl + 1).astype(int)
-    pitch = base * (1 + 0.12 * np.interp(t, np.linspace(0, d, syl + 1), rng.uniform(-1, 1, syl + 1)))
-    src = blwave(pitch) + noise(d) * 0.05
-    out = np.zeros(n)
-    vowels = [(600, 1100), (300, 2300), (450, 1700), (700, 1250), (350, 2000)]
-    for k in range(syl):
-        a, b = edges[k], edges[k + 1]
-        f1, f2 = vowels[int(rng.integers(0, len(vowels)))]
-        seg = bp(src[a:b], f1 * 0.8, f1 * 1.25) + bp(src[a:b], f2 * 0.85, f2 * 1.2) * 0.7
-        m = b - a
-        shape = np.sin(np.linspace(0, np.pi, m)) ** 0.7 * rng.uniform(0.6, 1.0)
-        out[a:b] = seg * shape
-    out = bp(out, 400, 3000)
-    out = np.tanh(out / (np.abs(out).max() + 1e-9) * 2.2)
-    return out
+def radio_voice(name):
+    """A line from voices/radio (made by radio_voice.py from real recordings), and where it breaks up."""
+    import os, subprocess
+    here = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'voices', 'radio')
+    pcm = subprocess.run(['ffmpeg', '-v', 'quiet', '-i', os.path.join(here, f'{name}.ogg'), '-f', 'f32le', '-ac', '1',
+                          '-ar', str(SR), 'pipe:1'], capture_output=True, check=True).stdout
+    v = np.frombuffer(pcm, dtype='<f4').astype(float)
+    drops = json.load(open(os.path.join(here, 'drops.json')))[name]
+    return v / (np.sqrt(np.mean(v ** 2)) + 1e-9) * 0.18, drops
 
 
-def r_radio_call():
-    """A crew calls home: squelch, static, a voice through it, static, squelch."""
-    total = 2.3
-    out = at(squelch(), 0.0, total)
-    out += at(radio_static(2.05, 0.55) * np.interp(t_(2.05), [0, 0.05, 1.9, 2.05], [0, 1, 1, 0]), 0.04, total)
-    out += at(garbled(1.25) * 0.75, 0.35, total)
-    out += at(squelch(0.09) * 0.8, 2.12, total)
-    return norm(fade_end(out, 0.03), -9)
+def on_the_radio(name, answer):
+    """Someone on the radio: a squelch (or the mic keyed), static with crackle that surges as the voice breaks up, the voice, a squelch."""
+    voice, drops = radio_voice(name)
+    lead = 0.12 if answer else 0.35
+    d = lead + len(voice) / SR + 0.25
+    total = d + 0.15
+    out = at(hp(noise(0.004), 1800) * 0.35 if answer else squelch(), 0.0, total)
+    st = radio_static(d + 0.01, 1.0)[:int(d * SR)]
+    level = np.full(len(st), 0.3)
+    for a, b, depth in drops:
+        level[int((lead + a) * SR):int((lead + b) * SR)] += depth * 0.55
+    level = np.convolve(level, np.ones(int(0.006 * SR)) / int(0.006 * SR), 'same')
+    st *= level * np.interp(np.arange(len(st)) / SR, [0, 0.04, d - 0.12, d], [0, 1, 1, 0])
+    out += at(st, 0.03, total)
+    out += at(voice, lead, total)
+    out += at(squelch(0.08) * 0.8, d + 0.02, total)
+    # Even loudness across the lines, however loud each was said.
+    return fade_end(master(out, -24.0 if answer else -23.0), 0.03)
 
 
-def r_radio_answer():
-    """The player answers: the mic keys, a word back through the crackle, and off."""
-    total = 1.05
-    click = hp(noise(0.004), 1800) * 0.35
-    out = at(click, 0.0, total)
-    out += at(radio_static(0.95, 0.45) * np.interp(t_(0.95), [0, 0.03, 0.8, 0.95], [0, 1, 1, 0]), 0.01, total)
-    out += at(garbled(0.42, base=150) * 0.7, 0.28, total)
-    out += at(squelch(0.06) * 0.7, 0.96, total)
-    return norm(fade_end(out, 0.02), -10)
-
-
-RADIO = {name[2:]: fn for name, fn in globals().items() if name.startswith('r_') and callable(fn)}
+# A crew calling home, in the caller's voice (m or f) and mood (1 calm, 2 excited, 3 tense, 4 uneasy),
+# and the word back when the player answers (three of each).
+RADIO = {}
+for _who in ('m', 'f'):
+    for _n in (1, 2, 3, 4):
+        RADIO[f'radio_call_{_who}{_n}'] = (lambda w=_who, n=_n: on_the_radio(f'{w}_call_{n}', False))
+    for _n in (1, 2, 3):
+        RADIO[f'radio_answer_{_who}{_n}'] = (lambda w=_who, n=_n: on_the_radio(f'{w}_reply_{n}', True))
 
 
 # ---------------------------------------------------------------- ambience (stereo loops)

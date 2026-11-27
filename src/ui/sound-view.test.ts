@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import { describe, test } from 'node:test';
-import { createItem, startRun, type FightAct, type FightActKind, type FightView, type GameState, type RunReport } from '../engine/index.ts';
+import { FORKS, PRESS_ON, createItem, startRun, type FightAct, type FightActKind, type FightView, type GameState, type Run, type RunReport } from '../engine/index.ts';
 import { T0, openGame, testPlan } from '../engine/test-utils.ts';
-import { actCues, alertCues, ambienceFor, endCue, enemyVoice, gainOf, musicFor, stateCues, tapCue, type Alerts } from './sound-view.ts';
+import { actCues, alertCues, alertsAt, ambienceFor, callCue, callMood, endCue, enemyVoice, gainOf, musicFor, stateCues, tapCue, type Alerts } from './sound-view.ts';
 import { AMBIENCE, MUSIC, SPRITE } from './sounds.ts';
 
 const NOON = 12;
@@ -162,24 +162,53 @@ describe('the game changing (3.1.0)', () => {
 });
 
 describe('alerts while looking (3.1.0)', () => {
-  const quiet: Alerts = { radio: false, raid: 0 };
+  const quiet: Alerts = { raid: 0 };
   test('raiders seen, then at the gate, each ring the bell; a call comes in on the radio', () => {
-    assert.deepEqual(alertCues(quiet, { radio: false, raid: 1 }).map((c) => c.id), ['alarm']);
-    assert.deepEqual(alertCues({ radio: false, raid: 1 }, { radio: false, raid: 2 }).map((c) => c.id), ['alarm']);
-    assert.deepEqual(alertCues(quiet, { radio: true, raid: 0 }).map((c) => c.id), ['radio_call']);
-    assert.deepEqual(alertCues(quiet, { radio: false, fight: true, raid: 0 }).map((c) => c.id), ['radio']);
-    assert.deepEqual(alertCues({ radio: true, raid: 2 }, { radio: true, raid: 2 }), []);
+    assert.deepEqual(alertCues(quiet, { raid: 1 }).map((c) => c.id), ['alarm']);
+    assert.deepEqual(alertCues({ raid: 1 }, { raid: 2 }).map((c) => c.id), ['alarm']);
+    assert.deepEqual(alertCues(quiet, { radio: 'radio_call_f3', raid: 0 }).map((c) => c.id), ['radio_call_f3']);
+    assert.deepEqual(alertCues(quiet, { fight: true, raid: 0 }).map((c) => c.id), ['radio']);
+    assert.deepEqual(alertCues({ radio: 'radio_call_m1', raid: 2 }, { radio: 'radio_call_m1', raid: 2 }), []);
   });
 
-  test('answering a crew on the radio keys the mic; nobody answering makes no sound (3.11.0)', () => {
-    const state = openGame('radio-answer');
-    const [a] = state.survivors;
+  /** A crew of the given voice on the radio about a fork or a press-on teaser, waiting. */
+  function onTheRadio(pronouns: 'he' | 'she', forkId: string, teaser?: string): { state: GameState; run: Run } {
+    const state = openGame(`radio-voice-${pronouns}-${forkId}`);
     const run = startRun(state, testPlan(state), T0);
-    run.radio = { forkId: 'press_on', title: 'Further in', by: a!.id, intro: '', ask: '', orders: [{ id: 'press', label: 'Press on' }, { id: 'home', label: 'Come home' }], at: T0 + 1000, until: T0 + 600_000, fromBeat: 0 };
+    const by = state.survivors.find((s) => s.id === run.plan.crew[0])!;
+    by.pronouns = pronouns;
+    run.radio = {
+      forkId, title: '', by: by.id, intro: '', ask: '', orders: [{ id: 'press', label: 'Press on' }, { id: 'home', label: 'Come home' }], at: T0 + 1000, until: T0 + 600_000, fromBeat: 0,
+      ...(teaser ? { deeper: { teaser, level: 2, risk: 'High' as const, haul: {}, items: 0, crew: [] } } : {}),
+    };
+    return { state, run };
+  }
+
+  test('the call is in the caller’s own voice, a man’s or a woman’s, and sounds like what it’s about (3.11.0)', () => {
+    const { state, run } = onTheRadio('she', 'press_on', 'big');
+    assert.equal(alertsAt(state, T0 + 2000).radio, 'radio_call_f3', 'something big: tense');
+    assert.equal(alertsAt(state, T0 + 500).radio, undefined, 'not before the call comes in');
+    assert.equal(callCue(onTheRadio('he', 'press_on', 'stash').state, onTheRadio('he', 'press_on', 'stash').run.radio!), 'radio_call_m2');
+    assert.equal(callMood(onTheRadio('he', 'press_on', 'voice').run.radio!), 'uneasy');
+    assert.equal(callMood(onTheRadio('he', 'storm').run.radio!), 'calm');
+    assert.equal(callMood(onTheRadio('he', 'sealed_door').run.radio!), 'excited');
+    void run;
+  });
+
+  test('every fork and every teaser has a voice in the sound files', () => {
+    for (const fork of FORKS) for (const p of ['he', 'she'] as const) assert.ok(callCue(onTheRadio(p, fork.id).state, onTheRadio(p, fork.id).run.radio!) in SPRITE, fork.id);
+    for (const teaser of Object.keys(PRESS_ON)) assert.ok(callCue(onTheRadio('she', 'press_on', teaser).state, onTheRadio('she', 'press_on', teaser).run.radio!) in SPRITE, teaser);
+  });
+
+  test('answering keys the mic and a word comes back in the caller’s voice; nobody answering makes no sound (3.11.0)', () => {
+    const { state, run } = onTheRadio('she', 'press_on', 'stash');
     const before = structuredClone(state);
     const after = structuredClone(state);
     Object.assign(after.runs.find((r) => r.id === run.id)!.radio!, { answer: 'press', answeredAt: T0 + 5000 });
-    assert.deepEqual(stateCues(before, after).map((c) => c.id), ['radio_answer']);
+    const [cue] = stateCues(before, after).map((c) => c.id);
+    assert.match(cue ?? '', /^radio_answer_f[123]$/);
+    assert.ok(cue! in SPRITE);
+    assert.deepEqual(stateCues(before, structuredClone(after)).map((c) => c.id), [cue], 'the same word every time for that call');
     const late = structuredClone(state);
     Object.assign(late.runs.find((r) => r.id === run.id)!.radio!, { answer: 'none' });
     assert.deepEqual(stateCues(before, late), []);

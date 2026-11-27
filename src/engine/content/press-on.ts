@@ -5,6 +5,7 @@
  * on its own. {a.first}, {a.they}, {a.them} and the like are the caller.
  */
 import type { EventCheck, EventOutcome } from './events.ts';
+import type { RadioMood } from './forks.ts';
 import type { CrewLines } from './flavor.ts';
 
 /** What's ahead, as the crew sees it. Each starts the first beat deeper in with its own kind. */
@@ -20,6 +21,8 @@ export interface PressOnDef {
   intro: CrewLines;
   /** What the caller asks, in their own words. */
   ask: CrewLines;
+  /** How the caller sounds on the radio. */
+  mood: RadioMood;
   /** A piece of gear for whoever's still standing after the first beat in: what the find promised. */
   prize?: boolean;
   /** Who they meet, if the first beat in is a meeting rather than a beat of `beat`'s kind: one of these, by weight. */
@@ -44,6 +47,7 @@ export interface PressOnMeet {
 export const PRESS_ON: Record<PressOnTeaser, PressOnDef> = {
   stash: {
     title: 'Further in',
+    mood: 'excited',
     beat: 'scavenge',
     prize: true,
     weight: { scavenge: 3, scout: 1, hunt: 1 },
@@ -74,6 +78,7 @@ export const PRESS_ON: Record<PressOnTeaser, PressOnDef> = {
   },
   big: {
     title: 'Something big',
+    mood: 'tense',
     beat: 'combat',
     prize: true,
     weight: { scavenge: 1, scout: 1, hunt: 3 },
@@ -104,6 +109,7 @@ export const PRESS_ON: Record<PressOnTeaser, PressOnDef> = {
   },
   voice: {
     title: 'Someone further in',
+    mood: 'uneasy',
     beat: 'discovery',
     weight: { scavenge: 1, scout: 3, hunt: 1 },
     intro: {
