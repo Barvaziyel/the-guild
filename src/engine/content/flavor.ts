@@ -185,7 +185,7 @@ export const POCKET_CAUGHT = [
  * {res} is what went missing, as an amount: "1 tech".
  */
 /**
- * A clean fight (3.10.0): led to a win with nobody down. Picked without dice. {name} and {his} for one alone.
+ * A clean fight (3.10.0): led to a win with nobody down. Picked without dice. {name}, {his}, {hers}, {him} and {himself} for one alone.
  * Story, not help (Aviel, 2026-11-27): these can take their time.
  */
 export const CLEAN_FIGHT_LINES: CrewLines = {
@@ -197,8 +197,8 @@ export const CLEAN_FIGHT_LINES: CrewLines = {
   ],
   solo: [
     '{name} walks away from it on {his} own feet.',
-    '{name} stands among them, breathing hard, and not a drop of it {his} own.',
-    '{name} wipes {his} hands, checks {himself} over twice, and finds nothing to bind.',
+    '{name} stands over the bodies, breathing hard. None of the blood on {him} is {hers}.',
+    '{name} checks {himself} over twice and can’t find a single wound.',
   ],
 };
 
