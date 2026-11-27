@@ -196,6 +196,8 @@ export interface FightView {
   goal?: GoalView;
   /** Caught off guard (3.8.0): they do nothing this round, and show nothing. */
   caught?: boolean;
+  /** Over, and clean (3.10.0): the player led them to a win with nobody down. */
+  clean?: boolean;
 }
 
 /** Thrown inside a replay when a fight under command needs the next round's orders. */

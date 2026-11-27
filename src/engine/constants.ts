@@ -833,6 +833,12 @@ export const FORK_CHANCE = 0.2;
 
 /** At a fight on a led run the crew waits this long for the player, then fights on its own; once in command, the fight has to be over by then. */
 export const LEAD_WAIT = RADIO_WAIT;
+/**
+ * A clean fight (3.10.0): one the player led to a win with nobody down. They have time to go through the
+ * bodies properly (what the fallen carried × this, rounded up), and it steadies everyone (stress off each).
+ */
+export const CLEAN_FIGHT_LOOT = 1.5;
+export const CLEAN_FIGHT_RELIEF = 5;
 /** Ids set aside at departure for whatever a led run's replays find (they all count from the start copy's counter). */
 export const LEAD_ID_BLOCK = 500;
 

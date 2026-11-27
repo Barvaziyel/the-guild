@@ -335,7 +335,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     },
     target: 'lead',
     text: () =>
-      `At a fight a crew waits up to ${Math.round(LEAD_WAIT / 60_000)} minutes for your orders (switch it off to let them fight alone). You see what each enemy means to do, and what it would cost each of yours. Give each person a move and a target: a shove, or a shot to pin one down, spoils what it's winding up. Nobody answers? They fight on their own.`,
+      `A crew calls home when a fight matters: a named foe, or one they'd lose someone in. They wait up to ${Math.round(LEAD_WAIT / 60_000)} minutes for your orders. You see what each enemy means to do and what it would cost each of yours. Give each a move: a shove, or a shot to pin one down, spoils what it's winding up. Win with nobody down and it pays.`,
   },
 
   {

@@ -7198,3 +7198,13 @@ p.is-bad {
     opacity: 0;
   }
 }
+
+/* What a fight card shows instead of words (3.10.0): the stakes and the wait. */
+.fight-call-chips {
+  margin-top: 0.6rem;
+}
+
+/* What a clean fight brought (3.10.0). */
+.fight-clean {
+  margin: 0.25rem 0 0.5rem;
+}

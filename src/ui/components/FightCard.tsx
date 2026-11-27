@@ -1,6 +1,7 @@
 import { letThemFight, takeCommand, type GameState } from '../../engine/index.ts';
 import { fightCard, fightCards, type FightCardView } from '../fight-view.ts';
 import { navigate, useAction } from '../hooks.ts';
+import { Chips } from './Glyph.tsx';
 import { Portrait } from './Portrait.tsx';
 
 /** Crews stopped at a fight on a led run (§7.13): every one now, or just the one on this run. */
@@ -41,7 +42,7 @@ function FightCard({ card }: { card: FightCardView }) {
           {card.inCommand ? 'Let them finish it' : 'Let them fight'}
         </button>
       </div>
-      <p className="panel-help">{card.wait}</p>
+      {card.chips.length > 0 ? <Chips chips={card.chips} className="fight-call-chips" /> : <p className="panel-help">{card.wait}</p>}
       {error && <p className="field-error">{error}</p>}
     </section>
   );

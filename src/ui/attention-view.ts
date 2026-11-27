@@ -276,7 +276,7 @@ export function urgentItems(state: GameState, now: number): UrgentItem[] {
   const out: UrgentItem[] = [];
   const raid = raidCard(state, now);
   if (raid) out.push({ id: 'raid', icon: 'raid', text: raid.kind === 'seen' ? raid.title : raid.inCommand ? `${raid.title}: you’re in command` : `${raid.title}: waiting for your orders`, to: { screen: 'raid' } });
-  for (const f of fightCards(state, now)) out.push({ id: `fight-${f.runId}`, icon: 'fight', text: `${f.callerName}, ${f.place}: ${f.inCommand ? 'you’re in command' : 'a fight waits for your orders'}`, to: { screen: 'fight', id: f.runId } });
+  for (const f of fightCards(state, now)) out.push({ id: `fight-${f.runId}`, icon: 'fight', text: `${f.callerName}, ${f.place}: ${f.inCommand ? 'you’re in command' : f.urgency === 'grave' ? 'they need you now' : f.urgency === 'trouble' ? 'in trouble' : 'a fight waits for your orders'}`, to: { screen: 'fight', id: f.runId } });
   for (const c of radioCards(state, now)) out.push({ id: `radio-${c.runId}`, icon: 'radio', text: `${c.callerName} on the radio from ${c.place}`, to: { screen: 'run', id: c.runId } });
   return out;
 }

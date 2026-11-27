@@ -336,8 +336,12 @@ export interface RunPlan {
   vehicles?: string[];
   /** How far in: 1 the outskirts (missing means 1), 2 deeper in, 3 the heart of it (§7.10). */
   depth?: number;
-  /** The player leads the fights over the radio (§7.13). Any crew can be led (2.2.0; before, it needed a Radio Tower). */
-  lead?: boolean;
+  /**
+   * The player leads the fights over the radio (§7.13). Any crew can be led (2.2.0; before, it needed a Radio Tower).
+   * `true`: they call home at every fight. `'matters'` (3.10.0, the planner's default): only at fights that matter,
+   * a named foe or one that would put someone down if they fought it alone; the rest they fight on their own.
+   */
+  lead?: boolean | 'matters';
   /** A trade run's goods and what they're for (§7.14, 3.4.0). Only with job `trade`. */
   trade?: TradeOrder;
 }
@@ -431,6 +435,8 @@ export interface LedFight {
   fromBeat: number;
   /** Where on the road east the fight is (§9.12), a key of `HAVEN_JOURNEY.sites`, for its name and backdrop. Missing elsewhere: it's at the run's place. */
   site?: string;
+  /** Left to fight it alone, someone would die (3.10.0): the call says so. Only on a run that calls when it matters. */
+  grave?: boolean;
   /** When the player took command, or sent them in on their own. */
   took?: number;
   /** The rounds given so far. */

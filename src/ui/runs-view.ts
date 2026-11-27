@@ -260,8 +260,8 @@ export function defaultPlan(state: GameState, locationId: string): RunPlan {
     ammo: 0,
     approach: 'balanced',
     retreat: 'downed',
-    // The player leads the fights unless they say otherwise (Aviel, 2.2.0).
-    lead: true,
+    // The player leads the fights unless they say otherwise (Aviel, 2.2.0); since 3.10.0, only the ones that matter.
+    lead: 'matters',
   };
 }
 
