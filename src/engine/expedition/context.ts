@@ -2,6 +2,7 @@
  * Shared state and helpers for simulating one run. A Sim works on cloned
  * survivors, so nothing here touches the real GameState.
  */
+import type { SimElite } from './elites.ts';
 import {
   BONDED_CHECK_BONUS,
   BONDED_STRESS_MULT,
@@ -124,6 +125,8 @@ export interface Sim {
   nemesisNews: Record<string, NemesisNews>;
   /** A nemesis already turned up on this run (at most one does). */
   nemesisMet: boolean;
+  /** The elite where the run goes (§7.15, 3.12.0), while it's at large and the run might cross it. */
+  elite?: SimElite;
   /** Names already given out (nicknames, weapons, nemeses), so new ones don't repeat them. */
   takenNames: Set<string>;
   /** The vehicles the crew took (copies), with who rides in each. */
@@ -210,6 +213,8 @@ export interface SimStop {
   site?: string;
   /** Left alone, someone would die (3.10.0). */
   grave?: boolean;
+  /** An elite in the fight (3.12.0): its enemy id. */
+  elite?: string;
 }
 
 /** A fork on a run (§7.12): what the crew found and asked, and when. */

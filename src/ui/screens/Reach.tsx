@@ -1,3 +1,5 @@
+import { EliteCard } from '../components/EliteCard.tsx';
+import { eliteCard, eliteTag } from '../elites-view.ts';
 import { useState } from 'react';
 import {
   bringHome,
@@ -80,6 +82,7 @@ export function Reach({ state, selected, tab = 'about' }: { state: GameState; se
                         {state.rescue.call?.locationId === loc.id && <span className="place-tag is-calling">Calling for help</span>}
                         {vultureTag(state, loc.id) && <span className="place-tag is-vultures">{vultureTag(state, loc.id)}</span>}
                         {leads.has(loc.id) && <span className="place-tag is-haven">Lead for Haven</span>}
+                        {eliteTag(state, loc.id) && <span className="place-tag is-elite">{eliteTag(state, loc.id)}</span>}
                       </span>
                       <span className="place-facts">
                         {dangerText(loc.danger)}, {radiationText(loc.radiation).toLowerCase()}, {formatDuration(loc.durationMin * 60_000)}
@@ -282,6 +285,7 @@ function About({ state, id }: { state: GameState; id: string }) {
   const v = locationView(state, id);
   const loc = v.def;
   const haunting = nemesesAt(state, id);
+  const elite = eliteCard(state, id);
   const levels = depthRows(state, id);
   const deeper = levels[0]!.explored >= 100;
   const call = callCard(state, Date.now());
@@ -339,6 +343,7 @@ function About({ state, id }: { state: GameState; id: string }) {
           {vulturePlaceLine(state, id)}
         </button>
       )}
+      {elite && <EliteCard card={elite} />}
       {haunting.map((n) => (
         <p key={n.id} className="nemesis-here">
           <strong>{n.name}</strong>, {n.kind}, haunts this place. {n.record}

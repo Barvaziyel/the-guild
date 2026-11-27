@@ -215,6 +215,35 @@ describe('alerts while looking (3.1.0)', () => {
   });
 });
 
+describe('elites in a fight (3.12.0)', () => {
+  test('a plate clangs off; going under and coming up splash; each call is the elite’s own; a gun’s sweep is a burst', () => {
+    const state = openGame('elite-sounds');
+    const [a] = state.survivors;
+    const view = fight(state);
+    view.enemies = [
+      { ...enemy(0, 'scrapbot', 'the_switchman'), plates: 2 },
+      enemy(1, 'feral', 'old_mother'),
+      enemy(2, 'hollow', 'the_conductor'),
+      enemy(3, 'hollow', 'the_matron'),
+      { ...enemy(4, 'scrapbot', 'the_warden'), rank: 'back' },
+      enemy(5, 'raider', 'the_red_hand'),
+      { ...enemy(6, 'scrapbot', 'bravo_six'), rank: 'back' },
+      enemy(7, 'feral', 'the_snapper'),
+      { ...enemy(8, 'feral', 'rad_hound'), reserve: true },
+      enemy(9, 'hollow', 'the_glass_man'),
+    ];
+    const ids = (cues: { id: string }[]): string[] => cues.map((c) => c.id);
+    assert.ok(ids(actCues(state, view, act('plate', a!.id, 0, { amount: 1 })).cues).includes('clang'));
+    assert.deepEqual([1, 2, 3, 4, 5].map((i) => ids(actCues(state, view, act('call', i)).cues)[0]), ['howl', 'bell', 'clap', 'klaxon', 'whistle']);
+    assert.deepEqual(ids(actCues(state, view, act('dive', 7)).cues), ['splash']);
+    assert.deepEqual(ids(actCues(state, view, act('surface', 7)).cues), ['splash']);
+    assert.deepEqual(ids(actCues(state, view, act('sweep', 6)).cues), ['burst']);
+    assert.deepEqual(ids(actCues(state, view, act('sweep', 9)).cues), ['swing', 'chime']);
+    assert.deepEqual(actCues(state, view, act('arrive', 8)).cues, [], 'one that came to a call is heard in the call');
+    for (const id of ['clang', 'splash', 'howl', 'bell', 'clap', 'klaxon', 'whistle', 'burst', 'chime']) assert.ok(id in SPRITE, id);
+  });
+});
+
 describe('fights (3.1.0)', () => {
   const state = openGame('fight-sounds');
   const view = fight(state);

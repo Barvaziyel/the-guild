@@ -18,6 +18,7 @@ import {
   DEPTHS,
   LOOT_PER_DANGER,
   RELIC_HEART_WEIGHT,
+  ELITE_ROUNDS,
 } from '../constants.ts';
 import { planDepth } from '../locations.ts';
 import { GEAR, getLocation, getVehicleDef, type HazardKind } from '../content/index.ts';
@@ -57,7 +58,8 @@ import { amountOf } from '../text.ts';
 import { maxTraitHook, sumTraitHook } from '../traits.ts';
 import type { Quality, ResourceId } from '../types.ts';
 import { QUALITIES, RESOURCE_IDS } from '../types.ts';
-import { buildEncounter, describeGroup, fight, type Enemy, type FightResult, type FightStart } from './combat.ts';
+import { buildEncounter, describeGroup, encounterBudget, escortFor, fight, type Enemy, type FightResult, type FightStart } from './combat.ts';
+import { eliteEncounter, eliteJoins, eliteMet } from './elites.ts';
 import {
   absorbRads,
   bestBy,
@@ -291,12 +293,19 @@ function ambushScore(sim: Sim, m: Member): number {
 }
 
 export function combatBeat(sim: Sim): void {
-  const enemies = buildEncounter(sim);
+  // Once the guild knows the place's elite is here, it may be this fight (3.12.0).
+  const elite = eliteJoins(sim);
+  const enemies = elite ? eliteEncounter(sim, (budget, type) => escortFor(sim, budget, type), encounterBudget(sim)) : buildEncounter(sim);
   const lead = enemies.reduce((a, b) => (b.def.threat > a.def.threat ? b : a)).def;
   const group = describeGroup(enemies);
-  startBeat(sim, 'combat', enemies.length === 1 ? lead.name : lead.plural);
-  const one = enemies.filter((e) => !e.waiting).length === 1;
-  say(sim, flavor(sim, COMBAT_INTROS[lead.type], {}, { group, Group: capitalize(group), s: one ? 's' : '', are: one ? 'is' : 'are', have: one ? 'has' : 'have' }));
+  if (elite) {
+    startBeat(sim, 'combat', lead.name);
+    eliteMet(sim);
+  } else {
+    startBeat(sim, 'combat', enemies.length === 1 ? lead.name : lead.plural);
+    const one = enemies.filter((e) => !e.waiting).length === 1;
+    say(sim, flavor(sim, COMBAT_INTROS[lead.type], {}, { group, Group: capitalize(group), s: one ? 's' : '', are: one ? 'is' : 'are', have: one ? 'has' : 'have' }));
+  }
 
   const crew = standing(sim);
   const plan = sim.plan;
@@ -361,7 +370,24 @@ export function combatBeat(sim: Sim): void {
     }
   }
 
-  resolveFight(sim, enemies, { ambushed, drop });
+  resolveFight(sim, enemies, { ambushed, drop, ...(elite ? { rounds: ELITE_ROUNDS } : {}) });
+}
+
+/**
+ * Going after an elite where it lives (3.12.0): they came looking, so nobody is
+ * caught off guard, but the one who spots it first may give them the first blow.
+ */
+export function lairStart(sim: Sim, enemies: readonly Enemy[]): FightStart {
+  const crew = standing(sim);
+  const scout = bestBy(crew, (m) => ambushScore(sim, m))!;
+  const extra = sumTraitHook(scout.s, 'ambushBonus') + sumGearHook(scout.s, 'ambushBonus') + (sim.plan.approach === 'sneaky' ? SNEAKY_AMBUSH_BONUS : 0);
+  const stealth = Math.max(...enemies.map((e) => e.def.stealth));
+  const spot = check(sim, scout, 'wits', stealth, ['ambush'], { crew: true, extra });
+  if (spot.success && spot.margin >= DROP_MARGIN) {
+    say(sim, flavor(sim, DROP_LINES, { a: scout }), { check: spot.info, tone: 'good' });
+    return { ambushed: false, drop: true };
+  }
+  return { ambushed: false, drop: false };
 }
 
 /** Fight it out and deal with the result: loot from the bodies, or a retreat home. */

@@ -421,6 +421,18 @@ export const TOUR_STEPS: readonly TourStep[] = [
       "Explore a place's outskirts fully and two things open: the way deeper in, deadlier but richer, and an outpost, which sends supplies home and shortens runs nearby.",
   },
   {
+    id: 'elites',
+    part: 'later',
+    title: 'One of a kind',
+    route: (state) => {
+      const place = easiestPlace(state);
+      return place ? { screen: 'reach', id: place.id } : { screen: 'reach' };
+    },
+    target: 'map',
+    text: () =>
+      'Every place where there is fighting has something that owns it. Once a place is half explored, a crew may see it. Then it shows on the place with its prize, and the planner can send a crew after it.',
+  },
+  {
     id: 'projects',
     part: 'later',
     title: 'Projects',

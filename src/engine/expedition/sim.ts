@@ -73,6 +73,8 @@ import type {
 } from '../types.ts';
 import { RESOURCE_IDS } from '../types.ts';
 import { combatBeat, discoveryBeat, findGear, hazardBeat, scavengeBeat, simRichness, socialBeat, travelBeat } from './beats.ts';
+import { eliteEncounter, eliteLair, eliteNewsHome, eliteNewsMatters, eliteOnRun, eliteSigns } from './elites.ts';
+import { encounterBudget, escortFor } from './combat.ts';
 import {
   absorbRads,
   alive,
@@ -717,6 +719,9 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
   const totalBeats = Math.max(MIN_BEATS, Math.min(MAX_BEATS, Math.round(foot / 60_000 / MINUTES_PER_BEAT) + 2));
   const middle = totalBeats - 1;
   const tradeAt = plan.job === 'trade' ? Math.floor(middle / 2) : -1;
+  // The place's elite (§7.15, 3.12.0), on dice of its own.
+  const elite = eliteOnRun(state, plan, seed, middle);
+  if (elite) sim.elite = elite;
   const slot = duration / totalBeats;
   let previous: MidKind | undefined;
   let done = 0;
@@ -742,6 +747,16 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
     endBeat(sim, kind);
     previous = kind;
     done += 1;
+    // Someone sees the place's elite for the first time (3.12.0).
+    if (i === elite?.signsAt && !sim.turnBack && !sim.routed && standing(sim).length > 0) eliteSigns(sim);
+  }
+
+  // Going after the place's elite (3.12.0): at the deepest point they find where it lives, unless they met it on the way.
+  if (!road && plan.elite && elite?.known && !elite.met && done === middle && !sim.turnBack && !sim.routed && standing(sim).length > 0) {
+    sim.delay += slot;
+    sim.offset += slot;
+    eliteLair(sim, () => eliteEncounter(sim, (budget, type) => escortFor(sim, budget, type), encounterBudget(sim)));
+    endBeat(sim, 'combat');
   }
 
   // Press on or come home (3.11.0): at the deepest point, when going further in is a real gamble, they call.
@@ -868,6 +883,7 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
       highlights,
       events: sim.events,
       nemeses: nemesisNewsList(sim),
+      ...(elite && eliteNewsMatters(elite.news, outcome) ? { elites: [eliteNewsHome(elite.news, outcome)] } : {}),
       ...(vehicleNews.length > 0 ? { vehicles: vehicleNews } : {}),
       ...(sim.foundVehicles.length > 0 && outcome !== 'lost' ? { foundVehicles: sim.foundVehicles } : {}),
       ...(rescue ? { rescue } : {}),

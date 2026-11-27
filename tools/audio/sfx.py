@@ -751,6 +751,119 @@ for _who in ('m', 'f'):
         RADIO[f'radio_answer_{_who}{_n}'] = (lambda w=_who, n=_n: on_the_radio(f'{w}_reply_{n}', True))
 
 
+# ---------------------------------------------------------------- the elites (3.12.0)
+# What each elite does that no other enemy does: a plate knocked off, going under and coming up,
+# calling more in (a howl, a bell, claps, a siren, a whistle), a gun's sweep and glass that chimes.
+# After the radio, on random numbers of their own, so no earlier sound changes.
+
+def e_clang():
+    """A steel plate knocked off: a hard ring, and the clatter of it landing."""
+    total = 0.9
+    t = t_(0.7)
+    ring = sum(a * np.sin(2 * np.pi * f * t + i) * np.exp(-t / tau) for i, (f, a, tau) in enumerate([(612, 1.0, 0.18), (1340, 0.7, 0.12), (2210, 0.5, 0.08), (3170, 0.3, 0.05)]))
+    hit = hp(noise(0.01), 1500) * env(0.01, 0.0001, 0.002) * 1.4
+    out = at(mix(ring, hit), 0, total)
+    for k, when in enumerate([0.32, 0.44, 0.52]):
+        tt = t_(0.12)
+        clink = sum(np.sin(2 * np.pi * f * tt) * np.exp(-tt / 0.04) for f in (900 + 120 * k, 2100 + 90 * k)) * (0.35 - 0.08 * k)
+        out += at(clink, when, total)
+    return norm(fade_end(verb(out, 0.6, 0.25)[: int(total * SR)]), -4)
+
+
+def e_splash():
+    """Something big going under, or coming up out of the water."""
+    total = 1.1
+    body = lp(noise(0.7), 2200) * np.interp(t_(0.7), [0, 0.03, 0.25, 0.7], [0, 1, 0.45, 0])
+    spray = bp(noise(0.5), 2500, 7000) * np.interp(t_(0.5), [0, 0.02, 0.2, 0.5], [0, 0.6, 0.2, 0])
+    out = at(body, 0, total) + at(spray, 0.02, total)
+    for _ in range(9):
+        f = rng.uniform(500, 1400)
+        d = rng.uniform(0.03, 0.07)
+        bub = sweep(f, f * 1.8, d) * env(d, 0.002, d / 3) * rng.uniform(0.15, 0.3)
+        out += at(bub, rng.uniform(0.2, 0.85), total)
+    return norm(fade_end(out, 0.1), -4)
+
+
+def e_howl():
+    """Old Mother's howl: up, held, and falling away."""
+    total = 2.2
+    d = 1.9
+    t = t_(d)
+    f = np.interp(t, [0, 0.35, 1.2, 1.9], [330, 610, 590, 400]) * (1 + 0.012 * np.sin(2 * np.pi * 5.5 * t))
+    src = blwave(f, 'saw') * 0.4 + np.sin(2 * np.pi * np.cumsum(f) / SR)
+    voice = bp(src, 450, 1800) + bp(src, 900, 1300) * 0.6
+    voice *= np.interp(t, [0, 0.15, 1.5, 1.9], [0, 1, 0.8, 0])
+    voice += bp(noise(d), 800, 2500) * 0.06 * np.interp(t, [0, 0.2, 1.9], [0, 1, 0])
+    return norm(fade_end(verb(at(voice, 0, total), 1.6, 0.5)[: int(total * SR)], 0.15), -5)
+
+
+def e_bell():
+    """The Conductor's hand bell: two short, one long."""
+    total = 2.0
+    out = np.zeros(int(total * SR))
+    for when, tau in [(0.0, 0.18), (0.22, 0.18), (0.55, 0.7)]:
+        out += at(bell(1180, 1.2, tau, 0.8), when, total)
+    return norm(fade_end(verb(out, 1.4, 0.45)[: int(total * SR)], 0.2), -5)
+
+
+def e_clap():
+    """The Matron's two sharp claps, in an empty ward."""
+    total = 1.0
+    out = np.zeros(int(total * SR))
+    for when in (0.0, 0.24):
+        c = bp(noise(0.05), 900, 3200) * env(0.05, 0.0005, 0.009) * 1.3
+        c += bp(noise(0.05), 350, 900) * env(0.05, 0.0005, 0.006) * 0.5
+        out += at(c, when, total)
+    return norm(fade_end(verb(out, 1.5, 0.7)[: int(total * SR)], 0.2), -4)
+
+
+def e_klaxon():
+    """The Warden's siren: a single whoop, up and over."""
+    total = 1.2
+    d = 0.9
+    t = t_(d)
+    f = np.interp(t, [0, 0.55, 0.9], [480, 1050, 900])
+    x = blwave(f, 'square') * np.interp(t, [0, 0.04, 0.7, 0.9], [0, 1, 1, 0])
+    x = bp(x, 400, 3500)
+    return norm(fade_end(verb(at(x, 0, total), 1.0, 0.35)[: int(total * SR)], 0.15), -6)
+
+
+def e_whistle():
+    """The Red Hand's two-finger whistle: up, and a long fall."""
+    total = 1.3
+    d = 1.0
+    t = t_(d)
+    f = np.interp(t, [0, 0.12, 0.3, 1.0], [1900, 2900, 2850, 2300]) * (1 + 0.006 * np.sin(2 * np.pi * 9 * t))
+    tone = np.sin(2 * np.pi * np.cumsum(f) / SR) * np.interp(t, [0, 0.05, 0.25, 0.32, 0.4, 0.85, 1.0], [0, 1, 1, 0.5, 1, 0.9, 0])
+    breath = bp(noise(d), 1800, 4000) * 0.12 * np.interp(t, [0, 0.05, 1.0], [0, 1, 0])
+    return norm(fade_end(verb(at(tone + breath, 0, total), 1.2, 0.4)[: int(total * SR)], 0.15), -6)
+
+
+def e_burst():
+    """Bravo Six's gun raking a line: five heavy shots, quick."""
+    total = 1.4
+    out = np.zeros(int(total * SR))
+    for k in range(5):
+        shot = gun(1.2, 0.5, 1400, 65, 0.6, 0.25) * (0.9 + 0.1 * rng.uniform(-1, 1))
+        out += at(shot, k * 0.085, total)
+    return norm(fade_end(out, 0.2), -2)
+
+
+def e_chime():
+    """Glass ringing where the Glass Man walks: high, clear and a little wrong."""
+    total = 1.6
+    out = np.zeros(int(total * SR))
+    for k, f in enumerate([2350, 3110, 2790, 3720]):
+        out += at(bell(f, 1.2, 0.5, 0.5 - 0.08 * k), 0.06 * k + rng.uniform(0, 0.02), total)
+    return norm(fade_end(verb(out, 1.8, 0.5)[: int(total * SR)], 0.2), -8)
+
+
+# Loudness for each (LUFS), so a whistle doesn't drown a clang: set by ear through a phone's speaker.
+ELITE_LOUDNESS = {'clang': -21, 'splash': -21, 'howl': -23, 'bell': -21, 'clap': -19, 'klaxon': -24, 'whistle': -27, 'burst': -19, 'chime': -22}
+
+ELITE = {name[2:]: (lambda fn=fn, name=name: master(fn(), ELITE_LOUDNESS[name[2:]])) for name, fn in globals().items() if name.startswith('e_') and callable(fn)}
+
+
 # ---------------------------------------------------------------- ambience (stereo loops)
 
 def loop_xfade(x, fade):
@@ -888,6 +1001,13 @@ if __name__ == '__main__':
     # The radio after them, on its own random numbers too (3.11.0).
     rng.bit_generator.state = np.random.default_rng(311).bit_generator.state
     for name, fn in RADIO.items():
+        x = fade_end(np.asarray(fn(), dtype=float), 0.01)
+        index[name] = [round(sum(len(p) for p in parts) / SR, 4), round(len(x) / SR, 4)]
+        parts.append(x)
+        parts.append(np.zeros(int(gap * SR)))
+    # The elites after them, on their own random numbers (3.12.0).
+    rng.bit_generator.state = np.random.default_rng(312).bit_generator.state
+    for name, fn in ELITE.items():
         x = fade_end(np.asarray(fn(), dtype=float), 0.01)
         index[name] = [round(sum(len(p) for p in parts) / SR, 4), round(len(x) / SR, 4)]
         parts.append(x)

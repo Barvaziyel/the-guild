@@ -6,7 +6,7 @@
 import type { BuildingId, Quality, RelationshipLabel, ResourceId, Resources } from './types.ts';
 
 /** Save format version. Bump together with a migration in save.ts. */
-export const SAVE_VERSION = 29;
+export const SAVE_VERSION = 30;
 /** A guild this many game days old or younger, coming in from an older version, gets the first week too (§9.10). */
 export const STORY_OLD_SAVE_DAYS = 14;
 
@@ -473,6 +473,17 @@ export const NEMESIS_MAX = 3;
 export const NEMESIS_APPEAR = 0.35;
 /** A nemesis is tougher than its kind: HP x1.5, plus a few, so even a Rad-hound takes some killing. */
 export const NEMESIS_HP_MULT = 1.5;
+
+// Elites (§7.15, 3.12.0): one of a kind at each place where there's fighting.
+/** How explored a place's outskirts must be (out of 100) before anyone can see its elite for the first time. */
+export const ELITE_SEEN_AFTER = 50;
+/** Chance a run there sees it for the first time, once it can; a scouting run is ELITE_SIGNS_SCOUT times as likely. */
+export const ELITE_SIGNS_CHANCE = 0.25;
+export const ELITE_SIGNS_SCOUT = 2;
+/** Once the guild knows of it, the chance it turns up at any fight there. */
+export const ELITE_MEET_CHANCE = 0.12;
+/** An elite fight lasts this many rounds before it's a stalemate. */
+export const ELITE_ROUNDS = 10;
 export const NEMESIS_HP_BONUS = 3;
 export const NEMESIS_ATTACK_BONUS = 1;
 export const NEMESIS_DEFENSE_BONUS = 1;

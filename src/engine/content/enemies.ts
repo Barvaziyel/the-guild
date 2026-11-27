@@ -1,4 +1,6 @@
 import type { ResourceId } from '../types.ts';
+import { ELITES } from './elites.ts';
+import type { CrewLines } from './flavor.ts';
 
 /** Enemy type ids are also check-mod contexts: 'enemy:feral', 'enemy:scrapbot', ... */
 export type EnemyType = 'raider' | 'feral' | 'hollow' | 'scrapbot';
@@ -62,13 +64,48 @@ export interface EnemyDef {
   attacks?: number;
   /** Never met in the Reach: only at Haven (§9.12). Kept out of encounters, raids and the balance table. */
   havenOnly?: boolean;
+  /**
+   * Brings more into the fight (3.12.0): a chance each round, `max` at most in a fight, of one of `id`
+   * coming to its call. Shoved or pinned down, it doesn't get the call out. "{It} {how}, and {a X} {comes}."
+   */
+  calls?: { id: string; chance: number; max: number; how: string; comes: string };
+  /** Plates (3.12.0): each hit that lands knocks one off instead of hurting it. Many small hits strip them; then it's soft. */
+  plates?: number;
+  /** Chance each round of a sweep at a whole rank of the crew (3.12.0): its hit on everyone standing there, halved in cover. Shoved or pinned down, it doesn't. */
+  sweeps?: number;
+  /** Chance each round of going under (3.12.0): nothing reaches it for a round, then it comes up under someone (anyone, front or back) with a big hit. */
+  dives?: number;
+  /** Strikes twice once it's down to half its HP (3.12.0). */
+  enrages?: boolean;
+  /** One of a kind that lives at a place (§7.15, 3.12.0). Kept out of encounters, raids and the balance table, like Haven's. */
+  elite?: EliteDef;
   /** "{name} is {hitVerb} a Rad-hound." */
   hitVerb: string;
   /** Resources dropped when killed: [min, max]. */
   loot: Partial<Record<ResourceId, [number, number]>>;
 }
 
-export const ENEMIES: readonly EnemyDef[] = [
+/**
+ * What makes an enemy one of a kind (§7.15, 3.12.0): where it lives, how the guild
+ * first hears of it, what it says when it turns up, and what it leaves behind.
+ * {a.*} in the lines is whoever's there to see it (the one with the best Wits).
+ */
+export interface EliteDef {
+  /** The place it lives. */
+  place: string;
+  /** The first time anyone sees it: a beat of its own on a run there. */
+  signs: { title: string; lines: CrewLines };
+  /** When it turns up in a fight, before the first blow. */
+  met: string;
+  /** Going after it (the planner's order): where they find it, at the deepest point of the run. */
+  lair: { title: string; lines: CrewLines };
+  /** Its end. */
+  killed: string;
+  /** What it leaves: a Relic with a name of its own (`name`) and a first line of its story. */
+  prize: { item: string; name: string; story: string };
+}
+
+const KINDS: readonly EnemyDef[] = [
   // ------------------------------------------------------------ ferals
   {
     id: 'rad_hound',
@@ -451,3 +488,7 @@ export const ENEMIES: readonly EnemyDef[] = [
     loot: { tech: [1, 2], scrap: [2, 4], ammo: [0, 2] },
   },
 ];
+
+/** Every enemy: the kinds met in fights, and the elites (3.12.0). */
+export const ENEMIES: readonly EnemyDef[] = [...KINDS, ...ELITES];
+

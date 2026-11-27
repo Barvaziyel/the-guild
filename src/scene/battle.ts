@@ -54,10 +54,16 @@ export interface StageFighter {
   rising?: boolean;
   /** Heavy armor (2.4.0): a shield by the name. */
   armored?: boolean;
+  /** One of a kind (3.12.0): a gold star by the name. */
+  elite?: boolean;
+  /** Plates still on it (3.12.0): a pip for each, by the bar. */
+  plates?: number;
+  /** Gone under (3.12.0): only the ripples where it went down show. */
+  under?: boolean;
 }
 
 /** What an enemy means to do, as its badge shows it (2.3.0, 3.8.0). */
-export type IntentKind = 'strike' | 'heavy' | 'run' | 'aim' | 'shot' | 'mend' | 'throw' | 'grab' | 'hold';
+export type IntentKind = 'strike' | 'heavy' | 'run' | 'aim' | 'shot' | 'mend' | 'throw' | 'grab' | 'hold' | 'call' | 'sweep' | 'dive' | 'surface';
 
 /** One act being played: who does it, to whom, and what pops up. */
 export interface StageEffect {
@@ -197,6 +203,21 @@ function intentBadge(kind: IntentKind | 'rise', cx: number, cy: number): string 
   if (kind === 'mend') return circle(cx, cy, 6.5, '#1d1915', `stroke="${BONE}" stroke-width="0.9"`) + rect(cx - 1.2, cy - 3.8, 2.4, 7.6, '#9cc27f', 'stroke="none"') + rect(cx - 3.8, cy - 1.2, 7.6, 2.4, '#9cc27f', 'stroke="none"');
   if (kind === 'throw') return circle(cx, cy, 6.5, '#d0703c', `stroke="${BONE}" stroke-width="0.9"`) + flame(cx, cy, 1, BONE);
   if (kind === 'grab' || kind === 'hold') return circle(cx, cy, 6.5, kind === 'hold' ? '#b5432f' : '#1d1915', `stroke="${BONE}" stroke-width="0.9"`) + claw(cx, cy, kind === 'hold' ? BONE : '#e0b84a');
+  // 3.12.0: calling more in (sound waves), a sweep at a rank (a wide arc), going under (down) and coming up (up).
+  if (kind === 'call') {
+    return circle(cx, cy, 6.5, '#b8892a', `stroke="${BONE}" stroke-width="0.9"`) + circle(cx - 2.2, cy, 1.2, INK, 'stroke="none"') + pathEl(`M ${n1(cx)} ${n1(cy - 2.4)} Q ${n1(cx + 1.6)} ${n1(cy)} ${n1(cx)} ${n1(cy + 2.4)} M ${n1(cx + 2)} ${n1(cy - 4)} Q ${n1(cx + 4.4)} ${n1(cy)} ${n1(cx + 2)} ${n1(cy + 4)}`, 'none', `stroke="${INK}" stroke-width="1.2" stroke-linecap="round"`);
+  }
+  if (kind === 'sweep') {
+    return circle(cx, cy, 7, '#b5432f', `stroke="${BONE}" stroke-width="1"`) + pathEl(`M ${n1(cx + 3.6)} ${n1(cy - 3.2)} Q ${n1(cx - 4.4)} ${n1(cy)} ${n1(cx + 3.6)} ${n1(cy + 3.2)} M ${n1(cx + 3.6)} ${n1(cy + 3.2)} l -2.6 -0.2 M ${n1(cx + 3.6)} ${n1(cy + 3.2)} l -0.6 -2.4`, 'none', `stroke="${BONE}" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"`);
+  }
+  if (kind === 'dive' || kind === 'surface') {
+    const up = kind === 'surface';
+    const tip = up ? cy - 3.4 : cy + 3.4;
+    return (
+      circle(cx, cy, up ? 7 : 6.5, up ? '#b5432f' : '#2c4a5a', `stroke="${BONE}" stroke-width="1"`) +
+      pathEl(`M ${n1(cx)} ${n1(up ? cy + 3.4 : cy - 3.4)} V ${n1(tip)} M ${n1(cx - 2.8)} ${n1(up ? tip + 2.8 : tip - 2.8)} L ${n1(cx)} ${n1(tip)} L ${n1(cx + 2.8)} ${n1(up ? tip + 2.8 : tip - 2.8)}`, 'none', `stroke="${BONE}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"`)
+    );
+  }
   if (kind === 'rise') {
     return circle(cx, cy, 6.5, '#b8892a', `stroke="${BONE}" stroke-width="1"`) + pathEl(`M ${n1(cx)} ${n1(cy + 3.4)} V ${n1(cy - 3.2)} M ${n1(cx - 2.8)} ${n1(cy - 0.6)} L ${n1(cx)} ${n1(cy - 3.4)} L ${n1(cx + 2.8)} ${n1(cy - 0.6)}`, 'none', `stroke="${INK}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"`);
   }
@@ -279,6 +300,11 @@ function body(f: StageFighter): { svg: string; scale: number; height: number; mu
 
 /** A fighter at its spot: turned to face the other side, laid down when out of it. */
 function placed(f: StageFighter, slot: Slot, effect: StageEffect | undefined): string {
+  // Gone under (3.12.0): ripples where it went, nothing else.
+  if (f.under && f.state === 'up') {
+    const r = 18 * slot.scale;
+    return `<g transform="translate(${n1(slot.x)} ${n1(slot.y)})" class="bt-under">${ellipse(0, 0, r, r * 0.22, 'none', `stroke="#8fb7c4" stroke-width="1.4" opacity="0.8"`)}${ellipse(0, 0, r * 0.6, r * 0.13, 'none', `stroke="#8fb7c4" stroke-width="1.2" opacity="0.6"`)}</g>`;
+  }
   const b = body(f);
   const s = slot.scale * b.scale;
   const facing = f.side === 'crew' ? 1 : -1;
@@ -399,7 +425,7 @@ function overhead(f: StageFighter, slot: Slot, height: number, room: number, mod
   const lx = Math.max(lw / 2 + 4, Math.min(STAGE_W - lw / 2 - 4, slot.x));
   // In front, under the feet (a second line under the first); behind, over the bar (the first line over the second).
   const ly = slot.rank === 0 ? slot.y + 14 : top - 4 - (lines.length - 1) * 10;
-  const cls = `bt-label${f.nemesis ? ' is-nemesis' : ''}${lying ? ' is-out' : ''}`;
+  const cls = `bt-label${f.nemesis || f.elite ? ' is-nemesis' : ''}${lying ? ' is-out' : ''}`;
   lines.forEach((text, k) => {
     out += `<text x="${n1(lx)}" y="${n1(ly + k * 10)}" class="${cls}" text-anchor="middle">${escapeAttr(text)}</text>`;
   });
@@ -429,6 +455,10 @@ function overhead(f: StageFighter, slot: Slot, height: number, room: number, mod
   const mx = lx - lw / 2 - 5;
   if (f.vulture) out += poly([[mx - 2, ly + 1], [mx + 2, ly - 10], [mx + 3, ly - 1]], '#1d1b1a', `stroke="${BONE}" stroke-width="0.7"`);
   if (f.nemesis) out += circle(mx, ly - 3.5, 3.2, '#b5432f', `stroke="${BONE}" stroke-width="0.8"`);
+  // An elite's gold star (3.12.0).
+  if (f.elite) out += poly(starPoints(mx, ly - 3.5, 4.2, 1.8), '#e0b13a', `stroke="${INK}" stroke-width="0.6"`);
+  // Its plates (3.12.0): a pip for each still on it, by the bar.
+  if (f.plates && f.state !== 'dead') for (let k = 0; k < f.plates; k++) out += rect(x + w + 2.5 + k * 4.4, top + 1.5, 3.4, HP_BAR_H - 3, '#8d9494', `stroke="${BONE}" stroke-width="0.6"`);
   // Heavy armor: a small shield on the other side of the name (2.4.0).
   if (f.armored && f.state !== 'dead') {
     const sx = lx + lw / 2 + 5;
@@ -568,5 +598,20 @@ export function stageSvg(model: StageModel): string {
     (model.job ? jobPlate(model.job) : '') +
     effectLayer(model, spots) +
     '</svg>'
+  );
+}
+
+/** An enemy on its own, for a card (an elite's on a place, 3.12.0): standing on the ground, facing right, read out by `label`. */
+export function enemyPictureSvg(kind: string, type: string, label: string): string {
+  const b = body({ key: `pic:${kind}`, side: 'enemy', label, title: label, hp: 1, maxHp: 1, state: 'up', kind, type, seed: kind });
+  // Big enough to see, small enough to fit: by its height, and by its width for the long ones.
+  const wide: Record<string, number> = { the_snapper: 86, the_bog_king: 96, bravo_six: 72, mire_stalker: 84, old_mother: 62, rad_hound: 60, the_switchman: 66 };
+  const s = Math.min(1.4, 78 / Math.max(30, b.height), 94 / (wide[kind] ?? 50));
+  return (
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-50 -90 100 98" role="img" aria-label="${escapeAttr(label)}">` +
+    `<rect x="-50" y="-90" width="100" height="98" fill="#2a3531"/>` +
+    `<rect x="-50" y="0" width="100" height="8" fill="#3b4740"/>` +
+    `<g transform="scale(${n1(s)})">${b.svg}</g>` +
+    `</svg>`
   );
 }

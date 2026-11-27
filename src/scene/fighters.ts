@@ -22,7 +22,7 @@ function limb(x1: number, y1: number, x2: number, y2: number, color: string, w =
 }
 
 /** What a person holds, drawn from the hands. */
-type Held = WeaponLook | 'maul' | 'spiked_bat' | 'claws' | 'saw' | 'hook' | 'bottle' | 'none';
+type Held = WeaponLook | 'maul' | 'spiked_bat' | 'claws' | 'saw' | 'hook' | 'bottle' | 'cleaver' | 'none';
 
 /** How a person-shaped fighter is drawn. */
 export interface Body {
@@ -36,7 +36,7 @@ export interface Body {
   boots: string;
   /** A vest, plates or a suit over the clothes. */
   armor?: { kind: 'vest' | 'riot' | 'hazmat' | 'leather' | 'signs' | 'apron' | 'medic' | 'bandolier'; color: string };
-  hat?: 'beanie' | 'bandana' | 'goggles' | 'helmet' | 'hood' | 'mask' | 'mohawk';
+  hat?: 'beanie' | 'bandana' | 'goggles' | 'helmet' | 'hood' | 'mask' | 'mohawk' | 'cap' | 'nurse';
   /** The Vultures' crest: this many long black feathers fanned up and back from the head; `tips` gives some of them bone-white ends. */
   crest?: { n: number; tips: boolean };
   /** A shaggy ruff of feathers around the neck and over the shoulders (the Vultures'). */
@@ -53,6 +53,10 @@ export interface Body {
   hurt: boolean;
   /** A green glow around them: the irradiated. */
   glow: boolean;
+  /** The front hand in another color than the skin (the Red Hand's, 3.12.0). */
+  hand?: string;
+  /** More drawn over the upper body, after the head, leaning with it (an elite's own things, 3.12.0). */
+  extra?: string;
 }
 
 /** How a long gun, pistol or blade is held: where the hands go. */
@@ -128,6 +132,13 @@ function weapon(held: Held, front: [number, number], back: [number, number]): st
         limb(fx - 1, fy + 3, fx + 1, fy - 4, WOOD, 2.6) +
         pathEl(`M ${fx + 1} ${fy - 4} L ${fx + 3} ${fy - 16} Q ${fx + 4} ${fy - 24} ${fx + 10} ${fy - 22} Q ${fx + 14} ${fy - 20} ${fx + 12} ${fy - 15}`, 'none', `stroke="${INK}" stroke-width="4" stroke-linecap="round"`) +
         pathEl(`M ${fx + 1} ${fy - 4} L ${fx + 3} ${fy - 16} Q ${fx + 4} ${fy - 24} ${fx + 10} ${fy - 22} Q ${fx + 14} ${fy - 20} ${fx + 12} ${fy - 15}`, 'none', `stroke="${STEEL}" stroke-width="1.8" stroke-linecap="round"`)
+      );
+    case 'cleaver':
+      // The Butcher's (3.12.0): a broad blade with a hook on the back of it.
+      return (
+        limb(fx - 1, fy + 3, fx + 1, fy - 3, '#3a302a', 2.6) +
+        poly([[fx - 1, fy - 3], [fx + 9, fy - 5], [fx + 11, fy - 18], [fx + 1, fy - 16]], '#c7c9c2', THIN) +
+        pathEl(`M ${fx + 1} ${fy - 16} Q ${fx - 4} ${fy - 19} ${fx - 1} ${fy - 23}`, 'none', `stroke="${INK}" stroke-width="1.8" stroke-linecap="round"`)
       );
     case 'bottle':
       // A firebomb (3.8.0): a bottle with a burning rag.
@@ -230,6 +241,15 @@ function head(b: Body): string {
     case 'mohawk':
       out += poly([[cx - 5, cy - 5], [cx - 3, cy - 13], [cx - 1, cy - 7], [cx + 1, cy - 14], [cx + 3, cy - 7], [cx + 5, cy - 12], [cx + 5, cy - 6]], b.hair, THIN);
       break;
+    case 'cap':
+      // A transit conductor's peaked cap, with its badge (3.12.0).
+      out += pathEl(`M ${cx - r} ${cy - 2} Q ${cx - r} ${cy - 11} ${cx + 1} ${cy - 11} Q ${cx + r + 1} ${cy - 11} ${cx + r} ${cy - 3} Z`, b.cloth, THIN);
+      out += pathEl(`M ${cx + 1} ${cy - 3.5} L ${cx + r + 5} ${cy - 2.5} L ${cx + r + 4} ${cy - 0.5} L ${cx} ${cy - 1.5} Z`, '#1d1b1a', THIN) + rect(cx - 1, cy - 8, 3.4, 2.4, b.accent, NONE);
+      break;
+    case 'nurse':
+      // A starched nurse's cap, with a red cross (3.12.0).
+      out += pathEl(`M ${cx - 6} ${cy - 6} L ${cx - 5} ${cy - 12} L ${cx + 5} ${cy - 12} L ${cx + 6} ${cy - 6} Z`, '#efe8da', THIN) + rect(cx - 0.6, cy - 11, 1.2, 3.6, '#b5432f', NONE) + rect(cx - 1.8, cy - 9.8, 3.6, 1.2, '#b5432f', NONE);
+      break;
     default:
       break;
   }
@@ -289,8 +309,9 @@ export function personSvg(b: Body): string {
   upper += torso(b);
   if (long) upper += weapon(b.held, front, back);
   upper += head(b);
+  if (b.extra) upper += b.extra;
   if (!long) upper += weapon(b.held, front, back);
-  upper += limb(5 * b.build, -45, front[0], front[1], b.cloth) + circle(front[0], front[1], 2.6, b.skin, THIN);
+  upper += limb(5 * b.build, -45, front[0], front[1], b.cloth) + circle(front[0], front[1], 2.6, b.hand ?? b.skin, THIN);
   out += b.stoop ? `<g transform="rotate(${b.stoop} 0 -27)">${upper}</g>` : upper;
   return out;
 }
@@ -584,6 +605,246 @@ function shepherd(): string {
   return out;
 }
 
+// ---------------------------------------------------------------- elites (§7.15, 3.12.0)
+
+/** Rivets along a plate. */
+function rivets(points: readonly [number, number][]): string {
+  return points.map(([x, y]) => circle(x, y, 0.8, '#3a3631', NONE)).join('');
+}
+
+/** The Switchman: a tall rail robot on jointed legs, plated, a lamp for a head, a track bar in its hand. About 74 tall. */
+function switchman(): string {
+  const hull = '#b8743a';
+  const plate = '#8d9494';
+  let out = ellipse(0, 0, 18, 3.2, '#1d1915', 'stroke="none" opacity="0.28"');
+  // The lamp's beam, ahead of it.
+  out += poly([[8, -68], [46, -80], [46, -52]], '#f7d36b', 'stroke="none" opacity="0.18"');
+  out += limb(-5, -31, -11, -16, STEEL_DARK, 5) + limb(-11, -16, -8, -3, STEEL_DARK, 5) + rect(-14, -4, 11, 4, '#3a3631', THIN);
+  out += limb(-15, -58, -18, -40, STEEL_DARK, 3.6) + circle(-18, -40, 2.4, STEEL_DARK, THIN);
+  out += rect(-9, -36, 18, 7, '#5f6767', STROKE);
+  out += rect(-11, -64, 22, 30, hull, STROKE);
+  out += rect(-10, -38, 20, 3, '#1d1b1a', NONE) + rect(-6, -38, 3, 3, '#e0b13a', NONE) + rect(2, -38, 3, 3, '#e0b13a', NONE);
+  out += rect(-9, -61, 8.5, 12, plate, THIN) + rect(0.5, -61, 8.5, 12, plate, THIN) + rect(-9, -47, 18, 8, plate, THIN);
+  out += rivets([[-8, -60], [-2, -60], [1.5, -60], [8, -60], [-8, -50], [-2, -50], [1.5, -50], [8, -50], [-8, -46], [8, -46], [-8, -40], [8, -40]]);
+  out += rect(-5, -72, 10, 8, '#5f6767', STROKE) + circle(5, -68, 3.8, '#f7d36b', THIN) + circle(5, -68, 1.6, '#fff4c2', NONE);
+  out += line(-3, -72, -4, -78, 1.2, INK) + circle(-4, -79, 1.2, '#d9493a', THIN);
+  out += limb(5, -31, 10, -16, STEEL, 5) + limb(10, -16, 8, -3, STEEL, 5) + rect(3, -4, 12, 4, '#3a3631', THIN);
+  // The track bar, gripped in front.
+  out += limb(13, -26, 21, -66, '#7d8382', 2.8) + pathEl('M 21 -66 Q 22 -71 26 -70', 'none', `stroke="${INK}" stroke-width="2.6" stroke-linecap="round"`);
+  out += limb(10, -59, 17, -45, STEEL, 3.6) + circle(17, -45, 2.6, STEEL_DARK, THIN);
+  return out;
+}
+
+/** Old Mother: a big grey rad-hound with a torn ear and a chain round her neck, the tags on it. */
+function oldMother(): string {
+  const fur = '#77716a';
+  const grey = '#c4bdb0';
+  return (
+    ellipse(2, 0, 21, 3.2, '#1d1915', 'stroke="none" opacity="0.3"') +
+    pathEl('M -16 -20 Q -25 -24 -27 -15', 'none', `stroke="${INK}" stroke-width="3.6" stroke-linecap="round"`) +
+    limb(-11, -16, -14, -1, darken(fur, 0.15), 4.4) +
+    limb(-6, -16, -6, -1, fur, 4.4) +
+    ellipse(-1, -19, 17.5, 8.5, fur, STROKE) +
+    line(-9, -23, -4, -17, 1, '#e8dccb') + line(-6, -24, -1, -18, 1, '#e8dccb') +
+    ellipse(6, -15, 4.5, 2, grey, NONE) +
+    limb(8, -15, 9, -1, darken(fur, 0.15), 4.4) +
+    limb(12, -16, 14, -1, fur, 4.4) +
+    poly([[13, -30], [15, -38], [17, -33], [19, -30]], fur, THIN) +
+    ellipse(18, -25, 8, 6.4, fur, STROKE) +
+    pathEl('M 22 -26 L 32 -23 L 31 -19 L 21 -19 Z', grey, STROKE) +
+    poly([[24, -19], [25, -16], [26, -19], [27, -16], [28, -19]], '#efe8da', THIN) +
+    ellipse(19, -24, 3, 2, grey, NONE) +
+    circle(20.5, -27, 1.7, '#c7f27a', NONE) +
+    // The chain, and the tags hanging off it.
+    pathEl('M 11 -27 Q 13 -19 17 -19', 'none', `stroke="#9a9a92" stroke-width="1.6" stroke-dasharray="1.6 0.8"`) +
+    rect(14.5, -18.5, 3, 4.2, '#d6d3c4', THIN) +
+    rect(16.5, -17.5, 3, 4.2, '#b9b6a8', THIN)
+  );
+}
+
+/** The Snapper: a snapping turtle as big as a car, its shell grown over with weed. About 40 tall. */
+function snapper(): string {
+  const skin = '#6e7a55';
+  const shell = '#4f5a3c';
+  let out = ellipse(0, 0, 32, 3.8, '#1d1915', 'stroke="none" opacity="0.3"');
+  out += limb(-18, -8, -24, -1, darken(skin, 0.15), 7) + limb(-6, -8, -8, -1, darken(skin, 0.15), 7);
+  out += pathEl('M -30 -6 L -38 -3 L -30 -10 Z', skin, THIN);
+  out += pathEl('M -28 -7 Q -28 -36 0 -38 Q 26 -36 27 -7 Z', shell, STROKE);
+  // The scutes, and the ridge down the middle.
+  out += pathEl('M -18 -10 L -14 -27 L 0 -32 L 14 -27 L 18 -10', 'none', `stroke="${INK}" stroke-width="1"`);
+  out += pathEl('M -14 -27 L -22 -14 M 14 -27 L 21 -14 M 0 -32 L 0 -10 M -7 -30 L -8 -18 M 7 -30 L 8 -18', 'none', `stroke="${INK}" stroke-width="0.9"`);
+  for (const [x, y] of [[-7, -34], [0, -36], [7, -34]] as const) out += poly([[x - 2, y + 1], [x, y - 3], [x + 2, y + 1]], darken(shell, 0.2), THIN);
+  // Weed hanging off it.
+  for (const [x, len] of [[-24, 9], [-12, 12], [3, 8], [16, 11], [23, 7]] as const) out += pathEl(`M ${x} -8 q 2 ${len / 2} -1 ${len}`, 'none', 'stroke="#5f7a52" stroke-width="1.6" stroke-linecap="round"');
+  out += ellipse(-10, -24, 4, 2.4, '#5f7a52', 'stroke="none" opacity="0.8"') + ellipse(9, -29, 3.4, 1.8, '#5f7a52', 'stroke="none" opacity="0.8"');
+  out += pathEl('M -27 -7 Q 0 -3 26 -7 L 25 -4 Q 0 0 -26 -4 Z', '#a39a6e', THIN);
+  out += limb(13, -8, 17, -1, skin, 7) + limb(22, -8, 26, -1, skin, 7);
+  // Neck and head, the beak hooked down.
+  out += limb(22, -14, 31, -19, skin, 8);
+  out += ellipse(35, -20, 8, 6.4, skin, STROKE);
+  out += pathEl('M 40 -23 L 46 -19 L 41 -14 L 39 -18 Z', '#3a3631', THIN);
+  out += line(33, -16, 40, -16, 1, INK);
+  out += circle(35, -23, 1.5, '#e0b13a', THIN);
+  return out;
+}
+
+/** The Warden: the Water Plant's security unit, twice a sentry's size, plated, with drones docked on its back. About 60 tall. */
+function warden(): string {
+  const body = '#6f7f86';
+  const plate = '#8d9494';
+  let out = ellipse(0, 0, 23, 3.4, '#1d1915', 'stroke="none" opacity="0.3"');
+  // Docked drones, behind.
+  for (const [x, y] of [[-21, -52], [-24, -40]] as const) {
+    out += line(x - 6, y - 2, x + 6, y - 2, 1.4, INK) + rect(x - 4, y - 2, 8, 5, '#9a8f72', THIN) + circle(x + 2.5, y + 0.5, 1.2, '#d9493a', NONE);
+  }
+  out += rect(-20, -48, 7, 22, '#4a5357', THIN);
+  out += rect(-21, -11, 42, 11, '#3a3631', STROKE);
+  for (const x of [-15, -5, 5, 15]) out += circle(x, -5.5, 3.2, STEEL_DARK, THIN);
+  out += rect(-15, -42, 30, 31, body, STROKE);
+  out += rect(-13, -39, 12.5, 13, plate, THIN) + rect(0.5, -39, 12.5, 13, plate, THIN) + rect(-13, -24, 26, 10, plate, THIN);
+  out += rivets([[-12, -38], [-2, -38], [1.5, -38], [12, -38], [-12, -27], [12, -27], [-12, -23], [12, -23], [-12, -15], [12, -15]]);
+  out += rect(-15, -30, 30, 2.4, '#e0b13a', NONE);
+  out += rect(-9, -55, 18, 13, '#7a8a90', STROKE) + rect(-1, -51, 9, 2.6, '#d9493a', NONE) + rect(-1, -51, 9, 2.6, 'none', THIN);
+  out += circle(-5, -57, 1.9, '#d9493a', THIN);
+  // Its gun arm.
+  out += rect(12, -49, 20, 4.6, STEEL_DARK, THIN) + rect(29, -50, 4, 6.6, '#3a3631', THIN);
+  return out;
+}
+
+/** The Bog King: the biggest mire stalker there is, old, with weed and bones on its back and the swamp's glow on its hide. */
+function bogKing(): string {
+  const skin = '#3f4d36';
+  const belly = '#6f7a56';
+  let spines = '';
+  for (let k = 0; k < 8; k++) spines += poly([[-20 + k * 6, -19], [-17 + k * 6, -28 + (k % 2) * 3], [-14 + k * 6, -19]], darken(skin, 0.2), THIN);
+  return (
+    ellipse(0, 0, 34, 3.6, '#1d1915', 'stroke="none" opacity="0.3"') +
+    pathEl('M -22 -12 Q -38 -15 -48 -3 Q -36 -9 -22 -5 Z', skin, STROKE) +
+    spines +
+    limb(-14, -9, -18, -1, darken(skin, 0.15), 6) +
+    pathEl('M -25 -8 Q -23 -22 0 -21 Q 20 -21 26 -13 L 24 -5 Q 0 -1 -23 -4 Z', skin, STROKE) +
+    pathEl('M -16 -5 Q 0 -2 20 -6', 'none', `stroke="${belly}" stroke-width="2.6"`) +
+    // Weed and old bones hanging off its back; the swamp's glow on its hide.
+    pathEl('M -10 -21 q 1 5 -2 9 M -2 -22 q 2 6 0 10 M 8 -21 q 1 4 -1 8', 'none', 'stroke="#5f7a52" stroke-width="1.8" stroke-linecap="round"') +
+    rect(-15, -16, 6, 1.8, '#e8dccb', THIN) + rect(4, -14, 5, 1.6, '#e8dccb', THIN) +
+    circle(-6, -12, 1.2, '#b8f06a', 'stroke="none" opacity="0.8"') + circle(12, -11, 1, '#b8f06a', 'stroke="none" opacity="0.8"') + circle(-18, -9, 1, '#b8f06a', 'stroke="none" opacity="0.8"') +
+    limb(14, -9, 17, -1, darken(skin, 0.15), 6) +
+    pathEl('M 22 -18 L 46 -19 L 44 -13 L 24 -12 Z', skin, STROKE) +
+    pathEl('M 23 -11 L 42 -7 L 41 -3 L 23 -6 Z', darken(skin, 0.1), STROKE) +
+    poly([[27, -13], [28, -10], [29, -13], [31, -12.5], [32, -9.5], [33, -12.5], [35, -12], [36, -9], [37, -12], [39, -11.5], [40, -8.5], [41, -11.5]], '#efe8da', THIN) +
+    circle(27, -19.5, 2, '#e0b13a', THIN) + circle(27, -19.5, 0.8, INK, NONE)
+  );
+}
+
+/** Bravo Six: an army walker on four legs, plated, with a long gun. About 56 tall. */
+function bravoSix(): string {
+  const olive = '#5f6a46';
+  const plate = '#76815a';
+  let out = ellipse(0, 0, 28, 3.6, '#1d1915', 'stroke="none" opacity="0.3"');
+  out += limb(-14, -26, -22, -13, STEEL_DARK, 4.4) + limb(-22, -13, -20, -2, STEEL_DARK, 4.4) + rect(-25, -4, 9, 4, '#3a3631', THIN);
+  out += limb(8, -26, 14, -13, STEEL_DARK, 4.4) + limb(14, -13, 12, -2, STEEL_DARK, 4.4) + rect(8, -4, 9, 4, '#3a3631', THIN);
+  out += pathEl('M -22 -26 L -17 -45 L 18 -45 L 25 -26 Z', olive, STROKE);
+  out += rect(-15, -43, 10, 9, plate, THIN) + rect(-3, -43, 10, 9, plate, THIN) + rect(9, -43, 8, 9, plate, THIN) + rect(-18, -32, 38, 5, plate, THIN);
+  out += rivets([[-14, -42], [-6, -42], [-2, -42], [6, -42], [10, -42], [16, -42], [-16, -30], [18, -30]]);
+  // Its stencil: a chevron and a bar.
+  out += poly([[-12, -38], [-9, -36], [-6, -38], [-6, -36.5], [-9, -34.5], [-12, -36.5]], '#e0d8b8', NONE) + rect(-2, -38, 7, 2.2, '#e0d8b8', NONE);
+  out += rect(-5, -53, 13, 8, olive, STROKE) + circle(5, -49, 2.2, '#d9493a', THIN) + line(-3, -53, -5, -60, 1.2, INK) + circle(-5, -61, 1.2, '#e0b13a', THIN);
+  out += rect(14, -42, 27, 4.6, STEEL_DARK, THIN) + rect(37, -43, 6, 6.6, '#3a3631', THIN) + rect(18, -44, 6, 3, '#3a3631', THIN);
+  out += limb(-6, -26, -10, -13, STEEL, 4.4) + limb(-10, -13, -8, -2, STEEL, 4.4) + rect(-13, -4, 9, 4, '#3a3631', THIN);
+  out += limb(17, -26, 24, -13, STEEL, 4.4) + limb(24, -13, 24, -2, STEEL, 4.4) + rect(20, -4, 9, 4, '#3a3631', THIN);
+  return out;
+}
+
+/** The mast the Lookout shoots from, and how high she stands on it. */
+const MAST = 31;
+
+function mast(): string {
+  let out = ellipse(0, 0, 14, 2.8, '#1d1915', 'stroke="none" opacity="0.28"');
+  out += line(-10, 0, -6, -MAST, 1.8, '#5f6767') + line(10, 0, 6, -MAST, 1.8, '#5f6767');
+  for (let k = 0; k < 3; k++) {
+    const y0 = -k * 10;
+    const y1 = -(k + 1) * 10;
+    out += line(-10 + k * 1.3, y0, 9 - (k + 1) * 1.3, y1, 1, '#7d8382') + line(10 - k * 1.3, y0, -9 + (k + 1) * 1.3, y1, 1, '#7d8382');
+  }
+  return out + rect(-13, -MAST - 2, 26, 3, '#6b5a48', THIN);
+}
+
+/** One of the elites drawn as a person: a raider or a hollow made into someone of their own. */
+function elitePerson(kind: string, seed: string): { body: Body; scale: number } | undefined {
+  const h = hash(seed);
+  const raider: Body = { skin: SKINS[h % SKINS.length]!, hair: HAIRS[(h >>> 4) % HAIRS.length]!, longHair: false, bald: false, cloth: '#5a4a3c', accent: '#8e3b2c', trousers: '#3d3833', boots: '#2a221d', held: 'pipe', build: 1, stoop: 0, eyes: 'plain', hurt: false, glow: false };
+  const hollowBase: Body = { skin: '#9ea594', hair: '#5b5a52', longHair: false, bald: false, cloth: '#6f6a5c', accent: '#58554b', trousers: '#4c4a42', boots: '#3a3631', held: 'claws', build: 0.9, stoop: 12, eyes: 'hollow', hurt: false, glow: false };
+  switch (kind) {
+    case 'the_butcher':
+      return { body: { ...raider, skin: '#c08e66', bald: true, cloth: '#6b5a44', trousers: '#3d3833', held: 'cleaver', build: 1.4, armor: { kind: 'apron', color: '#8a7a62' } }, scale: 1.2 };
+    case 'the_lookout':
+      return { body: { ...raider, skin: '#d29c76', hair: '#7a5232', longHair: true, hat: 'goggles', held: 'rifle', cloth: '#4f5446', accent: '#7b3a2a', armor: { kind: 'vest', color: '#6f665a' } }, scale: 1 };
+    case 'the_red_hand':
+      return {
+        body: {
+          ...raider,
+          skin: '#a8724f',
+          hat: 'mohawk',
+          hair: '#8e3b2c',
+          paint: '#a8402e',
+          held: 'sledge',
+          cloth: '#3e3833',
+          build: 1.35,
+          armor: { kind: 'riot', color: '#4a3f36' },
+          hand: '#b5432f',
+          // A red hand printed on his chest.
+          extra: ellipse(-1, -38, 3, 3.4, '#b5432f', NONE) + [-3.6, -1.6, 0.4, 2.4].map((x) => rect(x - 0.7, -46, 1.4, 5, '#b5432f', NONE)).join('') + rect(2.6, -40, 3.4, 1.4, '#b5432f', NONE),
+        },
+        scale: 1.24,
+      };
+    case 'the_conductor':
+      return {
+        body: {
+          ...hollowBase,
+          cloth: '#2f3a4f',
+          trousers: '#2a3040',
+          accent: '#c9a640',
+          hat: 'cap',
+          // Brass buttons down the coat, and the bell on the belt.
+          extra:
+            [-44, -39, -34].map((y) => circle(3, y, 0.9, '#c9a640', NONE)).join('') +
+            line(-6, -28, -6, -24, 0.9, INK) +
+            pathEl('M -9 -18 Q -9 -24 -6 -24 Q -3 -24 -3 -18 Z', '#c9a640', THIN) +
+            circle(-6, -17.4, 0.9, INK, NONE),
+        },
+        scale: 1.05,
+      };
+    case 'the_matron':
+      return { body: { ...hollowBase, skin: '#a9bf8a', eyes: 'glow', glow: true, longHair: true, hair: '#8a8580', cloth: '#d8d4c6', trousers: '#bdb8a8', boots: '#d8d4c6', hat: 'nurse', stoop: 8, armor: { kind: 'apron', color: '#e6e3d8' } }, scale: 1.02 };
+    case 'the_glass_man': {
+      const shard = (pts: [number, number][]): string => poly(pts, '#cfeee0', 'stroke="#5d9f80" stroke-width="0.9" opacity="0.92"');
+      return {
+        body: {
+          ...hollowBase,
+          skin: '#8b937f',
+          cloth: '#5b574c',
+          bald: true,
+          build: 1.6,
+          stoop: 10,
+          eyes: 'glow',
+          glow: true,
+          // Glass grown up through it.
+          extra:
+            shard([[-6, -48], [-10, -62], [-3, -50]]) +
+            shard([[-11, -44], [-21, -53], [-10, -40]]) +
+            shard([[7, -49], [10, -63], [12, -48]]) +
+            shard([[0, -61], [-2, -73], [4, -62]]) +
+            shard([[-13, -36], [-23, -39], [-12, -32]]) +
+            shard([[10, -38], [17, -44], [11, -34]]),
+        },
+        scale: 1.45,
+      };
+    }
+    default:
+      return undefined;
+  }
+}
+
 /** Every enemy with a drawing of its own; a test fails when one in the game has none. */
 export const DRAWN_ENEMIES: readonly string[] = [
   'raider_scav',
@@ -605,6 +866,18 @@ export const DRAWN_ENEMIES: readonly string[] = [
   'haven_orderly',
   'haven_marksman',
   'the_shepherd',
+  'the_switchman',
+  'old_mother',
+  'the_butcher',
+  'the_conductor',
+  'the_snapper',
+  'the_lookout',
+  'the_matron',
+  'the_warden',
+  'the_bog_king',
+  'bravo_six',
+  'the_red_hand',
+  'the_glass_man',
 ];
 
 /** The guild's dog at the gate (§9.8), facing right like the people. */
@@ -636,6 +909,13 @@ export function enemyHeight(kind: string): number {
   if (kind === 'scrap_drone') return 52;
   if (kind === 'scrapbot_sentry') return 54;
   if (kind === 'the_shepherd') return 92;
+  if (kind === 'the_switchman') return 76;
+  if (kind === 'old_mother') return 40;
+  if (kind === 'the_snapper') return 40;
+  if (kind === 'the_lookout') return 64 + MAST;
+  if (kind === 'the_warden') return 60;
+  if (kind === 'the_bog_king') return 30;
+  if (kind === 'bravo_six') return 62;
   return 64;
 }
 
@@ -646,6 +926,19 @@ export function enemyBody(kind: string, type: string, seed: string): { svg: stri
   if (kind === 'scrap_drone') return { svg: scrapDrone(), scale: 1, held: 'zapper' };
   if (kind === 'scrapbot_sentry') return { svg: sentryBot(), scale: 1.08, held: 'turret' };
   if (kind === 'the_shepherd') return { svg: shepherd(), scale: 1.12, held: 'claws' };
+  // The elites (3.12.0).
+  if (kind === 'the_switchman') return { svg: switchman(), scale: 1.05, held: 'pipe' };
+  if (kind === 'old_mother') return { svg: oldMother(), scale: 1.28, held: 'none' };
+  if (kind === 'the_snapper') return { svg: snapper(), scale: 1.15, held: 'none' };
+  if (kind === 'the_warden') return { svg: warden(), scale: 1.12, held: 'turret' };
+  if (kind === 'the_bog_king') return { svg: bogKing(), scale: 1.2, held: 'none' };
+  if (kind === 'bravo_six') return { svg: bravoSix(), scale: 1.1, held: 'turret' };
+  const elite = elitePerson(kind, seed);
+  if (elite) {
+    const person = personSvg(elite.body);
+    if (kind === 'the_lookout') return { svg: mast() + `<g transform="translate(0 -${MAST})">${person}</g>`, scale: elite.scale, held: elite.body.held };
+    return { svg: person, scale: elite.scale, held: elite.body.held };
+  }
   const made = type === 'hollow' ? hollow(kind, seed) : raider(kind, seed);
   return { svg: personSvg(made.body), scale: made.scale, held: made.body.held };
 }
@@ -654,6 +947,12 @@ export function enemyBody(kind: string, type: string, seed: string): { svg: stri
 export function enemyMuzzle(kind: string, held: string): [number, number] {
   if (kind === 'scrap_drone') return [7, -23];
   if (kind === 'scrapbot_sentry') return [26, -36];
+  if (kind === 'the_warden') return [33, -47];
+  if (kind === 'bravo_six') return [43, -40];
+  if (kind === 'the_lookout') {
+    const [x, y] = muzzle(held);
+    return [x, y - MAST];
+  }
   return muzzle(held);
 }
 
