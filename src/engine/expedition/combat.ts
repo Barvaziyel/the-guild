@@ -1433,7 +1433,7 @@ export function fight(sim: Sim, enemies: Enemy[], start: FightStart): FightResul
     const one = crew[0]!.s;
     const he = one.pronouns === 'he';
     const line = lines[(sim.beats.length + one.firstName.length + attackCtx.round) % lines.length]!;
-    say(sim, line.replaceAll('{name}', one.firstName).replaceAll('{his}', he ? 'his' : 'her').replaceAll('{himself}', he ? 'himself' : 'herself'), { tone: 'good' });
+    say(sim, line.replaceAll('{name}', one.firstName).replaceAll('{his}', he ? 'his' : 'her').replaceAll('{hers}', he ? 'his' : 'hers').replaceAll('{him}', he ? 'him' : 'her').replaceAll('{himself}', he ? 'himself' : 'herself'), { tone: 'good' });
     for (const m of crew) stress(sim, m, -CLEAN_FIGHT_RELIEF);
   }
   // A commanded fight as it ended, for the screen that shows how it went.
