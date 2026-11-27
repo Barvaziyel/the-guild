@@ -828,6 +828,17 @@ export const VULTURES_ENVOY_GAP: readonly [number, number] = [12, 20];
 export const RADIO_WAIT = 30 * 60_000;
 /** How often a travel, hazard or discovery beat becomes a fork, when one fits. */
 export const FORK_CHANCE = 0.2;
+/**
+ * Press on or come home (3.11.0): at the deepest point of a run the crew may call home about going a level
+ * further in. Only when that's a real gamble for them: the next level is at least Moderate risk for this crew,
+ * worked out from the plan with this many tries when they set out (never from how the run itself goes).
+ */
+export const PRESS_ON_SAMPLES = 40;
+/** How long they wait for an answer: half the run, but at least the first and at most the second (real ms). */
+export const PRESS_ON_WAIT: readonly [number, number] = [5 * 60_000, 30 * 60_000];
+/** Pressing on plays one beat deeper in, and a second this often; each takes a beat's time × PRESS_ON_BEAT_TIME. */
+export const PRESS_ON_SECOND_BEAT = 0.5;
+export const PRESS_ON_BEAT_TIME = 1.25;
 
 // ---------------------------------------------------------------- commanded fights (§7.13)
 

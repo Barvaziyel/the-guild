@@ -342,6 +342,12 @@ export interface RunPlan {
    * a named foe or one that would put someone down if they fought it alone; the rest they fight on their own.
    */
   lead?: boolean | 'matters';
+  /**
+   * Set by `startRun` (3.11.0): going a level further in is a real gamble for this crew, this risky (the planner's
+   * word for the next level down), so at the deepest point they may call home to ask whether to press on. Kept in
+   * the plan so every replay agrees.
+   */
+  pressOn?: 'Moderate' | 'High' | 'Deadly';
   /** A trade run's goods and what they're for (§7.14, 3.4.0). Only with job `trade`. */
   trade?: TradeOrder;
 }
@@ -549,6 +555,8 @@ export interface RunHighlight {
 
 export interface RunSummary {
   outcome: RunOutcome;
+  /** They pressed on, a level further in than planned (3.11.0): the level. */
+  deeper?: number;
   loot: Resources;
   items: ItemInstance[];
   /** Loot units abandoned because the crew couldn't carry them. */
@@ -693,10 +701,27 @@ export interface RadioCall {
   fromBeat: number;
   /** Each order's run from the fork on, timed as if answered the moment they called. Dropped once the call is settled. */
   branches?: Record<string, RadioBranch>;
+  /** A call to press on or come home (3.11.0): what they carry, how they are, and what's ahead. */
+  deeper?: PressOnView;
   /** The order given; 'none' when nobody answered in time. Missing while they wait. */
   answer?: string;
   /** When the order was given (epoch ms). */
   answeredAt?: number;
+}
+
+/** What a crew shows when it calls about pressing on (3.11.0). */
+export interface PressOnView {
+  /** What's ahead, as they see it: 'stash', 'big' or 'voice' (`content/press-on.ts`). */
+  teaser: string;
+  /** The level they'd go into: 2 deeper in, 3 the heart of it. */
+  level: number;
+  /** How risky that level is for this crew, as the planner would say it. */
+  risk: 'Moderate' | 'High' | 'Deadly';
+  /** What they carry so far: supplies, and how many pieces of gear. */
+  haul: Partial<Resources>;
+  items: number;
+  /** How each of them is, by survivor id. */
+  crew: { id: string; hp: number; maxHp: number; down: boolean }[];
 }
 
 /** One order's run from the fork on. */

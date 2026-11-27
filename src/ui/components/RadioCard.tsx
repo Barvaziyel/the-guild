@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { answerRadio, type GameState } from '../../engine/index.ts';
 import { navigate, useAction, useKeepInView } from '../hooks.ts';
 import { answeredLine, radioCard, radioCards, type RadioCardView } from '../radio-view.ts';
+import { Meter } from './Bars.tsx';
+import { Chips } from './Glyph.tsx';
 import { Portrait } from './Portrait.tsx';
 
 /**
@@ -58,6 +60,19 @@ function RadioCard({ card, showRun, onAnswered }: { card: RadioCardView; showRun
         {card.caller && <Portrait survivor={card.caller} size={56} decorative />}
         <p className="radio-intro">{card.intro}</p>
       </div>
+      {card.deeper && (
+        <div className="press-on">
+          <Chips chips={card.deeper.chips} />
+          {card.deeper.haul.length > 0 && <Chips chips={card.deeper.haul} className="press-on-haul" />}
+          <ul className="press-on-crew">
+            {card.deeper.crew.map((m) => (
+              <li key={m.id}>
+                <Meter label={m.name} value={m.down ? 0 : m.hp} max={m.maxHp} reading={m.down ? 'down' : `${m.hp}/${m.maxHp}`} kind="hp" />
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       <blockquote className="radio-ask">
         <p>&ldquo;{card.ask}&rdquo;</p>
         <footer>{card.callerName}</footer>
@@ -69,7 +84,7 @@ function RadioCard({ card, showRun, onAnswered }: { card: RadioCardView; showRun
           </button>
         ))}
       </div>
-      <p className="panel-help">{card.wait}</p>
+      <Chips chips={card.waitChips} className="radio-wait" />
       {showRun && (
         <button type="button" className="link" onClick={() => navigate({ screen: 'run', id: card.runId })}>
           See the run so far

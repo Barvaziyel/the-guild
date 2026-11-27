@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import { Rng, answerRadio, completeRun, startRun, type GameState, type Run } from '../engine/index.ts';
 import { T0, openGame, testPlan } from '../engine/test-utils.ts';
-import { answeredLine, anyoneCalling, noticeRoute, radioCard, radioCards, radioNoticeKey, radioNoticeRun, radioNotices, radioReportLine, radioWakeTimes, titleInLine } from './radio-view.ts';
+import { answeredLine, anyoneCalling, pressOnCard, noticeRoute, radioCard, radioCards, radioNoticeKey, radioNoticeRun, radioNotices, radioReportLine, radioWakeTimes, titleInLine } from './radio-view.ts';
 import { clockTime } from './time.ts';
 
 /** A guild with a Radio Tower and a crew out that will call home. */
@@ -12,12 +12,25 @@ function calling(seed: string): { state: GameState; run: Run } {
     state.buildings.radio_tower = 1;
     state.rng = new Rng(`${seed}-${i}`).getState();
     const run = startRun(state, testPlan(state, ['kessler_farm', 'old_metro', 'st_judes', 'drowned_mall'][i % 4]!, { job: 'scout' }), T0);
-    if (run.radio) return { state, run };
+    if (run.radio && run.radio.forkId !== 'press_on') return { state, run };
   }
   throw new Error('no crew called home');
 }
 
 describe('a crew on the radio', () => {
+  test('pressing on (3.11.0): where, how risky, what they carry and how they are, as pictures', () => {
+    const { state, run } = calling('deeper');
+    const view = { teaser: 'stash', level: 2, risk: 'High' as const, haul: { scrap: 6, rations: 2 }, items: 1, crew: run.plan.crew.map((id, i) => ({ id, hp: i === 0 ? 0 : 8, maxHp: 10, down: i === 0 })) };
+    const card = pressOnCard(run, view);
+    assert.deepEqual(card.chips.map((c) => c.glyph), ['compass', 'skull']);
+    assert.equal(card.chips[1]!.text, 'high');
+    assert.ok(card.haul.some((c) => c.glyph === 'crate' && c.text === '1'));
+    assert.equal(card.crew.length, run.plan.crew.length);
+    assert.equal(card.crew[0]!.down, true);
+    assert.equal(pressOnCard(run, { ...view, level: 3, risk: 'Moderate' }).chips.map((c) => c.text).join(' '), 'the heart moderate');
+    void state;
+  });
+
   test('a card while they wait: who, what they found, what they ask, the orders, and how long they wait', () => {
     const { state, run } = calling('card');
     const call = run.radio!;

@@ -23,6 +23,7 @@ export {
   type EventTarget,
 } from './events.ts';
 export { FORKS, type ForkDef, type ForkOrder, type ForkPick } from './forks.ts';
+export { PRESS_ON, PRESS_ASIDES, PRESS_ON_GO, PRESS_ON_HOME, PRESS_ON_PICKS, type PressOnDef, type PressOnMeet, type PressOnTeaser } from './press-on.ts';
 export { MOVES, type MoveDef } from './moves.ts';
 export { EVOLUTIONS, type EvolutionRule, type RunTally, type NumericCounter } from './evolutions.ts';
 export { BUILDINGS, type BuildingDef, type BuildingLevel } from './buildings.ts';

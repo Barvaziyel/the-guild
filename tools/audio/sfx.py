@@ -686,6 +686,76 @@ def v_hurt3():
 VOICES = {name[2:]: fn for name, fn in globals().items() if name.startswith('v_') and callable(fn)}
 
 
+# ---------------------------------------------------------------- the radio (3.11.0)
+# Aviel (2026-11-26): "the crackling static of the radio". A crew calling home opens on a squelch,
+# static with crackle, and a voice too far gone to make out; answering keys the mic and gets a
+# short reply through the crackle. Made after the voices on random numbers of their own, so every
+# sound above and the ambience come out exactly as before. Kept in 400 Hz - 4 kHz: it's heard
+# through a phone's speaker.
+
+def radio_static(d, level=1.0):
+    """Hiss in the radio's band, fluttering, with crackles."""
+    st = bp(noise(d), 500, 3800) * 0.5
+    flutter = 0.65 + 0.35 * np.interp(t_(d), np.linspace(0, d, 12), rng.uniform(0, 1, 12))
+    st *= flutter
+    crackle = np.zeros(int(d * SR))
+    for _ in range(int(d * 28)):
+        i = int(rng.uniform(0, d) * SR)
+        k = int(rng.uniform(0.0008, 0.004) * SR)
+        crackle[i:i + k] += rng.uniform(-1, 1, len(crackle[i:i + k])) * rng.uniform(0.6, 1.6)
+    return (st + bp(crackle, 700, 4200) * 0.9) * level
+
+
+def squelch(d=0.07):
+    return bp(noise(d), 1200, 4500) * env(d, 0.001, 0.025)
+
+
+def garbled(d, base=135):
+    """A voice too far gone to make out: a buzz with a moving intonation through vowels that change by the syllable."""
+    t = t_(d)
+    n = len(t)
+    syl = max(2, int(d * rng.uniform(4.5, 6.0)))
+    edges = np.linspace(0, n, syl + 1).astype(int)
+    pitch = base * (1 + 0.12 * np.interp(t, np.linspace(0, d, syl + 1), rng.uniform(-1, 1, syl + 1)))
+    src = blwave(pitch) + noise(d) * 0.05
+    out = np.zeros(n)
+    vowels = [(600, 1100), (300, 2300), (450, 1700), (700, 1250), (350, 2000)]
+    for k in range(syl):
+        a, b = edges[k], edges[k + 1]
+        f1, f2 = vowels[int(rng.integers(0, len(vowels)))]
+        seg = bp(src[a:b], f1 * 0.8, f1 * 1.25) + bp(src[a:b], f2 * 0.85, f2 * 1.2) * 0.7
+        m = b - a
+        shape = np.sin(np.linspace(0, np.pi, m)) ** 0.7 * rng.uniform(0.6, 1.0)
+        out[a:b] = seg * shape
+    out = bp(out, 400, 3000)
+    out = np.tanh(out / (np.abs(out).max() + 1e-9) * 2.2)
+    return out
+
+
+def r_radio_call():
+    """A crew calls home: squelch, static, a voice through it, static, squelch."""
+    total = 2.3
+    out = at(squelch(), 0.0, total)
+    out += at(radio_static(2.05, 0.55) * np.interp(t_(2.05), [0, 0.05, 1.9, 2.05], [0, 1, 1, 0]), 0.04, total)
+    out += at(garbled(1.25) * 0.75, 0.35, total)
+    out += at(squelch(0.09) * 0.8, 2.12, total)
+    return norm(fade_end(out, 0.03), -9)
+
+
+def r_radio_answer():
+    """The player answers: the mic keys, a word back through the crackle, and off."""
+    total = 1.05
+    click = hp(noise(0.004), 1800) * 0.35
+    out = at(click, 0.0, total)
+    out += at(radio_static(0.95, 0.45) * np.interp(t_(0.95), [0, 0.03, 0.8, 0.95], [0, 1, 1, 0]), 0.01, total)
+    out += at(garbled(0.42, base=150) * 0.7, 0.28, total)
+    out += at(squelch(0.06) * 0.7, 0.96, total)
+    return norm(fade_end(out, 0.02), -10)
+
+
+RADIO = {name[2:]: fn for name, fn in globals().items() if name.startswith('r_') and callable(fn)}
+
+
 # ---------------------------------------------------------------- ambience (stereo loops)
 
 def loop_xfade(x, fade):
@@ -816,6 +886,13 @@ if __name__ == '__main__':
     kept = rng.bit_generator.state
     rng.bit_generator.state = np.random.default_rng(341).bit_generator.state
     for name, fn in VOICES.items():
+        x = fade_end(np.asarray(fn(), dtype=float), 0.01)
+        index[name] = [round(sum(len(p) for p in parts) / SR, 4), round(len(x) / SR, 4)]
+        parts.append(x)
+        parts.append(np.zeros(int(gap * SR)))
+    # The radio after them, on its own random numbers too (3.11.0).
+    rng.bit_generator.state = np.random.default_rng(311).bit_generator.state
+    for name, fn in RADIO.items():
         x = fade_end(np.asarray(fn(), dtype=float), 0.01)
         index[name] = [round(sum(len(p) for p in parts) / SR, 4), round(len(x) / SR, 4)]
         parts.append(x)

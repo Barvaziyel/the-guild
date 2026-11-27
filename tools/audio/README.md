@@ -22,8 +22,10 @@ pip install numpy scipy pyloudnorm matplotlib   # and ffmpeg with libopus
 # Check out FluidR3_GM/<instrument>-mp3.js for the instruments the scripts use into ext/sf, then:
 python3 tools/audio/decode.py        # writes tools/audio/samples/<instrument>.npz (git-ignored)
 python3 tools/audio/build.py         # renders everything, copies it to public/audio, writes src/ui/sounds.ts
-python3 tools/audio/build.py sfx     # just the effects and ambience
+python3 tools/audio/build.py sfx     # just the effects and ambience (it needs the music already in tools/audio/out: copy it from public/audio)
 python3 tools/audio/look.py tools/audio/out/depot.ogg   # a spectrogram and loudness plot in /tmp/look.png
 ```
 
 `engine.py` is the sampler and mixer: notes on tracks, held notes looped from the middle of their sample, synthesized sounds placed like notes (`Song.sound`), a synthetic reverb, loudness to a target (music −15.5 to −19 LUFS). A score is a plain Python file that puts notes on tracks; `fight.py` renders its drums as a second song, dry and hall apart (`render(normalize=False, split=True)`), brings the dry drums close up (`punch`), sets music, drums and hall by K-weighted loudness, and finishes with the look-ahead `limit`.
+
+**Adding effects without changing the old ones.** The sprite is the effects in order, then the enemy voices (`v_`, 3.4.1), then the radio (`r_`, 3.11.0), each group after the first on random numbers of its own, so adding to a group never moves or changes the sounds before it. A new effect that should leave every earlier one as it is goes in a new group at the end, the same way; a new `s_` effect changes every `s_` sound after it that uses random numbers, and the ambience. Check by decoding the old and new `sfx.ogg` and comparing the samples up to where the new sounds start.

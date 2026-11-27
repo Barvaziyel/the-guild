@@ -82,6 +82,7 @@ export function stateCues(before: GameState, after: GameState): Cue[] {
     if (ended === 'paid') out.push({ id: 'trade' });
     else if (ended === 'stared') out.push({ id: 'stare' });
   }
+  if (answered(before, after)) out.push({ id: 'radio_answer' });
   if (after.reports.length > before.reports.length) out.push({ id: 'home' });
   const sent = after.runs.filter((r) => !before.runs.some((b) => b.id === r.id));
   if (sent.length > 0) out.push({ id: sent.some((r) => (r.plan.vehicles ?? []).length > 0) ? 'engine' : 'send' });
@@ -105,6 +106,11 @@ function built(before: GameState, after: GameState): boolean {
   return false;
 }
 
+/** The player gave a crew on the radio an order (3.11.0): the mic keys and a word comes back. */
+function answered(before: GameState, after: GameState): boolean {
+  return after.runs.some((r) => r.radio?.answeredAt !== undefined && r.radio.answer !== 'none' && before.runs.find((b) => b.id === r.id)?.radio?.answeredAt === undefined);
+}
+
 function spent(before: GameState, after: GameState): boolean {
   return Object.entries(after.resources).some(([k, v]) => v < before.resources[k as keyof typeof before.resources]);
 }
@@ -115,23 +121,31 @@ function gained(before: GameState, after: GameState): boolean {
 
 /** What needs the player right now, as far as sound goes: a crew on the radio or in a fight, raiders seen or at the gate. */
 export interface Alerts {
+  /** A crew on the radio, waiting for an order. */
   radio: boolean;
+  /** A crew stopped at a fight, waiting to be led. */
+  fight?: boolean;
   /** 0 no raid, 1 raiders seen on the road, 2 at the gate. */
   raid: 0 | 1 | 2;
 }
 
 export function alertsAt(state: GameState, now: number): Alerts {
   return {
-    radio: anyoneCalling(state, now) || anyoneFighting(state, now),
+    radio: anyoneCalling(state, now),
+    fight: anyoneFighting(state, now),
     raid: raidAtGate(state) ? 2 : raidSeen(state, now) ? 1 : 0,
   };
 }
 
-/** The effect when something starts to need the player with the game open: a call coming in, raiders seen, then at the gate. */
+/**
+ * The effect when something starts to need the player with the game open: raiders seen, then at the gate;
+ * a crew calling home (static, and a voice through it, 3.11.0); a crew stopped at a fight (the radio's beeps).
+ */
 export function alertCues(before: Alerts, after: Alerts): Cue[] {
   const out: Cue[] = [];
   if (after.raid > before.raid) out.push({ id: 'alarm', gain: after.raid === 1 ? 0.6 : 1 });
-  if (after.radio && !before.radio) out.push({ id: 'radio' });
+  if (after.radio && !before.radio) out.push({ id: 'radio_call' });
+  else if (after.fight && !before.fight) out.push({ id: 'radio' });
   return out;
 }
 

@@ -160,7 +160,7 @@ describe('a crew on the radio', () => {
       const state = structuredClone(hit.state);
       state.rng = new Rng(`send-${seedStart}-${i}`).getState();
       const run = startRun(state, hit.plan, T0);
-      if (run.radio) return { state, runId: run.id };
+      if (run.radio && run.radio.forkId !== 'press_on') return { state, runId: run.id };
     }
     throw new Error('no run came to a fork');
   }

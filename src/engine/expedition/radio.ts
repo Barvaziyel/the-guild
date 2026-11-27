@@ -11,7 +11,7 @@
 import { EVENT_SEEN_PENALTY, FORK_CHANCE, RADIO_WAIT } from '../constants.ts';
 import { FORKS, getTrait, type ForkDef } from '../content/index.ts';
 import { hasTrait, getTraitInstance, revealTrait } from '../traits.ts';
-import type { BeatKind, RadioOrder } from '../types.ts';
+import type { BeatKind, PressOnView, RadioOrder } from '../types.ts';
 import { say, simDay, startBeat, type Member, type Sim } from './context.ts';
 import { cast, fitsSituation, playOutcome, text, type Cast } from './events.ts';
 
@@ -28,6 +28,18 @@ export interface ForkSpec {
   orders: RadioOrder[];
   /** What `by` does unasked. */
   pick: string;
+  /** How long they wait for an answer (ms); RADIO_WAIT when missing (3.11.0: a press-on call waits half the run). */
+  wait?: number;
+  /** A call to press on or come home (3.11.0). */
+  deeper?: PressOnView;
+}
+
+const WAIT_WORDS: Record<number, string> = { 5: 'Five minutes', 10: 'Ten minutes', 15: 'A quarter of an hour', 20: 'Twenty minutes', 25: 'Twenty-five minutes', 30: 'Half an hour' };
+
+/** "Half an hour", "Ten minutes": how long they waited, in words. */
+export function waitWords(ms: number): string {
+  const min = Math.round(ms / 60_000);
+  return WAIT_WORDS[min] ?? `${min} minutes`;
 }
 
 function lower(label: string): string {
@@ -53,7 +65,20 @@ export function reachFork(sim: Sim, spec: ForkSpec): { order: string; picked: bo
     return { order: spec.pick, picked: true };
   }
   say(sim, `${who} gets on the radio to the Depot.`);
-  sim.fork = { forkId: spec.forkId, title: spec.title, by: spec.by.s.id, intro: spec.intro, ask: spec.ask, orders: spec.orders, at: sim.offset, called, fromBeat: sim.beats.length };
+  const wait = spec.wait ?? RADIO_WAIT;
+  sim.fork = {
+    forkId: spec.forkId,
+    title: spec.title,
+    by: spec.by.s.id,
+    intro: spec.intro,
+    ask: spec.ask,
+    orders: spec.orders,
+    at: sim.offset,
+    called,
+    fromBeat: sim.beats.length,
+    ...(spec.wait !== undefined ? { wait: spec.wait } : {}),
+    ...(spec.deeper ? { deeper: spec.deeper } : {}),
+  };
   const answer = sim.answer !== undefined && spec.orders.some((o) => o.id === sim.answer) ? sim.answer : undefined;
   if (answer !== undefined) {
     // A replay for an answer given later on a led run (§7.13) waits as long as the crew did.
@@ -64,10 +89,10 @@ export function reachFork(sim: Sim, spec: ForkSpec): { order: string; picked: bo
     say(sim, `Word from home: ${labelOf(spec, answer)}.`);
     return { order: answer, picked: false };
   }
-  sim.delay += RADIO_WAIT;
-  sim.offset += RADIO_WAIT;
+  sim.delay += wait;
+  sim.offset += wait;
   startBeat(sim, spec.kind, 'No word from home');
-  say(sim, `Half an hour by the radio, and nothing. ${who} makes the call: ${labelOf(spec, spec.pick)}.`, { tone: 'bad' });
+  say(sim, `${waitWords(wait)} by the radio, and nothing. ${who} makes the call: ${labelOf(spec, spec.pick)}.`, { tone: 'bad' });
   return { order: spec.pick, picked: true };
 }
 

@@ -344,7 +344,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     title: 'On the radio',
     route: () => ({ screen: 'runs' }),
     text: () =>
-      `Now and then a crew comes to a fork: a sealed door, raiders on the road. They call in with their options and wait ${Math.round(RADIO_WAIT / 60_000)} minutes for your answer.`,
+      `Now and then a crew comes to a fork: a sealed door, raiders on the road. They call in with their options and wait ${Math.round(RADIO_WAIT / 60_000)} minutes for your answer. Where going further in would be a risk, they call from the deepest point too: press on for more, or come home with what they have.`,
   },
 
   // ---------------------------------------------------------------- building

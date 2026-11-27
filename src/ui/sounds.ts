@@ -77,6 +77,8 @@ export const SPRITE = {
   servo3: [61.07, 0.42],
   hurt2: [61.57, 0.3],
   hurt3: [61.95, 0.3],
+  radio_call: [62.33, 2.3],
+  radio_answer: [64.7099, 1.05],
 } as const;
 
 export type MusicId = keyof typeof MUSIC;
