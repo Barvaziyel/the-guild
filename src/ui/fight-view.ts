@@ -27,6 +27,7 @@ import {
   type Survivor,
 } from '../engine/index.ts';
 import { formatDuration, type Choice, type PlannedNotice } from './runs-view.ts';
+import { callSpeech } from './call-lines.ts';
 import type { Chip } from './glyphs.ts';
 import { clockTime } from './time.ts';
 
@@ -130,7 +131,7 @@ export function fightCard(state: GameState, run: Run, now: number): FightCardVie
         : `${name} has called a halt: they're about to fight, and wait for your word.`
       : f.took !== undefined
         ? `${name}'s crew is waiting for your next orders.`
-        : callLine(run, f, name),
+        : callLine(state, run, f, name),
     wait,
     chips: [...stakeChips(f, run), ...(waitsForWord(run) ? [] : [{ glyph: 'clock' as const, text: formatDuration(Math.max(60_000, f.until - now)), tone: 'bad' as const, label: wait }])],
   };
@@ -140,11 +141,9 @@ export function fightCard(state: GameState, run: Run, now: number): FightCardVie
  * What the crew says when they call (3.10.0). A crew that calls when it matters is in trouble, or worse:
  * left alone, someone would die. One that calls at every fight is just about to fight.
  */
-function callLine(run: Run, f: LedFight, name: string): string {
-  const solo = run.plan.crew.length === 1;
-  if (f.grave) return solo ? `${name}, on the radio: “I’m not coming back from this one.”` : `${name}, on the radio: “Someone isn’t coming back from this one.”`;
-  if (run.plan.lead === 'matters') return solo ? `${name}, on the radio: “I’m in trouble.”` : `${name}, on the radio: “We’re in trouble.”`;
-  return `${name}, on the radio: “Contact ahead. Your orders?”`;
+function callLine(state: GameState, run: Run, f: LedFight, name: string): string {
+  const stakes = f.grave ? 'grave' : run.plan.lead === 'matters' ? 'trouble' : 'contact';
+  return `${name}, on the radio: ${callSpeech(run, f, stakes, state.survivors.find((s) => s.id === f.by))}`;
 }
 
 /** What's at stake, as a picture (3.10.0): left alone, someone would go down, or die. Nothing for a crew that calls at every fight. */

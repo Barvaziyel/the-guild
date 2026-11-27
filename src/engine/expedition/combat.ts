@@ -58,7 +58,7 @@ import {
   SHOVE_TO_HIT,
 } from '../constants.ts';
 import { getEnemy, type EncounterDef, type EnemyDef } from '../content/index.ts';
-import { ENEMIES_BREAK, FLEE_LINES, STALEMATE_LINES, WITHDRAW_FAIL, WITHDRAW_SUCCESS } from '../content/flavor.ts';
+import { CLEAN_FIGHT_LINES, ENEMIES_BREAK, FLEE_LINES, STALEMATE_LINES, WITHDRAW_FAIL, WITHDRAW_SUCCESS } from '../content/flavor.ts';
 import { armorValue, itemDef, itemName, qualityMod, weaponDamage } from '../gear.ts';
 import { adjustRelationship } from '../relationships.ts';
 import { enemyContexts, situationalMods } from '../stats.ts';
@@ -1428,7 +1428,12 @@ export function fight(sim: Sim, enemies: Enemy[], start: FightStart): FightResul
   const clean = given > 0 && end === 'won' && sim.members.every((m) => m.ally || (!m.dead && m.s.counters.timesDowned === downsBefore.get(m)));
   if (clean) {
     const crew = alive(sim).filter((m) => !m.ally);
-    say(sim, crew.length === 1 ? `${crew[0]!.s.firstName} walks away from it on ${crew[0]!.s.pronouns === 'he' ? 'his' : 'her'} own feet.` : 'Every one of them walks away from it.', { tone: 'good' });
+    // Picked without dice: the rest of the run rolls the same either way.
+    const lines = crew.length === 1 ? CLEAN_FIGHT_LINES.solo : CLEAN_FIGHT_LINES.crew;
+    const one = crew[0]!.s;
+    const he = one.pronouns === 'he';
+    const line = lines[(sim.beats.length + one.firstName.length + attackCtx.round) % lines.length]!;
+    say(sim, line.replaceAll('{name}', one.firstName).replaceAll('{his}', he ? 'his' : 'her').replaceAll('{himself}', he ? 'himself' : 'herself'), { tone: 'good' });
     for (const m of crew) stress(sim, m, -CLEAN_FIGHT_RELIEF);
   }
   // A commanded fight as it ended, for the screen that shows how it went.
