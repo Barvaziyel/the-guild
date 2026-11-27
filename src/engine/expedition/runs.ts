@@ -23,6 +23,7 @@ import type { FightPlan, SimFork, SimStop } from './context.ts';
 import { gasNeeded, planVehicles, vehicleName } from '../vehicles.ts';
 import { addStory, applyNemesisNews, takenNames } from './stories.ts';
 import { applyEliteNews } from './elites.ts';
+import { learnParts } from '../needs.ts';
 import { answerCall, applyRescue, bringHomeFound } from '../rescue.ts';
 import { applyVultureNews } from '../vultures.ts';
 import { applyHavenNews } from '../haven.ts';
@@ -600,6 +601,8 @@ export function completeRun(state: GameState, runId: string, now: number): RunRe
   for (const news of result.nemeses ?? []) applyNemesisNews(state, news, result.crew, day, rng);
   // An elite seen, fought or brought down (§7.15, 3.12.0).
   for (const news of result.elites ?? []) applyEliteNews(state, news, day, (id) => result.crew.find((s) => s.id === id)?.firstName ?? 'someone');
+  // What they found out about the place's best parts (§7.16, 3.13.0).
+  if (result.parts) learnParts(state, run.plan.locationId, result.parts);
   if (result.rescue) applyRescue(state, run, result.rescue, day, rng);
   if (result.vultures) applyVultureNews(state, result.vultures, day, rng);
   if (result.animals) animalsFollowHome(state, result.animals, day, loc.name);

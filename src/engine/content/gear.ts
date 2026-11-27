@@ -23,7 +23,7 @@ export const GEAR: readonly GearDef[] = [
   {
     id: 'sledge',
     name: 'Sledge',
-    hooks: { moves: ['smash'] },
+    hooks: { moves: ['smash'], needHelp: ['heavy'] },
     slot: 'weapon',
     weaponType: 'melee',
     damage: 5,
@@ -118,7 +118,7 @@ export const GEAR: readonly GearDef[] = [
     slot: 'armor',
     armor: 1,
     description: 'Keeps most of the radiation out. Comes with a gas mask.',
-    hooks: { radMult: 0.25 },
+    hooks: { radMult: 0.25, needCover: ['radiation'] },
     lootWeight: 2,
   },
 
@@ -128,7 +128,7 @@ export const GEAR: readonly GearDef[] = [
     name: 'Crowbar',
     slot: 'tool',
     description: 'Opens what was meant to stay shut.',
-    hooks: { scavengeBonus: 2 },
+    hooks: { scavengeBonus: 2, needHelp: ['heavy'] },
     lootWeight: 6,
   },
   {
@@ -136,7 +136,8 @@ export const GEAR: readonly GearDef[] = [
     name: 'Geiger Counter',
     slot: 'tool',
     description: 'Clicks before the radiation gets you.',
-    hooks: { radWarning: true },
+    hooks: { radWarning: true, needHelp: ['radiation'] },
+    called: 'the Geiger counter',
     lootWeight: 3,
   },
   {
@@ -161,7 +162,7 @@ export const GEAR: readonly GearDef[] = [
     name: 'Lockpicks',
     slot: 'tool',
     description: 'Hidden stashes stay hidden less often.',
-    hooks: { stashBonus: 0.15 },
+    hooks: { stashBonus: 0.15, needHelp: ['locked'] },
     lootWeight: 4,
   },
   {
@@ -169,7 +170,7 @@ export const GEAR: readonly GearDef[] = [
     name: 'Multitool',
     slot: 'tool',
     description: 'Every tool, none of them great.',
-    hooks: { moves: ['short_out'], checkMods: [{ stat: 'wits', context: 'tech', mod: 2 }] },
+    hooks: { moves: ['short_out'], needHelp: ['machines'], checkMods: [{ stat: 'wits', context: 'tech', mod: 2 }] },
     lootWeight: 4,
   },
 

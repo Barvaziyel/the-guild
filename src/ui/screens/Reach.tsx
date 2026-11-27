@@ -19,6 +19,7 @@ import { Portrait } from '../components/Portrait.tsx';
 import { ReachMapSvg } from '../components/ReachMapSvg.tsx';
 import { navigate, useAction, useMarkSeen, useSeen } from '../hooks.ts';
 import { depthRows, exploredShort, mostlyFinds, mostlyFindsIds, outpostView } from '../outposts-view.ts';
+import { anyPartKnown, levelPart } from '../needs-view.ts';
 import { leadPlaces, placeLeadLine } from '../haven-view.ts';
 import { PLACE_TABS, type PlaceTab } from '../route.ts';
 import { callCard } from '../rescue-view.ts';
@@ -287,7 +288,8 @@ function About({ state, id }: { state: GameState; id: string }) {
   const haunting = nemesesAt(state, id);
   const elite = eliteCard(state, id);
   const levels = depthRows(state, id);
-  const deeper = levels[0]!.explored >= 100;
+  // The levels show once there's more than the outskirts, or once the guild knows what a part needs (3.13.0).
+  const deeper = levels[0]!.explored >= 100 || anyPartKnown(state, id);
   const call = callCard(state, Date.now());
   const calling = call?.locationId === id ? call : undefined;
   return (
@@ -327,6 +329,7 @@ function About({ state, id }: { state: GameState; id: string }) {
               <li key={l.depth} className={`level${l.open ? '' : ' is-locked'}`}>
                 <span className="level-name">{l.name}</span>
                 <span className="level-line">{l.line}</span>
+                <LevelPart part={levelPart(state, id, l.depth)} />
               </li>
             ))}
           </ul>
@@ -363,6 +366,17 @@ function About({ state, id }: { state: GameState; id: string }) {
         {calling && !calling.runId ? `Plan a rescue at ${loc.name}` : `Plan a run to ${loc.name}`}
       </button>
     </>
+  );
+}
+
+/** A level's best part on the Reach (3.13.0): its name and what it needs, or that it isn't known yet. */
+function LevelPart({ part }: { part: ReturnType<typeof levelPart> }) {
+  if (!part) return null;
+  return (
+    <span className="level-part">
+      {part.title && <span className="level-part-title">{part.title}</span>}
+      <Chips chips={part.chips} />
+    </span>
   );
 }
 

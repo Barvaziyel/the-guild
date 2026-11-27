@@ -111,7 +111,7 @@ export const TRAITS: readonly TraitDef[] = [
     kind: 'personality',
     description: 'Checks every shadow twice. Fewer ambushes, slower runs, a little less loot.',
     opposite: 'curious',
-    hooks: { ambushBonus: 2, durationMult: 1.1, lootBonus: -0.1 },
+    hooks: { ambushBonus: 2, durationMult: 1.1, lootBonus: -0.1, needCover: ['traps'] },
     startWeight: 5,
   },
   {
@@ -143,6 +143,7 @@ export const TRAITS: readonly TraitDef[] = [
     description: 'Good with machines. Bonus with tech and against Scrapbots.',
     hooks: {
       moves: ['short_out'],
+      needCover: ['machines'],
       checkMods: [
         { stat: 'wits', context: 'tech', mod: 2 },
         { context: 'enemy:scrapbot', mod: 1 },
@@ -193,7 +194,7 @@ export const TRAITS: readonly TraitDef[] = [
     name: 'Animal Lover',
     kind: 'personality',
     description: 'Animals sense a friend. Ferals sometimes back off.',
-    hooks: { moves: ['soothe'], checkMods: [{ stat: 'nerve', context: 'enemy:feral', mod: 2 }], likesAnimals: true },
+    hooks: { moves: ['soothe'], checkMods: [{ stat: 'nerve', context: 'enemy:feral', mod: 2 }], likesAnimals: true, needCover: ['animals'] },
     startWeight: 3,
   },
 
@@ -219,7 +220,7 @@ export const TRAITS: readonly TraitDef[] = [
     name: 'Rad-Hardened',
     kind: 'earned',
     description: 'Has soaked up so much radiation it barely bites anymore.',
-    hooks: { radMult: 0.5 },
+    hooks: { radMult: 0.5, needCover: ['radiation'] },
   },
   {
     id: 'survivor',
@@ -270,7 +271,7 @@ export const TRAITS: readonly TraitDef[] = [
     name: 'Beast-Friend',
     kind: 'earned',
     description: 'Ferals hesitate around them.',
-    hooks: { moves: ['soothe'], checkMods: [{ context: 'enemy:feral', mod: 2 }], likesAnimals: true },
+    hooks: { moves: ['soothe'], checkMods: [{ context: 'enemy:feral', mod: 2 }], likesAnimals: true, needCover: ['animals'] },
   },
 
   // ------------------------------------------------------------ stress

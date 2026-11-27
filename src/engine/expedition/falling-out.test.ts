@@ -72,7 +72,8 @@ describe('falling out', () => {
 describe('sticky fingers', () => {
   test('a find that never reaches the packs says so, whether anyone saw it go or not (2.8.9)', () => {
     let unseen = 0;
-    for (let i = 0; i < 400; i++) {
+    // 3.13.0: a scavenging crew's first search goes on the place's best part, so there are fewer searches to palm from.
+    for (let i = 0; i < 600; i++) {
       const state = openGame(`pocket-${i}`);
       for (const s of state.survivors) addTrait(s, 'greedy', { day: 1, silent: true, force: true });
       const sim = simulateRun(state, testPlan(state, 'rail_yard', { job: 'scavenge' }, 2), `p${i}`, T0);

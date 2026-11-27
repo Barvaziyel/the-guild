@@ -98,8 +98,10 @@ function rollQuality(sim: Sim): Quality {
   return sim.rng.weightedBy(QUALITIES, (q) => weights[q]);
 }
 
-export function findGear(sim: Sim, finder: Member): void {
-  const def = sim.rng.weightedBy(GEAR, (g) => g.lootWeight);
+/** A piece of gear found out here; `from` narrows it to some kinds (a gun safe holds guns). */
+export function findGear(sim: Sim, finder: Member, from?: readonly string[]): void {
+  const pool = from ? GEAR.filter((g) => from.includes(g.id)) : GEAR;
+  const def = sim.rng.weightedBy(pool.length > 0 ? pool : GEAR, (g) => g.lootWeight);
   const item = createItem(sim.state, def.id, rollQuality(sim));
   sim.items.push(item);
   say(sim, `${finder.s.firstName} finds something worth keeping: ${itemName(item)}.`, { tone: 'good' });
@@ -244,8 +246,8 @@ export function hazardBeat(sim: Sim): void {
 
   if (kind === 'collapse' || kind === 'trap') {
     // One pair of sharp eyes can save the whole crew.
-    const spotter = bestBy(crew, (m) => simBonus(sim, m, 'wits', []))!;
-    const spot = check(sim, spotter, 'wits', 9 + danger, [], { crew: true });
+    const spotter = bestBy(crew, (m) => simBonus(sim, m, 'wits', ['spot']))!;
+    const spot = check(sim, spotter, 'wits', 9 + danger, ['spot'], { crew: true });
     if (spot.success) {
       say(sim, flavor(sim, text.avoided, { a: spotter }), { check: spot.info, tone: 'good' });
       return;

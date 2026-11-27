@@ -11,6 +11,15 @@ export const STAT_IDS = ['grit', 'brawn', 'aim', 'wits', 'nerve'] as const;
 export type StatId = (typeof STAT_IDS)[number];
 export type Stats = Record<StatId, number>;
 
+// ---------------------------------------------------------------- needs (§7.16, 3.13.0)
+
+/**
+ * What a place's best part takes (§7.16): someone who can open a lock, lift what's heavy, walk into
+ * radiation, get a machine running, swim, carry a load out, see what's rigged, or walk past animals.
+ */
+export const NEED_KINDS = ['locked', 'heavy', 'radiation', 'machines', 'flooded', 'carry', 'traps', 'animals'] as const;
+export type NeedKind = (typeof NEED_KINDS)[number];
+
 // ---------------------------------------------------------------- traits
 
 export type TraitKind = 'personality' | 'earned' | 'stress' | 'scar' | 'condition';
@@ -82,6 +91,8 @@ export interface TraitHooks {
   ignoresRetreat?: boolean;
   /** Has a way with animals: strays at the Depot come to them (Animal Lover, Beast-Friend). */
   likesAnimals?: boolean;
+  /** Covers these needs of a place's best part on their own, whatever the stats (§7.16): a Tinkerer and machines. */
+  needCover?: NeedKind[];
   /** Situational check modifiers. */
   checkMods?: CheckMod[];
 }
@@ -161,6 +172,10 @@ export interface GearHooks {
   rerollFails?: number;
   /** Moves this item adds in a fight the player commands (§7.13). */
   moves?: MoveId[];
+  /** Covers these needs on its own, in anyone's hands (§7.16): a Hazmat Suit and radiation. */
+  needCover?: NeedKind[];
+  /** Lowers the bar for these needs, for whoever holds it (§7.16): Lockpicks and a lock. */
+  needHelp?: NeedKind[];
   checkMods?: CheckMod[];
 }
 
@@ -184,6 +199,8 @@ export interface GearDef {
   consumable?: boolean;
   /** Relative rarity in loot tables (higher = more common). */
   lootWeight: number;
+  /** How a line names it mid-sentence, when its name in lower case would be wrong: "the Geiger counter". */
+  called?: string;
 }
 
 export interface ItemInstance {
@@ -604,6 +621,8 @@ export interface RunSummary {
   nemeses?: NemesisNews[];
   /** Elites seen, fought or killed (§7.15, 3.12.0). */
   elites?: EliteNews[];
+  /** The levels of the place whose best part this run found out about (§7.16, 3.13.0). */
+  parts?: number[];
   /** The vehicles taken, after the run. Missing on foot and before save version 11. */
   vehicles?: VehicleNews[];
   /** Vehicles found out there and brought home. */
@@ -754,6 +773,11 @@ export interface PressOnView {
   items: number;
   /** How each of them is, by survivor id. */
   crew: { id: string; hp: number; maxHp: number; down: boolean }[];
+  /**
+   * The best part of the level they'd go into (§7.16, 3.13.0), if it has one: whether the guild knows of it, and
+   * each of its needs, covered or not by the crew as they stand.
+   */
+  part?: { known: boolean; needs: { kind: NeedKind; covered: boolean }[] };
 }
 
 /** One order's run from the fork on. */
@@ -791,6 +815,11 @@ export interface LocationState {
   runs: number;
   /** Explored 0..100 of the deeper levels (§7.10): [deeper in, the heart of it]. Missing until the first is opened. */
   depths?: number[];
+  /**
+   * The levels whose best part the guild knows about (§7.16, 3.13.0), and so what it needs: met there, or seen a
+   * level ahead by scouts. Missing until the first.
+   */
+  parts?: number[];
 }
 
 /** A camp the guild keeps at a fully explored place (§7.9). Its people are survivors with `outpost` set to the place. */

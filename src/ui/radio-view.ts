@@ -8,6 +8,7 @@ import type { Route } from './route.ts';
 import { formatDuration, type PlannedNotice } from './runs-view.ts';
 import { fightNoticeRun } from './fight-view.ts';
 import { clockTime } from './time.ts';
+import { deeperChips } from './needs-view.ts';
 
 export interface RadioCardView {
   runId: string;
@@ -42,7 +43,8 @@ export function pressOnCard(run: Run, view: PressOnView): PressOnCardView {
   const where: Chip = { glyph: 'compass', text: view.level >= 3 ? 'the heart' : 'deeper', label: view.level >= 3 ? 'Into the heart of it' : 'Deeper in' };
   const gear: Chip[] = view.items > 0 ? [{ glyph: 'crate', text: `${view.items}`, tone: 'good', label: `${view.items} ${view.items === 1 ? 'piece' : 'pieces'} of gear` }] : [];
   return {
-    chips: [where, risk],
+    // What the level further in needs, lit by who in the crew can do it (3.13.0).
+    chips: [where, risk, ...deeperChips(view)],
     haul: [...supplyChips(view.haul, { tone: 'good' }), ...gear],
     crew: view.crew.map((m) => ({ ...m, name: run.result.crew.find((s) => s.id === m.id)?.firstName ?? '?' })),
   };

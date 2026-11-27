@@ -47,6 +47,16 @@ export const GLYPHS = {
   sweep: 'M20 6C10 6 4 9 4 12s6 6 16 6 M20 18l-4-3 M20 18l-3 3',
   wave: 'M3 15c2-2 4-2 6 0s4 2 6 0 4-2 6 0 M3 19c2-2 4-2 6 0s4 2 6 0 4-2 6 0 M12 3v8 M9 8l3 3 3-3',
   plates: 'M4 5h7v6H4Z M13 5h7v6h-7Z M4 13h16v6H4Z',
+  // What a place's best part needs (3.13.0), and a part not known yet.
+  lock: 'M6 11h12v10H6Z M8.5 11V8a3.5 3.5 0 0 1 7 0v3 M12 15v2',
+  weight: 'M5 20l2-10h10l2 10Z M9 10V7a3 3 0 0 1 6 0v3',
+  rads: 'M12 12 7.5 4.2A9 9 0 0 1 16.5 4.2Z M12 12h9a9 9 0 0 1-4.5 7.8Z M12 12l-4.5 7.8A9 9 0 0 1 3 12Z',
+  cog: 'M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z M12 5.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13Z M12 2v3.5 M12 18.5V22 M2 12h3.5 M18.5 12H22 M4.9 4.9l2.5 2.5 M16.6 16.6l2.5 2.5 M4.9 19.1l2.5-2.5 M16.6 7.4l2.5-2.5',
+  water: 'M3 8c2-2 4-2 6 0s4 2 6 0 4-2 6 0 M3 13c2-2 4-2 6 0s4 2 6 0 4-2 6 0 M3 18c2-2 4-2 6 0s4 2 6 0 4-2 6 0',
+  load: 'M4 11h16v10H4Z M4 15h16 M12 2v6 M9 5l3-3 3 3',
+  trap: 'M4 13a8 8 0 0 0 16 0 M4 13h16 M4 13l2-3 2 3 2-3 2 3 2-3 2 3 2-3 2 3',
+  paw: 'M7.5 17.5c0-2.5 2-4.5 4.5-4.5s4.5 2 4.5 4.5c0 1.8-2 2.5-4.5 2.5s-4.5-.7-4.5-2.5Z M4.5 11a1.5 2 0 1 0 3 0 1.5 2 0 1 0-3 0Z M8 7a1.5 2 0 1 0 3 0 1.5 2 0 1 0-3 0Z M13 7a1.5 2 0 1 0 3 0 1.5 2 0 1 0-3 0Z M16.5 11a1.5 2 0 1 0 3 0 1.5 2 0 1 0-3 0Z',
+  unknown: 'M9 9a3 3 0 1 1 4.5 2.6c-1 .6-1.5 1.3-1.5 2.4v.5 M12 18.5v.01',
 } as const;
 
 export type GlyphName = keyof typeof GLYPHS;
@@ -59,6 +69,8 @@ export interface Chip {
   tone?: 'good' | 'bad';
   /** Read out instead of the short text. */
   label?: string;
+  /** Shown dark: what could be, but isn't (a need nobody in the crew covers). */
+  dim?: true;
 }
 
 const SUPPLY_NAMES: Record<ResourceId, string> = { scrap: 'scrap', rations: 'rations', meds: 'meds', ammo: 'ammo', tech: 'tech', gas: 'gas' };

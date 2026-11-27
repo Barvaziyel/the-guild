@@ -3,6 +3,7 @@
  * survivors, so nothing here touches the real GameState.
  */
 import type { SimElite } from './elites.ts';
+import { perkMod, type CrewPerk } from '../needs.ts';
 import {
   BONDED_CHECK_BONUS,
   BONDED_STRESS_MULT,
@@ -127,6 +128,12 @@ export interface Sim {
   nemesisMet: boolean;
   /** The elite where the run goes (§7.15, 3.12.0), while it's at large and the run might cross it. */
   elite?: SimElite;
+  /** Levels whose best part this run came to (§7.16, 3.13.0), or saw from above: the guild knows of them once the crew is back. */
+  parts?: number[];
+  /** Levels whose part the guild already knew of at departure, for the press-on card. */
+  partsKnown?: readonly number[];
+  /** The crew's perks (§7.16): pairs whose traits work together. */
+  perks?: CrewPerk[];
   /** Names already given out (nicknames, weapons, nemeses), so new ones don't repeat them. */
   takenNames: Set<string>;
   /** The vehicles the crew took (copies), with who rides in each. */
@@ -427,6 +434,11 @@ export function simBonus(sim: Sim, m: Member, stat: StatId, contexts: readonly s
   if (opts.crew) bonus += cohesion(sim);
   if (hasBondedHere(sim, m)) bonus += BONDED_CHECK_BONUS;
   if (sim.members.length === 1) bonus += sumTraitHook(m.s, 'soloBonus');
+  // A pair whose traits work together (3.13.0), while both are on their feet.
+  if (sim.perks && sim.perks.length > 0) {
+    const up = standing(sim).map((o) => o.s.id);
+    bonus += perkMod(sim.perks.filter((p) => up.includes(p.pair[0]) && up.includes(p.pair[1])), m.s.id, stat, contexts);
+  }
   return bonus;
 }
 

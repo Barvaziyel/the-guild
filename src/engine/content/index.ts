@@ -26,6 +26,8 @@ export {
 export { FORKS, type ForkDef, type ForkOrder, type ForkPick, type RadioMood } from './forks.ts';
 export { PRESS_ON, PRESS_ASIDES, PRESS_ON_GO, PRESS_ON_HOME, PRESS_ON_PICKS, type PressOnDef, type PressOnMeet, type PressOnTeaser } from './press-on.ts';
 export { MOVES, type MoveDef } from './moves.ts';
+export { NEEDS, PARTS, PART_HAUL, partAt, type NeedDef, type NeedFail, type PartDef, type PartNeed } from './needs.ts';
+export { PERKS, type PerkDef } from './perks.ts';
 export { EVOLUTIONS, type EvolutionRule, type RunTally, type NumericCounter } from './evolutions.ts';
 export { BUILDINGS, type BuildingDef, type BuildingLevel } from './buildings.ts';
 export { RECIPES, UPGRADES, type Recipe, type Upgrade } from './workshop.ts';
