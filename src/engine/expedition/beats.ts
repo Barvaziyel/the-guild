@@ -113,7 +113,7 @@ export function addLoot(sim: Sim, res: ResourceId, amount: number): void {
  * 2 or 3, half the time each). At least 1.
  */
 export function richFind(sim: Sim, amount: number): number {
-  const x = amount * richness(sim.plan) * sim.thin;
+  const x = amount * simRichness(sim) * sim.thin;
   const whole = Math.floor(x);
   return Math.max(1, whole + (sim.rng.chance(x - whole) ? 1 : 0));
 }
@@ -124,6 +124,11 @@ export function richFind(sim: Sim, amount: number): number {
  * (each level down is +1 danger, §7.10). A load in the packs holds this much
  * more too, so the carry limit counts the same loads.
  */
+/** Richness where the crew is now: the plan's level, or the one they pressed on into (3.11.0). */
+export function simRichness(sim: Sim): number {
+  return richness(sim.deeper !== undefined ? { locationId: sim.plan.locationId, depth: sim.deeper } : sim.plan);
+}
+
 export function richness(plan: { locationId: string; depth?: number }): number {
   const danger = getLocation(plan.locationId).danger + planDepth(plan) - 1;
   return 1 + LOOT_PER_DANGER * (danger - 1);

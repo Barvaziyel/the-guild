@@ -2,7 +2,8 @@
  * Crews calling home from a fork (§7.12): the cards that ask for an answer,
  * the notices, and what the report says about the call.
  */
-import { getLocation, radioWaiting, type GameState, type Run, type RunReport, type Survivor } from '../engine/index.ts';
+import { getLocation, radioWaiting, type GameState, type PressOnView, type Run, type RunReport, type Survivor } from '../engine/index.ts';
+import { supplyChips, type Chip } from './glyphs.ts';
 import type { Route } from './route.ts';
 import { formatDuration, type PlannedNotice } from './runs-view.ts';
 import { fightNoticeRun } from './fight-view.ts';
@@ -18,8 +19,33 @@ export interface RadioCardView {
   intro: string;
   ask: string;
   orders: { id: string; label: string }[];
-  /** "They'll wait 24 more minutes. Unanswered, Mara decides by the crew's orders." */
+  /** "They'll wait 24 more minutes. Unanswered, Mara decides by the crew's orders." Read out; the card shows `waitChips`. */
   wait: string;
+  /** The minutes left, as a tag (3.11.0: helper text as pictures). */
+  waitChips: Chip[];
+  /** A call to press on or come home (3.11.0): what they carry, how they are, and how far in it goes. */
+  deeper?: PressOnCardView;
+}
+
+export interface PressOnCardView {
+  /** Where it goes, and how risky: "deeper in", "High risk". */
+  chips: Chip[];
+  /** What they carry, as supply tags, and a tag for gear found. */
+  haul: Chip[];
+  /** How each of them is. */
+  crew: { id: string; name: string; hp: number; maxHp: number; down: boolean }[];
+}
+
+/** What a press-on call shows (3.11.0). */
+export function pressOnCard(run: Run, view: PressOnView): PressOnCardView {
+  const risk: Chip = { glyph: view.risk === 'Moderate' ? 'down' : 'skull', text: view.risk.toLowerCase(), tone: 'bad', label: `${view.risk} risk, further in, for this crew` };
+  const where: Chip = { glyph: 'compass', text: view.level >= 3 ? 'the heart' : 'deeper', label: view.level >= 3 ? 'Into the heart of it' : 'Deeper in' };
+  const gear: Chip[] = view.items > 0 ? [{ glyph: 'crate', text: `${view.items}`, tone: 'good', label: `${view.items} ${view.items === 1 ? 'piece' : 'pieces'} of gear` }] : [];
+  return {
+    chips: [where, risk],
+    haul: [...supplyChips(view.haul, { tone: 'good' }), ...gear],
+    crew: view.crew.map((m) => ({ ...m, name: run.result.crew.find((s) => s.id === m.id)?.firstName ?? '?' })),
+  };
 }
 
 function callerOf(state: GameState, run: Run): { survivor: Survivor | undefined; name: string } {
@@ -58,6 +84,8 @@ export function radioCard(state: GameState, run: Run, now: number): RadioCardVie
     ask: call.ask,
     orders: call.orders,
     wait: `${name} will wait ${minutesLeft(call.until - now)} for an answer. After that, ${name} decides by the crew's orders.`,
+    waitChips: [{ glyph: 'clock', text: formatDuration(Math.max(60_000, call.until - now)), tone: 'bad', label: `${name} will wait ${minutesLeft(call.until - now)} for an answer, then decides by the crew's orders` }],
+    ...(call.deeper ? { deeper: pressOnCard(run, call.deeper) } : {}),
   };
 }
 

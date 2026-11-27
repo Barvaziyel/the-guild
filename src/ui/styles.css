@@ -7208,3 +7208,20 @@ p.is-bad {
 .fight-clean {
   margin: 0.25rem 0 0.5rem;
 }
+
+/* A call to press on or come home (3.11.0): where it goes, what they carry, how they are. */
+.press-on {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0.75rem 0;
+}
+.press-on-crew {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+.radio-wait {
+  margin-top: 0.6rem;
+}

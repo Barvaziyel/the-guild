@@ -29,7 +29,8 @@ function ledRun(seed: string, opts: { job?: RunJob; place?: string; setup?: (s: 
     opts.setup?.(state);
     state.rng = new Rng(`${seed}-${i}`).getState();
     const run = startRun(state, { ...testPlan(state, opts.place ?? PLACES[i % PLACES.length]!, { job: opts.job ?? 'hunt', meds: 2 }), lead: true }, T0);
-    if (run.lead!.fights.length > 0) return { state, run };
+    // A call to press on (3.11.0) moves the run's times about: these tests are about the fights alone.
+    if (run.lead!.fights.length > 0 && run.radio?.forkId !== 'press_on') return { state, run };
   }
   throw new Error('no led run came to a fight');
 }

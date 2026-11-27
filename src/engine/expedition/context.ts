@@ -37,6 +37,7 @@ import type {
   ItemInstance,
   LogLine,
   Nemesis,
+  PressOnView,
   NemesisNews,
   RadioOrder,
   Rank,
@@ -168,6 +169,8 @@ export interface Sim {
   goal?: FightGoal;
   /** The crew caught them off guard this round (3.8.0): they do nothing, and show nothing. */
   caught?: boolean;
+  /** They pressed on (3.11.0): the level they're on now, deeper than the plan's. Finds and packs go by it. */
+  deeper?: number;
 }
 
 /** A led run's fights (§7.13). */
@@ -223,6 +226,10 @@ export interface SimFork {
   called: boolean;
   /** Index of the first beat after the call. */
   fromBeat: number;
+  /** How long they wait for an answer (ms); RADIO_WAIT when missing. */
+  wait?: number;
+  /** A call to press on or come home (3.11.0). */
+  deeper?: PressOnView;
 }
 
 /** What a run knows of the Vultures: copies, so the real ones only change when the crew is back. */

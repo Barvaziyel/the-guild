@@ -9,6 +9,9 @@ import {
   DC,
   EXPLORE_GAIN,
   HUNGER_STRESS,
+  PRESS_ON_BEAT_TIME,
+  PRESS_ON_SECOND_BEAT,
+  PRESS_ON_WAIT,
   MAX_BEATS,
   MENTOR_NEWCOMER_RUNS,
   MENTOR_RUNS,
@@ -43,7 +46,7 @@ import {
   VULTURES_TURF_FINDS,
   TRADE_LOAD,
 } from '../constants.ts';
-import { getLocation, getTrait, getVehicleDef } from '../content/index.ts';
+import { PRESS_ASIDES, PRESS_ON, PRESS_ON_GO, PRESS_ON_HOME, PRESS_ON_PICKS, getEnemy, getLocation, getTrait, getVehicleDef, type PressOnDef, type PressOnTeaser } from '../content/index.ts';
 import { DEPART_LINES, RETURN_LINES } from '../content/flavor.ts';
 import { applyEvolutions } from '../evolution.ts';
 import { itemDef, itemName, sumGearHook } from '../gear.ts';
@@ -51,7 +54,7 @@ import { addFlag, adjustRelationship, getRelationship, labelFor, pairKey, relati
 import { Rng } from '../rng.ts';
 import { carryCapacity, maxHp } from '../stats.ts';
 import { amountOf, fillRoles, fullName, pronounForms } from '../text.ts';
-import { addTrait, maxTraitHook, revealTrait, sumTraitHook } from '../traits.ts';
+import { addTrait, hasTrait, maxTraitHook, revealTrait, sumTraitHook } from '../traits.ts';
 import type {
   Beat,
   BeatKind,
@@ -69,7 +72,7 @@ import type {
   VultureNews,
 } from '../types.ts';
 import { RESOURCE_IDS } from '../types.ts';
-import { combatBeat, discoveryBeat, hazardBeat, richness, scavengeBeat, socialBeat, travelBeat } from './beats.ts';
+import { combatBeat, discoveryBeat, findGear, hazardBeat, scavengeBeat, simRichness, socialBeat, travelBeat } from './beats.ts';
 import {
   absorbRads,
   alive,
@@ -96,7 +99,7 @@ import {
   type SimVultures,
   revealHook,
 } from './context.ts';
-import { tryEvent } from './events.ts';
+import { playOutcome, tryEvent } from './events.ts';
 import { footDuration, hungryCrew, rationsPacked, runDuration } from './plan.ts';
 import { atDepth, planDepth } from '../locations.ts';
 import { outpostNear } from '../outposts.ts';
@@ -109,7 +112,7 @@ import { resolveWounds } from './wounds.ts';
 import { rescueBeat, rescueNews } from './rescue.ts';
 import { vulturesBeat } from './vultures.ts';
 import { tradeBeat } from './trade.ts';
-import { tryFork } from './radio.ts';
+import { reachFork, tryFork } from './radio.ts';
 import type { FightView } from './command.ts';
 import type { RoundOrders } from '../types.ts';
 import { campAt, campLeader, neighbours, onTurf, vultureBand, vulturesActive } from '../vultures.ts';
@@ -246,6 +249,108 @@ function rattleVehicles(sim: Sim): void {
       { tone: 'bad' },
     );
   }
+}
+
+/**
+ * Press on or come home (3.11.0, §7.12). The crew has come to the deepest point
+ * of the run with something further in: a stash, something big, a voice. The
+ * steadiest of them calls home with what they carry and how they are. Pressing on
+ * plays a beat or two a level further in (harder, and richer), the first of the
+ * kind the find promised; coming home is the run as it was. Unanswered, the
+ * caller decides: by a trait of theirs, else by the crew's orders. Returns the
+ * level they went into, if they did.
+ */
+function pressOnCall(sim: Sim, slot: number, duration: number, recallAt: number | undefined): number | undefined {
+  const level = planDepth(sim.plan) + 1;
+  const caller = bestBy(standing(sim).filter((m) => !m.ally), (m) => simBonus(sim, m, 'nerve', []));
+  if (!caller) return undefined;
+  const job = sim.plan.job === 'scout' || sim.plan.job === 'hunt' ? sim.plan.job : 'scavenge';
+  const teaser = sim.rng.weightedBy(Object.keys(PRESS_ON) as PressOnTeaser[], (t) => PRESS_ON[t].weight[job]);
+  const def = PRESS_ON[teaser];
+  startBeat(sim, 'discovery', def.title);
+  const intro = flavor(sim, def.intro, { a: caller });
+  say(sim, intro);
+  const voice = PRESS_ASIDES.find((v) => caller.s.traits.some((t) => t.id === v.trait && !t.hidden));
+  const aside = voice && sim.rng.chance(0.6) ? ` ${sim.rng.pick(voice.lines)}` : '';
+  const ask = `${flavor(sim, def.ask, { a: caller })}${aside}`;
+  say(sim, `${caller.s.firstName}: “${ask}”`);
+  const pick = PRESS_ON_PICKS.find((p) => (!p.trait || hasTrait(caller.s, p.trait)) && (!p.retreat || p.retreat === sim.plan.retreat))!;
+  const wait = Math.min(PRESS_ON_WAIT[1], Math.max(PRESS_ON_WAIT[0], Math.round(duration / 2 / 300_000) * 300_000));
+  const { order, picked } = reachFork(sim, {
+    forkId: 'press_on',
+    title: def.title,
+    kind: 'discovery',
+    by: caller,
+    intro,
+    ask,
+    orders: [
+      { id: 'press', label: 'Press on' },
+      { id: 'home', label: 'Come home' },
+    ],
+    pick: pick.order,
+    wait,
+    deeper: {
+      teaser,
+      level,
+      risk: sim.plan.pressOn ?? 'Moderate',
+      haul: Object.fromEntries(RESOURCE_IDS.filter((r) => sim.loot[r] > 0).map((r) => [r, sim.loot[r]])),
+      items: sim.items.length,
+      crew: sim.members.filter((m) => !m.ally && !m.dead).map((m) => ({ id: m.s.id, hp: m.s.hp, maxHp: maxHp(m.s), down: m.down })),
+    },
+  });
+  // A hidden trait that made the call shows itself.
+  if (picked && pick.trait && caller.s.traits.some((t) => t.id === pick.trait && t.hidden)) {
+    revealTrait(caller.s, pick.trait, simDay(sim));
+    say(sim, `So that is how it is: ${caller.s.firstName} is ${getTrait(pick.trait).name}.`);
+  }
+  if (order !== 'press') {
+    say(sim, flavor(sim, PRESS_ON_HOME, { a: caller }));
+    return undefined;
+  }
+  say(sim, flavor(sim, PRESS_ON_GO, { a: caller }, { where: level >= 3 ? 'into the heart of it' : 'deeper in' }));
+  sim.loc = atDepth(getLocation(sim.plan.locationId), level);
+  sim.deeper = level;
+  const beats = 1 + (sim.rng.chance(PRESS_ON_SECOND_BEAT) ? 1 : 0);
+  let previous: MidKind | undefined;
+  for (let k = 0; k < beats; k++) {
+    if (sim.turnBack || sim.routed || standing(sim).length === 0) break;
+    // Each beat further in takes a little longer than one on the way.
+    const time = Math.round(slot * PRESS_ON_BEAT_TIME);
+    sim.delay += time;
+    sim.offset += time;
+    // Called home for a raid (§9.8): what would have come next never does.
+    if (recallAt !== undefined && sim.offset >= recallAt) {
+      calledHome(sim, Math.max(recallAt, sim.beats.at(-1)?.at ?? 0));
+      break;
+    }
+    const kind: MidKind = k === 0 ? def.beat : pickBeatKind(sim, previous, false);
+    // Whoever was further in, met face to face; any other first beat is one of its kind.
+    if (!(k === 0 && meetFurtherIn(sim, def)) && !tryEvent(sim, kind)) BEAT_FNS[kind](sim);
+    // What the find promised (a stash, or what the big one was guarding) is there for a crew still on its feet.
+    if (k === 0 && def.prize && !sim.turnBack && !sim.routed) {
+      const finder = bestBy(standing(sim), (m) => simBonus(sim, m, 'wits', []));
+      if (finder) findGear(sim, finder);
+    }
+    endBeat(sim, kind);
+    previous = kind;
+  }
+  return level;
+}
+
+/**
+ * The first beat past a call that promised someone (3.11.0): who it was, played
+ * like an event's outcome. A trap only where there are people to set one.
+ */
+function meetFurtherIn(sim: Sim, def: PressOnDef): boolean {
+  const meets = (def.meets ?? []).filter((m) => !m.enemy || sim.loc.encounters.some((e) => e.enemies.some((id) => getEnemy(id).type === m.enemy)));
+  if (meets.length === 0) return false;
+  const meet = sim.rng.weightedBy(meets, (m) => m.weight);
+  const stat = meet.check && 'stat' in meet.check ? meet.check.stat : 'nerve';
+  const a = bestBy(standing(sim), (m) => simBonus(sim, m, stat, []));
+  if (!a) return false;
+  startBeat(sim, 'discovery', meet.title);
+  playOutcome(sim, { id: 'press_on', title: meet.title, kind: 'discovery', weight: 1, a: {}, intro: '' }, { a }, meet);
+  return true;
 }
 
 /** Everything that happens at the end of every beat out in the Reach. */
@@ -426,7 +531,7 @@ function packLoot(sim: Sim, outcome: RunOutcome): { loot: Resources; leftBehind:
     sim.items = sim.items.slice(0, capacity);
   }
   // A load out of a richer place holds more (§7.6): the finds were made bigger, so the packs hold as many loads.
-  const rich = richness(sim.plan);
+  const rich = simRichness(sim);
   const room = Math.round((capacity - sim.items.length) * rich);
   const total = (): number => RESOURCE_IDS.reduce((sum, r) => sum + loot[r], 0);
   let dropped = 0;
@@ -639,6 +744,12 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
     done += 1;
   }
 
+  // Press on or come home (3.11.0): at the deepest point, when going further in is a real gamble, they call.
+  const deeper =
+    !road && plan.pressOn && done === middle && !sim.turnBack && !sim.routed && !sim.fork && standing(sim).length > 0
+      ? pressOnCall(sim, slot, duration, opts.recallAt)
+      : undefined;
+
   const cutShort = done < middle || sim.turnBack || sim.routed;
   const outcome: RunOutcome =
     alive(sim).length === 0 ? 'lost' : sim.routed ? 'routed' : cutShort ? 'turnedBack' : 'completed';
@@ -743,6 +854,7 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
     ...(sim.lead ? { stops: sim.lead.stops, ends: sim.lead.ends } : {}),
     result: {
       outcome,
+      ...(deeper !== undefined ? { deeper } : {}),
       crew: sim.members.map((m) => m.s),
       relationships: Object.values(shell.relationships),
       loot,

@@ -166,8 +166,23 @@ describe('alerts while looking (3.1.0)', () => {
   test('raiders seen, then at the gate, each ring the bell; a call comes in on the radio', () => {
     assert.deepEqual(alertCues(quiet, { radio: false, raid: 1 }).map((c) => c.id), ['alarm']);
     assert.deepEqual(alertCues({ radio: false, raid: 1 }, { radio: false, raid: 2 }).map((c) => c.id), ['alarm']);
-    assert.deepEqual(alertCues(quiet, { radio: true, raid: 0 }).map((c) => c.id), ['radio']);
+    assert.deepEqual(alertCues(quiet, { radio: true, raid: 0 }).map((c) => c.id), ['radio_call']);
+    assert.deepEqual(alertCues(quiet, { radio: false, fight: true, raid: 0 }).map((c) => c.id), ['radio']);
     assert.deepEqual(alertCues({ radio: true, raid: 2 }, { radio: true, raid: 2 }), []);
+  });
+
+  test('answering a crew on the radio keys the mic; nobody answering makes no sound (3.11.0)', () => {
+    const state = openGame('radio-answer');
+    const [a] = state.survivors;
+    const run = startRun(state, testPlan(state), T0);
+    run.radio = { forkId: 'press_on', title: 'Further in', by: a!.id, intro: '', ask: '', orders: [{ id: 'press', label: 'Press on' }, { id: 'home', label: 'Come home' }], at: T0 + 1000, until: T0 + 600_000, fromBeat: 0 };
+    const before = structuredClone(state);
+    const after = structuredClone(state);
+    Object.assign(after.runs.find((r) => r.id === run.id)!.radio!, { answer: 'press', answeredAt: T0 + 5000 });
+    assert.deepEqual(stateCues(before, after).map((c) => c.id), ['radio_answer']);
+    const late = structuredClone(state);
+    Object.assign(late.runs.find((r) => r.id === run.id)!.radio!, { answer: 'none' });
+    assert.deepEqual(stateCues(before, late), []);
   });
 });
 

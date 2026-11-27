@@ -3,18 +3,18 @@
  * log while they're away, and applying the outcome when they come home.
  */
 import { addChronicle, addGuildLog } from '../chronicle.ts';
-import { BLAME_CHANCE, LEAD_ID_BLOCK, LEAD_WAIT, MAX_REPORTS, PARTNER_GRIEF_EXTRA_DAYS, PARTNER_LOSS_STRESS, RADIO_WAIT, REL_BLAME, STRESS_MAX } from '../constants.ts';
+import { BLAME_CHANCE, DEPTHS, LEAD_ID_BLOCK, LEAD_WAIT, MAX_REPORTS, PARTNER_GRIEF_EXTRA_DAYS, PARTNER_LOSS_STRESS, PRESS_ON_SAMPLES, RADIO_WAIT, REL_BLAME, STRESS_MAX } from '../constants.ts';
 import { buildingName, trimPosts } from '../depot/buildings.ts';
 import { ENEMIES, HAVEN_JOURNEY, getLocation } from '../content/index.ts';
 import { dayAt, withRng } from '../game.ts';
 import { newId } from '../ids.ts';
-import { addExplored, ensureLocationState, exploredAt, planDepth } from '../locations.ts';
+import { addExplored, depthOpen, ensureLocationState, exploredAt, planDepth } from '../locations.ts';
 import { adjustRelationship, arePartners, pairKey, relationshipLabel, relationshipScore } from '../relationships.ts';
 import { Rng } from '../rng.ts';
 import { changeStress } from '../stats.ts';
 import { fullName, pronounForms } from '../text.ts';
 import { addTrait, getTraitInstance, hasTrait } from '../traits.ts';
-import type { Beat, DepartureMark, GameState, LedFight, RadioBranch, RadioCall, RoundOrders, Run, RunDeath, RunHome, RunLead, RunPlan, RunReport, RunSummary, Survivor } from '../types.ts';
+import type { Beat, DepartureMark, GameState, LedFight, RadioBranch, RadioCall, RoundOrders, Run, RunDeath, RunHome, RunLead, RunJob, RunPlan, RunReport, RunSummary, Survivor } from '../types.ts';
 import { RESOURCE_IDS, SLOTS } from '../types.ts';
 import { rationsPacked, validatePlan } from './plan.ts';
 import { runStart, simulateRun, type SimulatedRun } from './sim.ts';
@@ -38,7 +38,11 @@ export function startRun(state: GameState, given: RunPlan, now: number): Run {
   const problems = validatePlan(state, given);
   if (problems.length > 0) throw new Error(`Cannot start run: ${problems.join(' ')}`);
   // A trade is priced at the market as it is now (§7.14), and the run, and every replay of it, keeps that price.
-  const plan: RunPlan = given.job === 'trade' && given.trade ? { ...given, trade: { ...given.trade, quote: marketQuote(state.market, given.trade) } } : given;
+  const priced: RunPlan = given.job === 'trade' && given.trade ? { ...given, trade: { ...given.trade, quote: marketQuote(state.market, given.trade) } } : given;
+  // Whether they may call about pressing on (3.11.0) is settled now, from the plan, and kept with it for every replay.
+  const { pressOn: _asked, ...fresh } = priced;
+  const deeper = pressOnRisk(state, fresh);
+  const plan: RunPlan = deeper ? { ...fresh, pressOn: deeper } : fresh;
 
   const seed = String(withRng(state, (rng) => rng.seed32()));
   const sim = simulateRun(state, plan, seed, now);
@@ -121,7 +125,18 @@ function radioCall(state: GameState, plan: RunPlan, seed: string, now: number, s
 /** The call a fork makes, without branches. */
 function callFrom(fork: SimFork, departAt: number): RadioCall {
   const at = departAt + fork.at;
-  return { forkId: fork.forkId, title: fork.title, by: fork.by, intro: fork.intro, ask: fork.ask, orders: fork.orders, at, until: at + RADIO_WAIT, fromBeat: fork.fromBeat };
+  return {
+    forkId: fork.forkId,
+    title: fork.title,
+    by: fork.by,
+    intro: fork.intro,
+    ask: fork.ask,
+    orders: fork.orders,
+    at,
+    until: at + (fork.wait ?? RADIO_WAIT),
+    fromBeat: fork.fromBeat,
+    ...(fork.deeper ? { deeper: fork.deeper } : {}),
+  };
 }
 
 /** A crew on the radio, waiting for an answer at `now`. */
@@ -269,7 +284,7 @@ function storeReplay(state: GameState, run: Run, sim: SimulatedRun): void {
 export function dueBack(run: Run, now: number): number {
   let at = run.returnAt;
   for (const f of run.lead?.fights ?? []) if (f.at > now && f.took === undefined && f.ended === undefined) at -= LEAD_WAIT;
-  if (run.radio && run.radio.answer === undefined && run.radio.at > now) at -= RADIO_WAIT;
+  if (run.radio && run.radio.answer === undefined && run.radio.at > now) at -= run.radio.until - run.radio.at;
   return Math.max(run.departAt, at);
 }
 
@@ -601,6 +616,8 @@ export function completeRun(state: GameState, runId: string, now: number): RunRe
   const depth = planDepth(run.plan);
   const before = exploredAt(state, loc.id, depth);
   addExplored(state, loc.id, depth, result.exploredGain);
+  // Pressing on (3.11.0) maps a little of the level they went into, once it's open to the guild.
+  if (result.deeper !== undefined && depthOpen(state, loc.id, result.deeper)) addExplored(state, loc.id, result.deeper, Math.ceil(result.exploredGain / 2));
   if (before < 100 && exploredAt(state, loc.id, depth) >= 100) {
     const text = [
       `The outskirts of ${loc.name} are fully explored. The way deeper in is open, and the guild could set up an outpost here.`,
@@ -700,6 +717,21 @@ function bringGearHome(state: GameState, s: Survivor, day: number, place: string
 }
 
 // ---------------------------------------------------------------- risk
+
+/** Jobs that can come to a point where going further in is a choice (3.11.0). */
+const PRESS_ON_JOBS: ReadonlySet<RunJob> = new Set(['scavenge', 'scout', 'hunt']);
+
+/**
+ * Press on or come home (3.11.0): may this crew call about going a level further in? Only when that's a real
+ * gamble for them: the next level is Moderate risk or worse for this crew, worked out from the plan as the
+ * planner works out its risk, never from how this run will go, so the call doesn't give the answer away.
+ */
+export function pressOnRisk(state: GameState, plan: RunPlan): Exclude<RiskLabel, 'Low'> | undefined {
+  if (!PRESS_ON_JOBS.has(plan.job) || getLocation(plan.locationId).market || planDepth(plan) >= DEPTHS) return undefined;
+  const { lead: _lead, ...alone } = plan;
+  const label = estimateRisk(state, { ...alone, depth: planDepth(plan) + 1 }, PRESS_ON_SAMPLES).label;
+  return label === 'Low' ? undefined : label;
+}
 
 export type RiskLabel = 'Low' | 'Moderate' | 'High' | 'Deadly';
 
