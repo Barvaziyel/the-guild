@@ -4,10 +4,9 @@
  * fight makes, and when the phone gives a short buzz. Plain TypeScript, so it
  * can be tested; `audio.ts` plays it.
  */
-import { openRaid, raidAtGate, raidSeen, type FightAct, type FightView, type GameState } from '../engine/index.ts';
+import { FORKS, PRESS_ON, openRaid, radioWaiting, raidAtGate, raidSeen, type FightAct, type FightView, type GameState, type PressOnTeaser, type RadioCall, type RadioMood, type Run } from '../engine/index.ts';
 import { dayPhase } from '../scene/model.ts';
 import { anyoneFighting } from './fight-view.ts';
-import { anyoneCalling } from './radio-view.ts';
 import type { Route } from './route.ts';
 import type { AmbienceId, MusicId, SoundId } from './sounds.ts';
 
@@ -82,7 +81,8 @@ export function stateCues(before: GameState, after: GameState): Cue[] {
     if (ended === 'paid') out.push({ id: 'trade' });
     else if (ended === 'stared') out.push({ id: 'stare' });
   }
-  if (answered(before, after)) out.push({ id: 'radio_answer' });
+  const answer = answered(before, after);
+  if (answer) out.push({ id: answer });
   if (after.reports.length > before.reports.length) out.push({ id: 'home' });
   const sent = after.runs.filter((r) => !before.runs.some((b) => b.id === r.id));
   if (sent.length > 0) out.push({ id: sent.some((r) => (r.plan.vehicles ?? []).length > 0) ? 'engine' : 'send' });
@@ -106,9 +106,36 @@ function built(before: GameState, after: GameState): boolean {
   return false;
 }
 
-/** The player gave a crew on the radio an order (3.11.0): the mic keys and a word comes back. */
-function answered(before: GameState, after: GameState): boolean {
-  return after.runs.some((r) => r.radio?.answeredAt !== undefined && r.radio.answer !== 'none' && before.runs.find((b) => b.id === r.id)?.radio?.answeredAt === undefined);
+/** The player gave a crew on the radio an order (3.11.0): the mic keys and a word comes back, in the caller's voice. */
+function answered(before: GameState, after: GameState): SoundId | undefined {
+  const run = after.runs.find((r) => r.radio?.answeredAt !== undefined && r.radio.answer !== 'none' && before.runs.find((b) => b.id === r.id)?.radio?.answeredAt === undefined);
+  return run?.radio ? answerCue(after, run, run.radio) : undefined;
+}
+
+/** The recorded lines a call can play, by mood (3.11.0). */
+const MOOD_LINE: Record<RadioMood, 1 | 2 | 3 | 4> = { calm: 1, excited: 2, tense: 3, uneasy: 4 };
+
+/** How the caller sounds: the mood of what they're calling about. */
+export function callMood(call: RadioCall): RadioMood {
+  if (call.forkId === 'press_on' && call.deeper) return PRESS_ON[call.deeper.teaser as PressOnTeaser]?.mood ?? 'calm';
+  return FORKS.find((f) => f.id === call.forkId)?.mood ?? 'calm';
+}
+
+/** A man's voice or a woman's, as the caller is. */
+function voiceOf(state: GameState, call: RadioCall): 'm' | 'f' {
+  return state.survivors.find((s) => s.id === call.by)?.pronouns === 'she' ? 'f' : 'm';
+}
+
+/** A crew calling home: the caller's voice, in the mood of the call. */
+export function callCue(state: GameState, call: RadioCall): SoundId {
+  return `radio_call_${voiceOf(state, call)}${MOOD_LINE[callMood(call)]}`;
+}
+
+/** The word back when the player answers, one of three, the same every time for that call. */
+export function answerCue(state: GameState, run: Run, call: RadioCall): SoundId {
+  let h = call.at;
+  for (const ch of run.id) h = (h * 31 + ch.charCodeAt(0)) % 1_000_003;
+  return `radio_answer_${voiceOf(state, call)}${(1 + (h % 3)) as 1 | 2 | 3}`;
 }
 
 function spent(before: GameState, after: GameState): boolean {
@@ -121,8 +148,8 @@ function gained(before: GameState, after: GameState): boolean {
 
 /** What needs the player right now, as far as sound goes: a crew on the radio or in a fight, raiders seen or at the gate. */
 export interface Alerts {
-  /** A crew on the radio, waiting for an order. */
-  radio: boolean;
+  /** A crew on the radio, waiting for an order: how the call sounds. */
+  radio?: SoundId;
   /** A crew stopped at a fight, waiting to be led. */
   fight?: boolean;
   /** 0 no raid, 1 raiders seen on the road, 2 at the gate. */
@@ -131,10 +158,18 @@ export interface Alerts {
 
 export function alertsAt(state: GameState, now: number): Alerts {
   return {
-    radio: anyoneCalling(state, now),
+    radio: calling(state, now),
     fight: anyoneFighting(state, now),
     raid: raidAtGate(state) ? 2 : raidSeen(state, now) ? 1 : 0,
   };
+}
+
+function calling(state: GameState, now: number): SoundId | undefined {
+  for (const run of state.runs) {
+    const call = radioWaiting(run, now);
+    if (call) return callCue(state, call);
+  }
+  return undefined;
 }
 
 /**
@@ -144,7 +179,7 @@ export function alertsAt(state: GameState, now: number): Alerts {
 export function alertCues(before: Alerts, after: Alerts): Cue[] {
   const out: Cue[] = [];
   if (after.raid > before.raid) out.push({ id: 'alarm', gain: after.raid === 1 ? 0.6 : 1 });
-  if (after.radio && !before.radio) out.push({ id: 'radio_call' });
+  if (after.radio && !before.radio) out.push({ id: after.radio });
   else if (after.fight && !before.fight) out.push({ id: 'radio' });
   return out;
 }

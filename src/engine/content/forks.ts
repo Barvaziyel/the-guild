@@ -35,8 +35,13 @@ export interface ForkPick {
   order: string;
 }
 
+/** How someone sounds calling home: the voice the call plays with (3.11.0). */
+export type RadioMood = 'calm' | 'excited' | 'tense' | 'uneasy';
+
 export interface ForkDef extends EventBase {
   kind: 'travel' | 'hazard' | 'discovery';
+  /** How the caller sounds. */
+  mood: RadioMood;
   /** What they say on the radio. */
   ask: string;
   orders: ForkOrder[];
@@ -52,6 +57,7 @@ export const FORKS: readonly ForkDef[] = [
     id: 'sealed_door',
     title: 'A sealed door',
     kind: 'discovery',
+    mood: 'excited',
     weight: 10,
     locations: BUILDINGS,
     a: { best: 'wits' },
@@ -95,6 +101,7 @@ export const FORKS: readonly ForkDef[] = [
     id: 'raiders_on_the_road',
     title: 'Raiders on the road',
     kind: 'travel',
+    mood: 'tense',
     weight: 10,
     locations: RAIDER_ROADS,
     minDanger: 2,
@@ -140,6 +147,7 @@ export const FORKS: readonly ForkDef[] = [
     id: 'someone_on_the_road',
     title: 'Someone on the road',
     kind: 'travel',
+    mood: 'uneasy',
     weight: 8,
     maxDanger: 3,
     a: { best: 'nerve' },
@@ -174,6 +182,7 @@ export const FORKS: readonly ForkDef[] = [
     id: 'hot_roof',
     title: 'A hot roof',
     kind: 'hazard',
+    mood: 'tense',
     weight: 8,
     needsRadiation: true,
     a: { best: 'grit' },
@@ -216,6 +225,7 @@ export const FORKS: readonly ForkDef[] = [
     id: 'storm',
     title: 'A storm',
     kind: 'hazard',
+    mood: 'calm',
     weight: 8,
     a: { best: 'wits' },
     intro: 'The sky to the west goes the color of a bruise. Dust first, then the rain that burns.',

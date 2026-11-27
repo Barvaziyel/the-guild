@@ -52,7 +52,8 @@ amb = json.load(open('out/amb.json'))
 lines = [
     '/**',
     ' * The sound files in public/audio, written by tools/audio/build.py: do not edit by hand.',
-    ' * Music is FluidR3_GM instruments (Frank Wen, CC BY 3.0); the effects and ambience are synthesized.',
+    ' * Music is FluidR3_GM instruments (Frank Wen, CC BY 3.0); the effects and ambience are synthesized,',
+    ' * apart from the voices on the radio, recorded for the game (tools/audio/radio_voice.py).',
     ' */',
     '',
     '/** Each piece of music and the length of its loop, in seconds. */',
