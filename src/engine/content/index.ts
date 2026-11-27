@@ -10,7 +10,8 @@ export { GEAR } from './gear.ts';
 export { ORIGINS, type OriginDef } from './origins.ts';
 export { TRAITS } from './traits.ts';
 export { FIRST_NAMES, LAST_NAMES } from './names.ts';
-export { ENEMIES, type EnemyDef, type EnemyType } from './enemies.ts';
+export { ENEMIES, type EliteDef, type EnemyDef, type EnemyType } from './enemies.ts';
+export { ELITES } from './elites.ts';
 export { HAVEN_SITE, LOCATIONS, type LocationDef, type EncounterDef, type HazardKind } from './locations.ts';
 export {
   EVENTS,
@@ -75,6 +76,11 @@ export function getEnemy(id: string): EnemyDef {
   const def = enemyById.get(id);
   if (!def) throw new Error(`Unknown enemy: ${id}`);
   return def;
+}
+
+/** The elite that lives at a place, if one does (§7.15, 3.12.0). */
+export function eliteAt(placeId: string): EnemyDef | undefined {
+  return ENEMIES.find((e) => e.elite?.place === placeId);
 }
 
 export function findEnemy(id: string): EnemyDef | undefined {

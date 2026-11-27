@@ -304,7 +304,8 @@ export function actCues(state: GameState, view: FightView, act: FightAct): { cue
     case 'rise':
       return { cues: [own('groan')] };
     case 'arrive':
-      return { cues: [own('door')] };
+      // Through a door, it bangs; one that came to a call (3.12.0) is heard in the call.
+      return { cues: typeof act.by === 'number' && view.enemies[act.by]?.reserve ? [] : [own('door')] };
     case 'job':
       return { cues: [own('work')] };
     case 'reel':
@@ -330,8 +331,28 @@ export function actCues(state: GameState, view: FightView, act: FightAct): { cue
     }
     case 'free':
       return { cues: [own(act.ok ? 'shuffle' : 'nope')] };
+    // 3.12.0: what elites do.
+    case 'plate': {
+      const blow = act.shot ? own(shotSound(state, view, act.by)) : { ...own(crewBlow(state, act.by as string).swing, 0, 0.8) };
+      return { cues: [blow, at('clang', 0.1)] };
+    }
+    case 'call': {
+      const kind = typeof act.by === 'number' ? view.enemies[act.by]?.kind : undefined;
+      return { cues: [own(CALLS[kind ?? ''] ?? 'groan')] };
+    }
+    case 'sweep': {
+      const e = typeof act.by === 'number' ? view.enemies[act.by] : undefined;
+      if (e?.rank === 'back') return { cues: [own('burst')] };
+      return { cues: [own('swing', 0, 0.9), ...(e?.kind === 'the_glass_man' ? [own('chime', 0.1, 0.7)] : [])] };
+    }
+    case 'dive':
+    case 'surface':
+      return { cues: [own('splash')] };
   }
 }
+
+/** The sound of an elite calling more in (3.12.0). */
+const CALLS: Record<string, SoundId> = { old_mother: 'howl', the_conductor: 'bell', the_matron: 'clap', the_warden: 'klaxon', the_red_hand: 'whistle' };
 
 function crewBlow(state: GameState, id: string): { swing: SoundId; land: SoundId } {
   const weapon = state.survivors.find((s) => s.id === id)?.equipment.weapon?.defId;

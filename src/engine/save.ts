@@ -213,6 +213,10 @@ const MIGRATIONS: Record<number, (save: Record<string, unknown>) => void> = {
     // Buying by the number (3.7.2): a trade may name exactly how many to buy (`TradeOrder.want`). Trades out
     // now have none, and buy whatever their goods fetch, as before.
   },
+  29: (save) => {
+    // Elites (3.12.0): none seen yet.
+    save.elites ??= {};
+  },
 };
 
 export function serialize(state: GameState): string {

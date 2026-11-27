@@ -1,3 +1,5 @@
+import { EliteCard } from '../components/EliteCard.tsx';
+import { ELITE_CHOICES, eliteChoice, withElite, withJobElite } from '../elites-view.ts';
 import { useEffect, useMemo, useState } from 'react';
 import {
   crewLimit,
@@ -104,6 +106,8 @@ function PlannerForm({ state, locationId, step }: { state: GameState; locationId
   const vehicles = vehicleChoices(state);
   // A rescue goes to the outskirts, where the call came from.
   const depths = plan.job === 'rescue' || plan.job === 'assault' ? [] : depthChoices(state, locationId);
+  // The place's elite (3.12.0), once seen and while it's at large.
+  const elite = eliteChoice(state, plan);
   const assault = assaultChoice(state, locationId);
   const jobs = marketJobs(locationId, jobChoices(state, locationId, assault ? [...JOBS, assault] : JOBS));
   const fromOutpost = outpostPlanNote(state, plan);
@@ -245,6 +249,11 @@ function PlannerForm({ state, locationId, step }: { state: GameState; locationId
       {header}
       <section className="panel orders-panel" aria-label="Orders">
         {(plan.vehicles ?? []).length > 0 && <Chips chips={rideChips(state, plan)} className="ride-total orders-crew" />}
+        {elite && (
+          <EliteCard card={elite} compact>
+            <Segmented legend="This run" name="elite" choices={ELITE_CHOICES} value={plan.elite ? 'yes' : 'no'} onChange={(go) => setPlan((p) => withElite(p, go === 'yes'))} />
+          </EliteCard>
+        )}
         {depths.length > 0 && (
           <div data-tour="depth">
             <Segmented legend="How far in" name="depth" choices={depths} value={String(plan.depth ?? 1)} onChange={(d) => setPlan((p) => withDepth(p, Number(d)))} />
@@ -256,7 +265,7 @@ function PlannerForm({ state, locationId, step }: { state: GameState; locationId
           choices={jobs}
           value={plan.job}
           onChange={(job) => {
-            setPlan((p) => (job === 'rescue' ? { ...withDepth(p, 1), job } : { ...p, job }));
+            setPlan((p) => withJobElite(job === 'rescue' ? { ...withDepth(p, 1), job } : { ...p, job }));
             setSendError(null);
           }}
         />

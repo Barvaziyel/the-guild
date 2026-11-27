@@ -19,6 +19,9 @@ export interface StageFrame {
   hp: Record<string, number>;
   state: Record<string, Shown>;
   stunned: Record<string, boolean>;
+  /** Elites (3.12.0): gone under, and the plates still on them. */
+  under?: Record<string, boolean>;
+  plates?: Record<string, number>;
   /** The fight's job as the act leaves it (2.5.0). */
   job?: { progress: number; state: 'open' | 'done' | 'lost' };
   /** The act itself, for its sound (3.1.0). */
@@ -39,6 +42,8 @@ const keyFor = (who: number | string): string => (typeof who === 'number' ? enem
 
 /** "Scav 2" for "Raider Scav 2", "Shot" for "Vulture Shot": the stage's room is tight, and the feather says Vulture. */
 export function shortName(name: string): string {
+  // One of a kind, "the Butcher" in a line, is "The Butcher" on the stage (3.12.0).
+  if (name.startsWith('the ')) return `The ${name.slice(4)}`;
   const words = name.split(' ');
   if (words.length > 1 && (words[0] === 'Raider' || words[0] === 'Vulture')) return words.slice(1).join(' ');
   // A pack crowds the stage: "Rad-hound 2" is "Hound 2" there (2.4.0).
@@ -145,6 +150,9 @@ export function stageModel(state: GameState, at: StageAt, view: FightView, order
       seed: `${at.seed}-${e.index}`,
       nemesis: e.nemesis,
       vulture: e.vulture,
+      ...(e.elite ? { elite: true } : {}),
+      ...((frame?.plates?.[key] ?? e.plates) ? { plates: frame?.plates?.[key] ?? e.plates } : {}),
+      ...((frame?.under?.[key] ?? e.under) ? { under: true } : {}),
       stunned: frame?.stunned[key] ?? e.stunned,
       rank: e.rank,
       ...(shown === 'down' ? { rising: true } : {}),
@@ -203,6 +211,11 @@ const ACT_WORDS: Partial<Record<FightAct['kind'], string>> = {
   escape: 'Gets away',
   reel: 'Reels',
   throw: 'Firebomb!',
+  // 3.12.0
+  call: 'Calls!',
+  sweep: 'Sweeps!',
+  dive: 'Goes under',
+  surface: 'Comes up!',
 };
 
 /** How one act looks on the stage. */
@@ -249,6 +262,15 @@ function effectOf(a: FightAct, after: FightView): StageEffect {
       return { ...base, motion: 'act', reaction: 'heal', pop: `+${a.amount ?? 0}`, tone: 'heal' };
     case 'throw':
       return { by, motion: 'act', reaction: 'none', pop: ACT_WORDS.throw!, tone: 'hurt' };
+    // 3.12.0
+    case 'plate':
+      return { ...base, motion: a.shot ? 'shoot' : 'lunge', reaction: 'hit', pop: (a.amount ?? 0) === 0 ? 'Last plate' : 'Plate off', tone: 'hit', splash: 'sparks' };
+    case 'call':
+    case 'sweep':
+    case 'surface':
+      return { by, motion: 'act', reaction: 'none', pop: ACT_WORDS[a.kind]!, tone: 'hurt' };
+    case 'dive':
+      return { by, motion: 'none', reaction: 'none', pop: ACT_WORDS.dive!, tone: 'plain' };
     case 'burn':
       return { ...base, motion: 'none', reaction: 'hit', pop: `-${a.amount ?? 0}`, tone: onCrew ? 'hurt' : 'hit', splash: 'sparks', ...(a.down ? { big: true } : {}) };
     case 'grab':
@@ -273,6 +295,8 @@ export function roundFrames(before: FightView, after: FightView): StageFrame[] {
   const state: Record<string, Shown> = {};
   const stunned: Record<string, boolean> = {};
   const max: Record<string, number> = {};
+  const under: Record<string, boolean> = {};
+  const plates: Record<string, number> = {};
   for (const m of before.crew) {
     hp[crewKey(m.id)] = m.hp;
     state[crewKey(m.id)] = m.state;
@@ -283,6 +307,8 @@ export function roundFrames(before: FightView, after: FightView): StageFrame[] {
     state[enemyKey(e.index)] = e.state;
     stunned[enemyKey(e.index)] = e.stunned;
     max[enemyKey(e.index)] = e.maxHp;
+    if (e.under) under[enemyKey(e.index)] = true;
+    if (e.plates !== undefined) plates[enemyKey(e.index)] = e.plates;
   }
   const final = (key: string): Shown | undefined => {
     if (key.startsWith('e:')) return after.enemies[Number(key.slice(2))]?.state;
@@ -354,13 +380,23 @@ export function roundFrames(before: FightView, after: FightView): StageFrame[] {
       case 'mend':
         if (at) hp[at] = Math.min(max[at] ?? 0, (hp[at] ?? 0) + (a.amount ?? 0));
         break;
+      // 3.12.0: a plate knocked off, going under and coming up.
+      case 'plate':
+        if (at) plates[at] = a.amount ?? 0;
+        break;
+      case 'dive':
+        under[by] = true;
+        break;
+      case 'surface':
+        under[by] = false;
+        break;
       default:
         break;
     }
     const effect = effectOf(a, after);
     // The bar drains from what they had (3.7.0).
     if (at !== undefined && was !== undefined && hp[at] !== was) effect.was = was;
-    frames.push({ round: a.round, line: a.line, act: a, effect, hp: { ...hp }, state: { ...state }, stunned: { ...stunned }, ...(job ? { job } : {}) });
+    frames.push({ round: a.round, line: a.line, act: a, effect, hp: { ...hp }, state: { ...state }, stunned: { ...stunned }, under: { ...under }, plates: { ...plates }, ...(job ? { job } : {}) });
   }
   // How the job stands once the round is over: done, or lost at the end of it.
   const last = frames.at(-1);

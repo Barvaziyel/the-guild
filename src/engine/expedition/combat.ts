@@ -98,6 +98,7 @@ import { FightPause, attackKind, defaultRank, enemyNames, fightView, movesFor, v
 import { enemyReaches, reaches } from './reach.ts';
 import { goalRoundEnds, goalView, goalWorker, rollGoal, settleGoal, workGoal } from './goals.ts';
 import { afterFight, announceNemesis, enemyRef, grudgeBonus, maybeNemesisEscape, nemesisEnemy, nemesisJoins, nemesisKilled } from './stories.ts';
+import { eliteKilled } from './elites.ts';
 import { resolveWounds } from './wounds.ts';
 import { Rng } from '../rng.ts';
 
@@ -136,6 +137,14 @@ export interface Enemy {
   holding?: Member;
   /** Shoved or pinned down this round (3.8.0): everyone else hits it more easily. */
   offBalance?: boolean;
+  /** Plates still on it (3.12.0): each hit that lands knocks one off instead of hurting it. */
+  plates?: number;
+  /** Gone under (3.12.0): nothing reaches it until it comes up again. */
+  under?: boolean;
+  /** One that comes when it's called (3.12.0): off the stage (`waiting`) until then. */
+  reserve?: boolean;
+  /** How many it has called in this fight (3.12.0). */
+  called?: number;
 }
 
 /**
@@ -154,10 +163,10 @@ export interface EnemyIntent {
   rank?: Rank;
 }
 
-export type EnemyIntentKind = 'strike' | 'heavy' | 'run' | 'aim' | 'shot' | 'mend' | 'throw' | 'grab' | 'hold';
+export type EnemyIntentKind = 'strike' | 'heavy' | 'run' | 'aim' | 'shot' | 'mend' | 'throw' | 'grab' | 'hold' | 'call' | 'sweep' | 'dive' | 'surface';
 
 /** What a shove or a pin down breaks (3.8.0): anything wound up, and a grip. A plain hit just comes off balance. */
-const WIND_UPS: readonly EnemyIntentKind[] = ['heavy', 'aim', 'shot', 'mend', 'throw', 'grab', 'hold'];
+const WIND_UPS: readonly EnemyIntentKind[] = ['heavy', 'aim', 'shot', 'mend', 'throw', 'grab', 'hold', 'call', 'sweep', 'dive'];
 
 /** Let go of whoever it holds (3.8.0). */
 function letGo(e: Enemy): Member | undefined {
@@ -194,7 +203,12 @@ function fell(morale: Morale | undefined, e: Enemy): void {
 export function newEnemy(def: EnemyDef, danger = 1): Enemy {
   const edge = dangerEdge(danger);
   const { hp, defense } = toughened(def.hp, def.defense, danger);
-  return { def, hp, maxHp: hp, attack: def.attack + edge, damage: def.damage + edge, defense, dead: false, fled: false, downed: [] };
+  return { def, hp, maxHp: hp, attack: def.attack + edge, damage: def.damage + edge, defense, dead: false, fled: false, downed: [], ...(def.plates ? { plates: def.plates } : {}) };
+}
+
+/** Blows a round: the Shepherd's two (3.0.0), or two from one that's enraged at half its HP (3.12.0). */
+function blowsOf(e: Enemy): number {
+  return e.def.attacks ?? (e.def.enrages && e.hp * 2 <= e.maxHp ? 2 : 1);
 }
 
 /** Damage a hit does through armor: armor makes hits rarer, and only heavy armor takes something off them. */
@@ -230,8 +244,7 @@ export function buildEncounter(sim: Sim, type?: string): Enemy[] {
     return e.weight * (sim.plan.job === 'hunt' && feral ? 3 : 1);
   });
   const defs = encounter.enemies.map(getEnemy);
-  const crewMult = ENCOUNTER_CREW_MULT[Math.min(standing(sim).length, ENCOUNTER_CREW_MULT.length) - 1] ?? 1;
-  let budget = (ENCOUNTER_BASE + sim.loc.danger * ENCOUNTER_PER_DANGER) * crewMult;
+  let budget = encounterBudget(sim);
 
   const out: Enemy[] = [];
   if (nemesis) {
@@ -262,13 +275,37 @@ export function buildEncounter(sim: Sim, type?: string): Enemy[] {
   return out;
 }
 
+/** What a fight here buys with, for the size of the crew. */
+export function encounterBudget(sim: Sim): number {
+  const crewMult = ENCOUNTER_CREW_MULT[Math.min(standing(sim).length, ENCOUNTER_CREW_MULT.length) - 1] ?? 1;
+  return (ENCOUNTER_BASE + sim.loc.danger * ENCOUNTER_PER_DANGER) * crewMult;
+}
+
+/** An elite's company (3.12.0): what's left of the budget buys more of its kind, from the place's own encounters. */
+export function escortFor(sim: Sim, budget: number, type: string): Enemy[] {
+  const table = sim.loc.encounters.filter((e) => e.enemies.some((id) => getEnemy(id).type === type));
+  if (table.length === 0) return [];
+  const encounter = sim.rng.weightedBy(table, (e) => e.weight);
+  const defs = encounter.enemies.map(getEnemy).filter((d) => d.type === type);
+  const out: Enemy[] = [];
+  let left = budget;
+  while (out.length < MAX_ENEMIES - 1) {
+    const affordable = defs.filter((d) => d.threat <= left);
+    if (affordable.length === 0) break;
+    const def = sim.rng.pick(affordable);
+    out.push(newEnemy(def, sim.loc.danger));
+    left -= def.threat;
+  }
+  return out;
+}
+
 /** "three Rad-hounds", "a Raider Gunner and two Raider Scavs", "Old Notch and a Rad-hound". */
 export function describeGroup(all: readonly Enemy[]): string {
   // Those still behind a door (2.5.0) aren't part of it yet.
   const enemies = all.filter((e) => !e.waiting);
-  const parts: string[] = enemies.filter((e) => e.nemesis || e.vulture).map((e) => e.nemesis?.name ?? e.vulture!.name);
+  const parts: string[] = enemies.filter((e) => e.nemesis || e.vulture || e.def.elite).map((e) => e.nemesis?.name ?? e.vulture?.name ?? withArticle(e.def.name));
   const counts = new Map<EnemyDef, number>();
-  for (const e of enemies) if (!e.nemesis && !e.vulture) counts.set(e.def, (counts.get(e.def) ?? 0) + 1);
+  for (const e of enemies) if (!e.nemesis && !e.vulture && !e.def.elite) counts.set(e.def, (counts.get(e.def) ?? 0) + 1);
   for (const [def, n] of counts) parts.push(n === 1 ? withArticle(def.name) : `${numberWord(n)} ${def.plural}`);
   return listNames(parts);
 }
@@ -367,6 +404,14 @@ function survivorAttack(sim: Sim, m: Member, target: Enemy, ctx: AttackContext, 
     return;
   }
 
+  // A plate takes the hit instead (3.12.0): it comes off, and the next one gets through.
+  if (target.plates) {
+    target.plates -= 1;
+    act(sim, { by: m.s.id, at, kind: 'plate', shot: ranged, amount: target.plates });
+    const left = target.plates === 0 ? `, and that was the last of them` : '';
+    if (ctx.commanded || target.plates === 0) say(sim, `${m.s.firstName} ${hitVerb} ${ctx.commanded ? label : withArticle(target.def.name)} and knocks a plate off${left}.`, { tone: 'good' });
+    return;
+  }
   const raw = (damage + (mods.damage ?? 0) + (aimed ? AIM_DAMAGE : 0)) * (mods.double ? 2 : 1);
   const dealt = Math.max(1, raw - (mods.throughArmor ? 0 : target.def.armor));
   target.hp -= dealt;
@@ -428,6 +473,8 @@ function creditKill(sim: Sim, m: Member, target: Enemy, ctx: AttackContext, rang
     return;
   }
   if (say_) say(sim, `${m.s.firstName} ${verb} ${ctx.commanded ? label : withArticle(target.def.name)} ${how}.`, { tone: 'good' });
+  // An elite's end (3.12.0): its last moment, and its prize.
+  if (target.def.elite) eliteKilled(sim, m, target);
 }
 
 /** A blow at one on the ground (2.4.0): it can't miss, and it stays down. */
@@ -526,6 +573,12 @@ function chooseIntents(sim: Sim, fight: FightState): void {
       enemy.aiming = undefined;
       continue;
     }
+    // One that went under comes up under someone, anyone, front or back (3.12.0).
+    if (enemy.under) {
+      const anyone = active(sim).filter((m) => !m.perch);
+      if (anyone.length > 0) enemy.intent = { kind: 'surface', at: sim.rng.weightedBy(anyone, (m) => attention(sim, enemy, m)) };
+      continue;
+    }
     // One with someone in its grip keeps at them (3.8.0).
     if (enemy.holding) {
       enemy.intent = { kind: 'hold', at: enemy.holding };
@@ -547,8 +600,25 @@ function chooseIntents(sim: Sim, fight: FightState): void {
         continue;
       }
     }
+    // One that calls more in (3.12.0), while there are more to come.
+    const calls = enemy.def.calls;
+    if (calls && (enemy.called ?? 0) < calls.max && fight.enemies.some((o) => o.reserve && o.waiting) && sim.rng.chance(calls.chance)) {
+      enemy.intent = { kind: 'call' };
+      continue;
+    }
     const targets = reachableBy(sim, enemy);
     if (targets.length === 0) continue;
+    // One that goes under for a round (3.12.0), and lets go of whoever it holds to do it.
+    if (enemy.def.dives && sim.rng.chance(enemy.def.dives)) {
+      enemy.intent = { kind: 'dive' };
+      continue;
+    }
+    // A sweep at whatever rank its mark stands in (3.12.0): a blow reaches the front, a gun anyone.
+    if (enemy.def.sweeps && sim.rng.chance(enemy.def.sweeps)) {
+      const at = sim.rng.weightedBy(targets, (m) => attention(sim, enemy, m));
+      enemy.intent = { kind: 'sweep', at, rank: at.rank ?? 'front' };
+      continue;
+    }
     // A firebug throws at whatever rank its mark stands in (3.8.0).
     const throws = enemy.def.throws;
     if (throws && sim.rng.chance(throws.chance)) {
@@ -572,7 +642,7 @@ function chooseIntents(sim: Sim, fight: FightState): void {
     const heavy = enemy.def.heavy !== undefined && sim.rng.chance(enemy.def.heavy);
     enemy.intent = { kind: heavy ? 'heavy' : 'strike', at };
     // A second blow goes at someone else when it can (3.0.0). Only enemies that strike twice roll for it, so every other fight is as it was.
-    if ((enemy.def.attacks ?? 1) > 1) {
+    if (blowsOf(enemy) > 1) {
       const others = targets.filter((m) => m !== at);
       enemy.intent.also = others.length > 0 ? sim.rng.weightedBy(others, (m) => attention(sim, enemy, m)) : at;
     }
@@ -623,16 +693,40 @@ function enemyRound(sim: Sim, fight: FightState, tactics: Tactics, commanded: bo
       firebomb(sim, fight, enemy, intent.rank ?? 'front', label, tactics);
       continue;
     }
+    // More of them, called in (3.12.0).
+    if (intent.kind === 'call') {
+      callIn(sim, fight, enemy, label);
+      continue;
+    }
+    if (intent.kind === 'sweep') {
+      sweep(sim, fight, enemy, intent.rank ?? 'front', label, tactics);
+      continue;
+    }
+    // Under, out of reach until next round (3.12.0).
+    if (intent.kind === 'dive') {
+      const freed = letGo(enemy);
+      if (freed) act(sim, { by: freed.s.id, kind: 'free', ok: true });
+      enemy.under = true;
+      act(sim, { by: index, kind: 'dive' });
+      say(sim, `${capitalize(label)} slides under the water${freed ? `, letting go of ${freed.s.firstName}` : ''}.`);
+      continue;
+    }
+    if (intent.kind === 'surface') {
+      enemy.under = false;
+      act(sim, { by: index, kind: 'surface' });
+    }
     // Its teeth in the one it holds: no roll (3.8.0). Let go of in the meantime, it lost its turn.
     if (intent.kind === 'hold') {
       const held = enemy.holding;
       if (held && held === intent.at) bite(sim, fight, enemy, held, label);
       continue;
     }
-    // Most strike once a round; the Shepherd strikes twice (3.0.0). Its big hit is the first blow.
-    const blows = enemy.def.attacks ?? 1;
+    // Most strike once a round; the Shepherd strikes twice (3.0.0), and one enraged at half its HP (3.12.0). Its big hit is the first blow.
+    const blows = blowsOf(enemy);
+    const surfacing = intent.kind === 'surface';
     for (let blow = 0; blow < blows; blow++) {
-      const targets = reachableBy(sim, enemy);
+      // Coming up from under, it can get at anyone (3.12.0).
+      const targets = surfacing && blow === 0 ? active(sim).filter((m) => !m.perch) : reachableBy(sim, enemy);
       if (targets.length === 0) {
         if (active(sim).length === 0) return;
         break;
@@ -653,7 +747,9 @@ function enemyRound(sim: Sim, fight: FightState, tactics: Tactics, commanded: bo
         (sim.gate?.wall ? WALL_COVER : 0) +
         (sim.gate?.shored ? RAID_SHORE_COVER : 0);
       const shot = /shot|zapped/.test(enemy.def.hitVerb);
-      const heavy = blow === 0 && intent?.kind === 'heavy';
+      // Coming up from under is a big hit too (3.12.0).
+      const heavy = blow === 0 && (intent?.kind === 'heavy' || surfacing);
+      if (blow === 0 && surfacing) say(sim, `${capitalize(label)} comes up out of the water under ${target.s.firstName}.`, { tone: 'bad' });
       // A shot lined up the round before (3.8.0).
       const lined = blow === 0 && intent?.kind === 'shot';
       const toHit = (heavy ? HEAVY_TO_HIT : 0) + (lined ? LINED_UP_TO_HIT : 0) + packBonus(enemy, target, fight.enemies);
@@ -729,6 +825,43 @@ function firebomb(sim: Sim, fight: FightState, enemy: Enemy, rank: Rank, label: 
     const wentDown = hurt(sim, m, damage, enemyRef(enemy), enemy.def.type, enemy.nemesis?.id);
     act(sim, { by: index, at: m.s.id, kind: 'burn', amount: damage, ...(wentDown ? { down: true } : {}) });
     say(sim, `${m.s.firstName} is burned (-${damage} HP)${covered ? ', down behind cover' : ''}${wentDown ? ' and goes down.' : '.'}`, { tone: 'bad' });
+    if (wentDown) crewDown(sim, fight, enemy, m);
+    else if (isHurt(m)) maybeFlee(sim, m, fight);
+  }
+}
+
+/** One more of them comes to the call (3.12.0), from those waiting off the stage. */
+function callIn(sim: Sim, fight: FightState, enemy: Enemy, label: string): void {
+  const calls = enemy.def.calls;
+  const next = fight.enemies.find((o) => o.reserve && o.waiting);
+  if (!calls || !next) return;
+  next.waiting = false;
+  enemy.called = (enemy.called ?? 0) + 1;
+  act(sim, { by: fight.enemies.indexOf(enemy), kind: 'call' });
+  act(sim, { by: fight.enemies.indexOf(next), kind: 'arrive' });
+  say(sim, `${capitalize(label)} ${calls.how}, and ${withArticle(next.def.name)} ${calls.comes}.`, { tone: 'bad' });
+}
+
+/** A sweep at a rank of the crew (3.12.0): its hit on everyone standing there, no roll, half in cover. */
+function sweep(sim: Sim, fight: FightState, enemy: Enemy, rank: Rank, label: string, tactics: Tactics): void {
+  const index = fight.enemies.indexOf(enemy);
+  const there = active(sim).filter((m) => !m.perch && (m.rank ?? 'front') === rank);
+  act(sim, { by: index, kind: 'sweep' });
+  const gun = enemy.def.ranged === true;
+  const where = rank === 'front' ? 'the front' : 'the back';
+  if (there.length === 0) {
+    say(sim, `${capitalize(label)} ${gun ? `rakes ${where} with fire` : `sweeps ${where}`}, where nobody is standing.`, { tone: 'good' });
+    return;
+  }
+  say(sim, `${capitalize(label)} ${gun ? `rakes ${where} with fire` : `sweeps through ${where}`}.`, { tone: 'bad' });
+  for (const m of there) {
+    const armor = m.s.equipment.armor ? armorValue(m.s.equipment.armor) : 0;
+    const covered = tactics.cover.has(m);
+    const damage = damageThrough(covered ? Math.max(1, Math.floor(enemy.damage / 2)) : enemy.damage, armor);
+    if (enemy.def.rads) absorbRads(m, enemy.def.rads);
+    const wentDown = hurt(sim, m, damage, enemyRef(enemy), enemy.def.type, enemy.nemesis?.id);
+    act(sim, { by: index, at: m.s.id, kind: 'hit', amount: damage, shot: gun, ...(wentDown ? { down: true } : {}) });
+    say(sim, `${m.s.firstName} is ${enemy.def.hitVerb} ${label} (-${damage} HP)${covered ? ', down behind cover' : ''}${wentDown ? ' and goes down.' : '.'}`, { tone: 'bad' });
     if (wentDown) crewDown(sim, fight, enemy, m);
     else if (isHurt(m)) maybeFlee(sim, m, fight);
   }
@@ -863,7 +996,7 @@ function whetherToCall(sim: Sim, enemies: readonly Enemy[], start: FightStart): 
   if (!sim.lead || sim.lead.home || sim.plan.lead !== 'matters') return 'yes';
   const ahead = foughtAlone(sim, enemies, start);
   if (ahead.dies) return 'grave';
-  return ahead.down || enemies.some((e) => e.nemesis || e.vulture) ? 'yes' : 'no';
+  return ahead.down || enemies.some((e) => e.nemesis || e.vulture || e.def.elite) ? 'yes' : 'no';
 }
 
 /** The fight played ahead on a copy, the crew on their own: does anyone go down, and does anyone die of it? */
@@ -906,7 +1039,7 @@ function callHome(sim: Sim, enemies: readonly Enemy[], call: Call): FightPlan | 
   // On the road east nobody is left at the Depot to call (§9.12): they wait for the word.
   const road = sim.plan.job === 'haven';
   say(sim, road ? `${caller.s.firstName} calls a halt, and they wait for the word.` : `${caller.s.firstName} gets on the radio to the Depot.`);
-  lead.stops.push({ at: sim.offset, by: caller.s.id, against: describeGroup(enemies), fromBeat: sim.beats.length, ...(sim.site ? { site: sim.site } : {}), ...(call === 'grave' ? { grave: true } : {}) });
+  lead.stops.push({ at: sim.offset, by: caller.s.id, against: describeGroup(enemies), fromBeat: sim.beats.length, ...(sim.site ? { site: sim.site } : {}), ...(call === 'grave' ? { grave: true } : {}), ...(enemies.find((e) => e.def.elite) ? { elite: enemies.find((e) => e.def.elite)!.def.id } : {}) });
   const solo = sim.members.length === 1;
   if (!plan) {
     sim.delay += LEAD_WAIT;
@@ -1131,7 +1264,13 @@ function shove(sim: Sim, m: Member, target: Enemy, ctx: AttackContext): void {
               ? `and it lets go of ${target.holding?.s.firstName ?? 'them'}`
               : was === 'throw'
                 ? 'and it drops the firebomb at its own feet'
-                : 'off balance';
+                : was === 'call'
+                  ? 'before it can call anyone'
+                  : was === 'sweep'
+                    ? 'and the sweep goes wide'
+                    : was === 'dive'
+                      ? 'before it can go under'
+                      : 'off balance';
   say(sim, `${m.s.firstName} ${shot ? 'pins' : 'shoves'} ${label} ${spoils ? `back, ${what}` : 'off balance'}.`, { tone: 'good' });
   if (!spoils) return;
   if (was === 'hold') {
@@ -1174,12 +1313,13 @@ function blowsWouldDrop(m: Member, enemies: readonly Enemy[]): boolean {
   const armor = m.s.equipment.armor ? armorValue(m.s.equipment.armor) : 0;
   const up = living(enemies).filter((e) => !e.stunned && e.intent);
   // Blows and shots at them; a firebomb (3.8.0) at the rank they stand in.
-  const coming = up.filter((e) => e.intent!.at === m && (e.intent!.kind === 'strike' || e.intent!.kind === 'heavy' || e.intent!.kind === 'shot' || e.intent!.kind === 'grab'));
-  const bombs = up.filter((e) => e.intent!.kind === 'throw' && e.intent!.rank === (m.rank ?? 'front'));
-  const big = (e: Enemy): boolean => e.intent!.kind === 'heavy' || e.intent!.kind === 'shot';
+  const coming = up.filter((e) => e.intent!.at === m && (e.intent!.kind === 'strike' || e.intent!.kind === 'heavy' || e.intent!.kind === 'shot' || e.intent!.kind === 'grab' || e.intent!.kind === 'surface'));
+  // Since 3.12.0 a sweep at the rank too.
+  const bombs = up.filter((e) => (e.intent!.kind === 'throw' || e.intent!.kind === 'sweep') && e.intent!.rank === (m.rank ?? 'front'));
+  const big = (e: Enemy): boolean => e.intent!.kind === 'heavy' || e.intent!.kind === 'shot' || e.intent!.kind === 'surface';
   if (coming.length + bombs.length < 2 && !coming.some(big) && bombs.length === 0) return false;
-  const hits = coming.reduce((sum, e) => sum + damageThrough(e.damage * (e.intent!.kind === 'heavy' ? HEAVY_HIT_MULT : e.intent!.kind === 'shot' ? LINED_UP_MULT : 1), armor), 0);
-  const burns = bombs.reduce((sum, e) => sum + damageThrough((e.def.throws?.damage ?? 0) + (e.damage - e.def.damage), armor), 0);
+  const hits = coming.reduce((sum, e) => sum + damageThrough(e.damage * (e.intent!.kind === 'heavy' || e.intent!.kind === 'surface' ? HEAVY_HIT_MULT : e.intent!.kind === 'shot' ? LINED_UP_MULT : 1), armor), 0);
+  const burns = bombs.reduce((sum, e) => sum + damageThrough(e.intent!.kind === 'sweep' ? e.damage : (e.def.throws?.damage ?? 0) + (e.damage - e.def.damage), armor), 0);
   return hits + burns >= m.s.hp;
 }
 
@@ -1190,7 +1330,7 @@ function blowsWouldDrop(m: Member, enemies: readonly Enemy[]): boolean {
 function pressing(e: Enemy): number {
   if (e.holding) return 4;
   const kind = e.intent?.kind;
-  return kind === 'heavy' || kind === 'aim' || kind === 'shot' || kind === 'mend' || kind === 'throw' ? 2 : 1;
+  return kind === 'heavy' || kind === 'aim' || kind === 'shot' || kind === 'mend' || kind === 'throw' || kind === 'call' || kind === 'sweep' || kind === 'dive' ? 2 : 1;
 }
 
 /** What one of their ordinary blows does before armor, for choosing what's worth hitting. */
@@ -1204,6 +1344,8 @@ function attackDamage(sim: Sim, m: Member): number {
 
 /** Nobody still in the fight can reach any of them: what's left flies, and nobody can shoot (2.3.0). */
 function cannotReach(sim: Sim, enemies: readonly Enemy[]): boolean {
+  // One that's gone under comes up again (3.12.0): the fight isn't over.
+  if (living(enemies).some((e) => e.under)) return false;
   const left = living(enemies);
   const crew = active(sim);
   if (left.length === 0 || crew.length === 0) return false;
@@ -1228,8 +1370,8 @@ function outOfReach(sim: Sim, enemies: readonly Enemy[]): void {
 export function fight(sim: Sim, enemies: Enemy[], start: FightStart): FightResult {
   // Does a led crew call home for this one (3.10.0)? Played ahead on a copy before anything here rolls.
   const call = whetherToCall(sim, enemies, start);
-  // Some fights come with a job (2.5.0); a door brings more of them, waiting behind it.
-  const goal = rollGoal(sim, enemies);
+  // Some fights come with a job (2.5.0); a door brings more of them, waiting behind it. Not one with an elite (3.12.0): that's job enough.
+  const goal = enemies.some((e) => e.def.elite) ? undefined : rollGoal(sim, enemies);
   sim.goal = goal;
   const present = enemies.filter((e) => !e.waiting).length;
   // A group that can break has nerve (2.3.0): with nothing else, they break once more than half are dead, as before.
@@ -1394,6 +1536,7 @@ export function fight(sim: Sim, enemies: Enemy[], start: FightStart): FightResul
     e.holding = undefined;
     e.aiming = undefined;
     e.offBalance = false;
+    e.under = false;
   }
 
   if (!end) {

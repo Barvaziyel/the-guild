@@ -7225,3 +7225,75 @@ p.is-bad {
 .radio-wait {
   margin-top: 0.6rem;
 }
+
+/* Elites (3.12.0): one of a kind at a place, its picture, what it does and its prize. */
+.place-tag.is-elite {
+  border-color: var(--ochre);
+  color: var(--ochre);
+}
+.elite-card {
+  display: grid;
+  grid-template-columns: 6.5rem 1fr;
+  gap: 0.75rem;
+  align-items: start;
+  margin: 0.75rem 0;
+  padding: 0.75rem;
+  border: 1px solid var(--ochre);
+  border-radius: 8px;
+  background: var(--steel-2);
+}
+.elite-card.is-dead {
+  border-color: var(--line);
+  opacity: 0.85;
+}
+.enemy-picture-box svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 6px;
+}
+.elite-card.is-dead .enemy-picture-box {
+  filter: grayscale(1) brightness(0.8);
+}
+.elite-name {
+  margin: 0;
+  font-family: var(--stencil);
+  font-size: var(--step-1);
+  color: var(--ochre);
+}
+.elite-card.is-dead .elite-name {
+  color: var(--bone-2);
+  text-decoration: line-through;
+}
+.elite-desc,
+.elite-line {
+  margin: 0.25rem 0 0.5rem;
+  font-size: var(--step--1);
+  color: var(--bone-2);
+}
+.elite-chips {
+  margin-bottom: 0.5rem;
+}
+.elite-prize {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+}
+.elite-prize .item-icon-box {
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: none;
+}
+.elite-prize-name {
+  display: block;
+  font-weight: 700;
+}
+.elite-prize-what {
+  display: block;
+  font-size: var(--step--1);
+  color: var(--bone-3);
+}
+.elite-orders {
+  grid-column: 1 / -1;
+}

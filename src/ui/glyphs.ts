@@ -42,6 +42,11 @@ export const GLYPHS = {
   rise: 'M3 17l6-6 4 4 8-8 M15 7h6v6',
   war: 'M5 21V4 M5 4h12l-3 4 3 4H5',
   wrench: 'M14.5 3.5a5 5 0 0 0-4.6 6.9L3.5 16.8 7.2 20.5l6.4-6.4a5 5 0 0 0 6.9-4.6l-3 3-3.2-.8-.8-3.2Z',
+  // Elites (3.12.0): one of a kind, a sweep at a rank, going under water, plates.
+  star: 'M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9Z',
+  sweep: 'M20 6C10 6 4 9 4 12s6 6 16 6 M20 18l-4-3 M20 18l-3 3',
+  wave: 'M3 15c2-2 4-2 6 0s4 2 6 0 4-2 6 0 M3 19c2-2 4-2 6 0s4 2 6 0 4-2 6 0 M12 3v8 M9 8l3 3 3-3',
+  plates: 'M4 5h7v6H4Z M13 5h7v6h-7Z M4 13h16v6H4Z',
 } as const;
 
 export type GlyphName = keyof typeof GLYPHS;

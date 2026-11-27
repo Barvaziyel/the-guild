@@ -744,6 +744,43 @@ Aviel, 2026-11-23, and a friend playing too: rations are a passive income used o
 - **Tour:** a step on the Reach, *The market*, after *Why go out*; *Getting more* mentions the Scrapyard and the market.
 - **Later:** in multiplayer (§15), the market's prices could be shared by every guild on the server.
 
+### 7.15 Elites (3.12.0)
+
+Step 2c of *Built as if for the store* (§15), from the design review of 3.8.0: bigger fights that need thought, with a prize the player can see coming. Every place where there's fighting has one of a kind that owns it: an enemy of its own, with its own drawing, a mechanic nothing else has, and a prize. Data in `content/elites.ts` (each an `EnemyDef` with `elite`); runs in `expedition/elites.ts`.
+
+| Place | Elite | What it does | Prize (a Relic with a name) |
+|---|---|---|---|
+| The Rail Yard (1) | The Switchman, a rail robot | 4 plates; big hits | The Switch Bar (Crowbar) |
+| Maple Street (1) | Old Mother, a great rad-hound | calls up to 3 hounds; leads the pack | Old Mother's Tags (Dog Tags) |
+| Kessler Farm (2) | The Butcher, a raider | grabs; strikes twice at half; big hits | The Butcher's Cleaver (Machete) |
+| The Old Metro (2) | The Conductor, a hollow | calls up to 3 hollows with his bell; gets up | The Conductor's Token (Lucky Coin) |
+| The Drowned Mall (2) | The Snapper, a giant turtle | 3 plates (its shell); goes under; grabs | The Snapper's Shell (Scrap Vest) |
+| Hilltop Radio Station (2) | The Lookout, a raider sniper | up the mast: only shots reach her; lines up shots | The Lookout's Rifle (Hunting Rifle) |
+| St. Jude's (3) | The Matron, a glowing hollow | patches her own; calls up to 2 hollows; gets up | The Matron's Bag (Medkit) |
+| The Water Plant (3) | The Warden, a security unit | 3 plates; launches up to 2 drones; shoots | The Warden's Plate (Riot Gear) |
+| Blackwater (3) | The Bog King, a mire stalker | goes under; grabs; big hits | The Bog King's Hide (Leather Jacket) |
+| Checkpoint Bravo (4) | Bravo Six, an army walker | 4 plates; sweeps a rank with its gun | Bravo Six's Sweeper (Scattergun) |
+| Red Hand Camp (4) | The Red Hand, the gang's boss | calls up to 2 raiders with a whistle; strikes twice at half; leads them | The Red Hand's Maul (Sledge) |
+| The Glow (5) | The Glass Man, a glass-grown hulk | sweeps the front; 3 rads a hit; gets up | The Glass Man's Suit (Hazmat Suit) |
+
+**New mechanics** (hooks on `EnemyDef`, so any enemy could have them):
+- **Plates** (`plates`): each hit that lands knocks one off instead of hurting it. Many quick hits strip them; then it's soft. Pips by the bar.
+- **Calls** (`calls`): a chance each round of calling one more in, up to `max` a fight. They wait off the stage (`reserve`, `waiting`) so every index stays put. A shove or a pin down stops the call.
+- **Sweeps** (`sweeps`): a chance each round of a blow (or a burst of fire) at a whole rank: its hit on everyone there, no roll, half in cover. Spoiled by a shove or a pin down.
+- **Goes under** (`dives`): a chance each round of going under the water; for a round nothing reaches it, then it comes up under anyone, front or back, with a big hit. The one it's after can take cover.
+- **Enraged** (`enrages`): two blows a round once it's down to half.
+
+**How the guild meets one:**
+- **Seen first.** Once a place's outskirts are half explored (`ELITE_SEEN_AFTER`), a run there may see it (`ELITE_SIGNS_CHANCE` 25%, twice that scouting): a beat of its own (`signs`), and a Chronicle line for the one who saw it first. Only scavenging, scouting and hunting crews.
+- **Then known.** The place's *About* tab shows it: its picture, what it does as tags, and its prize; the Reach's list tags the place with its name. A fight there may turn out to be it (`ELITE_MEET_CHANCE` 12% a fight).
+- **Gone after.** The planner offers *Go after it*: at the deepest point of the run they find where it lives (`lair`), not ambushed, since they came looking.
+- **An elite's fight** lasts 10 rounds (`ELITE_ROUNDS`), always calls home (it's a fight that matters), has no side job, and can't be talked down or shorted out. Its card shows the prize.
+- **Brought down,** it's dead for good: its last moment, a Chronicle line ("Brought down the Butcher at Kessler Farm."), and its prize home as a Relic with its name and a story. The place shows who did it.
+- Its dice are its own (`elite:` and the run's seed), so a run where it doesn't show plays exactly as it would without it.
+- **Sounds** (§14.1): a plate's clang, the splash of going under, Old Mother's howl, the Conductor's bell, the Matron's claps, the Warden's siren, the Red Hand's whistle, Bravo Six's burst, the Glass Man's chime.
+
+**Measured** (crews of 3 that fit the place, sent after it; 80 fights each): fighting alone, a kitted crew brings one down 40–90% of the time, with 0.1–1.1 of them down a fight; led by a stand-in that reads the fight (shoves what's winding up, takes cover from what would drop someone), 47–100%, with far fewer down (Bravo Six: 88% and 0.1 down, against 44% and 0.7 alone). Deaths 0–0.06 a fight. Script `/home/claude/probe/elites.ts` (that session only).
+
 ## 8. Gear
 
 Every survivor has four slots: **Weapon · Armor · Tool · Trinket**
@@ -1362,6 +1399,7 @@ Aviel, 2026-11-23: "make the game a bit more interesting… assets and movement�
     - The voices are real: a man's and a woman's, recorded for the game (2026-11-27), four calls each (calm, excited, tense, uneasy) and three replies. A call plays in the caller's voice (by their pronouns) and the mood of what it's about (`mood` on each fork and press-on teaser: a sealed door is excited, raiders on the road are tense, someone on the road is uneasy, a storm is calm); the reply is one of the three, the same every time for that call (`callCue`, `answerCue`).
     - `tools/audio/radio_voice.py` makes them from the recordings: long pauses shortened, only 400–1,900 Hz kept (the consonants go, the pitch and rhythm stay), overdriven, swelling and fading, breaking up six times a second. Only that is in the repo (`tools/audio/voices/radio/`), never the clear recordings. `sfx.py` puts the squelch and static round each, the static surging where the voice breaks up (`drops.json`).
     - Measured with a standard intelligibility score (STOI): the clear voice under light static scores about 0.75, the radio about 0.45–0.55, where few words come through.
+  - **Elites** (3.12.0, §7.15): a plate knocked off clangs; going under or coming up splashes; a call is the elite's own (Old Mother's howl, the Conductor's bell, the Matron's claps, the Warden's siren, the Red Hand's whistle); Bravo Six's sweep is a burst of fire, the Glass Man's a swing and a chime. Made after the radio on random numbers of their own, each set to a loudness of its own, so no earlier sound changed.
   - fights, act by act as the stage plays: each gun by its kind (pipe pistol, rifle, scattergun, crossbow; drones and sentries a zap of a laser), each blow by the weapon (a pipe or sledge thuds, a machete cuts, the shock baton crackles, bare hands punch), hounds snarl and bite, hollows groan, scrapbots whirr, misses ricochet, the fallen fall, patching up, taking cover, running, a door, a job being worked; the guild on the left, the enemy on the right. A won fight ends on horns, a rout on low cello. The shot at Haven's gate is heard.
   - **No two the same** (3.4.1; a player fought eight hollows and they all groaned the same, one after another): hollows, hounds and scrapbots each have three voices, and each enemy in a fight gets one of them at a pitch of its own (0.88–1.12), so no two of the first eight sound alike; its swings and its fall take the same pitch. Someone of the guild being hurt is one of three sounds, by who it is. On top of that every sound plays a little different each time (±5% pitch, ±12% loudness).
   - a quiet click on every button, a page turning on the tab bar, a soft sweep when a sheet opens.
@@ -1527,8 +1565,8 @@ From the design review of 3.8.0 (the project doc `claude/design-review-3.8.md`; 
 |---|---|---|---|
 | 1 | 3.9.1 | Store blockers: exact alarms the player allows (not `USE_EXACT_ALARM`, which Play keeps for clock and calendar apps); the save also in a file, with a copy a real day (§7.3, §13) | **done** (#81) |
 | 2a | 3.10.0 | Calls that matter: a crew calls home for a named foe or a fight that would put someone down, and says when someone would die; a clean fight pays (§7.13) | **done** (#82) |
-| 2b | 3.11.0 | One *press on or come home* call a run, when going deeper is a real gamble (Moderate risk or worse for that crew); the wait scales with the run; the radio's crackle (§7.12, §14.1) | **this PR** |
-| 2c | 3.12.0 | Elites: one or two a place, each with a mechanic and a prize (new enemies, new drawings) | planned |
+| 2b | 3.11.0 | One *press on or come home* call a run, when going deeper is a real gamble (Moderate risk or worse for that crew); the wait scales with the run; the radio's crackle (§7.12, §14.1) | **done** (#83) |
+| 2c | 3.12.0 | Elites: one a place, each with a mechanic and a prize (new enemies, new drawings, new sounds) (§7.15) | **this PR** |
 | 3 | 3.13.0 | Places that need the right people: locked, heavy, radiation, machines, flooded, carrying out, traps, animals; crew perks from pairs and traits | planned |
 | 4 | 3.14.0 | Systems unlocked through the story, the first session for a stranger (an opening scene, a short first run, the first led fight), the tour cut to the first day; sound in scenes, and the gate scene redone with it | planned |
 | 5 | 3.15.0 | The broadcast as the hook: seeds from day one, the night of the broadcast as a scene, a name on the air (someone a guild member lost), the goal made plain, a pull to go ("until the first snow"), the unlock page in the journal's style; with its sound (radio static, the dial, the voice through crackle) | planned |

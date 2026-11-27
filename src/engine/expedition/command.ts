@@ -11,7 +11,7 @@ import { visibleTraits } from '../traits.ts';
 import { HAVEN_JOURNEY, getTrait } from '../content/index.ts';
 import type { LogLine, MoveId, Rank } from '../types.ts';
 import type { CombatEnd, Enemy, EnemyIntentKind } from './combat.ts';
-import { active, type Member, type Sim } from './context.ts';
+import { active, withArticle, type Member, type Sim } from './context.ts';
 import { enemyRank, reaches, type EnemyRank } from './reach.ts';
 import { canWork, type GoalView } from './goals.ts';
 
@@ -80,6 +80,18 @@ export interface FightEnemyView {
   leader: boolean;
   /** It never breaks and runs. */
   fearless: boolean;
+  /** One of a kind (§7.15, 3.12.0): its prize, a Relic (the gear's id and its name). */
+  elite?: { prize: { item: string; name: string } };
+  /** What elites do (3.12.0): calls more in (how many are still to come), plates left on it, sweeps a rank, goes under, strikes twice at half its HP. */
+  calls?: number;
+  plates?: number;
+  sweeps?: boolean;
+  dives?: boolean;
+  enrages?: boolean;
+  /** Gone under (3.12.0): out of reach this round. */
+  under?: boolean;
+  /** One that comes when called (3.12.0): `waiting` until it does. */
+  reserve?: boolean;
 }
 
 /**
@@ -145,7 +157,16 @@ export type FightActKind =
   | 'burn'
   /** A hollow getting someone in its grip (3.8.0), and someone getting out of one (`by` them; `ok` when free). */
   | 'grab'
-  | 'free';
+  | 'free'
+  /** A hit that knocks a plate off instead (3.12.0): `amount` is how many are left. */
+  | 'plate'
+  /** Calling one more of them in (3.12.0); an `arrive` for the one who comes. */
+  | 'call'
+  /** A sweep at a rank of the crew (3.12.0); a `hit` for each one it catches. */
+  | 'sweep'
+  /** Going under (3.12.0), and coming up again under someone (`surface`, then a `hit` or a `miss`). */
+  | 'dive'
+  | 'surface';
 
 export interface FightMemberView {
   id: string;
@@ -219,6 +240,8 @@ export function enemyNames(enemies: readonly Enemy[]): string[] {
   return enemies.map((e) => {
     if (e.nemesis) return e.nemesis.name;
     if (e.vulture) return e.vulture.name;
+    // One of a kind goes by its name, "the Butcher" (3.12.0), capitalized where a line starts with it.
+    if (e.def.name.startsWith('The ')) return withArticle(e.def.name);
     if ((counts.get(e.def.name) ?? 0) < 2) return e.def.name;
     const n = (seen.get(e.def.name) ?? 0) + 1;
     seen.set(e.def.name, n);
@@ -267,7 +290,7 @@ export function movesFor(sim: Sim, m: Member, enemies: readonly Enemy[], rank: R
   const from: Rank = m.perch ? 'back' : rank;
   const reachable = (shot: boolean): number[] => foes.filter((e) => reaches(shot, from, e, enemies)).map((e) => enemies.indexOf(e));
   const foeIds = reachable(gun);
-  const anyFoe = foes.map((e) => enemies.indexOf(e));
+  const anyFoe = foes.filter((e) => !e.under).map((e) => enemies.indexOf(e));
   const granted = grantedMoves(m);
   const out: MoveChoice[] = [];
   const add = (move: MoveId, targets: (number | string)[] = [], name?: string, detail?: string): void => {
@@ -281,7 +304,7 @@ export function movesFor(sim: Sim, m: Member, enemies: readonly Enemy[], rank: R
     enemies.filter((e) => e.down && !e.dead && reaches(gun, from, e, enemies)).map((e) => enemies.indexOf(e)),
   );
   const ofType = (type: string, unnamed = false): number[] =>
-    foes.filter((e) => e.def.type === type && (!unnamed || (!e.nemesis && !e.vulture))).map((e) => enemies.indexOf(e));
+    foes.filter((e) => e.def.type === type && !e.under && (!unnamed || (!e.nemesis && !e.vulture && !e.def.elite))).map((e) => enemies.indexOf(e));
 
   // A lookout on the Watchtower (§9.8) can only shoot, aim and point things out from up there.
   const PERCHED: readonly MoveId[] = ['attack', 'finish', 'shove', 'aim', 'called_shot', 'spray', 'spot'];
@@ -311,9 +334,10 @@ export function movesFor(sim: Sim, m: Member, enemies: readonly Enemy[], rank: R
   if (granted.has('guard')) add('guard', others.map((o) => o.s.id));
   if (granted.has('spot') && others.length > 0) add('spot', anyFoe);
   if (granted.has('intimidate')) add('intimidate', ofType('raider', true));
-  if (granted.has('soothe')) add('soothe', ofType('feral'));
+  // An elite (3.12.0) can't be talked down or shorted out.
+  if (granted.has('soothe')) add('soothe', ofType('feral').filter((i) => !enemies[i]!.def.elite));
   // Shorting a machine out takes a hand inside it: only what's in reach.
-  if (granted.has('short_out')) add('short_out', ofType('scrapbot').filter((i) => reaches(false, from, enemies[i]!, enemies)));
+  if (granted.has('short_out')) add('short_out', ofType('scrapbot').filter((i) => !enemies[i]!.def.elite && reaches(false, from, enemies[i]!, enemies)));
   return out;
 }
 
@@ -343,14 +367,14 @@ export function fightView(sim: Sim, enemies: readonly Enemy[], round: number, fr
       maxHp: e.maxHp,
       state: e.dead ? 'dead' : e.fled ? 'fled' : e.down ? 'down' : e.waiting ? 'waiting' : 'up',
       stunned: e.stunned === true,
-      named: e.nemesis !== undefined || e.vulture !== undefined,
+      named: e.nemesis !== undefined || e.vulture !== undefined || e.def.elite !== undefined,
       nemesis: e.nemesis !== undefined,
       vulture: e.def.id.startsWith('vulture_'),
       rank: enemyRank(e),
       damage: e.damage,
       armor: e.def.armor,
       rises: e.def.rises === true && !e.rose && !e.nemesis,
-      ...((e.def.attacks ?? 1) > 1 ? { twice: true } : {}),
+      ...((e.def.attacks ?? 1) > 1 || (e.def.enrages && e.hp * 2 <= e.maxHp) ? { twice: true } : {}),
       pack: e.def.pack === true,
       heavy: e.def.heavy !== undefined,
       ...(e.intent && !over && !e.dead && !e.fled
@@ -372,6 +396,14 @@ export function fightView(sim: Sim, enemies: readonly Enemy[], round: number, fr
       ...(e.def.throws ? { burn: e.def.throws.damage + (e.damage - e.def.damage) } : {}),
       leader: e.def.leader === true,
       fearless: e.def.morale === 'fearless' || e.nemesis !== undefined,
+      ...(e.def.elite ? { elite: { prize: { item: e.def.elite.prize.item, name: e.def.elite.prize.name } } } : {}),
+      ...(e.def.calls ? { calls: enemies.filter((o) => o.reserve && o.waiting).length } : {}),
+      ...(e.plates !== undefined ? { plates: e.plates } : {}),
+      ...(e.def.sweeps ? { sweeps: true } : {}),
+      ...(e.def.dives ? { dives: true } : {}),
+      ...(e.def.enrages ? { enrages: true } : {}),
+      ...(e.under && !over ? { under: true } : {}),
+      ...(e.reserve ? { reserve: true } : {}),
     })),
     crew: sim.members.map((m) => ({
       id: m.s.id,

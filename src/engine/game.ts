@@ -118,6 +118,7 @@ export function newGame(opts: NewGameOptions): GameState {
     reports: [],
     eventsSeen: {},
     nemeses: [],
+    elites: {},
     vehicles: [],
     outposts: [],
     dilemmas: { nextDay: DILEMMA_FIRST_DAY, seen: {} },

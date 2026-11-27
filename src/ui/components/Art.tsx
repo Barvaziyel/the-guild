@@ -5,7 +5,7 @@
  */
 import { useMemo } from 'react';
 import type { BeatKind, BuildingId, Quality } from '../../engine/index.ts';
-import { beatIconSvg, buildingPictureSvg, itemIconSvg, placePictureSvg } from '../../scene/index.ts';
+import { beatIconSvg, buildingPictureSvg, enemyPictureSvg, itemIconSvg, placePictureSvg } from '../../scene/index.ts';
 
 export function ItemIcon({ defId, quality, label }: { defId?: string | undefined; quality?: Quality | undefined; label?: string }) {
   const svg = useMemo(() => itemIconSvg(defId, quality, label), [defId, quality, label]);
@@ -25,4 +25,10 @@ export function BuildingPicture({ id, level, name }: { id: BuildingId; level: nu
 export function BeatIcon({ kind }: { kind: BeatKind }) {
   const svg = useMemo(() => beatIconSvg(kind), [kind]);
   return <span className="beat-icon-box" dangerouslySetInnerHTML={{ __html: svg }} />;
+}
+
+/** One enemy on its own (an elite's card, 3.12.0). */
+export function EnemyPicture({ kind, type, label }: { kind: string; type: string; label: string }) {
+  const svg = useMemo(() => enemyPictureSvg(kind, type, label), [kind, type, label]);
+  return <div className="enemy-picture-box" dangerouslySetInnerHTML={{ __html: svg }} />;
 }

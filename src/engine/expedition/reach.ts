@@ -1,7 +1,7 @@
 /**
  * Who can reach whom in a fight (§7.4, 2.3.0). Each side has a front and a back.
  * Blows reach only the front rank while anyone stands in it; shots reach anyone;
- * nothing reaches what flies but a shot.
+ * nothing reaches what flies but a shot, and nothing what's gone under (3.12.0).
  */
 import type { Rank } from '../types.ts';
 import type { Enemy } from './combat.ts';
@@ -14,10 +14,12 @@ export function enemyRank(e: Enemy): EnemyRank {
   return e.def.flies ? 'air' : e.def.ranged ? 'back' : 'front';
 }
 
-const up = (e: Enemy): boolean => !e.dead && !e.fled && !e.down && !e.waiting;
+const up = (e: Enemy): boolean => !e.dead && !e.fled && !e.down && !e.waiting && !e.under;
 
 /** Whether one of the crew reaches this enemy: with a shot, anything; with a blow from the front, its front rank (or its back, once nobody stands in front), never a flyer. */
 export function reaches(shot: boolean, from: Rank, e: Enemy, enemies: readonly Enemy[]): boolean {
+  // Gone under (3.12.0): nothing reaches it.
+  if (e.under) return false;
   if (shot) return true;
   if (from === 'back') return false;
   const rank = enemyRank(e);

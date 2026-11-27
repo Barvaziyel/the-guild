@@ -1,6 +1,7 @@
 /**
  * Planning a run: how long it takes, what it costs, and whether it's allowed.
  */
+import { eliteProblem } from './elites.ts';
 import { openRaid, raidAtGate } from '../depot/raids.ts';
 import { havenRoadOpen } from '../haven.ts';
 import { searchReason } from '../corners.ts';
@@ -165,6 +166,9 @@ export function validatePlan(state: GameState, plan: RunPlan): string[] {
 
   // The Drive-In is a market: trade runs go there, and only there (§7.14).
   if (loc.market && plan.job !== 'trade') problems.push(`${loc.name} is a market: crews go there to trade.`);
+  // Going after the place's elite (3.12.0).
+  const elite = eliteProblem(state, plan);
+  if (elite) problems.push(elite);
   if (plan.job === 'trade' && !loc.market) problems.push(`There's no market at ${loc.name}.`);
   if (plan.job === 'trade' && depth > 1) problems.push('The market is all in one place.');
 

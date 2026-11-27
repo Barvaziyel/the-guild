@@ -348,6 +348,11 @@ export interface RunPlan {
    * the plan so every replay agrees.
    */
   pressOn?: 'Moderate' | 'High' | 'Deadly';
+  /**
+   * Go after the place's elite (§7.15, 3.12.0): once the guild has seen it and while it's at large, the crew
+   * looks for it, and at the deepest point of the run they find where it lives.
+   */
+  elite?: boolean;
   /** A trade run's goods and what they're for (§7.14, 3.4.0). Only with job `trade`. */
   trade?: TradeOrder;
 }
@@ -443,6 +448,8 @@ export interface LedFight {
   site?: string;
   /** Left to fight it alone, someone would die (3.10.0): the call says so. Only on a run that calls when it matters. */
   grave?: boolean;
+  /** An elite in it (§7.15, 3.12.0): its enemy id, for its prize on the card. */
+  elite?: string;
   /** When the player took command, or sent them in on their own. */
   took?: number;
   /** The rounds given so far. */
@@ -524,6 +531,29 @@ export interface Nemesis {
   history: StoryLine[];
 }
 
+/** What the guild knows of one elite (§7.15, 3.12.0). */
+export interface EliteRecord {
+  /** The day someone first saw it. */
+  seen: number;
+  status: 'atLarge' | 'dead';
+  /** Fights with the guild. */
+  fights: number;
+  diedDay?: number;
+  /** Who brought it down: survivor id and name, kept in case they're gone since. */
+  killedBy?: { id: string; name: string };
+}
+
+/** What one run did to one elite (§7.15, 3.12.0), applied when the crew is back: runs overlap, like nemeses. */
+export interface EliteNews {
+  id: string;
+  /** Seen for the first time on this run, by this survivor. */
+  seen?: string;
+  /** Fought it. */
+  fought?: boolean;
+  /** Brought it down: who. */
+  killed?: string;
+}
+
 /** What one run did to one nemesis, applied when the crew is back. */
 export interface NemesisNews {
   id: string;
@@ -572,6 +602,8 @@ export interface RunSummary {
   events: string[];
   /** Nemeses met, named or killed (missing on runs from before save version 7). */
   nemeses?: NemesisNews[];
+  /** Elites seen, fought or killed (§7.15, 3.12.0). */
+  elites?: EliteNews[];
   /** The vehicles taken, after the run. Missing on foot and before save version 11. */
   vehicles?: VehicleNews[];
   /** Vehicles found out there and brought home. */
@@ -1274,6 +1306,8 @@ export interface GameState {
   eventsSeen: Record<string, number>;
   /** Named enemies, at large and dead. */
   nemeses: Nemesis[];
+  /** The elites the guild knows of (§7.15, 3.12.0), by enemy id. One not here hasn't been seen yet. */
+  elites: Record<string, EliteRecord>;
   /** Vehicles the guild owns, at home or out (§7.8). */
   vehicles: Vehicle[];
   /** Outposts at fully explored places (§7.9). */

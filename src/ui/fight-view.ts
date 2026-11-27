@@ -27,6 +27,7 @@ import {
   type Survivor,
 } from '../engine/index.ts';
 import { formatDuration, type Choice, type PlannedNotice } from './runs-view.ts';
+import { prizeChip } from './elites-view.ts';
 import { callSpeech } from './call-lines.ts';
 import type { Chip } from './glyphs.ts';
 import { clockTime } from './time.ts';
@@ -148,9 +149,11 @@ function callLine(state: GameState, run: Run, f: LedFight, name: string): string
 
 /** What's at stake, as a picture (3.10.0): left alone, someone would go down, or die. Nothing for a crew that calls at every fight. */
 function stakeChips(f: LedFight, run: Run): Chip[] {
-  if (f.grave) return [{ glyph: 'skull', text: 'if alone', tone: 'bad', label: 'Left to fight it alone, someone would die' }];
-  if (run.plan.lead === 'matters') return [{ glyph: 'down', text: 'if alone', tone: 'bad', label: 'Left to fight it alone, someone would go down' }];
-  return [];
+  // An elite's prize, first (3.12.0).
+  const prize = f.elite ? [prizeChip(f.elite)] : [];
+  if (f.grave) return [...prize, { glyph: 'skull', text: 'if alone', tone: 'bad', label: 'Left to fight it alone, someone would die' }];
+  if (run.plan.lead === 'matters') return [...prize, { glyph: 'down', text: 'if alone', tone: 'bad', label: 'Left to fight it alone, someone would go down' }];
+  return prize;
 }
 
 /** Where the battle stage is for a run's fight: its spot on the road east (§9.12), or the run's place. */
@@ -349,6 +352,16 @@ export function incoming(view: FightView, id: string): Incoming {
       if (it.at === id) out.next = true;
       continue;
     }
+    // 3.12.0: a sweep catches everyone in the rank; calling and going under hurt nobody this round.
+    if (it.kind === 'sweep') {
+      if (it.rank === m.rank) out.amount += e.damage;
+      continue;
+    }
+    if (it.kind === 'call' || it.kind === 'dive') continue;
+    if (it.kind === 'surface') {
+      if (it.at === id) out.amount += e.damage * HEAVY_HIT_MULT;
+      continue;
+    }
     const big = it.kind === 'heavy' ? HEAVY_HIT_MULT : it.kind === 'shot' ? LINED_UP_MULT : 1;
     if (it.at === id && it.kind !== 'run' && it.kind !== 'mend' && canStillReach(view, e, id)) out.amount += e.damage * big;
     if (it.also === id && canStillReach(view, e, id)) out.amount += e.damage;
@@ -362,7 +375,7 @@ export function theirMoves(view: FightView): string[] {
   const out: string[] = [];
   for (const e of view.enemies) {
     if (e.state === 'down') {
-      out.push(`${e.name}: on the ground. It gets back up at the end of the round unless someone finishes it.`);
+      out.push(`${capitalized(e.name)}: on the ground. It gets back up at the end of the round unless someone finishes it.`);
       continue;
     }
     if (e.state !== 'up') continue;
@@ -382,6 +395,11 @@ export function theirMoves(view: FightView): string[] {
     else if (it?.kind === 'throw') what = `throwing a firebomb at ${it.rank === 'back' ? 'the back' : 'the front'} (${e.burn ?? 0} each, half in cover)`;
     else if (it?.kind === 'grab' && who) what = `grabbing for ${who}`;
     else if (it?.kind === 'hold' && who) what = `has ${who} in its grip (${e.damage} a round, no miss)`;
+    // 3.12.0: what elites do.
+    else if (it?.kind === 'call') what = `calling more of them in (${e.calls ?? 0} still to come)`;
+    else if (it?.kind === 'sweep') what = `${shoots ? 'raking' : 'sweeping'} ${it.rank === 'back' ? 'the back' : 'the front'} (${e.damage} each, half in cover)`;
+    else if (it?.kind === 'dive') what = 'going under: nothing reaches it next round';
+    else if (it?.kind === 'surface' && who) what = `under the water, coming up under ${who} (up to ${e.damage * 2})`;
     else if (who && e.intent?.at && !canStillReach(view, e, e.intent.at)) what = `${e.intent.kind === 'heavy' ? 'winding up a big hit' : 'going'} for ${who}, who is out of reach at the back now: it turns to someone in front`;
     else if (e.intent?.kind === 'heavy' && who) what = `${shoots ? 'taking careful aim at' : 'winding up a big hit at'} ${who} (up to ${e.damage * 2})`;
     else if (who && pack > 0) what = `going for ${who} with the pack (+${pack} to hit)`;
@@ -390,7 +408,7 @@ export function theirMoves(view: FightView): string[] {
     // A second blow at someone else (the Shepherd, §9.12).
     const also = !e.stunned && e.intent?.kind !== 'run' && e.intent?.also && canStillReach(view, e, e.intent.also) ? view.crew.find((m) => m.id === e.intent!.also)?.name : undefined;
     if (also && who) what += also === who ? ', twice' : `, and a second blow at ${also}`;
-    out.push(`${e.name}: ${what}.`);
+    out.push(`${capitalized(e.name)}: ${what}.`);
   }
   return out;
 }
@@ -419,13 +437,24 @@ export function whatTheyAre(view: FightView): string[] {
     if (e.mends) out.push(`${kind}: patches up the others. Get to it first, or pin it down.`);
     if (e.throws) out.push(`${kind}: throws firebombs at a rank of you. Spread out, take cover, or pin it down and it drops one at its own feet.`);
     if (e.grabs) out.push(`${kind}: grabs one of you and holds on, biting every round. A shove gets them out; hitting it doesn't.`);
+    // 3.12.0: elites.
+    if (e.plates) out.push(`${kind}: plated. Each hit knocks a plate off instead of hurting it (${e.plates} left), so many quick hits first.`);
+    if (e.calls) out.push(`${kind}: calls more in, ${e.calls} still to come. Bring it down fast, or shove it to stop the call.`);
+    if (e.sweeps) out.push(`${kind}: sweeps a whole rank at once. Spread out or take cover; a shove spoils it.`);
+    if (e.dives) out.push(`${kind}: goes under for a round, then comes up under any one of you with a big hit. Get that one into cover.`);
+    if (e.enrages && !e.twice) out.push(`${kind}: strikes twice once it's down to half.`);
+    if (e.elite) out.push(`${kind}: one of a kind. Bring it down for ${e.elite.prize.name}.`);
   }
   return out;
 }
 
+/** "the Butcher" at the start of a line (3.12.0). */
+const capitalized = (name: string): string => name.charAt(0).toUpperCase() + name.slice(1);
+
 /** "Raider Scav 2" → "Raider Scav", like a glossary entry; a named one keeps its name. */
 function kindName(e: FightView['enemies'][number]): string {
-  return e.named ? e.name : e.name.replace(/ \d+$/, '');
+  const name = e.named ? e.name : e.name.replace(/ \d+$/, '');
+  return name.charAt(0).toUpperCase() + name.slice(1);
 }
 
 /** The job a fight came with, for its panel on the fight screen (2.5.0). */

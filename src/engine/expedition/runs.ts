@@ -22,6 +22,7 @@ import { FightPause, type FightView } from './command.ts';
 import type { FightPlan, SimFork, SimStop } from './context.ts';
 import { gasNeeded, planVehicles, vehicleName } from '../vehicles.ts';
 import { addStory, applyNemesisNews, takenNames } from './stories.ts';
+import { applyEliteNews } from './elites.ts';
 import { answerCall, applyRescue, bringHomeFound } from '../rescue.ts';
 import { applyVultureNews } from '../vultures.ts';
 import { applyHavenNews } from '../haven.ts';
@@ -232,7 +233,7 @@ function fightsFrom(stops: readonly SimStop[], departAt: number, kept: readonly 
     const old = kept[k];
     if (old && (old.took !== undefined || old.ended !== undefined)) return old;
     const at = departAt + st.at;
-    return { at, until: at + LEAD_WAIT, by: st.by, against: st.against, fromBeat: st.fromBeat, ...(st.site ? { site: st.site } : {}), ...(st.grave ? { grave: true } : {}), rounds: [] };
+    return { at, until: at + LEAD_WAIT, by: st.by, against: st.against, fromBeat: st.fromBeat, ...(st.site ? { site: st.site } : {}), ...(st.grave ? { grave: true } : {}), ...(st.elite ? { elite: st.elite } : {}), rounds: [] };
   });
 }
 
@@ -597,6 +598,8 @@ export function completeRun(state: GameState, runId: string, now: number): RunRe
   const cameBack = result.crew.filter((s) => s.status !== 'dead').map((s) => s.id);
   for (const death of result.deaths) mourn(state, death, rng, day, cameBack);
   for (const news of result.nemeses ?? []) applyNemesisNews(state, news, result.crew, day, rng);
+  // An elite seen, fought or brought down (§7.15, 3.12.0).
+  for (const news of result.elites ?? []) applyEliteNews(state, news, day, (id) => result.crew.find((s) => s.id === id)?.firstName ?? 'someone');
   if (result.rescue) applyRescue(state, run, result.rescue, day, rng);
   if (result.vultures) applyVultureNews(state, result.vultures, day, rng);
   if (result.animals) animalsFollowHome(state, result.animals, day, loc.name);
