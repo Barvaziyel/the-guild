@@ -6,7 +6,7 @@
 import type { BuildingId, Quality, RelationshipLabel, ResourceId, Resources } from './types.ts';
 
 /** Save format version. Bump together with a migration in save.ts. */
-export const SAVE_VERSION = 30;
+export const SAVE_VERSION = 31;
 /** A guild this many game days old or younger, coming in from an older version, gets the first week too (§9.10). */
 export const STORY_OLD_SAVE_DAYS = 14;
 
@@ -642,6 +642,22 @@ export const OUTPOST_RAID_DANGER: readonly number[] = [0, 1, 2, 2, 2, 3];
 export const DEPTH_DURATION = 0.25;
 export const DEPTH_GEAR = 0.5;
 export const DEPTHS = 3;
+
+// ---------------------------------------------------------------- needs (§7.16, 3.13.0)
+
+/** How good someone has to be at a need's stat (with gear and traits) to cover it, by level: the outskirts, deeper in, the heart of it. */
+export const NEED_BAR = [5, 6, 7] as const;
+/** A tool that helps with a need (Lockpicks and a lock) lowers the bar this much for whoever holds it. */
+export const NEED_TOOL = 2;
+/** Two who are each this much short of the bar cover a heavy door or a load between them. */
+export const NEED_TOGETHER = 1;
+/** An aggressive crew's go at a need nobody covers: this, plus the danger where they are (the place's, one more a level down), less one. */
+export const NEED_TRY_DC = 10;
+/** What a part holds: this many supplies, NEED_FIND_PER_DANGER more for each point of danger above 1, made richer like any find. */
+export const NEED_FIND = 6;
+export const NEED_FIND_PER_DANGER = 2;
+/** A running vehicle with at least this much room carries a heavy load out. */
+export const NEED_CARGO = 10;
 
 // ---------------------------------------------------------------- decisions at the Depot (1.7.0)
 

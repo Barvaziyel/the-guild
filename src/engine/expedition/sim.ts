@@ -19,6 +19,7 @@ import {
   MEDS_HEAL_SKILLED,
   MINUTES_PER_BEAT,
   MIN_BEATS,
+  DEPTHS,
   RADS_PER_BEAT,
   RAD_SICKNESS_THRESHOLD,
   REL_COMBAT_TOGETHER,
@@ -46,7 +47,7 @@ import {
   VULTURES_TURF_FINDS,
   TRADE_LOAD,
 } from '../constants.ts';
-import { PRESS_ASIDES, PRESS_ON, PRESS_ON_GO, PRESS_ON_HOME, PRESS_ON_PICKS, getEnemy, getLocation, getTrait, getVehicleDef, type PressOnDef, type PressOnTeaser } from '../content/index.ts';
+import { PRESS_ASIDES, PRESS_ON, PRESS_ON_GO, PRESS_ON_HOME, PRESS_ON_PICKS, getEnemy, getLocation, getTrait, getVehicleDef, partAt, type PressOnDef, type PressOnTeaser } from '../content/index.ts';
 import { DEPART_LINES, RETURN_LINES } from '../content/flavor.ts';
 import { applyEvolutions } from '../evolution.ts';
 import { itemDef, itemName, sumGearHook } from '../gear.ts';
@@ -103,7 +104,9 @@ import {
 } from './context.ts';
 import { playOutcome, tryEvent } from './events.ts';
 import { footDuration, hungryCrew, rationsPacked, runDuration } from './plan.ts';
-import { atDepth, planDepth } from '../locations.ts';
+import { atDepth, locationState, planDepth } from '../locations.ts';
+import { PART_JOBS, coverNeed, crewPerks } from '../needs.ts';
+import { partBeat, simCarries } from './needs.ts';
 import { outpostNear } from '../outposts.ts';
 import { seating } from '../vehicles.ts';
 import { earnNickname, nameWeapon, nemesisNewsList, takenNames } from './stories.ts';
@@ -278,6 +281,11 @@ function pressOnCall(sim: Sim, slot: number, duration: number, recallAt: number 
   say(sim, `${caller.s.firstName}: “${ask}”`);
   const pick = PRESS_ON_PICKS.find((p) => (!p.trait || hasTrait(caller.s, p.trait)) && (!p.retreat || p.retreat === sim.plan.retreat))!;
   const wait = Math.min(PRESS_ON_WAIT[1], Math.max(PRESS_ON_WAIT[0], Math.round(duration / 2 / 300_000) * 300_000));
+  // The best part of the level they'd go into (§7.16), and who in the crew as it stands covers what (hidden traits don't show).
+  const part = partAt(sim.plan.locationId, level);
+  const people = standing(sim)
+    .filter((m) => !m.ally)
+    .map((m) => m.s);
   const { order, picked } = reachFork(sim, {
     forkId: 'press_on',
     title: def.title,
@@ -298,6 +306,14 @@ function pressOnCall(sim: Sim, slot: number, duration: number, recallAt: number 
       haul: Object.fromEntries(RESOURCE_IDS.filter((r) => sim.loot[r] > 0).map((r) => [r, sim.loot[r]])),
       items: sim.items.length,
       crew: sim.members.filter((m) => !m.ally && !m.dead).map((m) => ({ id: m.s.id, hp: m.s.hp, maxHp: maxHp(m.s), down: m.down })),
+      ...(part && PART_JOBS.includes(sim.plan.job)
+        ? {
+            part: {
+              known: (sim.partsKnown ?? []).includes(level),
+              needs: part.needs.map((n) => ({ kind: n.kind, covered: coverNeed(people, n.kind, level, { vehicle: simCarries(sim) }) !== undefined })),
+            },
+          }
+        : {}),
     },
   });
   // A hidden trait that made the call shows itself.
@@ -312,7 +328,9 @@ function pressOnCall(sim: Sim, slot: number, duration: number, recallAt: number 
   say(sim, flavor(sim, PRESS_ON_GO, { a: caller }, { where: level >= 3 ? 'into the heart of it' : 'deeper in' }));
   sim.loc = atDepth(getLocation(sim.plan.locationId), level);
   sim.deeper = level;
-  const beats = 1 + (sim.rng.chance(PRESS_ON_SECOND_BEAT) ? 1 : 0);
+  // A scavenging crew always has a second stretch further in, when the level has a best part: going for it.
+  const goesFor = part && PART_JOBS.includes(sim.plan.job) ? part : undefined;
+  const beats = 1 + (sim.rng.chance(PRESS_ON_SECOND_BEAT) || goesFor ? 1 : 0);
   let previous: MidKind | undefined;
   for (let k = 0; k < beats; k++) {
     if (sim.turnBack || sim.routed || standing(sim).length === 0) break;
@@ -324,6 +342,12 @@ function pressOnCall(sim: Sim, slot: number, duration: number, recallAt: number 
     if (recallAt !== undefined && sim.offset >= recallAt) {
       calledHome(sim, Math.max(recallAt, sim.beats.at(-1)?.at ?? 0));
       break;
+    }
+    if (k === 1 && goesFor) {
+      partBeat(sim, goesFor, level);
+      endBeat(sim, 'scavenge');
+      previous = 'scavenge';
+      continue;
     }
     const kind: MidKind = k === 0 ? def.beat : pickBeatKind(sim, previous, false);
     // Whoever was further in, met face to face; any other first beat is one of its kind.
@@ -722,6 +746,11 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
   // The place's elite (§7.15, 3.12.0), on dice of its own.
   const elite = eliteOnRun(state, plan, seed, middle);
   if (elite) sim.elite = elite;
+  // The best part of the level they're going to (§7.16, 3.13.0): a scavenging crew goes for it the first time it searches.
+  const part = PART_JOBS.includes(plan.job) ? partAt(plan.locationId, planDepth(plan)) : undefined;
+  sim.partsKnown = locationState(state, plan.locationId).parts ?? [];
+  // Pairs in the crew whose traits work together (§7.16).
+  sim.perks = crewPerks(sim.members.map((m) => m.s));
   const slot = duration / totalBeats;
   let previous: MidKind | undefined;
   let done = 0;
@@ -742,10 +771,17 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
     }
     // A trade run reaches the market halfway (§7.14).
     const kind = i === tradeAt ? 'trade' : pickBeatKind(sim, previous, i === middle - 1);
-    if (kind === 'trade') tradeBeat(sim);
-    else if (!tryFork(sim, kind) && !tryEvent(sim, kind)) BEAT_FNS[kind](sim);
-    endBeat(sim, kind);
-    previous = kind;
+    // The place's best part (§7.16), instead of their first search: what it holds if they get in, nothing if they can't.
+    if (kind === 'scavenge' && part && !sim.parts?.length) {
+      partBeat(sim, part, planDepth(plan));
+      endBeat(sim, 'scavenge');
+      previous = 'scavenge';
+    } else {
+      if (kind === 'trade') tradeBeat(sim);
+      else if (!tryFork(sim, kind) && !tryEvent(sim, kind)) BEAT_FNS[kind](sim);
+      endBeat(sim, kind);
+      previous = kind;
+    }
     done += 1;
     // Someone sees the place's elite for the first time (3.12.0).
     if (i === elite?.signsAt && !sim.turnBack && !sim.routed && standing(sim).length > 0) eliteSigns(sim);
@@ -854,6 +890,9 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
   const range = EXPLORE_GAIN[plan.job];
   const fullGain = rng.int(range[0], range[1]) + sim.exploreBonus;
   const exploredGain = outcome === 'completed' ? fullGain : outcome === 'turnedBack' ? Math.floor(fullGain / 2) : 0;
+  // What they now know of the place's best parts (§7.16): the ones they came to, and, scouting all the way, the next level's.
+  const scoutedAhead = plan.job === 'scout' && outcome === 'completed' && planDepth(plan) < DEPTHS && partAt(plan.locationId, planDepth(plan) + 1) ? [planDepth(plan) + 1] : [];
+  const partsSeen = [...new Set([...(sim.parts ?? []), ...scoutedAhead])].sort((a, b) => a - b);
 
   const highlights: RunHighlight[] = [];
   for (const m of sim.members) {
@@ -884,6 +923,7 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
       events: sim.events,
       nemeses: nemesisNewsList(sim),
       ...(elite && eliteNewsMatters(elite.news, outcome) ? { elites: [eliteNewsHome(elite.news, outcome)] } : {}),
+      ...(outcome !== 'lost' && partsSeen.length > 0 ? { parts: partsSeen } : {}),
       ...(vehicleNews.length > 0 ? { vehicles: vehicleNews } : {}),
       ...(sim.foundVehicles.length > 0 && outcome !== 'lost' ? { foundVehicles: sim.foundVehicles } : {}),
       ...(rescue ? { rescue } : {}),

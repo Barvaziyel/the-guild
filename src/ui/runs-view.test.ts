@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { DAY_MS, LEAD_WAIT, LOCATIONS, MAX_CREW, Rng, amountOf, completeRun, createVehicle, dayAt, dayStart, runDuration, startRun, type RiskEstimate } from '../engine/index.ts';
+import { DAY_MS, LEAD_WAIT, LOCATIONS, MAX_CREW, Rng, amountOf, completeRun, createVehicle, dayAt, dayStart, maxHp, runDuration, startRun, type RiskEstimate } from '../engine/index.ts';
 import { clockTime } from './time.ts';
 import { T0, openGame, testGame, testPlan } from '../engine/test-utils.ts';
 import { DEPOT_SPOT, MAP_SPOTS, mapLabel, reachMap } from './reach-map.ts';
@@ -111,6 +111,9 @@ describe('planning', () => {
     const run = startRun(state, testPlan(state, 'rail_yard', {}, 1), T0);
     completeRun(state, run.id, run.returnAt);
     const s = state.survivors.find((x) => x.id === run.plan.crew[0])!;
+    // Home whole, whatever the run did to them.
+    s.traits = s.traits.filter((t) => t.id !== 'wounded' && t.id !== 'badly_wounded');
+    s.hp = maxHp(s);
     const option = crewOptions(state).find((o) => o.survivor === s)!;
     const at = clockTime(dayStart(state, dayAt(state, T0) + 1));
     assert.equal(option.reason, `${s.firstName} has been out today, and can go again at ${at}.`);

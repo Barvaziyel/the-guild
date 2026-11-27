@@ -1,4 +1,6 @@
 import { EliteCard } from '../components/EliteCard.tsx';
+import { PartCard } from '../components/PartCard.tsx';
+import { coverChips, partCard, perkChips } from '../needs-view.ts';
 import { ELITE_CHOICES, eliteChoice, withElite, withJobElite } from '../elites-view.ts';
 import { useEffect, useMemo, useState } from 'react';
 import {
@@ -166,11 +168,24 @@ function PlannerForm({ state, locationId, step }: { state: GameState; locationId
     </header>
   );
 
+  // The best part where they're going (3.13.0), and who in the crew covers what it needs.
+  const part = partCard(state, plan);
+
   if (step === 'crew') {
     return (
       <article className="sheet planner" aria-labelledby="plan-title">
         <PlannerNav step="crew" locationId={locationId} />
         {header}
+        {(depths.length > 0 || part) && (
+          <section className="panel where-panel" aria-label="Where">
+            {depths.length > 0 && (
+              <div data-tour="depth">
+                <Segmented legend="How far in" name="depth" choices={depths} value={String(plan.depth ?? 1)} onChange={(d) => setPlan((p) => withDepth(p, Number(d)))} />
+              </div>
+            )}
+            {part && <PartCard card={part} />}
+          </section>
+        )}
         {vehicles.length > 0 && (
           <section className="panel" aria-labelledby="ride-title">
             <h3 id="ride-title" className="panel-title">
@@ -209,6 +224,7 @@ function PlannerForm({ state, locationId, step }: { state: GameState; locationId
               const picked = plan.crew.includes(s.id);
               const full = !picked && plan.crew.length >= limit;
               const pairs = reason ? [] : pairChips(state, s.id, plan.crew);
+              const covers = reason ? [] : coverChips(state, s, plan);
               return (
                 <li key={s.id}>
                   <label className={`crew-option${reason ? ' is-unavailable' : ''}${picked ? ' is-picked' : ''}`}>
@@ -221,6 +237,7 @@ function PlannerForm({ state, locationId, step }: { state: GameState; locationId
                       {reason ? <span className="crew-reason">{reason}</span> : <span className="crew-stats">{stats}</span>}
                       {!reason && <Vitals survivor={s} />}
                       {!reason && <GearSlots state={state} survivor={s} />}
+                      {covers.length > 0 && <Chips chips={covers} className="cover-chips" />}
                       {pairs.length > 0 && <Chips chips={pairs} className="pair-chips" />}
                     </span>
                   </label>
@@ -233,7 +250,7 @@ function PlannerForm({ state, locationId, step }: { state: GameState; locationId
         <div className="action-bar">
           <div className="action-summary">
             <span className="action-sub">{plan.crew.length === 0 ? 'Pick at least one survivor.' : crewLine(state, plan.crew)}</span>
-            <Chips chips={crewChips(state, plan.crew)} className="crew-together" />
+            <Chips chips={[...crewChips(state, plan.crew), ...perkChips(state, plan.crew)]} className="crew-together" />
           </div>
           <button type="button" className="btn btn-primary" disabled={plan.crew.length === 0} onClick={() => navigate({ screen: 'plan', locationId, step: 'orders' })}>
             Orders <span aria-hidden="true">&rsaquo;</span>
@@ -253,11 +270,6 @@ function PlannerForm({ state, locationId, step }: { state: GameState; locationId
           <EliteCard card={elite} compact>
             <Segmented legend="This run" name="elite" choices={ELITE_CHOICES} value={plan.elite ? 'yes' : 'no'} onChange={(go) => setPlan((p) => withElite(p, go === 'yes'))} />
           </EliteCard>
-        )}
-        {depths.length > 0 && (
-          <div data-tour="depth">
-            <Segmented legend="How far in" name="depth" choices={depths} value={String(plan.depth ?? 1)} onChange={(d) => setPlan((p) => withDepth(p, Number(d)))} />
-          </div>
         )}
         <Segmented
           legend="Job"

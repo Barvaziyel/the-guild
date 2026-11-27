@@ -311,7 +311,8 @@ export const TOUR_STEPS: readonly TourStep[] = [
     text: (state) => {
       const place = easiestPlace(state);
       const first = place ? ` A good first run: three people scavenging ${place.name.replace(/^The /, 'the ')}.` : '';
-      return `Pick a crew of 1 to ${MAX_CREW}, then their orders; the pictures under each order say what it does, and the bottom says how risky the run is.${first}`;
+      // 3.13.0: places that need the right people.
+      return `Pick a crew of 1 to ${MAX_CREW}, then their orders; the pictures under each order say what it does, and the bottom says how risky the run is. Every place has a best part, a locked safe or a sealed door, that takes the right people: its pictures light up when someone in the crew can do it.${first}`;
     },
   },
   {

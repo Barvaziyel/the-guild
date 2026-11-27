@@ -162,6 +162,8 @@ export const APPROACHES: readonly Choice<Approach>[] = [
     chips: [
       { glyph: 'swords', text: `+${AGGRESSIVE_ATTACK_BONUS}`, tone: 'good', label: `Hits harder, plus ${AGGRESSIVE_ATTACK_BONUS} to hit` },
       { glyph: 'eye', text: `−${Math.abs(AGGRESSIVE_AMBUSH_PENALTY)}`, tone: 'bad', label: `Walks into ambushes, minus ${Math.abs(AGGRESSIVE_AMBUSH_PENALTY)} to spot them` },
+      // 3.13.0: nobody can get into a place's best part? They have a go anyway.
+      { glyph: 'lock', text: 'forces it', label: "Has a go at a place's best part even when nobody in the crew can get in, at a risk" },
     ],
   },
 ];

@@ -781,6 +781,58 @@ Step 2c of *Built as if for the store* (§15), from the design review of 3.8.0: 
 
 **Measured** (crews of 3 that fit the place, sent after it; 80 fights each): fighting alone, a kitted crew brings one down 40–90% of the time, with 0.1–1.1 of them down a fight; led by a stand-in that reads the fight (shoves what's winding up, takes cover from what would drop someone), 47–100%, with far fewer down (Bravo Six: 88% and 0.1 down, against 44% and 0.7 alone). Deaths 0–0.06 a fight. Script `/home/claude/probe/elites.ts` (that session only).
 
+### 7.16 Places that need the right people (3.13.0)
+
+Step 3 of *Built as if for the store* (§15), from the design review of 3.8.0: the best crew should change from place to place, so that "send the top 4" stops working. Data in `content/needs.ts` (the needs and the parts) and `content/perks.ts`; who covers what in `needs.ts`; the run in `expedition/needs.ts`.
+
+**A best part on every level.** Each place but the market has one on each level: the outskirts, deeper in, the heart of it. It's a kind of thing found there, behind what it takes to get at it, so a run may come across it again:
+
+| Place | The outskirts | Deeper in | The heart of it |
+|---|---|---|---|
+| The Rail Yard | The signal box: locked | The sealed boxcar: heavy | The roundhouse: machines, then a load |
+| Maple Street | The end house: animals | The gun safe: locked | The prepper's house: traps, then heavy |
+| Kessler Farm | The orchard: animals | The root cellar: heavy | The grain silo: heavy, then a load |
+| The Old Metro | The ticket hall: traps | The lower platform: flooded | The control room: locked, then machines |
+| The Drowned Mall | The pharmacy: flooded | The security office: locked | The cold store: flooded, then heavy |
+| Hilltop Radio Station | The record room: locked | The service lift: machines | The lookout post: traps, then locked |
+| St. Jude's | The pharmacy cage: locked | Radiology: radiation | The surgery floor: radiation, then locked |
+| The Water Plant | The sluices: machines | The filter beds: flooded | The pump room: heavy, then a load |
+| Blackwater | The hunting hut: animals | The drowned church: flooded | The glowing pool: radiation, then animals |
+| Checkpoint Bravo | The arms container: locked | The minefield: traps | The motor pool: heavy, then machines |
+| Red Hand Camp | The gate dogs: animals | The tunnel: traps | The boss's lockup: locked, then heavy |
+| The Glow | The glass flats: radiation | The research station: radiation, then machines | Ground zero: radiation, then heavy |
+
+**The needs** (`NEEDS`), each with its stat:
+
+| Need | Stat | Covers it whatever the stats | Lowers the bar |
+|---|---|---|---|
+| Locked | Wits | | Lockpicks |
+| Heavy | Brawn; or two nearly strong enough, together | | Crowbar, Sledge |
+| Radiation | Grit | Rad-Hardened, a Hazmat Suit | Geiger Counter |
+| Machines | Wits | Tinkerer | Multitool |
+| Flooded | Brawn | | |
+| A heavy load | Brawn; or two together; or a vehicle with room (`NEED_CARGO`) | | |
+| Rigged | Wits | Cautious | |
+| Animals | Nerve | Animal Lover, Beast-Friend | |
+
+- **Who covers it** (`coverNeed`): a trait or gear that covers it; else whoever is good enough, the bar rising with the level (`NEED_BAR` 5, 6, 7); else someone holding a tool that helps, 2 below the bar (`NEED_TOOL`); else, for a heavy door or a load, two who are each 1 below (`NEED_TOGETHER`); else, for a load, a vehicle with room. Traits and gear say so with hooks (`needCover`, `needHelp`). A hidden trait counts on the run, and shows itself there; never in the planner.
+- **On the run.** Only a scavenging crew goes for it, instead of its first search. Every need covered: whoever covers it says how (with a line for each way), gets the practice, and they come away with what it holds (`NEED_FIND` 6 supplies, 2 more for each point of danger above 1, as rich as any find, half from the part's own table and half from the place's; a part's `size` for one that holds less), and maybe a piece of gear of its kind. A need nobody covers: the crew leaves it, and that stretch brings nothing; an **aggressive** crew has a go anyway (DC `NEED_TRY_DC` 10 plus the danger there, less 1), and a go that fails costs what the need costs: a fight from the noise (a lock, an alarm), a wrenched back, rads, nearly drowning, a load dropped on someone, a trap going off, animals that don't back off.
+- **Pressing on** (§7.12) into a level with a best part always has a second stretch further in: going for it. The radio card shows what it needs, lit by the crew as they stand.
+- **Known by going there.** The planner and the Reach show a part once the guild knows of it (`LocationState.parts`): a crew that went for it, or one that scouted the level above all the way. Until then, a question mark.
+- **On screen.** The planner's first step has *How far in* (moved there from the orders, since where they go decides who they need) and the best part's card: its name, and its needs as pictures, lit with whoever covers each one (dark with what it is when nobody does). Each person in the crew picker has a tag for what they'd cover here. The Reach shows each level's part. *Aggressive* has a tag: it forces it.
+
+**Crew perks** (`PERKS`): two in a crew whose traits work together, shown beside how well the crew gets on. Only traits that show count, in the planner and on the run alike.
+
+| Perk | The pair | What it does |
+|---|---|---|
+| One looks, one checks | Curious and Cautious | +2 Wits to searching and to spotting what's rigged, both |
+| Keep them breathing | a Patcher and someone Loyal | +2 to the Patcher's patching up |
+| Old hands | two Veterans | +2 to spotting an ambush, both |
+| Strip it bare | a Tinkerer and a Scav | +2 Wits to searching and to machines, both |
+| Bait and shot | someone Brave and a Dead-Eye | +1 to the Dead-Eye's aim |
+
+**Measured.** With the balance table's crews (3 fresh survivors, scavenging, balanced), loot moved by −5% to +11% a place against 3.12.0 and deaths stayed within noise; scrap stayed within a unit. For a guild of 10 with a few tools, every crew of 3 at every place and level (30 runs each): the best crew covered the part at 35 of 36, the three with the best stats at 11 of 36, and the three with the best stats fell 11.2 supplies a run short of the best crew, against 6.9 without the parts. Script `/home/claude/probe/needs.ts` (that session only).
+
 ## 8. Gear
 
 Every survivor has four slots: **Weapon · Armor · Tool · Trinket**
@@ -1566,8 +1618,8 @@ From the design review of 3.8.0 (the project doc `claude/design-review-3.8.md`; 
 | 1 | 3.9.1 | Store blockers: exact alarms the player allows (not `USE_EXACT_ALARM`, which Play keeps for clock and calendar apps); the save also in a file, with a copy a real day (§7.3, §13) | **done** (#81) |
 | 2a | 3.10.0 | Calls that matter: a crew calls home for a named foe or a fight that would put someone down, and says when someone would die; a clean fight pays (§7.13) | **done** (#82) |
 | 2b | 3.11.0 | One *press on or come home* call a run, when going deeper is a real gamble (Moderate risk or worse for that crew); the wait scales with the run; the radio's crackle (§7.12, §14.1) | **done** (#83) |
-| 2c | 3.12.0 | Elites: one a place, each with a mechanic and a prize (new enemies, new drawings, new sounds) (§7.15) | **this PR** |
-| 3 | 3.13.0 | Places that need the right people: locked, heavy, radiation, machines, flooded, carrying out, traps, animals; crew perks from pairs and traits | planned |
+| 2c | 3.12.0 | Elites: one a place, each with a mechanic and a prize (new enemies, new drawings, new sounds) (§7.15) | **done** (#84) |
+| 3 | 3.13.0 | Places that need the right people: a best part on each level of each place, behind locked, heavy, radiation, machines, flooded, a load to carry out, traps or animals; crew perks from pairs of traits (§7.16) | **this PR** |
 | 4 | 3.14.0 | Systems unlocked through the story, the first session for a stranger (an opening scene, a short first run, the first led fight), the tour cut to the first day; sound in scenes, and the gate scene redone with it | planned |
 | 5 | 3.15.0 | The broadcast as the hook: seeds from day one, the night of the broadcast as a scene, a name on the air (someone a guild member lost), the goal made plain, a pull to go ("until the first snow"), the unlock page in the journal's style; with its sound (radio static, the dial, the voice through crackle) | planned |
 | 6 | 3.16.0 | The storyteller: one director paces trouble with warnings and quiet stretches; *Gentle / Standard / Hard* at a new game | planned |
@@ -1580,6 +1632,7 @@ From the design review of 3.8.0 (the project doc `claude/design-review-3.8.md`; 
 
 - **Not picked:** laying out the Depot by hand; one market for all trading; one kind of prisoner; a real use for gas.
 - **Step 2's two questions, which Aviel left to me** (2026-11-27: "analyze those decisions as you think would be most entertaining"): a crew calls when someone would go **down**, not only when someone would be badly hurt or die (measured, §7.13); and the *press on* call comes by stakes, not by the run's length: only when the next level is at least Moderate risk for that crew, worked out from the plan, never from how the run will go, so the call doesn't give the answer away. Step 2 is three PRs (2a–2c), so the later versions moved up two.
+- **Step 3's two questions, also left to me** (2026-11-27, "Continue"): **gear helps, but mostly it takes the right person.** A tool lowers the bar for whoever holds it (Lockpicks, a Crowbar), so someone fair at it with the tool will do; only gear that's about surviving rather than skill covers a need on its own (a Hazmat Suit for radiation), and a vehicle with room carries a load. **One best part a level, with one need on the outskirts, one or two deeper in, and two at the heart**, so the further in, the more particular the crew. Measured in §7.16.
 - **Sound in scenes** (Aviel, 2026-11-26: "the crackling static of the radio as well, and during other 'cutscenes'"): a radio kit (static, squelch, crackle, the dial's whistle, a voice's hum, a dropout) in step 2; beds and cues for each still of a scene from step 4; from then on, every new scene gets a sound pass.
 - **Store rules** (Google's pages, 2026-11-26): a one-time US$25 fee with ID verification; new personal accounts run a closed test with 12 testers for 14 days in a row before going public; new apps target API 36 (the game does).
 

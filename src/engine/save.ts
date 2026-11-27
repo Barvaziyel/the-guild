@@ -217,6 +217,10 @@ const MIGRATIONS: Record<number, (save: Record<string, unknown>) => void> = {
     // Elites (3.12.0): none seen yet.
     save.elites ??= {};
   },
+  30: () => {
+    // Places that need the right people (3.13.0): what a place's best parts need is found out on runs from now on
+    // (`LocationState.parts`), and nothing is known of them yet. Nothing to change.
+  },
 };
 
 export function serialize(state: GameState): string {
