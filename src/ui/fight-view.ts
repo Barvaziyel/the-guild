@@ -4,6 +4,8 @@
  * the report's line.
  */
 import {
+  CLEAN_FIGHT_LOOT,
+  CLEAN_FIGHT_RELIEF,
   HEAVY_HIT_MULT,
   LEAD_WAIT,
   LINED_UP_MULT,
@@ -20,21 +22,52 @@ import {
   type Rank,
   type RoundOrders,
   type Run,
+  type RunPlan,
   type RunReport,
   type Survivor,
 } from '../engine/index.ts';
-import { formatDuration, type PlannedNotice } from './runs-view.ts';
+import { formatDuration, type Choice, type PlannedNotice } from './runs-view.ts';
+import type { Chip } from './glyphs.ts';
 import { clockTime } from './time.ts';
 
-/** The planner's switch: what it says. Any crew can be led (Aviel, 2.2.0: it shouldn't wait for a Radio Tower). */
-export function leadChoice(_state: GameState): { can: boolean; help: string; short: string; wait: string } {
+/** The planner's choice of when a crew calls home (3.10.0): when it matters (the default), at every fight, or never. */
+export type LeadMode = 'matters' | 'every' | 'never';
+
+export function leadMode(plan: RunPlan): LeadMode {
+  return plan.lead === 'matters' ? 'matters' : plan.lead ? 'every' : 'never';
+}
+
+export function withLead(plan: RunPlan, mode: LeadMode): RunPlan {
+  const { lead: _drop, ...rest } = plan;
+  return mode === 'never' ? rest : { ...rest, lead: mode === 'matters' ? 'matters' : true };
+}
+
+/** What each choice does, for the planner. Any crew can be led (Aviel, 2.2.0: it shouldn't wait for a Radio Tower). */
+export function leadChoices(): Choice<LeadMode>[] {
   const wait = formatDuration(LEAD_WAIT);
-  return {
-    can: true,
-    wait,
-    help: `At every fight they call home and wait up to ${wait} for your orders, with a notice. Nobody there? They fight on their own.`,
-    short: `At each fight they wait up to ${wait} for your orders.`,
-  };
+  return [
+    {
+      id: 'matters',
+      name: 'When it matters',
+      short: 'When needed',
+      description: `They call home for a named foe, or a fight they'd lose someone in, and wait up to ${wait} for your orders. The rest they fight on their own.`,
+      chips: [
+        { glyph: 'down', text: 'calls', label: "They call home for a fight they'd lose someone in, or a named foe. The rest they fight on their own." },
+        { glyph: 'clock', text: wait, label: `They wait up to ${wait} for your orders` },
+      ],
+    },
+    {
+      id: 'every',
+      name: 'Every fight',
+      short: 'Always',
+      description: `They call home at every fight and wait up to ${wait} for your orders.`,
+      chips: [
+        { glyph: 'swords', text: 'calls', label: 'They call home at every fight' },
+        { glyph: 'clock', text: wait, label: `They wait up to ${wait} for your orders` },
+      ],
+    },
+    { id: 'never', name: 'Never', description: 'They fight every fight on their own.', chips: [{ glyph: 'swords', text: 'alone', label: 'They fight every fight on their own' }] },
+  ];
 }
 
 function crewName(run: Run, id: string): string {
@@ -57,8 +90,12 @@ export interface FightCardView {
   caller: Survivor | undefined;
   /** In command now, rather than waiting for the player. */
   inCommand: boolean;
-  /** "Kai will hold 24 more minutes for your orders. After that, they fight on their own." */
+  /** Why they called (3.10.0): in trouble (a crew that calls when it matters), or someone would die of it. Missing at every fight. */
+  urgency?: 'trouble' | 'grave';
+  /** "Kai will hold 24 more minutes for your orders. After that, they fight on their own." Read out; the card shows `chips`. */
   wait: string;
+  /** What the card shows instead of words (3.10.0): what's at stake, and how long they hold. */
+  chips: Chip[];
   /** By the caller's portrait: "Kai is on the radio: they're about to fight, and wait for your orders." */
   line: string;
 }
@@ -70,6 +107,14 @@ export function fightCard(state: GameState, run: Run, now: number): FightCardVie
   const name = crewName(run, f.by);
   const solo = run.plan.crew.length === 1;
   const rest = solo ? `${name} fights on alone` : 'they fight on their own';
+  // On the road east they wait as long as it takes (§9.12).
+  const wait = waitsForWord(run)
+    ? f.took !== undefined
+      ? 'You’re in command. They wait for each round’s orders, as long as it takes.'
+      : `${name} has called a halt. They wait for your word, as long as it takes.`
+    : f.took !== undefined
+      ? `You're in command. ${minutesLeft(f.until - now).replace(/^./, (c) => c.toUpperCase())} to finish it; after that, ${rest}.`
+      : `${name} will hold ${minutesLeft(f.until - now)} for your orders. After that, ${rest}.`;
   return {
     runId: run.id,
     place: ledFightPlace(run, f),
@@ -77,6 +122,7 @@ export function fightCard(state: GameState, run: Run, now: number): FightCardVie
     callerName: name,
     caller: state.survivors.find((s) => s.id === f.by),
     inCommand: f.took !== undefined,
+    ...(f.grave ? { urgency: 'grave' as const } : run.plan.lead === 'matters' ? { urgency: 'trouble' as const } : {}),
     // On the road east nobody is at the Depot to radio: they've stopped on the road (§9.12).
     line: waitsForWord(run)
       ? f.took !== undefined
@@ -84,16 +130,28 @@ export function fightCard(state: GameState, run: Run, now: number): FightCardVie
         : `${name} has called a halt: they're about to fight, and wait for your word.`
       : f.took !== undefined
         ? `${name}'s crew is waiting for your next orders.`
-        : `${name} is on the radio: they're about to fight, and wait for your orders.`,
-    // On the road east they wait as long as it takes (§9.12).
-    wait: waitsForWord(run)
-      ? f.took !== undefined
-        ? 'You’re in command. They wait for each round’s orders, as long as it takes.'
-        : `${name} has called a halt. They wait for your word, as long as it takes.`
-      : f.took !== undefined
-        ? `You're in command. ${minutesLeft(f.until - now).replace(/^./, (c) => c.toUpperCase())} to finish it; after that, ${rest}.`
-        : `${name} will hold ${minutesLeft(f.until - now)} for your orders. After that, ${rest}.`,
+        : callLine(run, f, name),
+    wait,
+    chips: [...stakeChips(f, run), ...(waitsForWord(run) ? [] : [{ glyph: 'clock' as const, text: formatDuration(Math.max(60_000, f.until - now)), tone: 'bad' as const, label: wait }])],
   };
+}
+
+/**
+ * What the crew says when they call (3.10.0). A crew that calls when it matters is in trouble, or worse:
+ * left alone, someone would die. One that calls at every fight is just about to fight.
+ */
+function callLine(run: Run, f: LedFight, name: string): string {
+  const solo = run.plan.crew.length === 1;
+  if (f.grave) return solo ? `${name}, on the radio: “I’m not coming back from this one.”` : `${name}, on the radio: “Someone isn’t coming back from this one.”`;
+  if (run.plan.lead === 'matters') return solo ? `${name}, on the radio: “I’m in trouble.”` : `${name}, on the radio: “We’re in trouble.”`;
+  return `${name}, on the radio: “Contact ahead. Your orders?”`;
+}
+
+/** What's at stake, as a picture (3.10.0): left alone, someone would go down, or die. Nothing for a crew that calls at every fight. */
+function stakeChips(f: LedFight, run: Run): Chip[] {
+  if (f.grave) return [{ glyph: 'skull', text: 'if alone', tone: 'bad', label: 'Left to fight it alone, someone would die' }];
+  if (run.plan.lead === 'matters') return [{ glyph: 'down', text: 'if alone', tone: 'bad', label: 'Left to fight it alone, someone would go down' }];
+  return [];
 }
 
 /** Where the battle stage is for a run's fight: its spot on the road east (§9.12), or the run's place. */
@@ -133,8 +191,8 @@ export function fightNotices(state: GameState): PlannedNotice[] {
         id: `fight-${r.id}-${k}`,
         at: f.at,
         ...(waitsForWord(r) ? {} : { until: f.until }),
-        title: `${name} is in a fight`,
-        body: `At ${ledFightPlace(r, f)}, against ${f.against}. ${waitsForWord(r) ? 'They wait for your word.' : `They'll wait for your orders until ${clockTime(f.until)}.`}`,
+        title: f.grave ? `${name} needs you now` : r.plan.lead === 'matters' ? `${name}'s crew is in trouble` : `${name} is in a fight`,
+        body: `At ${ledFightPlace(r, f)}, against ${f.against}. ${f.grave ? (r.plan.crew.length === 1 ? `${name} isn't coming back from this one without you. ` : "Someone isn't coming back from this one without you. ") : ''}${waitsForWord(r) ? 'They wait for your word.' : `They'll wait for your orders until ${clockTime(f.until)}.`}`,
       });
     });
   }
@@ -434,6 +492,15 @@ export function endFrom(seen: FightView | undefined, end: FightView | undefined)
 export function endLines(lines: readonly LogLine[], before: FightView | undefined, told: number | undefined): LogLine[] {
   const shown = before?.lines.length ?? 0;
   return told === undefined ? fightEnd(lines, shown) : lines.slice(shown, told);
+}
+
+/** What a clean fight (3.10.0, nobody down) brought, under its end. */
+export function cleanChips(view: FightView | undefined): Chip[] {
+  if (!view?.clean) return [];
+  return [
+    { glyph: 'crate', text: `×${CLEAN_FIGHT_LOOT}`, tone: 'good', label: `Time to go through the bodies properly: ${CLEAN_FIGHT_LOOT} times what they carried` },
+    { glyph: 'stress', text: `−${CLEAN_FIGHT_RELIEF}`, tone: 'good', label: `Steadier for it: ${CLEAN_FIGHT_RELIEF} stress off each of them` },
+  ];
 }
 
 /** "18 of 24": a bar's share, 0 to 1. */

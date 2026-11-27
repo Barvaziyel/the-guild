@@ -40,7 +40,7 @@ import { depthChoices, outpostPlanNote, withDepth } from '../outposts-view.ts';
 import { jobChoices, withRescue } from '../rescue-view.ts';
 import { assaultChoice } from '../vultures-view.ts';
 import { rideChips, toggleVehicle, vehicleChoices } from '../vehicles-view.ts';
-import { leadChoice } from '../fight-view.ts';
+import { leadChoices, leadMode, withLead } from '../fight-view.ts';
 import { planLeadLine } from '../haven-view.ts';
 import { PlacePicture } from '../components/Art.tsx';
 import { GearSlots } from '../components/GearSlots.tsx';
@@ -109,7 +109,6 @@ function PlannerForm({ state, locationId, step }: { state: GameState; locationId
   const fromOutpost = outpostPlanNote(state, plan);
   const pace = paceNote(state, plan);
   const havenLead = planLeadLine(state, plan);
-  const lead = leadChoice(state);
   const toggle = (id: string): void => {
     const crew = toggleCrew(plan.crew, id, limit);
     change(ammoTouched ? { crew } : { crew, ammo: suggestedAmmo(state, crew) });
@@ -297,27 +296,9 @@ function PlannerForm({ state, locationId, step }: { state: GameState; locationId
             }}
           />
         </div>
-        <label className="toggle lead-toggle" data-tour="lead">
-          <span className="toggle-text">
-            <span className="toggle-label">Lead the fights</span>
-            <span className="toggle-help" aria-label={lead.short}>
-              <Glyph name="clock" /> {lead.wait}
-            </span>
-          </span>
-          <input
-            type="checkbox"
-            role="switch"
-            checked={lead.can && plan.lead === true}
-            disabled={!lead.can}
-            onChange={(e) => {
-              const on = e.target.checked;
-              setPlan((p) => {
-                const { lead: _drop, ...rest } = p;
-                return on ? { ...rest, lead: true } : rest;
-              });
-            }}
-          />
-        </label>
+        <div data-tour="lead">
+          <Segmented legend="Lead the fights" name="lead" choices={leadChoices()} value={leadMode(plan)} onChange={(mode) => setPlan((p) => withLead(p, mode))} />
+        </div>
         {plan.job !== 'trade' && (
         <label className="orders-keep">
           <span>Too much to carry? Keep</span>

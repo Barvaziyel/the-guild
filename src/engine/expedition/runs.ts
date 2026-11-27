@@ -217,7 +217,7 @@ function fightsFrom(stops: readonly SimStop[], departAt: number, kept: readonly 
     const old = kept[k];
     if (old && (old.took !== undefined || old.ended !== undefined)) return old;
     const at = departAt + st.at;
-    return { at, until: at + LEAD_WAIT, by: st.by, against: st.against, fromBeat: st.fromBeat, ...(st.site ? { site: st.site } : {}), rounds: [] };
+    return { at, until: at + LEAD_WAIT, by: st.by, against: st.against, fromBeat: st.fromBeat, ...(st.site ? { site: st.site } : {}), ...(st.grave ? { grave: true } : {}), rounds: [] };
   });
 }
 

@@ -14,6 +14,8 @@ import {
   DRAW_FIRE_DEFENSE,
   ENCOUNTER_BASE,
   INTIMIDATE_DC,
+  CLEAN_FIGHT_LOOT,
+  CLEAN_FIGHT_RELIEF,
   LEAD_WAIT,
   MEDS_HEAL,
   MEDS_HEAL_SKILLED,
@@ -68,6 +70,7 @@ import type { MoveOrder, Nemesis, Rank, ResourceId, RoundOrders, StatId } from '
 import {
   absorbRads,
   active,
+  alive,
   bestBy,
   check,
   flavor,
@@ -95,6 +98,8 @@ import { FightPause, attackKind, defaultRank, enemyNames, fightView, movesFor, v
 import { enemyReaches, reaches } from './reach.ts';
 import { goalRoundEnds, goalView, goalWorker, rollGoal, settleGoal, workGoal } from './goals.ts';
 import { afterFight, announceNemesis, enemyRef, grudgeBonus, maybeNemesisEscape, nemesisEnemy, nemesisJoins, nemesisKilled } from './stories.ts';
+import { resolveWounds } from './wounds.ts';
+import { Rng } from '../rng.ts';
 
 export interface Enemy {
   def: EnemyDef;
@@ -840,14 +845,51 @@ export interface FightResult {
 // ---------------------------------------------------------------- commanded fights (§7.13)
 
 /**
+ * Whether a crew on a led run calls home for this fight (3.10.0): `'yes'` at
+ * every fight (or a raid, or the road east), `'no'` for a fight they handle
+ * alone, `'grave'` when left alone someone would die (the call says so).
+ */
+type Call = 'yes' | 'no' | 'grave';
+
+/**
+ * A run that calls when it matters (`RunPlan.lead === 'matters'`, the
+ * planner's default since 3.10.0) calls for a named foe (a nemesis, one of the
+ * Vultures' named people), and for any fight that, fought alone, would put
+ * someone down. The fight is played ahead on a copy of the run, with its own
+ * copy of the dice, so the run itself is untouched and every replay comes to
+ * the same answer. Decided before the fight rolls anything.
+ */
+function whetherToCall(sim: Sim, enemies: readonly Enemy[], start: FightStart): Call {
+  if (!sim.lead || sim.lead.home || sim.plan.lead !== 'matters') return 'yes';
+  const ahead = foughtAlone(sim, enemies, start);
+  if (ahead.dies) return 'grave';
+  return ahead.down || enemies.some((e) => e.nemesis || e.vulture) ? 'yes' : 'no';
+}
+
+/** The fight played ahead on a copy, the crew on their own: does anyone go down, and does anyone die of it? */
+function foughtAlone(sim: Sim, enemies: readonly Enemy[], start: FightStart): { down: boolean; dies: boolean } {
+  const { rng, lead: _lead, fightActs: _acts, ...rest } = sim;
+  // One copy of both, so the enemies' hold on the crew (a grip, a target) points at the copy's people.
+  const [data, foes] = structuredClone([rest, enemies] as const);
+  const copy: Sim = { ...data, rng: new Rng(rng.getState()) };
+  const theirs = copy.members.filter((m) => !m.ally && !m.dead);
+  const before = new Map(theirs.map((m) => [m, m.s.counters.timesDowned]));
+  fight(copy, [...foes], start);
+  const down = theirs.some((m) => m.dead || m.s.counters.timesDowned > before.get(m)!);
+  if (!down) return { down: false, dies: false };
+  resolveWounds(copy);
+  return { down, dies: theirs.some((m) => m.dead) };
+}
+
+/**
  * On a run the player leads, the crew stops at a fight and calls home. Returns
  * the player's part in it, or undefined when they fight on their own (nobody
  * came within the wait, or the run isn't led). The fight itself goes in a new
  * beat, at the time it was fought.
  */
-function callHome(sim: Sim, enemies: readonly Enemy[]): FightPlan | undefined {
+function callHome(sim: Sim, enemies: readonly Enemy[], call: Call): FightPlan | undefined {
   const lead = sim.lead;
-  if (!lead) return undefined;
+  if (!lead || call === 'no') return undefined;
   if (lead.home) {
     // A raid at the Depot (§9.8): the player is there or isn't; nobody calls.
     const plan = lead.plans[lead.stops.length] ?? standIn(lead);
@@ -864,7 +906,7 @@ function callHome(sim: Sim, enemies: readonly Enemy[]): FightPlan | undefined {
   // On the road east nobody is left at the Depot to call (§9.12): they wait for the word.
   const road = sim.plan.job === 'haven';
   say(sim, road ? `${caller.s.firstName} calls a halt, and they wait for the word.` : `${caller.s.firstName} gets on the radio to the Depot.`);
-  lead.stops.push({ at: sim.offset, by: caller.s.id, against: describeGroup(enemies), fromBeat: sim.beats.length, ...(sim.site ? { site: sim.site } : {}) });
+  lead.stops.push({ at: sim.offset, by: caller.s.id, against: describeGroup(enemies), fromBeat: sim.beats.length, ...(sim.site ? { site: sim.site } : {}), ...(call === 'grave' ? { grave: true } : {}) });
   const solo = sim.members.length === 1;
   if (!plan) {
     sim.delay += LEAD_WAIT;
@@ -1184,6 +1226,8 @@ function outOfReach(sim: Sim, enemies: readonly Enemy[]): void {
 }
 
 export function fight(sim: Sim, enemies: Enemy[], start: FightStart): FightResult {
+  // Does a led crew call home for this one (3.10.0)? Played ahead on a copy before anything here rolls.
+  const call = whetherToCall(sim, enemies, start);
   // Some fights come with a job (2.5.0); a door brings more of them, waiting behind it.
   const goal = rollGoal(sim, enemies);
   sim.goal = goal;
@@ -1193,13 +1237,15 @@ export function fight(sim: Sim, enemies: Enemy[], start: FightStart): FightResul
   const morale: Morale | undefined = breakers ? { nerve: NERVE_FULL, perDeath: Math.ceil(NERVE_FULL / (Math.floor(present / 2) + 1)) } : undefined;
   const state: FightState = { enemies, names: enemyNames(enemies), downedHere: [], fledHere: [], ...(morale ? { morale } : {}) };
   // On a led run the crew stops here and calls home first (§7.13).
-  const plan = callHome(sim, enemies);
+  const plan = callHome(sim, enemies, call);
   const fightFrom = sim.beats.at(-1)?.lines.length ?? 0;
   // A fight under command notes what happens, act by act, for the battle stage.
   sim.fightActs = plan ? { round: 0, acts: [] } : undefined;
   const attackCtx: AttackContext = { drop: false, ambushed: start.ambushed, round: 0, outOfAmmoSaid: new Set(), commanded: false, names: enemyNames(enemies), enemies, ...(morale ? { morale } : {}) };
   const enemyType = enemies[0]!.def.type;
   sim.hadCombat = true;
+  // For a clean fight (3.10.0): who had gone down before this one.
+  const downsBefore = new Map(sim.members.map((m) => [m, m.s.counters.timesDowned]));
 
   // Everyone steels themselves. Holding your nerve halves the stress of the fight.
   for (const m of standing(sim)) {
@@ -1378,8 +1424,15 @@ export function fight(sim: Sim, enemies: Enemy[], start: FightStart): FightResul
   sim.goal = undefined;
   afterFight(sim, enemies);
   for (const e of enemies) e.intent = undefined;
+  // A clean fight (3.10.0): the player led them to a win and nobody went down. It shows, and it pays.
+  const clean = given > 0 && end === 'won' && sim.members.every((m) => m.ally || (!m.dead && m.s.counters.timesDowned === downsBefore.get(m)));
+  if (clean) {
+    const crew = alive(sim).filter((m) => !m.ally);
+    say(sim, crew.length === 1 ? `${crew[0]!.s.firstName} walks away from it on ${crew[0]!.s.pronouns === 'he' ? 'his' : 'her'} own feet.` : 'Every one of them walks away from it.', { tone: 'good' });
+    for (const m of crew) stress(sim, m, -CLEAN_FIGHT_RELIEF);
+  }
   // A commanded fight as it ended, for the screen that shows how it went.
-  if (plan && sim.lead) sim.lead.ends[sim.lead.stops.length - 1] = fightView(sim, enemies, attackCtx.round, fightFrom, end, morale?.nerve, goal && goalView(goal));
+  if (plan && sim.lead) sim.lead.ends[sim.lead.stops.length - 1] = { ...fightView(sim, enemies, attackCtx.round, fightFrom, end, morale?.nerve, goal && goalView(goal)), ...(clean ? { clean: true } : {}) };
   sim.fightActs = undefined;
 
   const loot: Partial<Record<ResourceId, number>> = {};
@@ -1392,6 +1445,8 @@ export function fight(sim: Sim, enemies: Enemy[], start: FightStart): FightResul
         if (amount > 0) loot[res] = (loot[res] ?? 0) + amount;
       }
     }
+    // With nobody hurt, there's time to go through the bodies properly.
+    if (clean) for (const res of Object.keys(loot) as ResourceId[]) loot[res] = Math.ceil(loot[res]! * CLEAN_FIGHT_LOOT);
   }
   return { end, loot };
 }

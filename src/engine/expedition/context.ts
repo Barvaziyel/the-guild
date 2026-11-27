@@ -205,6 +205,8 @@ export interface SimStop {
   fromBeat: number;
   /** Where on the road east (§9.12). */
   site?: string;
+  /** Left alone, someone would die (3.10.0). */
+  grave?: boolean;
 }
 
 /** A fork on a run (§7.12): what the crew found and asked, and when. */

@@ -21,7 +21,10 @@ import {
   hpShare,
   incoming,
   jobPanel,
-  leadChoice,
+  cleanChips,
+  leadChoices,
+  leadMode,
+  withLead,
   leadReportLine,
   jobTakenBy,
   livePicks,
@@ -53,13 +56,49 @@ function fighting(seed: string): { state: GameState; run: Run } {
   throw new Error('no led run came to a fight');
 }
 
-describe('the planner switch', () => {
-  test('is there from the start, and says how long they wait', () => {
-    const state = openGame('switch');
-    state.buildings.radio_tower = 0;
-    const on = leadChoice(state);
-    assert.equal(on.can, true);
-    assert.match(on.help, /up to 30 min for your orders/);
+describe('the planner’s choice (3.10.0)', () => {
+  test('when it matters, every fight or never, and says how long they wait', () => {
+    const choices = leadChoices();
+    assert.deepEqual(
+      choices.map((c) => c.id),
+      ['matters', 'every', 'never'],
+    );
+    assert.match(choices[0]!.description, /up to 30 min for your orders/);
+    const plan = testPlan(openGame('switch'), 'old_metro');
+    assert.equal(leadMode(plan), 'never');
+    assert.equal(withLead(plan, 'matters').lead, 'matters');
+    assert.equal(withLead(plan, 'every').lead, true);
+    assert.equal('lead' in withLead({ ...plan, lead: true }, 'never'), false);
+    assert.equal(leadMode({ ...plan, lead: true }), 'every');
+  });
+
+  test('a crew that calls when it matters says it’s in trouble; when someone would die, it says that', () => {
+    let seen = 0;
+    for (let i = 0; i < 400 && seen < 2; i++) {
+      const state = openGame(`trouble-${i % 5}`);
+      state.rng = new Rng(`trouble-${i}`).getState();
+      const run = startRun(state, { ...testPlan(state, i % 2 ? 'the_glow' : 'checkpoint_bravo', { meds: 0 }), lead: 'matters' }, T0);
+      const f = run.lead!.fights[0];
+      if (!f) continue;
+      const card = fightCard(state, run, f.at + 60_000)!;
+      const notice = fightNotices(state).find((n) => n.id.startsWith(`fight-${run.id}`))!;
+      if (f.grave) {
+        assert.match(card.line, /coming back from this one/);
+        assert.equal(card.chips[0]!.glyph, 'skull');
+        assert.match(notice.title, /needs you now/);
+      } else {
+        assert.match(card.line, /in trouble/);
+        assert.equal(card.chips[0]!.glyph, 'down');
+        assert.match(notice.title, /in trouble/);
+      }
+      seen++;
+    }
+    assert.equal(seen, 2);
+  });
+
+  test('a clean fight shows what it brought', () => {
+    assert.deepEqual(cleanChips(undefined), []);
+    assert.equal(cleanChips({ clean: true } as FightView).length, 2);
   });
 });
 

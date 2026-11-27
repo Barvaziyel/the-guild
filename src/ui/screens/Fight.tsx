@@ -5,8 +5,9 @@ import { Meter } from '../components/Bars.tsx';
 import { BattleStage } from '../components/BattleStage.tsx';
 import { SceneStage } from '../components/SceneStage.tsx';
 import { gateScene } from '../gate-scene.ts';
+import { Chips } from '../components/Glyph.tsx';
 import { Sheet } from '../components/Sheet.tsx';
-import { crewChips, endFrom, endLines, fightCard, fightStatus, jobPanel, jobTakenBy, livePicks, needsTarget, nerveLine, orderHint, roundOrders, stagePlace, targetName, targetPrompt, theirMoves, tickerLines, whatTheyAre, withRanks, type Picks, type Ranks } from '../fight-view.ts';
+import { cleanChips, crewChips, endFrom, endLines, fightCard, fightStatus, jobPanel, jobTakenBy, livePicks, needsTarget, nerveLine, orderHint, roundOrders, stagePlace, targetName, targetPrompt, theirMoves, tickerLines, whatTheyAre, withRanks, type Picks, type Ranks } from '../fight-view.ts';
 import { goBack, navigate, useAction, useNow } from '../hooks.ts';
 
 /** A fight on a led run, under the player's command (§7.13). */
@@ -65,7 +66,8 @@ function Over({ state, run, seen }: { state: GameState; run: Run; seen: FightVie
   return (
     <section className="panel">
       <h2 className="plan-title">{led ? 'The fight is over' : 'No fight right now'}</h2>
-      {end && <BattleStage state={state} place={stagePlace(run, end)} seed={run.id} view={end} before={before} onLine={setTold} caption={OVER[end.over ?? 'won']} />}
+      {end && <BattleStage state={state} place={stagePlace(run, end)} seed={run.id} view={end} before={before} onLine={setTold} caption={end.clean ? 'Won, and everyone walked away.' : OVER[end.over ?? 'won']} />}
+      {end?.clean && <Chips chips={cleanChips(end)} className="fight-clean" />}
       {lines.length > 0 && (
         <ul className="fight-lines fight-end">
           {lines.map((l, k) => (
