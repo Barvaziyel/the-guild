@@ -41,6 +41,7 @@ import {
 } from './fight-view.ts';
 import { clockTime } from './time.ts';
 import { noticeRoute } from './radio-view.ts';
+import { STAKE_LINES } from './call-lines.ts';
 
 const PLACES = ['kessler_farm', 'old_metro', 'drowned_mall', 'st_judes'];
 
@@ -83,11 +84,11 @@ describe('the planner’s choice (3.10.0)', () => {
       const card = fightCard(state, run, f.at + 60_000)!;
       const notice = fightNotices(state).find((n) => n.id.startsWith(`fight-${run.id}`))!;
       if (f.grave) {
-        assert.match(card.line, /coming back from this one/);
+        assert.ok([...STAKE_LINES.grave.crew, ...STAKE_LINES.grave.solo].some((l) => card.line.includes(l)), card.line);
         assert.equal(card.chips[0]!.glyph, 'skull');
         assert.match(notice.title, /needs you now/);
       } else {
-        assert.match(card.line, /in trouble/);
+        assert.ok([...STAKE_LINES.trouble.crew, ...STAKE_LINES.trouble.solo].some((l) => card.line.includes(l)), card.line);
         assert.equal(card.chips[0]!.glyph, 'down');
         assert.match(notice.title, /in trouble/);
       }

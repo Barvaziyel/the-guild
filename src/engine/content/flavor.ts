@@ -184,6 +184,24 @@ export const POCKET_CAUGHT = [
  * naming anyone, so a find that never reaches the packs isn't a mystery.
  * {res} is what went missing, as an amount: "1 tech".
  */
+/**
+ * A clean fight (3.10.0): led to a win with nobody down. Picked without dice. {name} and {his} for one alone.
+ * Story, not help (Aviel, 2026-11-27): these can take their time.
+ */
+export const CLEAN_FIGHT_LINES: CrewLines = {
+  crew: [
+    'Every one of them walks away from it.',
+    'They count heads twice, just to be sure. All there.',
+    'Not one of them down. Someone laughs, too loud, and then they all do.',
+    'Blood on the ground, and none of it theirs.',
+  ],
+  solo: [
+    '{name} walks away from it on {his} own feet.',
+    '{name} stands among them, breathing hard, and not a drop of it {his} own.',
+    '{name} wipes {his} hands, checks {himself} over twice, and finds nothing to bind.',
+  ],
+};
+
 export const POCKET_UNSEEN = [
   'Somewhere between the finding and the packing, {res} goes missing.',
   'By the time the packs are closed, {res} is nowhere to be found.',

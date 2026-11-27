@@ -11,6 +11,7 @@ import { Rng } from '../rng.ts';
 import { T0, openGame, testPlan } from '../test-utils.ts';
 import type { GameState, RoundOrders, RunPlan } from '../types.ts';
 import type { FightView } from './command.ts';
+import { CLEAN_FIGHT_LINES } from '../content/flavor.ts';
 import { simulateRun } from './sim.ts';
 import { letThemFight, startRun, takeCommand } from './runs.ts';
 
@@ -135,6 +136,9 @@ describe('calls that matter (3.10.0)', () => {
   });
 });
 
+/** Any clean-fight line, its placeholders matching anything. */
+const CLEAN_LINES = [...CLEAN_FIGHT_LINES.crew, ...CLEAN_FIGHT_LINES.solo].map((l) => new RegExp(`^${l.replace(/[.*+?^$()|[\]\\]/g, '\\$&').replace(/\{\w+\}/g, '.+')}$`));
+
 describe('a clean fight (3.10.0)', () => {
   /** Shoot or strike the most hurt enemy that can be reached; nothing clever. */
   const focus = (v: FightView): RoundOrders => {
@@ -157,7 +161,7 @@ describe('a clean fight (3.10.0)', () => {
           assert.equal(end.over, 'won');
         } else if (end.over === 'won') messy++;
       }
-      const said = run.beats.some((b) => b.lines.some((l) => /walks? away from it/.test(l.text)));
+      const said = run.beats.some((b) => b.lines.some((l) => CLEAN_LINES.some((c) => c.test(l.text))));
       assert.equal(said, (run.ends ?? []).some((e) => e?.clean), `run ${i}`);
     }
     assert.ok(clean >= 10, `${clean} clean fights`);
@@ -169,7 +173,7 @@ describe('a clean fight (3.10.0)', () => {
       const state = openGame(`clean-alone-${i}`);
       kitted(state);
       const run = simulateRun(state, plan(state, 'maple_street', undefined), `a${i}`, T0);
-      assert.ok(!run.beats.some((b) => b.lines.some((l) => /walks? away from it/.test(l.text))));
+      assert.ok(!run.beats.some((b) => b.lines.some((l) => CLEAN_LINES.some((c) => c.test(l.text)))));
     }
   });
 });
