@@ -6,7 +6,7 @@
 import type { BuildingId, Quality, RelationshipLabel, ResourceId, Resources } from './types.ts';
 
 /** Save format version. Bump together with a migration in save.ts. */
-export const SAVE_VERSION = 32;
+export const SAVE_VERSION = 33;
 /** A guild this many game days old or younger, coming in from an older version, gets the first week too (§9.10). */
 export const STORY_OLD_SAVE_DAYS = 14;
 

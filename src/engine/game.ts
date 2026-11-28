@@ -103,7 +103,7 @@ export function newGame(opts: NewGameOptions): GameState {
     rng: new Rng(opts.seed).getState(),
     createdAt: opts.now,
     lastUpdate: opts.now,
-    guildName: opts.guildName ?? 'The Guild',
+    guildName: opts.guildName ?? 'The Depot',
     nextId: 1,
     survivors: [],
     memorial: [],
