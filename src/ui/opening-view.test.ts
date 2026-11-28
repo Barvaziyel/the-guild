@@ -6,10 +6,10 @@ import { openingShots } from './opening-view.ts';
 import { SPRITE } from './sounds.ts';
 
 describe('the opening scene (3.14.0)', () => {
-  test('the rail line, the founders up close, the depot, the fire, “We stay.” up close, then the guild’s name', () => {
+  test('the rail line, the founders up close, the depot, the fire, a pan across them, a face and “We stay.”, then the guild’s name', () => {
     const state = newGame({ seed: 'opening', now: T0, guided: true, guildName: 'The Ash Line' });
     const shots = openingShots(state);
-    assert.equal(shots.length, 6);
+    assert.equal(shots.length, 7);
     for (const shot of shots.slice(0, 4)) {
       assert.match(shot.svg!, /^<svg[^>]*viewBox="0 0 400 600"/);
       assert.ok(shot.caption.length > 0);
@@ -21,12 +21,16 @@ describe('the opening scene (3.14.0)', () => {
     assert.match(shots[0]!.svg!, /op-walk-far/);
     assert.match(shots[1]!.svg!, /op-slide/);
     assert.match(shots[2]!.svg!, /@keyframes/);
-    // In close by the fire, and only what was said.
+    // In close by the fire, panning across them; then the one who says it, lit by the fire, and only what was said.
     assert.match(shots[4]!.svg!, /^<svg[^>]*viewBox="151 316 120 180"/);
-    assert.equal(shots[4]!.caption, '“We stay.”');
-    assert.ok(shots[4]!.quote && shots[4]!.svg!.includes('yard-flame'));
+    assert.ok(shots[4]!.pan && shots[4]!.svg!.includes('yard-flame') && shots[4]!.caption === '');
+    assert.match(shots[5]!.svg!, /class="yard opening-shot op-face"/);
+    assert.match(shots[5]!.svg!, new RegExp(`aria-label="${state.survivors[0]!.firstName}, by the fire"`));
+    assert.match(shots[5]!.svg!, /op-firelight/);
+    assert.equal(shots[5]!.caption, '“We stay.”');
+    assert.ok(shots[5]!.quote);
     assert.doesNotMatch(shots[3]!.caption, /We stay/);
-    assert.deepEqual(shots[5]!.title, { name: 'The Ash Line', day: 'Day 1' });
+    assert.deepEqual(shots[6]!.title, { name: 'The Ash Line', day: 'Day 1' });
     // Nobody walks on the spot: the far walkers keep going for as long as the shot is up.
     const walk = /--sec:([\d.]+)s;--dist:(\d+)px/.exec(shots[0]!.svg!)!;
     assert.ok(Number(walk[1]) * 1000 > shots[0]!.ms, 'still walking when it cuts');
@@ -57,6 +61,6 @@ describe('the opening scene (3.14.0)', () => {
     assert.ok(fire.sound.cues.some((c) => c.id === 'match' && (c.delay ?? 0) < 1));
     assert.ok(shots[2]!.sound.cues.some((c) => c.id === 'creak' && (c.delay ?? 0) > 3));
     assert.ok(!shots.some((s) => s.sound.cues.some((c) => c.id.startsWith('radio_'))));
-    assert.ok(shots[5]!.sound.cues.some((c) => c.id === 'stamp'));
+    assert.ok(shots[6]!.sound.cues.some((c) => c.id === 'stamp'));
   });
 });
