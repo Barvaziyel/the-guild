@@ -8,6 +8,7 @@ Everything in `public/audio/` is made here, offline, in Python. Nothing is downl
 | `night.ogg` | Night at the Depot: nylon guitar, a warm pad, a low cello line (60 bpm, 24 bars) | `night.py` |
 | `fight.ogg` | Fights and raids: a taiko ensemble in a big hall (its own section, bus-compressed, with a sub boom), a string and bass ostinato, horns (E minor, 112 bpm, 40 bars) | `fight.py` |
 | `haven.ogg` | The road east, hopeful: guitar, pad, a horn singing the tune, strings and a fiddle lifting it, a music box at the end (C major, 84 bpm, 32 bars) | `haven.py` |
+| `elite.ogg` | An elite's name stamped down in its first sight (4c): a sting, played once, not looped. A roll and a swell into a hit, the brass calling over taiko, a second hit, the chord ringing out (E minor, 96 bpm, about 8 s) | `elite.py` |
 | `truth.ogg` | After the road east: the same tune as an out-of-tune music box lullaby over a drone and a heartbeat (C minor, 64 bpm, 24 bars) | `truth.py` |
 | `sfx.ogg` | Every effect in one file; `src/ui/sounds.ts` says where each one is | `sfx.py` |
 | `amb-*.ogg` | The yard's ambience: wind, the fire, crickets, birds | `sfx.py` |
@@ -23,6 +24,7 @@ pip install numpy scipy pyloudnorm matplotlib   # and ffmpeg with libopus
 python3 tools/audio/decode.py        # writes tools/audio/samples/<instrument>.npz (git-ignored)
 python3 tools/audio/build.py         # renders everything, copies it to public/audio, writes src/ui/sounds.ts
 python3 tools/audio/build.py sfx     # just the effects and ambience (it needs the music already in tools/audio/out: copy it from public/audio)
+python3 tools/audio/build.py stings  # just the stings (elite.py also needs brass_section, trumpet, trombone, tuba, choir_aahs, taiko_drum, reverse_cymbal, tremolo_strings, contrabass, melodic_tom)
 python3 tools/audio/look.py tools/audio/out/depot.ogg   # a spectrogram and loudness plot in /tmp/look.png
 ```
 

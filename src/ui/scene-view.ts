@@ -17,6 +17,17 @@ export interface SceneShot {
   sound: ShotSound;
   /** Close-ups: someone's own face over the stage while they speak, so it's plain who it is. */
   faces?: SceneFace[];
+  /** A name stamped down over the stage from so many seconds in, the stage jolting with it (an elite's, 4c). */
+  stamp?: SceneStamp;
+}
+
+/** A name slammed down over the stage (4c): big, in the stencil, with a smaller line under it. */
+export interface SceneStamp {
+  at: number;
+  title: string;
+  sub?: string;
+  /** Up top, over the sky, for something low to the ground that a stamp across the bottom would cover. */
+  top?: boolean;
 }
 
 /** A face over the stage in a scene (4b): someone of the guild, or of the Vultures, from and until so many seconds in. */

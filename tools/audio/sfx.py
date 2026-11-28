@@ -1013,8 +1013,23 @@ def c_gale():
     return taken('gale')
 
 
+def c_loudspeaker():
+    """A loudspeaker on a checkpoint's tower crackling into life (4c, made until it's recorded): a pop as it's
+    keyed, the horn's hum, static, and a whine of feedback that dies away. No voice: the words are on the screen."""
+    total = 1.9
+    d = 1.35
+    t = t_(d)
+    hum = np.sign(np.sin(2 * np.pi * 120 * t)) * 0.25 + np.sin(2 * np.pi * 240 * t) * 0.2
+    hum = bp(hum, 350, 2800) * np.interp(t, [0, 0.05, d - 0.3, d], [0, 1, 0.8, 0])
+    st = radio_static(d, 0.8) * np.interp(t, [0, 0.03, 0.5, d], [0, 1, 0.55, 0.2])
+    whine = np.sin(2 * np.pi * (1650 * t + 2 * np.sin(2 * np.pi * 3 * t))) * np.interp(t, [0, 0.35, 0.6, 1.0, d], [0, 0, 0.18, 0.05, 0])
+    pop = bp(noise(0.03), 200, 3000) * env(0.03, 0.0005, 0.008)
+    x = at(pop * 1.2, 0, total) + at(hum + st + whine, 0.02, total)
+    return fade_end(verb(x, 1.5, 0.35), 0.3)
+
+
 # Loudness for each (LUFS), so a footstep doesn't drown a line.
-SCENE_LOUDNESS = {'gravel_walk': -25, 'run_gravel': -23, 'creak': -26, 'match': -19, 'campfire': -24, 'scream_f': -20, 'scream_m': -20, 'stamp': -18, 'door_bang': -20, 'shot_far': -17, 'body_fall': -20, 'stomp': -19, 'gate_groan': -21, 'pull_up': -27, 'gale': -26}
+SCENE_LOUDNESS = {'gravel_walk': -25, 'run_gravel': -23, 'creak': -26, 'match': -19, 'campfire': -24, 'scream_f': -20, 'scream_m': -20, 'stamp': -18, 'door_bang': -20, 'shot_far': -17, 'body_fall': -20, 'stomp': -19, 'gate_groan': -21, 'pull_up': -27, 'gale': -26, 'loudspeaker': -24}
 
 SCENE = {name[2:]: (lambda fn=fn, name=name: master(fn(), SCENE_LOUDNESS[name[2:]])) for name, fn in globals().items() if name.startswith('c_') and callable(fn)}
 

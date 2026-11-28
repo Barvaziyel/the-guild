@@ -46,6 +46,7 @@ export const ELITES: readonly EnemyDef[] = [
           ],
         },
       },
+      sight: 'At the far end of the yard a switch lever throws itself with a clang. Then the next one down the line. Then the next.',
       met: 'A lamp comes swinging down the line, and behind it, the Switchman, plates rattling, a track bar in its hand.',
       lair: {
         title: 'The Switchman’s line',
@@ -95,6 +96,7 @@ export const ELITES: readonly EnemyDef[] = [
           ],
         },
       },
+      sight: 'A howl goes up somewhere down the street, long and low, and every hound on Maple Street answers it.',
       met: 'The other hounds go quiet and part. Old Mother comes up through them, head low, and something jingles at her throat.',
       lair: {
         title: 'Old Mother’s porch',
@@ -144,6 +146,7 @@ export const ELITES: readonly EnemyDef[] = [
           ],
         },
       },
+      sight: 'Smoke is coming out of the old smokehouse behind the barn, day and night, and it smells like supper.',
       met: 'Somebody is whistling. The Butcher steps out from behind the barn, wiping his cleaver on his apron, and the whistling doesn’t stop.',
       lair: {
         title: 'The smokehouse',
@@ -193,6 +196,7 @@ export const ELITES: readonly EnemyDef[] = [
           ],
         },
       },
+      sight: 'Down the tunnel, a bell rings: two short, one long, like a train about to leave.',
       met: 'A bell rings in the dark: two short, one long. The Conductor steps onto the platform, cap straight, and holds out his hand as if for a ticket.',
       lair: {
         title: 'The last platform',
@@ -242,6 +246,7 @@ export const ELITES: readonly EnemyDef[] = [
           ],
         },
       },
+      sight: 'Out on the lake where the food court used to be, a floating table sinks, all at once, without a sound.',
       met: 'The water by the escalator bulges, and the Snapper heaves itself out onto the tiles, weed streaming off its shell.',
       lair: {
         title: 'The food court lake',
@@ -291,6 +296,7 @@ export const ELITES: readonly EnemyDef[] = [
           ],
         },
       },
+      sight: 'Something glints at the very top of the radio mast. Then a shot cracks into the rocks below it.',
       met: 'A glint at the top of the mast, and a cheerful voice on the wind: “I see you.” The Lookout is up there with her rifle.',
       lair: {
         title: 'Under the mast',
@@ -341,6 +347,7 @@ export const ELITES: readonly EnemyDef[] = [
           ],
         },
       },
+      sight: 'On the fourth floor a trolley squeaks down the dark ward, slow and steady, stopping at every bed.',
       met: 'A trolley squeaks round the corner, and the Matron with it, glowing faintly, cap pinned straight. She looks at them the way a nurse looks at visitors after hours.',
       lair: {
         title: 'The fourth floor',
@@ -390,6 +397,7 @@ export const ELITES: readonly EnemyDef[] = [
           ],
         },
       },
+      sight: 'A siren whoops once, somewhere inside the plant. Every sentry in sight stops where it is.',
       met: 'A siren whoops once. The Warden rolls into the open, drones stirring on its back: “Unauthorized personnel. Remain where you are.”',
       lair: {
         title: 'The control room',
@@ -439,6 +447,7 @@ export const ELITES: readonly EnemyDef[] = [
           ],
         },
       },
+      sight: 'A deer is drinking at the edge of the black water. Then there is no deer, only rings spreading out across the pool.',
       met: 'The black water heaves, and the Bog King comes up out of it, jaws first, weed and old bones hanging off its back.',
       lair: {
         title: 'The deep pool',
@@ -488,6 +497,7 @@ export const ELITES: readonly EnemyDef[] = [
           ],
         },
       },
+      sight: 'A loudspeaker crackles on the checkpoint’s tower: “Halt. Present papers. This is your only warning.”',
       met: 'A loudspeaker crackles: “Halt. Present papers.” Bravo Six stands up behind the barrier, and its gun swings round.',
       lair: {
         title: 'The barrier',
@@ -538,6 +548,7 @@ export const ELITES: readonly EnemyDef[] = [
           ],
         },
       },
+      sight: 'The whole camp is down in the old stadium, shouting. A whistle, and every one of them goes quiet.',
       met: 'A whistle, and the shouting stops. The Red Hand walks out in front of his people, red hand up, smiling.',
       lair: {
         title: 'The field',
@@ -587,6 +598,7 @@ export const ELITES: readonly EnemyDef[] = [
           ],
         },
       },
+      sight: 'Out on the glass plain, something is brighter than the ground. It’s walking.',
       met: 'The light gets brighter, and the ground starts to chime. The Glass Man comes walking out of the glare.',
       lair: {
         title: 'Where the bomb fell',

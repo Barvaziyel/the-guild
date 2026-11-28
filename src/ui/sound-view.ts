@@ -8,7 +8,7 @@ import { FORKS, PRESS_ON, openRaid, radioWaiting, raidAtGate, raidSeen, type Fig
 import { dayPhase } from '../scene/model.ts';
 import { anyoneFighting } from './fight-view.ts';
 import type { Route } from './route.ts';
-import type { AmbienceId, MusicId, SoundId } from './sounds.ts';
+import type { AmbienceId, MusicId, SoundId, StingId } from './sounds.ts';
 
 /** One effect to play: how loud (0–1), left to right (−1–1), a little faster or slower, and when (seconds from now). */
 export interface Cue {
@@ -28,7 +28,16 @@ export interface ShotSound {
   ambience?: AmbienceMix;
   cues: Cue[];
   duck?: { at: number; for: number };
-  music?: { id: MusicId; at: number }[];
+  /** The scene's own music from so many seconds in; `null` is none, only the ambience (an elite's first sight, 4c). */
+  music?: { id: MusicId | null; at: number }[];
+  /** Music played once over a moment (4c), its hit landing so many seconds in: an elite's name stamped down. */
+  stings?: StingCue[];
+}
+
+/** A sting in a scene (4c): which, and when its hit lands, in seconds from the start of the shot. */
+export interface StingCue {
+  id: StingId;
+  at: number;
 }
 
 /** A short buzz of the phone: a light one for a hit taken, a heavy one when someone goes down. */

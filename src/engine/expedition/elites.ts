@@ -180,6 +180,28 @@ export function eliteStatus(state: GameState, placeId: string): EliteStatus | un
   return { def, state: record.status === 'dead' ? 'dead' : 'atLarge', record };
 }
 
+/**
+ * The next elite whose first sight is still to show (4c, 3.16.0): seen by a crew that's home now, still at
+ * large, in the order they were seen. One brought down before the player saw it come on has nothing to show.
+ */
+export function nextEliteSight(state: GameState): string | undefined {
+  const shown = new Set(state.eliteSights ?? []);
+  return Object.entries(state.elites ?? {})
+    .filter(([id, r]) => r.status === 'atLarge' && !shown.has(id))
+    .sort((a, b) => a[1].seen - b[1].seen)[0]?.[0];
+}
+
+/** Whether the player has seen an elite's first sight (4c, 3.16.0). */
+export function eliteSightShown(state: GameState, id: string): boolean {
+  return (state.eliteSights ?? []).includes(id);
+}
+
+/** The player has watched an elite's first sight, or skipped it (4c, 3.16.0). */
+export function seenEliteSight(state: GameState, id: string): void {
+  const shown = (state.eliteSights ??= []);
+  if (!shown.includes(id)) shown.push(id);
+}
+
 /** Why a crew can't go after a place's elite, if it can't: it has to be known, at large, and the job one that goes looking. */
 export function eliteProblem(state: GameState, plan: RunPlan): string | undefined {
   if (!plan.elite) return undefined;

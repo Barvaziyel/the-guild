@@ -238,6 +238,11 @@ const MIGRATIONS: Record<number, (save: Record<string, unknown>) => void> = {
     // named stays as it is. The Chronicle and the guild's log keep what was written then.
     if (save.guildName === 'The Guild') save.guildName = 'The Depot';
   },
+  33: (save) => {
+    // An elite's first sight (4c, 3.16.0) plays once, for one seen from now on: those the guild already knows
+    // of count as shown.
+    save.eliteSights = Object.keys((save.elites as Record<string, unknown> | undefined) ?? {});
+  },
 };
 
 export function serialize(state: GameState): string {

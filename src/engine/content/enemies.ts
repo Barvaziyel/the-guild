@@ -95,6 +95,11 @@ export interface EliteDef {
   place: string;
   /** The first time anyone sees it: a beat of its own on a run there. */
   signs: { title: string; lines: CrewLines };
+  /**
+   * What's seen of it first, with nobody of the guild in the line (4c, 3.16.0): the line under its place in
+   * the scene of its first sight, before it comes on. Story: it has to make sense on its own.
+   */
+  sight: string;
   /** When it turns up in a fight, before the first blow. */
   met: string;
   /** Going after it (the planner's order): where they find it, at the deepest point of the run. */

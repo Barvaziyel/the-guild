@@ -13,6 +13,11 @@ export const MUSIC = {
   truth: 90.0,
 } as const;
 
+/** Music played once over a moment (4c): how long each is, and when its hit lands, in seconds. */
+export const STINGS = {
+  elite: { length: 7.976, hit: 1.25 },
+} as const;
+
 /** Each ambience loop and its length, in seconds. */
 export const AMBIENCE = {
   wind: 32.0,
@@ -117,8 +122,10 @@ export const SPRITE = {
   gate_groan: [187.5624, 8.4463],
   pull_up: [196.0888, 3.8],
   gale: [199.9688, 12.3],
+  loudspeaker: [212.3488, 3.4],
 } as const;
 
 export type MusicId = keyof typeof MUSIC;
+export type StingId = keyof typeof STINGS;
 export type AmbienceId = keyof typeof AMBIENCE;
 export type SoundId = keyof typeof SPRITE;
