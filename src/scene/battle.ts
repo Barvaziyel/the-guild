@@ -737,8 +737,13 @@ export function stageSvg(model: StageModel): string {
     css += m.css;
     return m.svg;
   };
-  // Further back is drawn first; someone moving goes by where they end up.
-  const depth = (e: StageExtra): number => e.keys?.[e.keys.length - 1]?.y ?? e.y;
+  // Further back is drawn first; someone moving goes by where they end up. Someone on the ground is under
+  // anyone standing near them (Aviel, 2026-11-28: the Shepherd stands over the one shot, not under her head).
+  const depth = (e: StageExtra): number => {
+    const last = e.keys?.[e.keys.length - 1];
+    if (e.lying || last?.pose === 'lying') return -1;
+    return last?.y ?? e.y;
+  };
   let figures = extras.filter((e) => depth(e) < 194).map(drawExtra).join('');
   // The camera: each key's point, held inside the stage, as keyframes on the whole picture.
   let camera = '';

@@ -97,7 +97,7 @@ export function Opening({ state }: { state: GameState }) {
           />
         )}
       </div>
-      <p className="opening-caption" key={`c${step}`} aria-live="polite">
+      <p className={`opening-caption${shot.quote ? ' is-quote' : ''}`} key={`c${step}`} aria-live="polite">
         {shot.caption}
       </p>
       <div className="opening-controls">

@@ -7708,6 +7708,20 @@ p.is-bad {
   animation: opening-caption 1100ms ease-out 350ms both;
 }
 
+/* Something said, alone: “We stay.” It comes up slow and big. */
+.opening-caption.is-quote {
+  font-family: var(--stencil);
+  font-size: 2.4rem;
+  line-height: 1.1;
+  letter-spacing: 0.02em;
+  animation: opening-quote 1600ms ease-out 500ms both;
+}
+
+@keyframes opening-quote {
+  from { opacity: 0; transform: scale(1.15); filter: blur(3px); }
+  to { opacity: 1; transform: scale(1); filter: blur(0); }
+}
+
 .opening-controls {
   display: flex;
   justify-content: space-between;
@@ -7858,12 +7872,12 @@ p.is-bad {
 
 @keyframes op-cross {
   from { transform: translateX(var(--x0)); }
-  to { transform: translateX(calc(var(--x0) + 440px)); }
+  to { transform: translateX(calc(var(--x0) + var(--dist, 440px))); }
 }
 
 @keyframes op-drift {
   from { transform: translateX(var(--x0)); }
-  to { transform: translateX(calc(var(--x0) + 46px)); }
+  to { transform: translateX(calc(var(--x0) + var(--dist, 46px))); }
 }
 
 @keyframes op-slide {

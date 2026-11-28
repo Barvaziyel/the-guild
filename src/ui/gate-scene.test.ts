@@ -101,6 +101,12 @@ describe('Haven’s gate, before the fight (§9.12; moving, 4b)', () => {
     assert.deepEqual(first.sound.music, [{ id: 'haven', at: 0 }, { id: 'truth', at: first.lines[1]!.at }]);
     const ids = shots.flatMap((s) => s.sound.cues.map((c) => c.id));
     for (const id of ['door_bang', 'shot_far', 'body_fall', 'pull_up', 'boots', 'gate_groan', 'stomp'] as const) assert.ok(ids.includes(id), id);
+    // The trucks are heard and stop before the Vultures come on.
+    const truck = shots[1]!.sound.cues.find((c) => c.id === 'pull_up')!;
+    assert.ok((truck.delay ?? 0) + SPRITE.pull_up[1] <= shots[1]!.model.arrive![0]!.at + 0.2);
+    // She lies under whoever stands over her: drawn before any of the ranks.
+    const gateSvg = stageSvg(shots[2]!.model);
+    assert.ok(gateSvg.indexOf('#6e1f18') < gateSvg.indexOf('data-key='), 'her blood is under the ranks');
     // She screams (no words), as she shouts: a man's scream for a man.
     const scream = dreamer.pronouns === 'he' ? 'scream_m' : 'scream_f';
     const screams = first.sound.cues.filter((c) => c.id === scream);
