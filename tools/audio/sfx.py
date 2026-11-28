@@ -756,8 +756,8 @@ for _who in ('m', 'f'):
 # calling more in (a howl, a bell, claps, a siren, a whistle), a gun's sweep and glass that chimes.
 # After the radio, on random numbers of their own, so no earlier sound changes.
 
-def e_clang():
-    """A steel plate knocked off: a hard ring, and the clatter of it landing."""
+def made_clang():
+    """The made plate (3.12.0), no longer heard."""
     total = 0.9
     t = t_(0.7)
     ring = sum(a * np.sin(2 * np.pi * f * t + i) * np.exp(-t / tau) for i, (f, a, tau) in enumerate([(612, 1.0, 0.18), (1340, 0.7, 0.12), (2210, 0.5, 0.08), (3170, 0.3, 0.05)]))
@@ -770,8 +770,22 @@ def e_clang():
     return norm(fade_end(verb(out, 0.6, 0.25)[: int(total * SR)]), -4)
 
 
+def e_clang():
+    """A steel plate knocked off (3.15.0: real metal cracking). The made one is still made, and dropped, so the
+    random numbers the elites' sounds after it draw stay the same."""
+    made_clang()
+    return verb(taken('metal'), 0.5, 0.15)
+
+
 def e_splash():
-    """Something big going under, or coming up out of the water."""
+    """Something big going under (3.15.0: a real splash). The made one is still made, and dropped, so the random
+    numbers the elites' sounds after it draw stay the same."""
+    made_splash()
+    return verb(taken('splash_in'), 0.4, 0.12)
+
+
+def made_splash():
+    """The made splash (3.12.0), no longer heard."""
     total = 1.1
     body = lp(noise(0.7), 2200) * np.interp(t_(0.7), [0, 0.03, 0.25, 0.7], [0, 1, 0.45, 0])
     spray = bp(noise(0.5), 2500, 7000) * np.interp(t_(0.5), [0, 0.02, 0.2, 0.5], [0, 0.6, 0.2, 0])
@@ -782,6 +796,27 @@ def e_splash():
         bub = sweep(f, f * 1.8, d) * env(d, 0.002, d / 3) * rng.uniform(0.15, 0.3)
         out += at(bub, rng.uniform(0.2, 0.85), total)
     return norm(fade_end(out, 0.1), -4)
+
+
+def taken(name):
+    """A sound from recorded/ (cut by recorded.py from a free sound Aviel picked, 3.15.0): mono, or stereo for the wind."""
+    import os, subprocess
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'recorded', f'{name}.ogg')
+    probe = subprocess.run(['ffprobe', '-v', 'quiet', '-show_entries', 'stream=channels', '-of', 'csv=p=0', path],
+                           capture_output=True, text=True).stdout.strip()
+    ch = int(probe or 1)
+    pcm = subprocess.run(['ffmpeg', '-v', 'quiet', '-i', path, '-f', 'f32le', '-ac', str(ch), '-ar', str(SR), 'pipe:1'],
+                         capture_output=True, check=True).stdout
+    x = np.frombuffer(pcm, dtype='<f4').astype(float)
+    return x.reshape(-1, ch) if ch > 1 else x
+
+
+def speed(x, rate):
+    """Played faster (higher) or slower (lower)."""
+    if rate == 1:
+        return x
+    n = int(len(x) / rate)
+    return np.interp(np.arange(n) * rate, np.arange(len(x)), x)
 
 
 def recorded(name):
@@ -855,7 +890,12 @@ def e_chime():
 
 
 # Loudness for each (LUFS), so a whistle doesn't drown a clang: set by ear through a phone's speaker.
-ELITE_LOUDNESS = {'clang': -21, 'splash': -21, 'howl': -23, 'bell': -21, 'clap': -19, 'klaxon': -24, 'whistle': -24, 'burst': -19, 'chime': -22}
+def e_surface():
+    """Something big coming up out of the water (3.15.0, a real splash). Last of the elites' sounds, so none moves."""
+    return verb(taken('splash_up'), 0.4, 0.12)
+
+
+ELITE_LOUDNESS = {'surface': -21, 'clang': -21, 'splash': -21, 'howl': -23, 'bell': -21, 'clap': -19, 'klaxon': -24, 'whistle': -24, 'burst': -19, 'chime': -22}
 
 ELITE = {name[2:]: (lambda fn=fn, name=name: master(fn(), ELITE_LOUDNESS[name[2:]])) for name, fn in globals().items() if name.startswith('e_') and callable(fn)}
 
@@ -868,46 +908,48 @@ ELITE = {name[2:]: (lambda fn=fn, name=name: master(fn(), ELITE_LOUDNESS[name[2:
 # crying", a match like static) is left out until it's recorded.
 
 
-def crunch(power=1.0):
-    """One footfall on gravel: a scatter of small stones shifting under a boot, and the boot."""
-    d = 0.16
-    out = np.zeros(int(d * SR))
-    for _ in range(int(14 * power) + 6):
-        t0 = rng.uniform(0, 0.07)
-        g = bp(noise(0.012), rng.uniform(1800, 3400), rng.uniform(5000, 7500)) * env(0.012, 0.0003, rng.uniform(0.002, 0.005))
-        out += at(g * rng.uniform(0.3, 1.0), t0, d)
-    out += lp(noise(d), 260) * env(d, 0.002, 0.025) * 1.6
-    return out * power
+def layered(parts, total):
+    """Takes laid over each other: (sound, when, gain, rate)."""
+    out = np.zeros(int(total * SR))
+    for x, when, gain, rate in parts:
+        out += at(speed(x, rate) * gain, when, total)
+    return out
 
 
 def c_gravel_walk():
-    """Four people walking the rail line's gravel, not quite in step, for a few seconds."""
-    total = 4.6
-    out = np.zeros(int(total * SR))
-    for who in range(4):
-        pace = rng.uniform(0.5, 0.58)
-        t = rng.uniform(0, 0.4)
-        gain = rng.uniform(0.55, 1.0)
-        while t < total - 0.2:
-            out += at(crunch(gain * rng.uniform(0.8, 1.1)), t, total)
-            t += pace * rng.uniform(0.95, 1.05)
-    return fade_end(verb(out, 0.6, 0.12), 0.4)
+    """Four people walking the rail line's gravel, not quite in step: two takes of one walker (3.15.0), laid over
+    each other at different speeds."""
+    a, b = taken('gravel_1'), taken('gravel_2')
+    out = layered([(a, 0.0, 1.0, 1.0), (b, 0.3, 0.8, 1.0), (a, 0.55, 0.55, 1.06), (b, 0.12, 0.5, 0.94)], 5.1)
+    return fade_end(verb(out, 0.5, 0.08), 0.4)
 
 
 def c_run_gravel():
-    """Someone running on gravel, coming closer."""
-    total = 2.6
-    out = np.zeros(int(total * SR))
-    t, k = 0.0, 0
-    while t < total - 0.15:
-        out += at(crunch(0.5 + 0.6 * t / total) * (1.25 if k % 2 else 1.0), t, total)
-        t += 0.29
-        k += 1
-    return fade_end(verb(out, 0.7, 0.15), 0.1)
+    """Someone running on gravel, coming closer (3.15.0, real)."""
+    x = taken('running')
+    return x * np.linspace(0.45, 1.0, len(x))
 
 
+def c_creak():
+    """The old depot's gate swung open as the founders come in: a real iron gate (3.15.0), a little lighter and
+    further off than Haven's."""
+    x = speed(taken('gate')[: int(2.6 * SR)], 1.12)
+    return fade_end(verb(x, 0.8, 0.18), 0.6)
 
 
+def c_match():
+    """A match struck, flaring, burning (3.15.0, real): the first fire."""
+    return fade_end(verb(taken('match'), 0.4, 0.1), 0.3)
+
+
+def c_scream_f():
+    """A woman screaming the truth at Haven's gate, out on the road (3.15.0, real; no words)."""
+    return fade_end(verb(lp(taken('scream_f'), 6000), 1.6, 0.3), 0.6)
+
+
+def c_scream_m():
+    """A man screaming the truth at Haven's gate, out on the road (3.15.0, real; no words)."""
+    return fade_end(verb(lp(taken('scream_m'), 6000), 1.6, 0.3), 0.6)
 
 
 def c_stamp():
@@ -916,8 +958,6 @@ def c_stamp():
     thud = sweep(110, 48, 0.3) * env(0.3, 0.001, 0.08)
     slap = bp(noise(0.05), 600, 4000) * env(0.05, 0.0005, 0.01)
     return fade_end(verb(at(thud * 1.2, 0, total) + at(slap * 0.7, 0, total), 0.8, 0.25), 0.2)
-
-
 
 
 def c_door_bang():
@@ -929,21 +969,18 @@ def c_door_bang():
 
 
 def c_shot_far():
-    """A rifle from the top of a wall, and the dam throwing it back, twice."""
-    shot = gun(1.3, 0.7, 1500, 70, 0.9, 0.3)
-    total = 3.0
-    out = at(shot, 0, total)
-    for delay, g, cut in ((0.42, 0.35, 1800), (0.95, 0.18, 1200)):
-        out += at(lp(shot, cut) * g, delay, total)
-    return fade_end(verb(out, 2.2, 0.35), 0.6)
+    """A rifle from the top of a wall, and its echo (3.15.0, real)."""
+    return fade_end(taken('shot'), 0.6)
 
 
 def c_body_fall():
-    """Someone going down in the road: a heavy body on dirt and gravel."""
-    total = 1.0
-    out = at(lp(noise(0.25), 220) * env(0.25, 0.002, 0.05) * 1.8, 0, total) + at(sweep(90, 50, 0.2) * env(0.2, 0.002, 0.06), 0, total)
-    out += at(crunch(0.7) * 0.6, 0.05, total) + at(crunch(0.4) * 0.4, 0.22, total)
-    return fade_end(verb(out, 0.6, 0.15), 0.2)
+    """Someone going down in the road (3.15.0: a real thud, lighter than the boulder it was)."""
+    return fade_end(verb(speed(taken('thud'), 1.3), 0.5, 0.12), 0.2)
+
+
+def c_stomp():
+    """One of the Shepherd's steps: the same thud, slower, lower and in the dam's echo."""
+    return fade_end(verb(speed(taken('thud'), 0.72), 1.6, 0.3), 0.4)
 
 
 def c_boots():
@@ -960,21 +997,22 @@ def c_boots():
 
 
 def c_gate_groan():
-    """Haven's gate opening: steel grinding on its rails, low and long, with an edge a phone can carry."""
-    d = 3.4
-    t = t_(d)
-    f = 46 + 6 * np.sin(2 * np.pi * 0.6 * t)
-    grind = blwave(f, 'saw') * (0.6 + 0.4 * np.abs(np.sin(2 * np.pi * 2.1 * t)))
-    edge = bp(noise(d), 700, 2200) * (0.25 + 0.2 * np.abs(np.sin(2 * np.pi * 5.3 * t)))
-    squeal = np.sin(2 * np.pi * np.cumsum(880 + 120 * np.sin(2 * np.pi * 0.9 * t)) / SR) * np.clip(np.sin(2 * np.pi * 1.3 * t), 0, 1) ** 3 * 0.15
-    x = (lp(grind, 900) * 0.8 + edge + squeal) * np.interp(t, [0, 0.3, 2.9, d], [0, 1, 1, 0])
-    total = 4.2
-    out = at(x, 0, total) + at(lp(noise(0.2), 400) * env(0.2, 0.001, 0.06) * 1.4, 3.35, total)
-    return fade_end(verb(out, 1.8, 0.4), 0.4)
+    """Haven's gate opening: a real iron gate (3.15.0), slower and lower for its size, in the dam's echo."""
+    return fade_end(verb(speed(taken('gate'), 0.82), 1.8, 0.35), 0.6)
+
+
+def c_pull_up():
+    """The Vultures' trucks coming up the road, braking and idling (3.15.0, a real old car)."""
+    return fade_end(taken('pull_up'), 0.5)
+
+
+def c_gale():
+    """Wind across open ground, hard (3.15.0, real): the rail line, the dam."""
+    return taken('gale')
 
 
 # Loudness for each (LUFS), so a footstep doesn't drown a line.
-SCENE_LOUDNESS = {'gravel_walk': -26, 'run_gravel': -24, 'stamp': -18, 'door_bang': -20, 'shot_far': -17, 'body_fall': -21, 'boots': -24, 'gate_groan': -21}
+SCENE_LOUDNESS = {'gravel_walk': -25, 'run_gravel': -23, 'creak': -26, 'match': -23, 'scream_f': -20, 'scream_m': -20, 'stamp': -18, 'door_bang': -20, 'shot_far': -17, 'body_fall': -20, 'stomp': -19, 'boots': -24, 'gate_groan': -21, 'pull_up': -22, 'gale': -26}
 
 SCENE = {name[2:]: (lambda fn=fn, name=name: master(fn(), SCENE_LOUDNESS[name[2:]])) for name, fn in globals().items() if name.startswith('c_') and callable(fn)}
 
@@ -992,7 +1030,35 @@ def loop_xfade(x, fade):
     return body
 
 
-def a_wind(d=46.0):
+def a_wind(d=32.0):
+    """The wind (3.15.0: real wind, the soft take with a little of the hard one under it), as a loop: copies
+    of each laid round a circle at even steps, each from a different place in it, each faded in and out, so
+    they add up to a steady wind with no seam and no swell coming back on the beat. The made wind is still
+    made and dropped, so the ambience after it draws the same random numbers."""
+    made_wind()
+    pick = np.random.default_rng(315)
+    n = int(d * SR)
+    out = np.zeros((n, 2))
+    for take, step, gain in (('breeze', 4.0, 1.0), ('gale', 8.0, 0.12)):
+        x = taken(take)
+        x = x if x.ndim == 2 else np.stack([x, x], 1)
+        for k, start in enumerate(np.arange(0, d, step)):
+            y = np.roll(x, int(pick.uniform(0, len(x))), axis=0)
+            rate = pick.uniform(0.92, 1.08)
+            y = np.stack([speed(y[:, c], rate) for c in range(2)], 1)
+            if k % 2:
+                y = y[:, ::-1]
+            y = y[: int(2 * step * SR)] * np.sin(np.linspace(0, np.pi, min(len(y), int(2 * step * SR))))[:, None] ** 2
+            where = (int(start * SR) + np.arange(len(y))) % n
+            np.add.at(out, where, y * gain)
+    # Even it out: gusts come and go, but none jumps out of the yard (round the loop, so the seam stays smooth).
+    level = np.sqrt(np.convolve(np.tile((out ** 2).mean(1), 3), np.ones(SR) / SR, 'same')[n:2 * n]) + 1e-6
+    out = out * np.clip((np.median(level) / level) ** 0.6, 0.5, 2.0)[:, None]
+    return hp(out, 30)
+
+
+def made_wind(d=46.0):
+    """The made wind (3.1.0), no longer heard."""
     n = int(d * SR)
     t = np.arange(n) / SR
     out = np.zeros((n, 2))
@@ -1140,7 +1206,7 @@ if __name__ == '__main__':
     json.dump(index, open('out/sfx.json', 'w'), indent=1)
     print(len(SOUNDS), 'sounds,', round(len(sprite) / SR, 1), 's')
     if '--amb' in sys.argv:
-        levels = {'wind': -24, 'fire': -26, 'crickets': -30, 'birds': -30}
+        levels = {'wind': -27, 'fire': -26, 'crickets': -30, 'birds': -30}
         lengths = {}
         for name, fn in AMB.items():
             x = fn()

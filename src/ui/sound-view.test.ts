@@ -246,11 +246,11 @@ describe('elites in a fight (3.12.0)', () => {
     assert.ok(ids(actCues(state, view, act('plate', a!.id, 0, { amount: 1 })).cues).includes('clang'));
     assert.deepEqual([1, 2, 3, 4, 5].map((i) => ids(actCues(state, view, act('call', i)).cues)[0]), ['howl', 'bell', 'clap', 'klaxon', 'whistle']);
     assert.deepEqual(ids(actCues(state, view, act('dive', 7)).cues), ['splash']);
-    assert.deepEqual(ids(actCues(state, view, act('surface', 7)).cues), ['splash']);
+    assert.deepEqual(ids(actCues(state, view, act('surface', 7)).cues), ['surface']);
     assert.deepEqual(ids(actCues(state, view, act('sweep', 6)).cues), ['burst']);
     assert.deepEqual(ids(actCues(state, view, act('sweep', 9)).cues), ['swing', 'chime']);
     assert.deepEqual(actCues(state, view, act('arrive', 8)).cues, [], 'one that came to a call is heard in the call');
-    for (const id of ['clang', 'splash', 'howl', 'bell', 'clap', 'klaxon', 'whistle', 'burst', 'chime']) assert.ok(id in SPRITE, id);
+    for (const id of ['clang', 'splash', 'surface', 'howl', 'bell', 'clap', 'klaxon', 'whistle', 'burst', 'chime']) assert.ok(id in SPRITE, id);
   });
 });
 
