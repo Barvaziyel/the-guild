@@ -47,11 +47,15 @@ export class SoundSystem {
   private sprite: AudioBuffer | null = null;
   private music: Playing | null = null;
   private wantMusic: MusicId | null = null;
+  /** A scene's own music, over the screen's while it plays (`sceneMusic`). */
+  private sceneTune: MusicId | null | undefined;
   /** Where each piece was when it was last faded out, to pick up there. */
   private left: Partial<Record<MusicId, number>> = {};
   private switching = 0;
   private layers = new Map<AmbienceId, Layer>();
   private wantAmbience: AmbienceMix | null = null;
+  /** A scene's own ambience, over the screen's while it plays (`sceneAmbience`). */
+  private sceneMix: AmbienceMix | undefined;
   private volumes: Volumes = { on: true, music: 0.6, sound: 0.8, ambience: 0.5 };
   private hidden = false;
   /** A scene's sounds, scheduled ahead: cut when the scene moves on or is skipped. */
@@ -82,11 +86,30 @@ export class SoundSystem {
   setMusic(id: MusicId | null): void {
     if (id === this.wantMusic && (this.music?.id === id || !this.ctx)) return;
     this.wantMusic = id;
-    if (this.ctx) void this.switchMusic(id);
+    if (this.ctx && this.sceneTune === undefined) void this.switchMusic(id);
+  }
+
+  /** A scene's own music, in place of the screen's while it plays (Haven's gate turning from hope to the truth); undefined gives the screen's back. */
+  sceneMusic(id: MusicId | undefined): void {
+    if (id === this.sceneTune) return;
+    this.sceneTune = id;
+    if (this.ctx) void this.switchMusic(id ?? this.wantMusic);
   }
 
   setAmbience(mix: AmbienceMix): void {
     this.wantAmbience = mix;
+    if (this.sceneMix) return;
+    this.applyAmbience(mix);
+  }
+
+  /** A scene's own ambience, shot by shot, in place of the screen's while it plays; undefined gives the screen's back. */
+  sceneAmbience(mix: AmbienceMix | undefined): void {
+    this.sceneMix = mix;
+    const now = mix ?? this.wantAmbience;
+    if (now) this.applyAmbience(now);
+  }
+
+  private applyAmbience(mix: AmbienceMix): void {
     if (!this.ctx) return;
     for (const id of Object.keys(AMBIENCE) as AmbienceId[]) void this.layer(id, mix[id]);
   }
@@ -204,8 +227,10 @@ export class SoundSystem {
     void this.load('sfx').then((b) => {
       this.sprite = b;
     });
-    if (this.wantMusic) void this.switchMusic(this.wantMusic);
-    if (this.wantAmbience) this.setAmbience(this.wantAmbience);
+    const tune = this.sceneTune ?? this.wantMusic;
+    if (tune) void this.switchMusic(tune);
+    const mix = this.sceneMix ?? this.wantAmbience;
+    if (mix) this.applyAmbience(mix);
   }
 
   private load(name: string): Promise<AudioBuffer | null> {

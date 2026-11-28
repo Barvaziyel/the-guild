@@ -1,23 +1,16 @@
 /**
- * Haven's gate before the last fight (§9.12), played on the stage as a short
- * scene: the gate shut, a door banging open in the wall, the one who went
- * east running out to warn the guild, the shot from the wall, the Vultures
- * pulling up behind, and the gate opening on Haven's own. Each frame is a
- * still with a line from the run's log under it; the fight's own stage takes
- * over once it's done.
+ * Haven's gate before the last fight (§9.12), played on the stage as a moving scene (4b): the gate shut,
+ * a door banging open in the wall and the one who went east running out to warn the guild, screaming,
+ * running again, the shot from the wall and the fall; the Vultures coming up behind; the great gate
+ * swinging open and Haven's own walking out of it, the Shepherd last. Its lines come up under it from
+ * the run's log, and it has its sound: Haven's tune turning to the truth at the scream. The fight's own
+ * stage takes over once it's done.
  */
 import { HAVEN_JOURNEY, type FightView, type GameState, type LedFight, type Run, type Survivor } from '../engine/index.ts';
-import type { FigureLook, StageExtra, StageFighter, StageModel } from '../scene/index.ts';
+import type { ExtraKey, ExtraPose, FigureLook, StageExtra, StageFighter, StageModel } from '../scene/index.ts';
 import { stageModel } from './battle-view.ts';
+import { readingTime, type SceneShot } from './scene-view.ts';
 import { figureLook } from './yard-view.ts';
-
-export interface SceneFrame {
-  model: StageModel;
-  /** The line from the log this frame shows. */
-  caption: string;
-  /** How long it stays before the next. */
-  ms: number;
-}
 
 /** A hospital gown, whoever wears it. */
 const GOWN = { cloth: '#e6e3d8', accent: '#c9d3cf' };
@@ -34,10 +27,14 @@ const STRANGER: FigureLook = {
   hurt: true,
 };
 
-/** Long enough to read the line: a moment, and a bit more for each word. */
-export function readingTime(text: string): number {
-  return Math.round(1400 + text.split(/\s+/).length * 260);
-}
+/** Where the small door is, where they stop to scream, where the shot finds them, and where they lie. */
+const DOOR = { x: 250, y: 158, scale: 0.42 };
+const STOP = { x: 230, y: 184, scale: 0.84 };
+const HIT = { x: 213, y: 199, scale: 0.95 };
+const LIE = { x: 205, y: 210, scale: 1 };
+/** The marksman's post on the wall, and the mouth of the great gate. */
+const POST = { x: 40, y: 47 };
+const GATE = { x: 200, y: 156, scale: 0.4 };
 
 /** The one who went east (§9.11), at Haven now: they're the one who runs out. */
 function dreamer(state: GameState): Survivor | undefined {
@@ -45,12 +42,28 @@ function dreamer(state: GameState): Survivor | undefined {
   return d && d.gone !== undefined ? state.departed.find((s) => s.id === d.id) : undefined;
 }
 
+const sec = (ms: number): number => Math.round(ms / 100) / 10;
+
 /**
- * The scene before the fight at Haven's north gate, or undefined for any
- * other fight. `view` is the fight as it would stand for the first round's
- * orders; `fight` is the stop on the run, whose beat before holds the lines.
+ * The runner's way through the first shot: out of the door and down the road, screaming in bursts while
+ * the line is read, running again, hit, and down.
  */
-export function gateScene(state: GameState, run: Run, fight: LedFight, view: FightView): SceneFrame[] | undefined {
+function runnerKeys(scream: number, shotAt: number): ExtraKey[] {
+  const k = (t: number, p: { x: number; y: number; scale: number }, pose: ExtraPose, hidden = false): ExtraKey => ({ t, ...p, pose, ...(hidden ? { hidden } : {}) });
+  const keys = [k(0.45, DOOR, 'stand', true), k(0.6, { ...DOOR, y: DOOR.y + 1 }, 'run'), k(1.6, { x: 238, y: 174, scale: 0.68 }, 'run'), k(2.4, STOP, 'stand')];
+  // Shouting, catching breath, shouting again, until it's time to run.
+  const go = shotAt - 1.1;
+  for (let t = scream, n = 0; t < go - 0.3; t += n % 2 ? 1.3 : 2.4, n++) keys.push(k(t, STOP, n % 2 ? 'stand' : 'shout'));
+  keys.push(k(go, STOP, 'run'), k(shotAt, HIT, 'hit'), k(shotAt + 0.5, LIE, 'lying'));
+  return keys;
+}
+
+/**
+ * The scene before the fight at Haven's north gate, or undefined for any other fight. `view` is the fight
+ * as it would stand for the first round's orders; `fight` is the stop on the run, whose beat before holds
+ * the lines.
+ */
+export function gateScene(state: GameState, run: Run, fight: LedFight, view: FightView): SceneShot[] | undefined {
   if (fight.site !== 'haven_gate') return undefined;
   const lines = (run.beats[fight.fromBeat - 1]?.lines ?? []).map((l) => l.text);
   // The runner's three lines come first; what the shot does to people's nerve may follow, then the Vultures and the gate.
@@ -63,24 +76,101 @@ export function gateScene(state: GameState, run: Run, fight: LedFight, view: Fig
 
   // The guild in its ranks, the Vultures not there yet ("fled" isn't drawn), the gate shut.
   const guildOnly: StageFighter[] = base.crew.map((f) => (f.vulture ? { ...f, state: 'fled' } : f));
-  const shut = (extras: StageExtra[], more: Partial<StageModel> = {}): StageModel => ({ ...base, place: 'haven_gate_shut', crew: guildOnly, enemies: [], targets: [], extras, scene: true, ...more });
-
   const who = dreamer(state);
   const look: FigureLook = who ? { ...figureLook(who), ...GOWN, hurt: true } : STRANGER;
   const { armor: _armor, hat: _hat, ...bare } = look;
   const runner: StageFighter = { key: 'x:runner', side: 'crew', label: who?.firstName ?? 'Stranger', title: who?.firstName ?? 'A stranger', hp: 1, maxHp: 1, state: 'up', look: bare };
-  const at = (x: number, y: number, scale: number, more: Partial<StageExtra> = {}): StageExtra => ({ fighter: runner, x, y, scale, facing: -1, ...more });
-  const fallen = at(204, 212, 1, { lying: true });
+  const fallen: StageExtra = { fighter: runner, ...LIE, facing: -1, lying: true };
 
-  const frames: SceneFrame[] = [
-    { model: shut([at(250, 166, 0.7)]), caption: runnerLines[0]!, ms: readingTime(runnerLines[0]!) },
-    { model: shut([at(232, 184, 0.85, { running: true })]), caption: runnerLines[1]!, ms: 1800 },
-    { model: shut([at(214, 198, 0.95, { running: true })]), caption: runnerLines[1]!, ms: Math.max(1600, readingTime(runnerLines[1]!) - 1800) },
-    // The shot comes from the marksman's post on the wall.
-    { model: shut([at(206, 206, 1, { hit: true })], { shot: { x: 40, y: 47, to: { x: 206, y: 170 } } }), caption: runnerLines[2]!, ms: 1100 },
-    { model: shut([fallen]), caption: runnerLines[2]!, ms: readingTime(runnerLines[2]!) },
+  // 1. The door, the runner, the scream, the shot.
+  const [r0, r1, r2] = runnerLines.map(readingTime) as [number, number, number];
+  const scream = sec(r0);
+  const shotAt = sec(r0 + r1) + 0.3;
+  const shots: SceneShot[] = [
+    {
+      model: {
+        ...base,
+        place: 'haven_gate_door',
+        crew: guildOnly,
+        enemies: [],
+        targets: [],
+        scene: true,
+        extras: [{ fighter: runner, ...DOOR, facing: -1, keys: runnerKeys(scream, shotAt) }],
+        shot: { ...POST, to: { x: HIT.x, y: HIT.y - 38 }, at: shotAt - 0.03 },
+      },
+      lines: [
+        { at: 0, text: runnerLines[0]! },
+        { at: scream, text: runnerLines[1]! },
+        { at: sec(r0 + r1), text: runnerLines[2]! },
+      ],
+      ms: r0 + r1 + r2,
+      sound: {
+        ambience: { wind: 0.55, fire: 0, crickets: 0, birds: 0.2 },
+        // Haven's tune as they come up to it, until the scream.
+        music: [
+          { id: 'haven', at: 0 },
+          { id: 'truth', at: scream },
+        ],
+        cues: [
+          { id: 'door_bang', delay: 0.45 },
+          { id: 'run_gravel', gain: 0.7, delay: 0.6 },
+          { id: 'run_gravel', gain: 0.85, rate: 1.05, delay: shotAt - 1.1 },
+          { id: 'shot_far', delay: shotAt - 0.05 },
+          { id: 'body_fall', delay: shotAt + 0.45 },
+        ],
+      },
+    },
   ];
-  if (vulturesLine) frames.push({ model: { ...shut([fallen]), crew: base.crew }, caption: vulturesLine, ms: readingTime(vulturesLine) });
-  frames.push({ model: { ...base, extras: [fallen], targets: [], scene: true }, caption: openLine, ms: readingTime(openLine) });
-  return frames;
+
+  // 2. The Vultures, as they promised, come up behind the guild.
+  const allies = base.crew.filter((f) => f.vulture).map((f) => f.key);
+  if (vulturesLine && allies.length > 0) {
+    shots.push({
+      model: { ...base, place: 'haven_gate_shut', enemies: [], targets: [], scene: true, extras: [fallen], arrive: [{ keys: allies, from: 'left', at: 1.3, stagger: 0.35, seconds: 1.7 }] },
+      lines: [{ at: 0, text: vulturesLine }],
+      ms: readingTime(vulturesLine),
+      sound: {
+        ambience: { wind: 0.5, fire: 0, crickets: 0, birds: 0 },
+        cues: [
+          { id: 'engine', gain: 0.9, delay: 0.1 },
+          { id: 'boots', delay: 1.2 },
+        ],
+      },
+    });
+  }
+
+  // 3. The gate swings open, and Haven's own come out of it, the Shepherd last and slowest.
+  const shepherd = base.enemies.filter((e) => e.kind === 'the_shepherd').map((e) => e.key);
+  const theRest = base.enemies.filter((e) => e.kind !== 'the_shepherd').map((e) => e.key);
+  const out = 3.1;
+  const big = out + theRest.length * 0.45 + 0.7;
+  shots.push({
+    model: {
+      ...base,
+      place: 'haven_gate_opening',
+      targets: [],
+      scene: true,
+      extras: [fallen],
+      arrive: [{ keys: theRest, from: GATE, at: out, stagger: 0.45, seconds: 2 }, ...(shepherd.length ? [{ keys: shepherd, from: GATE, at: big, stagger: 0, seconds: 3.2 }] : [])],
+    },
+    lines: [{ at: 0, text: openLine }],
+    ms: Math.max(readingTime(openLine), (big + 4.5) * 1000),
+    sound: {
+      ambience: { wind: 0.45, fire: 0, crickets: 0, birds: 0 },
+      cues: [
+        { id: 'gate_groan', delay: 0.5 },
+        { id: 'shuffle', gain: 0.8, delay: out + 0.2 },
+        { id: 'shuffle', gain: 0.7, rate: 0.95, delay: out + 1.4 },
+        ...(shepherd.length
+          ? [
+              { id: 'blunt' as const, gain: 0.6, rate: 0.5, delay: big + 0.6 },
+              { id: 'blunt' as const, gain: 0.7, rate: 0.48, delay: big + 1.6 },
+              { id: 'groan' as const, rate: 0.7, delay: big + 2.2 },
+              { id: 'blunt' as const, gain: 0.8, rate: 0.46, delay: big + 2.7 },
+            ]
+          : []),
+      ],
+    },
+  });
+  return shots;
 }
