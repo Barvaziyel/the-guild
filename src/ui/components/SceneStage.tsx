@@ -29,7 +29,7 @@ export function SceneStage({ frames, onDone }: { frames: SceneShot[]; onDone: ()
     }
     const s = shots[step]!;
     if (s.sound.ambience) sound.sceneAmbience(s.sound.ambience);
-    sound.scene(s.sound.cues, s.sound.duck);
+    sound.scene(s.sound.cues, s.sound.duck, false, s.sound.stings);
     const timers = [window.setTimeout(() => setStep((n) => n + 1), s.ms)];
     s.lines.forEach((l, k) => {
       if (k > 0) timers.push(window.setTimeout(() => setLine({ step, k }), l.at * 1000));

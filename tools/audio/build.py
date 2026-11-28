@@ -4,6 +4,7 @@ sprite and the music's loop lengths).
 
     python3 tools/audio/build.py            # everything
     python3 tools/audio/build.py sfx        # just the effects and ambience
+    python3 tools/audio/build.py stings     # just the stings (and copies everything, so out/ needs the rest)
 
 Needs numpy, scipy, pyloudnorm and matplotlib (pip), ffmpeg with libopus, and
 the FluidR3_GM samples decoded by decode.py (see README.md).
@@ -17,9 +18,14 @@ sys.path.insert(0, HERE)
 from engine import SR  # noqa: E402
 
 MUSIC = ['depot', 'night', 'fight', 'haven', 'truth']
+# Music played once over a moment, not looped (4c): an elite's name stamped down.
+STINGS = ['elite']
 what = sys.argv[1:] or ['music', 'sfx']
 if 'music' in what:
     for m in MUSIC:
+        runpy.run_path(f'{m}.py', run_name='__main__')
+if 'music' in what or 'stings' in what:
+    for m in STINGS:
         runpy.run_path(f'{m}.py', run_name='__main__')
 if 'sfx' in what:
     sys.argv = ['sfx.py', '--amb']
@@ -27,7 +33,7 @@ if 'sfx' in what:
 
 dest = os.path.join(REPO, 'public', 'audio')
 os.makedirs(dest, exist_ok=True)
-names = [f'{m}.ogg' for m in MUSIC] + ['sfx.ogg'] + [f'amb-{a}.ogg' for a in ['wind', 'fire', 'crickets', 'birds']]
+names = [f'{m}.ogg' for m in MUSIC + STINGS] + ['sfx.ogg'] + [f'amb-{a}.ogg' for a in ['wind', 'fire', 'crickets', 'birds']]
 for n in names:
     shutil.copy(os.path.join('out', n), os.path.join(dest, n))
 
@@ -46,6 +52,14 @@ for m in MUSIC:
     bpm = float(re.search(r'bpm=(\d+(?:\.\d+)?)', src).group(1))
     bars = int(re.search(r'bars=(\d+)', src).group(1))
     loops[m] = round(round(bars * 4 * 60 / bpm * SR) / SR, 5)
+# Each sting's length, and when its hit lands (the beat `HIT` of its score), so a scene can start it that
+# much before the moment it's for.
+stings = {}
+for m in STINGS:
+    src = open(f'{m}.py').read()
+    bpm = float(re.search(r'^BPM = (\d+(?:\.\d+)?)', src, re.M).group(1))
+    hit = float(re.search(r'^HIT = (\d+(?:\.\d+)?)', src, re.M).group(1))
+    stings[m] = (round(seconds(os.path.join('out', f'{m}.ogg')), 3), round(hit * 60 / bpm, 4))
 sprite = json.load(open('out/sfx.json'))
 amb = json.load(open('out/amb.json'))
 
@@ -61,6 +75,11 @@ lines = [
     *[f"  {m}: {loops[m]}," for m in MUSIC],
     '} as const;',
     '',
+    '/** Music played once over a moment (4c): how long each is, and when its hit lands, in seconds. */',
+    'export const STINGS = {',
+    *[f"  {m}: {{ length: {v[0]}, hit: {v[1]} }}," for m, v in stings.items()],
+    '} as const;',
+    '',
     '/** Each ambience loop and its length, in seconds. */',
     'export const AMBIENCE = {',
     *[f"  {a}: {amb[a]}," for a in amb],
@@ -72,6 +91,7 @@ lines = [
     '} as const;',
     '',
     'export type MusicId = keyof typeof MUSIC;',
+    'export type StingId = keyof typeof STINGS;',
     'export type AmbienceId = keyof typeof AMBIENCE;',
     'export type SoundId = keyof typeof SPRITE;',
     '',

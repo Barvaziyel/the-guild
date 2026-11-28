@@ -8082,7 +8082,8 @@ p.is-bad {
   white-space: nowrap;
   box-shadow: 0 0.35rem 1.2rem rgba(0, 0, 0, 0.45);
   transform: rotate(-3deg);
-  animation: scene-stamp 300ms cubic-bezier(0.55, 0, 0.8, 0.2) var(--at) both;
+  /* It lands at --at, when the stamp and the sting are heard. */
+  animation: scene-stamp 300ms cubic-bezier(0.55, 0, 0.8, 0.2) calc(var(--at) - 0.3s) both;
 }
 
 .scene-stamp-sub {
@@ -8091,7 +8092,7 @@ p.is-bad {
   background: rgba(20, 16, 12, 0.6);
   color: var(--bone-2);
   font-size: 0.9rem;
-  animation: scene-stamp-sub 500ms ease-out calc(var(--at) + 0.45s) both;
+  animation: scene-stamp-sub 500ms ease-out calc(var(--at) + 0.2s) both;
 }
 
 .scene-stamp-dust {
@@ -8105,7 +8106,7 @@ p.is-bad {
   background: #8a7a5c;
   opacity: 0;
   /* Only from when it lands: before that the dust isn't there at all. */
-  animation: scene-stamp-dust 650ms ease-out calc(var(--at) + 0.26s) forwards;
+  animation: scene-stamp-dust 650ms ease-out calc(var(--at) - 0.02s) forwards;
 }
 
 @keyframes scene-stamp {

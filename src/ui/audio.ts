@@ -6,8 +6,8 @@
  * background, or with sound turned off. What to play is decided in
  * `sound-view.ts`; the files and their lengths are in `sounds.ts`.
  */
-import { AMBIENCE, MUSIC, SPRITE, type AmbienceId, type MusicId } from './sounds.ts';
-import { gainOf, type AmbienceMix, type Cue } from './sound-view.ts';
+import { AMBIENCE, MUSIC, SPRITE, STINGS, type AmbienceId, type MusicId } from './sounds.ts';
+import { gainOf, type AmbienceMix, type Cue, type StingCue } from './sound-view.ts';
 
 export interface Volumes {
   on: boolean;
@@ -23,6 +23,8 @@ const MUSIC_FADE = 2.4;
 const AMBIENCE_FADE = 1.5;
 /** How loud each layer sits against the others at full volume. */
 const MIX = { music: 0.85, sound: 1, ambience: 0.75 };
+/** A sting against the music's level (4c): twice as loud, so it lands over a scene's sounds. */
+const STING_GAIN = 2;
 
 interface Playing {
   id: MusicId;
@@ -142,9 +144,11 @@ export class SoundSystem {
    * pitch or loudness drift, so a voice sounds like itself. Sounds of the last shot that haven't started
    * yet are dropped, the ones playing ring out; `cut` fades those too (the scene was skipped or is over).
    * If the effects haven't loaded yet (a scene can start on the first touch), they start when they
-   * have, part way in, so they stay in time with the pictures.
+   * have, part way in, so they stay in time with the pictures. A sting (4c) is music played once over a
+   * moment, through the music's own volume: it starts at its delay less the time to its hit, so the hit
+   * lands on the moment.
    */
-  scene(cues: readonly Cue[], duck?: { at: number; for: number }, cut = false): void {
+  scene(cues: readonly Cue[], duck?: { at: number; for: number }, cut = false, stings: readonly StingCue[] = []): void {
     const ctx = this.ctx;
     const id = ++this.sceneId;
     if (ctx && this.bus) {
@@ -183,6 +187,7 @@ export class SoundSystem {
         src.start(at, start + into, length - into);
         this.staged.push({ src, gain, at });
       }
+      for (const sting of stings) void this.playSting(sting, asked, id);
       if (duck) {
         const bed = this.bus.bed.gain;
         const from = now + Math.max(0, duck.at - late);
@@ -195,6 +200,27 @@ export class SoundSystem {
       void this.load('sfx').then((b) => {
         if (b) go(b);
       });
+  }
+
+  /** A sting of this scene's shot, once its file is in: its hit on the moment, or part way in if it's late. */
+  private async playSting(sting: StingCue, asked: number, id: number): Promise<void> {
+    const ctx = this.ctx;
+    const buffer = await this.load(sting.id);
+    if (!ctx || !this.bus || !buffer || id !== this.sceneId) return;
+    const { hit, length } = STINGS[sting.id];
+    const wait = sting.at - hit - (ctx.currentTime - asked);
+    const into = Math.max(0, -wait);
+    if (into >= length - 0.5) return;
+    const src = ctx.createBufferSource();
+    src.buffer = buffer;
+    const gain = ctx.createGain();
+    // Over the steps and calls of the scene, as a hit should be: the music's level is set for under them.
+    gain.gain.value = STING_GAIN;
+    src.connect(gain);
+    gain.connect(this.bus.music);
+    const at = ctx.currentTime + Math.max(0, wait);
+    src.start(at, into);
+    this.staged.push({ src, gain, at });
   }
 
   /** The game went into the background, or came back. */

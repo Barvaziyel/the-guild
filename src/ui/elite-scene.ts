@@ -11,6 +11,7 @@ import { eliteSightShown, getEnemy, getLocation, type EnemyDef, type GameState, 
 import type { ExtraKey, ExtraPose, StageExtra, StageFighter, StageModel } from '../scene/index.ts';
 import { readingTime, type SceneShot } from './scene-view.ts';
 import type { AmbienceMix, Cue } from './sound-view.ts';
+import { STINGS } from './sounds.ts';
 
 interface Spot {
   x: number;
@@ -301,7 +302,8 @@ function comesOnShot(def: EnemyDef, how: Staging, text: string): SceneShot {
   const it: StageExtra = { fighter: fighter(def), x: to.x, y: to.y, scale: to.scale, facing, keys };
   const callAt = arrived + 0.4;
   const stampAt = callAt + 0.35;
-  const ms = Math.max(readingTime(text), Math.round((stampAt + 3.2) * 1000));
+  // Held until the sting has rung out (Aviel, 2026-11-28: "some epic exciting music ... when the elites name is shown").
+  const ms = Math.max(readingTime(text), Math.round((stampAt + STINGS.elite.length - STINGS.elite.hit - 0.4) * 1000));
   const model: StageModel = {
     place: def.elite!.place,
     crew: [],
@@ -325,10 +327,10 @@ function comesOnShot(def: EnemyDef, how: Staging, text: string): SceneShot {
     sound: {
       ambience: how.ambience,
       cues: [...how.steps, ...later(how.call, callAt), { id: 'stamp', delay: stampAt }],
-      music: [
-        { id: null, at: 0 },
-        { id: 'fight', at: stampAt },
-      ],
+      // No music until its name comes down, and then a sting: a roll and a swell into a hit on the stamp,
+      // brass calling over drums, a second hit, and the chord ringing out.
+      music: [{ id: null, at: 0 }],
+      stings: [{ id: 'elite', at: stampAt }],
     },
   };
 }

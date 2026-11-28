@@ -4,7 +4,7 @@ import { ELITES, getLocation, seenEliteSight, type LedFight, type Run } from '..
 import { openGame } from '../engine/test-utils.ts';
 import { stageSvg } from '../scene/index.ts';
 import { eliteFightScene, eliteSightScene, STAGING } from './elite-scene.ts';
-import { SPRITE } from './sounds.ts';
+import { SPRITE, STINGS } from './sounds.ts';
 
 /** A run whose log has the elite's line as it turned up, in the fight's own beat. */
 function runWith(line: string): Run {
@@ -30,13 +30,16 @@ describe('an elite’s first sight (4c, 3.16.0)', () => {
       const there = comes.model.extras![0]!.keys!.at(-1)!.t;
       assert.ok(comes.stamp!.at > there, `${e.id}: stamped once it's there`);
       assert.ok(comes.ms / 1000 >= comes.stamp!.at + 3, `${e.id}: held after the stamp`);
+      // The sting's hit on the stamp, and the shot held until it has nearly rung out.
+      assert.deepEqual(comes.sound.stings, [{ id: 'elite', at: comes.stamp!.at }]);
+      assert.ok(comes.ms / 1000 >= comes.stamp!.at + STINGS.elite.length - STINGS.elite.hit - 0.5, `${e.id}: held for the sting`);
       assert.ok(
         comes.sound.cues.some((c) => c.id === 'stamp' && c.delay === comes.stamp!.at),
         `${e.id}: the stamp is heard when it lands`,
       );
-      // No music under the sign; the fight's from the stamp.
+      // No music under either shot but the sting.
       assert.deepEqual(sign.sound.music, [{ id: null, at: 0 }]);
-      assert.deepEqual(comes.sound.music?.at(-1), { id: 'fight', at: comes.stamp!.at });
+      assert.deepEqual(comes.sound.music, [{ id: null, at: 0 }]);
     }
   });
 
