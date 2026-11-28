@@ -222,7 +222,7 @@ describe('the road east: the road (§9.12)', () => {
       const sim = simulateRun(state, { ...roadPlan(state), lead: false }, `a-${i}`, T0);
       const gate = sim.beats.find((b) => b.title === HAVEN_JOURNEY.gate.title)!;
       const boss = state.vultures.people[0]!.person.firstName;
-      assert.ok(gate.lines.some((l) => l.text.startsWith(`Engines on the road behind them: the Vultures, as they promised. ${boss} looks`)));
+      assert.ok(gate.lines.some((l) => l.text.startsWith(`Engines on the road behind them: the Vultures, as they promised. ${boss} jumps down`)));
       assert.ok(sim.result.havenEnd!.vultures);
       assert.deepEqual(sim.result.crew.map((s) => s.id).sort(), state.survivors.map((s) => s.id).sort());
       if (gate.lines.some((l) => l.text.includes(boss) && /hits|shoots|strikes|swings|is hit|is cut|is torn/.test(l.text))) fought++;

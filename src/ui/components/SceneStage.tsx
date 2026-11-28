@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { stageSvg } from '../../scene/index.ts';
 import { useServices } from '../hooks.ts';
 import type { SceneShot } from '../scene-view.ts';
+import { Portrait } from './Portrait.tsx';
 
 /**
  * A scene played on the battle stage before a fight (Haven's gate, §9.12; 4b): one moving shot after
@@ -68,6 +69,20 @@ export function SceneStage({ frames, onDone }: { frames: SceneShot[]; onDone: ()
         }}
         dangerouslySetInnerHTML={{ __html: svg }}
       />
+      {/* Close-ups: in, shaking or hard, and out, on the shot's own clock. */}
+      {shot.faces?.map((f, k) => (
+        <div
+          key={`${step}:${k}`}
+          className={`scene-face is-${f.tone} is-${f.side}`}
+          style={{ animationDelay: `${f.at}s`, animationDuration: `${Math.max(1, f.until - f.at)}s` }}
+          aria-hidden="true"
+        >
+          <span className="scene-face-shake" style={{ animationDelay: `${f.at}s` }}>
+            <Portrait survivor={f.survivor} size={112} decorative vulture={f.tone === 'vulture'} />
+          </span>
+          <span className="scene-face-name">{f.name}</span>
+        </div>
+      ))}
       <figcaption key={`${step}:${k}`} className="scene-caption is-new" aria-live="polite">
         {text}
       </figcaption>

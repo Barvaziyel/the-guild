@@ -110,6 +110,8 @@ export interface StageModel {
   shot?: { x: number; y: number; to?: { x: number; y: number }; at?: number };
   /** A moving scene (4b): fighters of the ranks coming onto the stage, from the left edge or from a point (a gate). */
   arrive?: StageArrival[];
+  /** A moving scene (4b): the camera pushing in on someone and pulling back out. */
+  camera?: CameraKey[];
   /** A scene before a fight rather than the fight: no names, bars or marks, and nothing to tap. */
   scene?: boolean;
 }
@@ -129,6 +131,20 @@ export interface StageExtra {
   lying?: boolean;
   /** A moving scene (4b): where they are at each moment and how they stand from then; `x`, `y` and `scale` are ignored. */
   keys?: ExtraKey[];
+  /** Shot: blood flies when the hit comes, and pools under them on the ground. */
+  blood?: boolean;
+}
+
+/**
+ * Where the camera is at a moment of a moving scene (4b): how close, and on what: a point, or the middle of
+ * some fighters of the ranks. It eases from one key to the next, and never shows past the stage's edge.
+ */
+export interface CameraKey {
+  t: number;
+  scale: number;
+  x?: number;
+  y?: number;
+  on?: string[];
 }
 
 /** How someone placed by hand stands in a moving scene: running leans and bobs, shouting leans and shakes. */
@@ -428,9 +444,34 @@ function movingExtraSvg(e: StageExtra, keys: ExtraKey[], total: number): { svg: 
   let css = `@keyframes ${k}-m{${move}}@keyframes ${k}-p{${pose}}`;
   css += `.battle .${k}-m{animation:${k}-m ${total}s linear both}.battle .${k}-p{animation:${k}-p ${total}s linear both}`;
   const first = keys[0]!;
-  let svg = `<g class="${k}-m" style="${at3(first.x, first.y, first.scale)};opacity:${first.hidden ? 0 : 1}"><g class="bt-fighter bt-${e.fighter.side}"><g transform="scale(${n1(e.facing * b.scale)} ${n1(b.scale)})"><g class="${k}-p">${b.svg}</g></g></g></g>`;
-  // Dust where they hit the ground.
   const land = keys.findIndex((key, i) => key.pose === 'lying' && keys[i - 1]?.pose !== 'lying');
+  const hitAt = keys.find((key) => key.pose === 'hit');
+  let pool = '';
+  if (e.blood && land > 0) {
+    // It spreads under them once they're down.
+    const l = keys[land]!;
+    css += `@keyframes ${k}-pool{0%,${pct(l.t + 0.1, total)}{opacity:0;transform:scale(0.1)}${pct(l.t + 0.4, total)}{opacity:0.9}${pct(Math.min(total, l.t + 3.5), total)}{opacity:0.92;transform:scale(1)}100%{opacity:0.92;transform:scale(1)}}`;
+    css += `.battle .${k}-pool{transform-box:fill-box;transform-origin:center;animation:${k}-pool ${total}s ease-out both}`;
+    pool = bloodPool(l.x, l.y, b.height * l.scale, `class="${k}-pool" opacity="0"`);
+  }
+  let svg = pool + `<g class="${k}-m" style="${at3(first.x, first.y, first.scale)};opacity:${first.hidden ? 0 : 1}"><g class="bt-fighter bt-${e.fighter.side}"><g transform="scale(${n1(e.facing * b.scale)} ${n1(b.scale)})"><g class="${k}-p">${b.svg}</g></g></g></g>`;
+  if (e.blood && hitAt) {
+    // Blood flies out of their back when the shot hits, and falls.
+    const cx = hitAt.x;
+    const cy = hitAt.y - b.height * hitAt.scale * 0.55;
+    const away = -e.facing;
+    const at = hitAt.t;
+    css += `@keyframes ${k}-b{0%,${pct(at, total)}{opacity:0;transform:translate(0,0)}${pct(at + 0.02, total)}{opacity:1;transform:translate(0,0)}${pct(at + 0.35, total)}{opacity:1;transform:translate(var(--dx),var(--dy))}${pct(at + 0.8, total)}{opacity:0;transform:translate(var(--dx),calc(var(--dy) + 16px))}100%{opacity:0}}`;
+    css += `.battle .${k}-b{animation:${k}-b ${total}s ease-out both}`;
+    for (let i = 0; i < 11; i++) {
+      const angle = -0.9 + (i / 10) * 1.3;
+      const dist = 10 + (i % 4) * 6;
+      const dx = Math.cos(angle) * dist * away;
+      const dy = Math.sin(angle) * dist;
+      svg += `<circle class="${k}-b" cx="${n1(cx)}" cy="${n1(cy)}" r="${i % 3 ? 1.6 : 2.3}" fill="${BLOOD}" opacity="0" style="--dx:${n1(dx)}px;--dy:${n1(dy)}px"/>`;
+    }
+  }
+  // Dust where they hit the ground.
   if (land > 0) {
     const l = keys[land]!;
     css += `@keyframes ${k}-d{0%,${pct(l.t - 0.05, total)}{opacity:0;transform:scale(0.3)}${pct(l.t, total)}{opacity:0.8;transform:scale(0.6)}${pct(l.t + 0.9, total)}{opacity:0;transform:scale(1.6)}100%{opacity:0;transform:scale(1.6)}}`;
@@ -440,12 +481,21 @@ function movingExtraSvg(e: StageExtra, keys: ExtraKey[], total: number): { svg: 
   return { svg, css };
 }
 
+const BLOOD = '#8e2a20';
+
+/** Blood on the ground under someone lying there, as long as they are. */
+function bloodPool(x: number, y: number, height: number, attrs = ''): string {
+  const rx = height * 0.42;
+  return `<g ${attrs}><ellipse cx="${n1(x)}" cy="${n1(y - 2)}" rx="${n1(rx)}" ry="${n1(rx * 0.22)}" fill="#6e1f18"/><ellipse cx="${n1(x - rx * 0.25)}" cy="${n1(y - 2.6)}" rx="${n1(rx * 0.45)}" ry="${n1(rx * 0.09)}" fill="${BLOOD}"/></g>`;
+}
+
 /** How long a moving scene's drawing runs: to its last key, shot or arrival. */
 function sceneLength(model: StageModel): number {
   let t = 0;
   for (const e of model.extras ?? []) for (const key of e.keys ?? []) t = Math.max(t, key.t);
   if (model.shot?.at !== undefined) t = Math.max(t, model.shot.at + 1);
   for (const a of model.arrive ?? []) t = Math.max(t, a.at + a.stagger * a.keys.length + a.seconds);
+  for (const c of model.camera ?? []) t = Math.max(t, c.t);
   return Math.round((t + 1) * 10) / 10;
 }
 
@@ -462,7 +512,7 @@ function extraSvg(e: StageExtra): string {
   const s = e.scale * b.scale;
   const pose = e.lying ? `<g transform="translate(${n1(b.height * 0.4)} -6) rotate(-90) scale(0.8)">${b.svg}</g>` : e.running ? `<g transform="rotate(7)">${b.svg}</g>` : b.svg;
   const classes = ['bt-fighter', `bt-${e.fighter.side}`, e.hit ? 'bt-hit' : ''].filter(Boolean).join(' ');
-  return `<g transform="translate(${n1(e.x)} ${n1(e.y)})"><g class="${classes}"><g transform="scale(${n1(e.facing * s)} ${n1(s)})">${pose}</g></g></g>`;
+  return (e.blood && e.lying ? bloodPool(e.x, e.y, b.height * s, 'opacity="0.92"') : '') + `<g transform="translate(${n1(e.x)} ${n1(e.y)})"><g class="${classes}"><g transform="scale(${n1(e.facing * s)} ${n1(s)})">${pose}</g></g></g>`;
 }
 
 function starPoints(cx: number, cy: number, r: number, inner: number): [number, number][] {
@@ -690,6 +740,23 @@ export function stageSvg(model: StageModel): string {
   // Further back is drawn first; someone moving goes by where they end up.
   const depth = (e: StageExtra): number => e.keys?.[e.keys.length - 1]?.y ?? e.y;
   let figures = extras.filter((e) => depth(e) < 194).map(drawExtra).join('');
+  // The camera: each key's point, held inside the stage, as keyframes on the whole picture.
+  let camera = '';
+  if (model.camera?.length) {
+    const cam = model.camera.map((c) => {
+      const on = (c.on ?? []).map((key) => spots.get(key)).filter((x) => x !== undefined);
+      const x = on.length ? on.reduce((t, o) => t + o.slot.x, 0) / on.length : (c.x ?? STAGE_W / 2);
+      const y = on.length ? on.reduce((t, o) => t + o.slot.y - o.height * o.slot.scale * 0.5, 0) / on.length : (c.y ?? STAGE_H / 2);
+      const sc = Math.max(1, c.scale);
+      const tx = Math.min(0, Math.max(STAGE_W - STAGE_W * sc, STAGE_W / 2 - sc * x));
+      const ty = Math.min(0, Math.max(STAGE_H - STAGE_H * sc, STAGE_H / 2 - sc * y));
+      return { t: c.t, css: `transform:translate(${n1(tx)}px,${n1(ty)}px) scale(${Math.round(sc * 1000) / 1000})` };
+    });
+    const ends = [{ ...cam[0]!, t: 0 }, ...cam, { ...cam[cam.length - 1]!, t: total }];
+    const ck = `cam${hashKey(cam.map((c) => c.t + c.css).join()).toString(36)}`;
+    css += `@keyframes ${ck}{${ends.map((c) => `${pct(c.t, total)}{${c.css};animation-timing-function:cubic-bezier(0.4,0,0.2,1)}`).join('')}}.battle .${ck}{animation:${ck} ${total}s linear both}`;
+    camera = ck;
+  }
   const arrivals = new Map<string, { a: StageArrival; k: number }>();
   for (const a of model.arrive ?? []) a.keys.forEach((key, k) => arrivals.set(key, { a, k }));
   for (const { f, slot } of order) {
@@ -735,12 +802,14 @@ export function stageSvg(model: StageModel): string {
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${STAGE_W} ${STAGE_H}" class="battle" role="group" aria-label="${model.scene ? 'Before the fight' : 'The fight'}">` +
     (css ? `<style>${css}</style>` : '') +
+    (camera ? `<g class="${camera}">` : '') +
     `<g class="${model.effect?.big ? 'bt-world bt-quake' : sh?.at !== undefined ? `bt-world bt-shot${Math.round(sh.at * 100)}-j` : 'bt-world'}">` +
     backdropSvg(model.place) +
     `<rect x="0" y="${HORIZON}" width="${STAGE_W}" height="${STAGE_H - HORIZON}" fill="#1d1915" opacity="0.08"/>` +
     figures +
     '</g>' +
     shot +
+    (camera ? '</g>' : '') +
     marks +
     (model.nerve !== undefined ? nerveMeter(model.nerve) : '') +
     (model.job ? jobPlate(model.job) : '') +

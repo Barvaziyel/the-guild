@@ -7,10 +7,15 @@ import { gateScene } from './gate-scene.ts';
 import { readingTime } from './scene-view.ts';
 import { SPRITE } from './sounds.ts';
 
-/** A guild at Haven's gate: every clue, a van, the Vultures' word if asked, and the first two fights behind them. */
-function atTheGate(seed: string, vultures: boolean): { state: GameState; runId: string } {
+/** A guild at Haven's gate: every clue, a van, the Vultures' word if asked, one of them gone east if asked, and the first two fights behind them. */
+function atTheGate(seed: string, vultures: boolean, dreamer = false): { state: GameState; runId: string } {
   const state = openGame(seed);
+  if (dreamer) {
+    const s = state.survivors.pop()!;
+    state.departed.push(s);
+  }
   startHaven(state, 1);
+  if (dreamer) state.haven!.dreamer = { id: state.departed[state.departed.length - 1]!.id, day: 1, ready: 1, gone: 2 };
   for (const c of HAVEN_CLUES) state.haven!.found.push({ id: c.id, day: 2 });
   state.vehicles.push({ id: 'v-van', defId: 'van', condition: 100, runs: 0 });
   Object.assign(state.resources, { gas: 100, meds: 20 });
@@ -31,7 +36,7 @@ function atTheGate(seed: string, vultures: boolean): { state: GameState; runId: 
 
 describe('Haven’s gate, before the fight (§9.12; moving, 4b)', () => {
   test('the door and the runner, the Vultures coming up, then the gate opening on the fight', () => {
-    const { state, runId } = atTheGate('scene', true);
+    const { state, runId } = atTheGate('scene', true, true);
     const run = state.runs.find((r) => r.id === runId)!;
     const fight = run.lead!.fights[2]!;
     assert.equal(fight.site, 'haven_gate');
@@ -45,6 +50,14 @@ describe('Haven’s gate, before the fight (§9.12; moving, 4b)', () => {
     assert.ok(Math.abs(first.lines[1]!.at * 1000 - readingTime(lines[0]!)) <= 50);
     assert.ok(first.ms >= lines.slice(0, 3).reduce((t, l) => t + readingTime(l), 0));
     assert.ok(shots[1]!.lines[0]!.text.startsWith('Engines on the road behind them'));
+    // Their boss says it once the camera is in on them, face and all.
+    assert.ok(shots[1]!.lines[1]!.text.startsWith('“We saw everything,”'));
+    const boss = shots[1]!.faces![0]!;
+    assert.equal(boss.tone, 'vulture');
+    assert.ok(state.vultures.people.some((p) => p.person.id === boss.survivor.id && p.role === 'boss'));
+    assert.ok(Math.abs(boss.at - shots[1]!.lines[1]!.at) < 0.5);
+    assert.ok(shots[1]!.model.camera!.some((c) => c.scale > 1 && c.on?.length));
+    assert.equal(shots[1]!.lines.map((l) => l.text).join(' '), lines.find((l) => l.startsWith('Engines'))!);
     assert.equal(shots[2]!.lines[0]!.text, HAVEN_JOURNEY.gate.open);
 
     // The small door bangs open, then the great gate swings open; nobody of Haven's on the stage until it does.
@@ -71,6 +84,18 @@ describe('Haven’s gate, before the fight (§9.12; moving, 4b)', () => {
     assert.equal(keys[keys.length - 1]!.pose, 'lying');
     assert.ok(keys.every((k, i) => i === 0 || k.t > keys[i - 1]!.t), 'in order');
     assert.ok(shots.slice(1).every((s) => s.model.extras![0]!.lying));
+    // She's one of the guild's own: her face, in close, while she screams; she bleeds when the shot hits.
+    const dreamer = state.departed.find((s) => s.id === state.haven!.dreamer!.id)!;
+    assert.match(first.lines[0]!.text, new RegExp(dreamer.firstName));
+    const face = first.faces![0]!;
+    assert.equal(face.survivor.id, dreamer.id);
+    assert.ok(face.at >= first.lines[1]!.at && face.until < hit.t);
+    const cam = first.model.camera!;
+    assert.ok(cam.some((c) => c.scale > 1 && c.t > first.lines[1]!.at && c.t < hit.t));
+    assert.equal(cam[cam.length - 1]!.scale, 1, 'out again for the shot');
+    assert.ok(cam[cam.length - 1]!.t < hit.t - 0.5);
+    assert.ok(first.model.extras![0]!.blood && shots.slice(1).every((s) => s.model.extras![0]!.blood));
+    assert.match(stageSvg(first.model), /#8e2a20/);
 
     // Its sound: Haven's tune turning at the scream; the door, the shot, the fall, the gate; all of it while its shot is up.
     assert.deepEqual(first.sound.music, [{ id: 'haven', at: 0 }, { id: 'truth', at: first.lines[1]!.at }]);
@@ -98,6 +123,8 @@ describe('Haven’s gate, before the fight (§9.12; moving, 4b)', () => {
     const fight = run.lead!.fights[2]!;
     const shots = gateScene(state, run, fight, fightPreview(state, runId, fight.at + 1000)!)!;
     assert.equal(shots.length, 2);
+    // A stranger: no face to show.
+    assert.equal(shots[0]!.faces!.length, 0);
     assert.ok(!shots.some((s) => s.lines.some((l) => l.text.startsWith('Engines on the road behind them'))));
   });
 
