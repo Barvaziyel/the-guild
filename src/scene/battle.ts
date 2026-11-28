@@ -103,8 +103,13 @@ export interface StageModel {
   job?: StageJob;
   /** People outside the fight, placed by hand (Haven's gate, §9.12): someone running out of a door, or lying in the road. */
   extras?: StageExtra[];
-  /** A shot from somewhere nobody on the stage stands, such as a wall: a flash there, held for the frame, and its line to whoever it hit. */
-  shot?: { x: number; y: number; to?: { x: number; y: number } };
+  /**
+   * A shot from somewhere nobody on the stage stands, such as a wall: a flash there and its line to whoever
+   * it hit; held for the frame, or in a moving scene (4b) only at `at` seconds in.
+   */
+  shot?: { x: number; y: number; to?: { x: number; y: number }; at?: number };
+  /** A moving scene (4b): fighters of the ranks coming onto the stage, from the left edge or from a point (a gate). */
+  arrive?: StageArrival[];
   /** A scene before a fight rather than the fight: no names, bars or marks, and nothing to tap. */
   scene?: boolean;
 }
@@ -122,6 +127,35 @@ export interface StageExtra {
   hit?: boolean;
   /** On the ground. */
   lying?: boolean;
+  /** A moving scene (4b): where they are at each moment and how they stand from then; `x`, `y` and `scale` are ignored. */
+  keys?: ExtraKey[];
+}
+
+/** How someone placed by hand stands in a moving scene: running leans and bobs, shouting leans and shakes. */
+export type ExtraPose = 'stand' | 'run' | 'shout' | 'hit' | 'lying';
+
+/** Where someone placed by hand is at a moment of a moving scene (4b), and how they stand from then until the next. */
+export interface ExtraKey {
+  /** Seconds from the start of the scene. */
+  t: number;
+  x: number;
+  y: number;
+  scale: number;
+  pose?: ExtraPose;
+  /** Not seen yet (behind a door). */
+  hidden?: boolean;
+}
+
+/** Fighters of the ranks coming on in a moving scene (4b), one after another. */
+export interface StageArrival {
+  keys: string[];
+  /** Off the left edge, or out of a point on the backdrop at a scale (a gate). */
+  from: 'left' | { x: number; y: number; scale: number };
+  /** Seconds in when the first starts, and between each. */
+  at: number;
+  stagger: number;
+  /** How long each takes to get to their place. */
+  seconds: number;
 }
 
 /** A fight's job on the stage: its name and a pip for each turn of work. */
@@ -331,6 +365,88 @@ function placed(f: StageFighter, slot: Slot, effect: StageEffect | undefined): s
     for (const k of [0, 1, 2]) inner += `<circle class="bt-puff" cx="${n1(mx * facing * s + facing * k * 3)}" cy="${n1(my * s - k * 2)}" r="${n1(3 + k)}" fill="#cfc6b4" style="animation-delay:${0.08 + k * 0.06}s;--f:${facing}"/>`;
   }
   return `<g transform="translate(${n1(slot.x)} ${n1(slot.y)})"><g class="${classes.filter(Boolean).join(' ')}">${inner}</g></g>`;
+}
+
+// ---------------------------------------------------------------- moving scenes (4b)
+
+const pct = (t: number, total: number): string => `${n1(Math.min(100, Math.max(0, (t / total) * 100)))}%`;
+const at3 = (x: number, y: number, sc: number): string => `transform:translate(${n1(x)}px,${n1(y)}px) scale(${Math.round(sc * 1000) / 1000})`;
+const EASE: Record<ExtraPose, string> = { stand: 'cubic-bezier(0.45,0,0.55,1)', run: 'linear', shout: 'linear', hit: 'cubic-bezier(0.5,0,1,1)', lying: 'linear' };
+
+/** The body's transform for a pose: every one the same list of functions, so one turns smoothly into the next. */
+function poseCss(pose: ExtraPose, height: number, beat = 0): string {
+  const t = (x: number, y: number, r: number, sc: number): string => `transform:translate(${n1(x)}px,${n1(y)}px) rotate(${r}deg) scale(${sc})`;
+  switch (pose) {
+    case 'stand':
+      return t(0, beat % 2 ? -0.8 : 0, 0, 1);
+    case 'run':
+      return t(0, beat % 2 ? -3 : 0, 8, 1);
+    case 'shout':
+      return t(beat % 2 ? 1.2 : 0, beat % 2 ? -1.5 : 0, beat % 2 ? 11 : 6, 1);
+    case 'hit':
+      return t(2, -3, -14, 1);
+    case 'lying':
+      return t(height * 0.4, -6, -90, 0.8);
+  }
+}
+
+/**
+ * Someone placed by hand, moving (4b): their place and size along the keys, and their pose, as keyframes
+ * in the drawing's own style. Running bobs a step at a time, shouting shakes, standing breathes, a hit
+ * jolts them and they fall the rest of the way to the next key, with dust where they land.
+ */
+function movingExtraSvg(e: StageExtra, keys: ExtraKey[], total: number): { svg: string; css: string } {
+  const b = body(e.fighter);
+  const k = `sx${hashKey(JSON.stringify(keys) + e.fighter.key).toString(36)}`;
+  // Held at the first key before it and the last after it: a keyframe list without its ends would run back to the drawing's own place.
+  const ends = [{ ...keys[0]!, t: 0 }, ...keys, { ...keys[keys.length - 1]!, t: total }];
+  let move = '';
+  ends.forEach((key, i) => {
+    const next = ends[i + 1];
+    const ease = next && (next.pose === 'lying' || key.pose === 'hit') ? 'cubic-bezier(0.5,0,1,1)' : key.pose === 'run' ? 'linear' : EASE.stand;
+    move += `${pct(key.t, total)}{${at3(key.x, key.y, key.scale)};opacity:${key.hidden ? 0 : 1};animation-timing-function:${ease}}`;
+  });
+  let pose = '';
+  const steps: { t: number; css: string; ease?: string }[] = [{ t: 0, css: poseCss(keys[0]!.pose ?? 'stand', b.height) }];
+  keys.forEach((key, i) => {
+    const p = key.pose ?? 'stand';
+    const end = keys[i + 1]?.t ?? total;
+    if (p === 'hit') {
+      steps.push({ t: key.t, css: poseCss('hit', b.height) });
+      steps.push({ t: Math.min(end, key.t + 0.1), css: poseCss('hit', b.height), ease: 'cubic-bezier(0.55,0,1,0.45)' });
+      return;
+    }
+    const beat = p === 'run' ? 0.13 : p === 'shout' ? 0.09 : 1.4;
+    let n = 0;
+    for (let t = key.t; t < end - 0.06; t += beat) steps.push({ t, css: poseCss(p, b.height, n++) });
+    if (p !== 'lying') steps.push({ t: Math.max(key.t, end - 0.06), css: poseCss(p, b.height, 0) });
+    else steps.push({ t: end, css: poseCss('lying', b.height) });
+  });
+  const last = keys[keys.length - 1]!.pose ?? 'stand';
+  steps.push({ t: total, css: poseCss(last === 'hit' ? 'lying' : last, b.height) });
+  for (const st of steps) pose += `${pct(st.t, total)}{${st.css}${st.ease ? `;animation-timing-function:${st.ease}` : ''}}`;
+  let css = `@keyframes ${k}-m{${move}}@keyframes ${k}-p{${pose}}`;
+  css += `.battle .${k}-m{animation:${k}-m ${total}s linear both}.battle .${k}-p{animation:${k}-p ${total}s linear both}`;
+  const first = keys[0]!;
+  let svg = `<g class="${k}-m" style="${at3(first.x, first.y, first.scale)};opacity:${first.hidden ? 0 : 1}"><g class="bt-fighter bt-${e.fighter.side}"><g transform="scale(${n1(e.facing * b.scale)} ${n1(b.scale)})"><g class="${k}-p">${b.svg}</g></g></g></g>`;
+  // Dust where they hit the ground.
+  const land = keys.findIndex((key, i) => key.pose === 'lying' && keys[i - 1]?.pose !== 'lying');
+  if (land > 0) {
+    const l = keys[land]!;
+    css += `@keyframes ${k}-d{0%,${pct(l.t - 0.05, total)}{opacity:0;transform:scale(0.3)}${pct(l.t, total)}{opacity:0.8;transform:scale(0.6)}${pct(l.t + 0.9, total)}{opacity:0;transform:scale(1.6)}100%{opacity:0;transform:scale(1.6)}}`;
+    css += `.battle .${k}-d{transform-box:fill-box;transform-origin:center;animation:${k}-d ${total}s ease-out both}`;
+    for (const dx of [-14, 0, 14]) svg += `<ellipse class="${k}-d" cx="${n1(l.x + dx * l.scale + b.height * 0.3 * e.facing * l.scale * -1)}" cy="${n1(l.y - 2)}" rx="${n1(9 * l.scale)}" ry="${n1(4 * l.scale)}" fill="#cbbfa6" opacity="0"/>`;
+  }
+  return { svg, css };
+}
+
+/** How long a moving scene's drawing runs: to its last key, shot or arrival. */
+function sceneLength(model: StageModel): number {
+  let t = 0;
+  for (const e of model.extras ?? []) for (const key of e.keys ?? []) t = Math.max(t, key.t);
+  if (model.shot?.at !== undefined) t = Math.max(t, model.shot.at + 1);
+  for (const a of model.arrive ?? []) t = Math.max(t, a.at + a.stagger * a.keys.length + a.seconds);
+  return Math.round((t + 1) * 10) / 10;
 }
 
 /** A small stable number from a fighter's key, to stagger their breathing. */
@@ -563,14 +679,36 @@ export function stageSvg(model: StageModel): string {
   const order = [...all].sort((a, b) => a.slot.y - b.slot.y || Number(a.f.key === model.effect?.by) - Number(b.f.key === model.effect?.by));
   // Anyone placed by hand stands among the ranks by depth: further back is drawn first.
   const extras = model.extras ?? [];
-  let figures = extras.filter((e) => e.y < 194).map(extraSvg).join('');
+  const total = sceneLength(model);
+  let css = '';
+  const drawExtra = (e: StageExtra): string => {
+    if (!e.keys?.length) return extraSvg(e);
+    const m = movingExtraSvg(e, e.keys, total);
+    css += m.css;
+    return m.svg;
+  };
+  // Further back is drawn first; someone moving goes by where they end up.
+  const depth = (e: StageExtra): number => e.keys?.[e.keys.length - 1]?.y ?? e.y;
+  let figures = extras.filter((e) => depth(e) < 194).map(drawExtra).join('');
+  const arrivals = new Map<string, { a: StageArrival; k: number }>();
+  for (const a of model.arrive ?? []) a.keys.forEach((key, k) => arrivals.set(key, { a, k }));
   for (const { f, slot } of order) {
     if (f.state === 'fled' && !model.effect?.leaving?.includes(f.key)) continue;
     const label = `${f.title}${model.targets.includes(f.key) ? '. Tap to target' : ''}`;
     const hit = `<rect x="${n1(slot.x - 24 * slot.scale)}" y="${n1(slot.y - 74 * slot.scale)}" width="${n1(48 * slot.scale)}" height="${n1(80 * slot.scale)}" fill="#000" fill-opacity="0"/>`;
-    figures += `<g class="bt-tap" data-key="${escapeAttr(f.key)}" role="button" tabindex="0" aria-label="${escapeAttr(label)}">${ring(f, slot, model)}${placed(f, slot, model.effect)}${hit}</g>`;
+    let g = `<g class="bt-tap" data-key="${escapeAttr(f.key)}" role="button" tabindex="0" aria-label="${escapeAttr(label)}">${ring(f, slot, model)}${placed(f, slot, model.effect)}${hit}</g>`;
+    const comes = arrivals.get(f.key);
+    if (comes) {
+      // Coming on: from off the left edge, or out of the gate small and far, a step at a time.
+      const { a, k } = comes;
+      const from = a.from === 'left' ? { x: -40, y: slot.y, scale: slot.scale } : a.from;
+      const delay = a.at + k * a.stagger;
+      const steps = Math.max(1, Math.round(a.seconds / 0.3));
+      g = `<g class="bt-arrive" style="transform-origin:${n1(slot.x)}px ${n1(slot.y)}px;--dx:${n1(from.x - slot.x)}px;--dy:${n1(from.y - slot.y)}px;--s0:${Math.round((from.scale / slot.scale) * 100) / 100};animation-duration:${a.seconds}s;animation-delay:${n1(delay)}s"><g class="bt-arrive-step" style="transform-origin:${n1(slot.x)}px ${n1(slot.y)}px;animation-delay:${n1(delay)}s;animation-iteration-count:${steps * 2}">${g}</g></g>`;
+    }
+    figures += g;
   }
-  figures += extras.filter((e) => e.y >= 194).map(extraSvg).join('');
+  figures += extras.filter((e) => depth(e) >= 194).map(drawExtra).join('');
   let marks = '';
   // A scene before the fight has no names, bars or marks over anyone.
   if (!model.scene) {
@@ -581,13 +719,23 @@ export function stageSvg(model: StageModel): string {
     }
   }
   const sh = model.shot;
-  const shot = sh
+  let shot = sh
     ? (sh.to ? `<line x1="${n1(sh.x)}" y1="${n1(sh.y)}" x2="${n1(sh.to.x)}" y2="${n1(sh.to.y)}" stroke="#f7d36b" stroke-width="1.2" stroke-dasharray="6 5" opacity="0.85"/>` : '') +
       poly(starPoints(sh.x, sh.y, 9, 3.5), '#f7d36b', 'stroke="#ee9a45" stroke-width="1.2"')
     : '';
+  if (sh?.at !== undefined) {
+    // In a moving scene the flash is there for a moment, and the world jumps with it.
+    const sk = `bt-shot${Math.round(sh.at * 100)}`;
+    css += `@keyframes ${sk}{0%,${pct(sh.at, total)}{opacity:0}${pct(sh.at + 0.02, total)}{opacity:1}${pct(sh.at + 0.22, total)}{opacity:1}${pct(sh.at + 0.6, total)}{opacity:0}100%{opacity:0}}`;
+    css += `.battle .${sk}{animation:${sk} ${total}s linear both}`;
+    css += `@keyframes ${sk}-j{0%,${pct(sh.at, total)}{transform:none}${pct(sh.at + 0.05, total)}{transform:translate(2px,-1px)}${pct(sh.at + 0.12, total)}{transform:translate(-2px,1px)}${pct(sh.at + 0.2, total)}{transform:none}100%{transform:none}}`;
+    css += `.battle .${sk}-j{animation:${sk}-j ${total}s linear both}`;
+    shot = `<g class="${sk}" opacity="0">${shot}</g>`;
+  }
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${STAGE_W} ${STAGE_H}" class="battle" role="group" aria-label="${model.scene ? 'Before the fight' : 'The fight'}">` +
-    `<g class="${model.effect?.big ? 'bt-world bt-quake' : 'bt-world'}">` +
+    (css ? `<style>${css}</style>` : '') +
+    `<g class="${model.effect?.big ? 'bt-world bt-quake' : sh?.at !== undefined ? `bt-world bt-shot${Math.round(sh.at * 100)}-j` : 'bt-world'}">` +
     backdropSvg(model.place) +
     `<rect x="0" y="${HORIZON}" width="${STAGE_W}" height="${STAGE_H - HORIZON}" fill="#1d1915" opacity="0.08"/>` +
     figures +

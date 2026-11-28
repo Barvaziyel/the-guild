@@ -19,6 +19,18 @@ export interface Cue {
   delay?: number;
 }
 
+/**
+ * What a shot of a scene sounds like (3.14.0): the yard around it, sounds at their moments, the music and
+ * the yard dropped back under a line said aloud (from and for so many seconds), and the scene's own
+ * music from a moment on, in place of the screen's (`SoundSystem.sceneMusic`).
+ */
+export interface ShotSound {
+  ambience?: AmbienceMix;
+  cues: Cue[];
+  duck?: { at: number; for: number };
+  music?: { id: MusicId; at: number }[];
+}
+
 /** A short buzz of the phone: a light one for a hit taken, a heavy one when someone goes down. */
 export type Buzz = 'light' | 'heavy';
 
