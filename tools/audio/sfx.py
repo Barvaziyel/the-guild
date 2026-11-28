@@ -943,10 +943,15 @@ def c_match():
 
 
 def c_campfire():
-    """The first fire, catching after the match and crackling on through the end of the opening (3.15.0, real)."""
+    """The first fire, catching after the match and crackling on through the end of the opening (3.15.0, real): the
+    take, and a stretch of its middle laid over its fading end, so it lasts past the face and the title."""
     x = taken('campfire')
-    grow = np.clip(np.arange(len(x)) / (2.2 * SR), 0.25, 1.0)
-    return x * grow
+    more = x[int(3 * SR):int(12 * SR)]
+    k = int(2 * SR)
+    out = np.concatenate([x, np.zeros(len(more) - k)])
+    out[len(x) - k:] += more * np.concatenate([np.linspace(0, 1, k), np.ones(len(more) - k)])
+    grow = np.clip(np.arange(len(out)) / (2.2 * SR), 0.25, 1.0)
+    return fade_end(out * grow, 2.0)
 
 
 def c_scream_f():
