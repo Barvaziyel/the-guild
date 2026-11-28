@@ -47,7 +47,7 @@ const result = spawnSync(
     '-validity', '10000',
     '-storepass', password,
     '-keypass', password,
-    '-dname', 'CN=The Guild',
+    '-dname', 'CN=The Depot',
   ],
   { stdio: ['ignore', 'inherit', 'inherit'] },
 );
@@ -59,7 +59,7 @@ if (result.status !== 0) {
 writeFileSync(
   propsPath,
   [
-    '# Signs release builds of The Guild. Made by `npm run keystore`. Never commit this file.',
+    '# Signs release builds of The Depot. Made by `npm run keystore`. Never commit this file.',
     `storeFile=${storeName}`,
     `storePassword=${password}`,
     `keyAlias=${alias}`,
