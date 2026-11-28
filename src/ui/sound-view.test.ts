@@ -77,6 +77,16 @@ describe('music (3.1.0)', () => {
   });
 });
 
+describe('the opening scene (3.14.0)', () => {
+  test('dusk into night whatever the hour, until it has been watched', () => {
+    const state = openGame('intro');
+    state.intro = true;
+    assert.equal(musicFor({ screen: 'depot' }, state, NOON), 'night');
+    delete state.intro;
+    assert.equal(musicFor({ screen: 'depot' }, state, NOON), 'depot');
+  });
+});
+
 describe('the yard’s ambience (3.1.0)', () => {
   const state = openGame('amb');
   test('birds by day, crickets at night, wind and the fire always', () => {

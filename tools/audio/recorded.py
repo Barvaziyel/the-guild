@@ -1,4 +1,5 @@
-"""Elites' calls from real recordings (3.13.1): the Red Hand's whistle, the Matron's claps, Old Mother's howl.
+"""Real recordings (3.13.1): the elites' calls (the Red Hand's whistle, the Matron's claps, Old Mother's howl),
+and since 3.14.0 lines said in scenes ("We stay.").
 
     python3 tools/audio/recorded.py <folder with the recordings>
 
@@ -29,6 +30,13 @@ CALLS = {
     # A wolf's howl, up, held and falling: a little slower and lower for a hound the size of Old Mother.
     'howl': ('howl', 1.00, 3.75, (25, 22), 0.55),
 }
+
+# Lines said in scenes (3.14.0): clear, not muffled like the radio. Written to voices/scene/.
+SCENE = {
+    # The opening's last line, said quietly round the first fire (Aviel, 2026-11-28).
+    'we_stay_m': ('we_stay_male', 1.05, 2.05, (1, 1), 0.12),
+}
+SCENE_OUT = os.path.join(HERE, 'voices', 'scene')
 
 
 def sos(kind, hz, order):
@@ -77,8 +85,14 @@ def write(x, path):
 if __name__ == '__main__':
     if len(sys.argv) != 2:
         sys.exit(__doc__)
-    os.makedirs(OUT, exist_ok=True)
-    for name, (src, a, b, ratio, fade) in CALLS.items():
-        y = shape(read(sys.argv[1], src), (a, b, ratio), fade)
-        write(y, os.path.join(OUT, f'{name}.ogg'))
-        print(f'{name}: {len(y) / SR:.2f} s')
+    for table, out in ((CALLS, OUT), (SCENE, SCENE_OUT)):
+        os.makedirs(out, exist_ok=True)
+        for name, (src, a, b, ratio, fade) in table.items():
+            try:
+                x = read(sys.argv[1], src)
+            except SystemExit as missing:
+                print(missing)
+                continue
+            y = shape(x, (a, b, ratio), fade)
+            write(y, os.path.join(out, f'{name}.ogg'))
+            print(f'{name}: {len(y) / SR:.2f} s')

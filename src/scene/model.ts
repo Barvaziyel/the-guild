@@ -104,6 +104,11 @@ export interface YardModel {
   trips?: YardTrip[];
   /** Buildings put up or improved since the yard was last looked at (3.7.0): they go up before your eyes, in a cloud of dust. */
   fresh?: BuildingId[];
+  /**
+   * The old depot before the guild (the opening scene, 3.14.0): none of the guild's buildings, not even the outlines
+   * of where they'd go, only the station, the water tower and the fence. `fire`: the first fire lit in the yard.
+   */
+  bare?: 'empty' | 'fire';
 }
 
 /** The light by the hour on the player's clock. */

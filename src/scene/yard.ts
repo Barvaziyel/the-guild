@@ -173,6 +173,8 @@ function cart(): string {
 function lights(model: YardModel): string {
   const { buildings: b } = model;
   const glow = (x: number, y: number, r: number): string => `<circle cx="${x}" cy="${y}" r="${r}" fill="url(#yard-glow)"/>`;
+  // The old depot before the guild: no light anywhere, or only the first fire's.
+  if (model.bare) return model.bare === 'fire' ? glow(211, Y.front - 30, 46) : '';
   let out = glow(211, Y.front - 30, 46);
   for (const x of [36, 64, 92, 156, 184, 212]) out += rect(x + 2, Y.back - 38, 8, 18, C.lit, 'stroke="none" opacity="0.85"');
   for (let i = 0; i < Math.max(1, Math.min(3, b.bunks)); i++) out += rect(10 + i * 64 + 7, Y.rails - 31, 6, 4, C.lit, 'stroke="none" opacity="0.85"');
@@ -271,6 +273,11 @@ export function yardSvg(model: YardModel, clock = 0): string {
   items.push({ y: Y.rails - 1, svg: rails() });
 
   for (const id of Object.keys(BUILDING_DRAWINGS) as BuildingId[]) {
+    if (model.bare) {
+      // Before the guild: the water tower stands; the first fire, once it's lit.
+      if (id === 'radio_tower' || (id === 'firepit' && model.bare === 'fire')) items.push({ y: BUILDING_BASE[id], svg: BUILDING_DRAWINGS[id](id === 'firepit' ? 1 : 0) });
+      continue;
+    }
     const a = BUILDING_AREAS[id];
     const level = model.buildings[id] ?? 0;
     const label = level > 0 ? `${BUILDING_NAMES[id]}, level ${level}.` : `${BUILDING_NAMES[id]}: not built yet.`;
