@@ -124,7 +124,7 @@ export function fightCard(state: GameState, run: Run, now: number): FightCardVie
     callerName: name,
     caller: state.survivors.find((s) => s.id === f.by),
     inCommand: f.took !== undefined,
-    ...(f.grave ? { urgency: 'grave' as const } : run.plan.lead === 'matters' ? { urgency: 'trouble' as const } : {}),
+    ...(f.grave ? { urgency: 'grave' as const } : calledInTrouble(run) ? { urgency: 'trouble' as const } : {}),
     // On the road east nobody is at the Depot to radio: they've stopped on the road (§9.12).
     line: waitsForWord(run)
       ? f.took !== undefined
@@ -143,16 +143,24 @@ export function fightCard(state: GameState, run: Run, now: number): FightCardVie
  * left alone, someone would die. One that calls at every fight is just about to fight.
  */
 function callLine(state: GameState, run: Run, f: LedFight, name: string): string {
-  const stakes = f.grave ? 'grave' : run.plan.lead === 'matters' ? 'trouble' : 'contact';
+  const stakes = f.grave ? 'grave' : calledInTrouble(run) ? 'trouble' : 'contact';
   return `${name}, on the radio: ${callSpeech(run, f, stakes, state.survivors.find((s) => s.id === f.by))}`;
 }
 
 /** What's at stake, as a picture (3.10.0): left alone, someone would go down, or die. Nothing for a crew that calls at every fight. */
+/**
+ * A crew that calls only when it matters is in trouble when it calls. A new guild's first trip (3.14.0)
+ * calls whatever the odds, as its first fight to lead: it's just a fight.
+ */
+function calledInTrouble(run: Run): boolean {
+  return run.plan.lead === 'matters' && !run.plan.first;
+}
+
 function stakeChips(f: LedFight, run: Run): Chip[] {
   // An elite's prize, first (3.12.0).
   const prize = f.elite ? [prizeChip(f.elite)] : [];
   if (f.grave) return [...prize, { glyph: 'skull', text: 'if alone', tone: 'bad', label: 'Left to fight it alone, someone would die' }];
-  if (run.plan.lead === 'matters') return [...prize, { glyph: 'down', text: 'if alone', tone: 'bad', label: 'Left to fight it alone, someone would go down' }];
+  if (calledInTrouble(run)) return [...prize, { glyph: 'down', text: 'if alone', tone: 'bad', label: 'Left to fight it alone, someone would go down' }];
   return prize;
 }
 

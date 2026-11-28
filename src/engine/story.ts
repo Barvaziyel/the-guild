@@ -13,6 +13,7 @@ import type { Rng } from './rng.ts';
 import { getGear, getVehicleDef } from './content/index.ts';
 import { fullName } from './text.ts';
 import { createVehicle } from './vehicles.ts';
+import { openSystem } from './unlocks.ts';
 import type { GameState, Resources, StoryBase, StoryEnding } from './types.ts';
 import { RESOURCE_IDS } from './types.ts';
 
@@ -96,15 +97,20 @@ export function claimStory(state: GameState, now: number): StoryEnding {
   });
   const supplies: Partial<Resources> = {};
   for (const r of RESOURCE_IDS) if (state.resources[r] !== before[r]) supplies[r] = state.resources[r] - before[r];
+  // What it opens in a new guild (3.14.0).
+  const opened = (step.opens ?? []).filter((id) => openSystem(state, id, day));
   const ending: StoryEnding = {
     stepId: step.id,
     title: step.title,
     text: step.done,
     ...(Object.keys(supplies).length > 0 ? { supplies } : {}),
     ...(gifts.length > 0 ? { gifts } : {}),
+    ...(opened.length > 0 ? { opened } : {}),
   };
   addGuildLog(state, day, `${step.title}: ${step.done}`, ['story', step.id]);
   story.step += 1;
+  // A step already done in an older order is passed over (3.14.0).
+  while (story.step < FIRST_WEEK.length && story.skip?.includes(FIRST_WEEK[story.step]!.id)) story.step += 1;
   story.base = storyBase(state);
   story.last = ending;
   if (story.step >= FIRST_WEEK.length) {

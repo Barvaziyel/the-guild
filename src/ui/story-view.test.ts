@@ -56,7 +56,7 @@ describe('the first week on the Yard (2.8.0)', () => {
     assert.equal(dots(state, T0, baselineSeen(state)).depot.yard, undefined);
     seenStory(state);
     assert.equal(storyEnding(state), undefined);
-    assert.equal(storyCard(state)!.title, 'Get the Garden going');
+    assert.equal(storyCard(state)!.title, 'A first run');
   });
 
   test('the motorcycle, someone at the gate, and the end of the week', () => {

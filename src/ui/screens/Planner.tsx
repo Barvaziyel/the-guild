@@ -16,6 +16,8 @@ import {
   type ResourceId,
   type RiskEstimate,
   type RunPlan,
+  isOpen,
+  planAsOpened,
 } from '../../engine/index.ts';
 import { Vitals } from '../components/Bars.tsx';
 import { MiniStepper, Segmented } from '../components/Choices.tsx';
@@ -126,7 +128,8 @@ function PlannerForm({ state, locationId, step }: { state: GameState; locationId
 
   const problems = plan.crew.length === 0 ? [] : validatePlan(state, plan);
   const warnings = plan.crew.length === 0 ? [] : planWarnings(state, plan);
-  const duration = runDuration(state, plan);
+  // As the guild can run it (3.14.0): a new guild's first trip is short.
+  const duration = runDuration(state, planAsOpened(state, plan));
   const ready = plan.crew.length > 0 && problems.length === 0;
   const risk = useRisk(state, plan, ready && step === 'orders');
 
@@ -317,9 +320,11 @@ function PlannerForm({ state, locationId, step }: { state: GameState; locationId
             }}
           />
         </div>
-        <div data-tour="lead">
-          <Segmented legend="Lead the fights" name="lead" choices={leadChoices()} value={leadMode(plan)} onChange={(mode) => setPlan((p) => withLead(p, mode))} />
-        </div>
+        {isOpen(state, 'lead') && (
+          <div data-tour="lead">
+            <Segmented legend="Lead the fights" name="lead" choices={leadChoices()} value={leadMode(plan)} onChange={(mode) => setPlan((p) => withLead(p, mode))} />
+          </div>
+        )}
         {plan.job !== 'trade' && (
         <label className="orders-keep">
           <span>Too much to carry? Keep</span>
@@ -405,7 +410,7 @@ function useRisk(state: GameState, plan: RunPlan, ready: boolean): RiskEstimate 
   const [result, setResult] = useState<{ key: string; risk: RiskEstimate } | null>(null);
   useEffect(() => {
     if (!ready) return;
-    const id = window.setTimeout(() => setResult({ key, risk: estimateRisk(state, plan) }), 250);
+    const id = window.setTimeout(() => setResult({ key, risk: estimateRisk(state, planAsOpened(state, plan)) }), 250);
     return () => window.clearTimeout(id);
     // The plan is captured through its key; state changes (another crew leaving) also matter.
     // eslint-disable-next-line react-hooks/exhaustive-deps

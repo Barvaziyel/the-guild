@@ -9,6 +9,7 @@ import { getLocation, getVehicleDef, VEHICLES, type VehicleDef } from './content
 import { buildingLevel, canAfford, costText, payCost } from './depot/buildings.ts';
 import { newId } from './ids.ts';
 import type { GameState, Resources, RunPlan, Vehicle } from './types.ts';
+import { isOpen } from './unlocks.ts';
 
 export function vehicleDef(v: Vehicle): VehicleDef {
   return getVehicleDef(v.defId);
@@ -115,6 +116,7 @@ export function buildableVehicles(): VehicleDef[] {
 }
 
 export function buildVehicleProblem(state: GameState, defId: string): string | undefined {
+  if (!isOpen(state, 'vehicles')) return 'Not yet.';
   const def = getVehicleDef(defId);
   if (!def.build) return `The Workshop can't build a ${def.name}.`;
   const level = buildingLevel(state, 'workshop');

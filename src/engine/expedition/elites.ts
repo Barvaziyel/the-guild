@@ -38,7 +38,7 @@ const ROAMING: readonly string[] = ['scavenge', 'scout', 'hunt'];
  * are half explored, one it may see for the first time.
  */
 export function eliteOnRun(state: GameState, plan: RunPlan, seed: string, beats: number): SimElite | undefined {
-  if (!ROAMING.includes(plan.job)) return undefined;
+  if (plan.first || !ROAMING.includes(plan.job)) return undefined;
   const def = eliteAt(plan.locationId);
   if (!def) return undefined;
   const record = state.elites?.[def.id];

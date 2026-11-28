@@ -7,6 +7,7 @@ import { BLAME_CHANCE, DEPTHS, LEAD_ID_BLOCK, LEAD_WAIT, MAX_REPORTS, PARTNER_GR
 import { buildingName, trimPosts } from '../depot/buildings.ts';
 import { ENEMIES, HAVEN_JOURNEY, getLocation } from '../content/index.ts';
 import { dayAt, withRng } from '../game.ts';
+import { openSystem, planAsOpened } from '../unlocks.ts';
 import { newId } from '../ids.ts';
 import { addExplored, depthOpen, ensureLocationState, exploredAt, planDepth } from '../locations.ts';
 import { adjustRelationship, arePartners, pairKey, relationshipLabel, relationshipScore } from '../relationships.ts';
@@ -39,8 +40,11 @@ import { marketQuote, moveMarket } from '../market.ts';
 export function startRun(state: GameState, given: RunPlan, now: number): Run {
   const problems = validatePlan(state, given);
   if (problems.length > 0) throw new Error(`Cannot start run: ${problems.join(' ')}`);
+  // As the guild can run it now (3.14.0): a new guild's first trip, led; nothing led before leading is open.
+  const asked = planAsOpened(state, given);
+  if (asked.first) openSystem(state, 'lead', dayAt(state, now));
   // A trade is priced at the market as it is now (§7.14), and the run, and every replay of it, keeps that price.
-  const priced: RunPlan = given.job === 'trade' && given.trade ? { ...given, trade: { ...given.trade, quote: marketQuote(state.market, given.trade) } } : given;
+  const priced: RunPlan = asked.job === 'trade' && asked.trade ? { ...asked, trade: { ...asked.trade, quote: marketQuote(state.market, asked.trade) } } : asked;
   // Whether they may call about pressing on (3.11.0) is settled now, from the plan, and kept with it for every replay.
   const { pressOn: _asked, ...fresh } = priced;
   const deeper = pressOnRisk(state, fresh);
@@ -733,7 +737,7 @@ const PRESS_ON_JOBS: ReadonlySet<RunJob> = new Set(['scavenge', 'scout', 'hunt']
  * planner works out its risk, never from how this run will go, so the call doesn't give the answer away.
  */
 export function pressOnRisk(state: GameState, plan: RunPlan): Exclude<RiskLabel, 'Low'> | undefined {
-  if (!PRESS_ON_JOBS.has(plan.job) || getLocation(plan.locationId).market || planDepth(plan) >= DEPTHS) return undefined;
+  if (plan.first || !PRESS_ON_JOBS.has(plan.job) || getLocation(plan.locationId).market || planDepth(plan) >= DEPTHS) return undefined;
   const { lead: _lead, ...alone } = plan;
   const label = estimateRisk(state, { ...alone, depth: planDepth(plan) + 1 }, PRESS_ON_SAMPLES).label;
   return label === 'Low' ? undefined : label;

@@ -994,6 +994,8 @@ type Call = 'yes' | 'no' | 'grave';
  */
 function whetherToCall(sim: Sim, enemies: readonly Enemy[], start: FightStart): Call {
   if (!sim.lead || sim.lead.home || sim.plan.lead !== 'matters') return 'yes';
+  // A new guild's first trip always calls: it's the player's first fight to lead (3.14.0).
+  if (sim.plan.first) return 'yes';
   const ahead = foughtAlone(sim, enemies, start);
   if (ahead.dies) return 'grave';
   return ahead.down || enemies.some((e) => e.nemesis || e.vulture || e.def.elite) ? 'yes' : 'no';

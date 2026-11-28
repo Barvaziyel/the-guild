@@ -527,3 +527,16 @@ test('someone in a grip: the hint says how to get them out', () => {
   const v: FightView = { round: 1, maxRounds: 6, place: 'The Old Metro', enemies: [{ index: 0, name: 'Hollow 2', type: 'hollow', kind: 'hollow', hp: 8, maxHp: 8, state: 'up', stunned: false, named: false, nemesis: false, vulture: false, rank: 'front', damage: 3, armor: 0, rises: true, pack: false, heavy: false, leader: false, fearless: true, holding: 'a', intent: { kind: 'hold', at: 'a' } }], crew: [held], meds: 0, ammo: 0, lines: [], acts: [] };
   assert.equal(orderHint(v, held, {}, false), "In Hollow 2's grip. Break free, or have someone shove it off.");
 });
+
+describe('the first trip’s fight (3.14.0)', () => {
+  test('a new guild’s first fight calls home as a fight to lead, not as trouble', async () => {
+    const { newGame } = await import('../engine/index.ts');
+    const state = newGame({ seed: 'first-call', now: T0, guided: true });
+    const run = startRun(state, testPlan(state, 'rail_yard', {}, 3), T0);
+    assert.equal(run.plan.first, true);
+    const card = fightCards(state, run.lead!.fights[0]!.at + 1000)[0]!;
+    assert.equal(card.urgency, undefined);
+    assert.ok(!card.chips.some((c) => c.text === 'if alone'));
+    assert.doesNotMatch(card.line, /trouble/);
+  });
+});

@@ -34,6 +34,7 @@ import { addTrait, expireConditions, mulTraitHook } from './traits.ts';
 import { RESOURCE_IDS, type DepotRaid, type GameState, type Outpost, type Resources, type Survivor } from './types.ts';
 import { scheduleRaid } from './depot/raids.ts';
 import { relayOutposts } from './projects.ts';
+import { isOpen } from './unlocks.ts';
 
 export function findOutpost(state: GameState, locationId: string): Outpost | undefined {
   return state.outposts.find((o) => o.locationId === locationId);
@@ -64,6 +65,7 @@ export function outpostNear(state: GameState, locationId: string): Outpost | und
 
 export function buildOutpostProblem(state: GameState, locationId: string): string | undefined {
   const here = locationState(state, locationId);
+  if (!isOpen(state, 'outposts')) return 'Not yet: the guild has to find its feet first.';
   if (!here.discovered) return 'Nobody knows where that is yet.';
   if (findOutpost(state, locationId)) return 'The guild already has an outpost here.';
   if (here.explored < 100) return `Explore the outskirts fully first (${here.explored}% so far).`;

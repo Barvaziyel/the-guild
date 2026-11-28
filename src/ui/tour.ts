@@ -26,6 +26,7 @@ import {
   storyStep,
   type BuildingId,
   type GameState,
+  isOpen,
 } from '../engine/index.ts';
 import { buildingRow, homeCounts, oneDecimal } from './depot-view.ts';
 import type { Route } from './route.ts';
@@ -45,6 +46,11 @@ export interface TourStep {
   /** The `data-tour` value of the thing to point at, if any. */
   target?: string;
   text: (state: GameState) => string;
+  /**
+   * Only once this holds (3.14.0): what the story hasn't opened yet, or the guild hasn't met, isn't in the tour.
+   * A new guild's tour is its first day; Settings shows it again with everything open by then.
+   */
+  when?: (state: GameState) => boolean;
 }
 
 export const TOUR_PARTS: readonly TourPart[] = [
@@ -292,6 +298,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
   },
   {
     id: 'market',
+    when: (state) => isOpen(state, 'market'),
     part: 'runs',
     title: 'The market',
     route: () => ({ screen: 'reach', id: 'drive_in' }),
@@ -328,6 +335,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
   },
   {
     id: 'lead',
+    when: (state) => isOpen(state, 'lead'),
     part: 'runs',
     title: 'Leading the fights',
     route: (state) => {
@@ -384,6 +392,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
   // ---------------------------------------------------------------- raids and decisions
   {
     id: 'raids',
+    when: (state) => isOpen(state, 'raids'),
     part: 'trouble',
     title: 'Raids',
     route: depot,
@@ -392,6 +401,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
   },
   {
     id: 'decisions',
+    when: (state) => isOpen(state, 'decisions'),
     part: 'trouble',
     title: 'Decisions',
     route: depot,
@@ -402,6 +412,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
   // ---------------------------------------------------------------- later on
   {
     id: 'vehicles',
+    when: (state) => isOpen(state, 'vehicles'),
     part: 'later',
     title: 'Vehicles',
     route: () => ({ screen: 'vehicles' }),
@@ -411,6 +422,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
   },
   {
     id: 'further',
+    when: (state) => isOpen(state, 'outposts'),
     part: 'later',
     title: 'Further out',
     route: (state) => {
@@ -423,6 +435,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
   },
   {
     id: 'elites',
+    when: (state) => Object.keys(state.elites ?? {}).length > 0,
     part: 'later',
     title: 'One of a kind',
     route: (state) => {
@@ -435,6 +448,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
   },
   {
     id: 'projects',
+    when: (state) => isOpen(state, 'projects'),
     part: 'later',
     title: 'Projects',
     route: () => ({ screen: 'depot', tab: 'projects' }),
@@ -444,6 +458,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
   },
   {
     id: 'vultures',
+    when: (state) => state.vultures.arrived === true,
     part: 'later',
     title: 'The Vultures',
     route: () => ({ screen: 'reach' }),
@@ -481,19 +496,32 @@ export function tourStep(id: string | null | undefined): TourStep | undefined {
   return id ? TOUR_STEPS.find((s) => s.id === id) : undefined;
 }
 
+/** The steps for this guild: what's open in it so far (3.14.0). */
+export function tourSteps(state: GameState): TourStep[] {
+  return TOUR_STEPS.filter((s) => !s.when || s.when(state));
+}
+
+/** The parts that have any steps for this guild. */
+function tourParts(state: GameState): TourPart[] {
+  const steps = tourSteps(state);
+  return TOUR_PARTS.filter((p) => steps.some((s) => s.part === p.id));
+}
+
 /** The step after this one, or null when the tour is over. */
-export function nextStepId(id: string): string | null {
-  const i = TOUR_STEPS.findIndex((s) => s.id === id);
-  return i < 0 ? null : (TOUR_STEPS[i + 1]?.id ?? null);
+export function nextStepId(state: GameState, id: string): string | null {
+  const steps = tourSteps(state);
+  const i = steps.findIndex((s) => s.id === id);
+  return i < 0 ? null : (steps[i + 1]?.id ?? null);
 }
 
 /** The first step of the next part, or null when this is the last part. */
-export function nextPartStepId(id: string): string | null {
+export function nextPartStepId(state: GameState, id: string): string | null {
   const step = tourStep(id);
   if (!step) return null;
-  const part = TOUR_PARTS.findIndex((p) => p.id === step.part);
-  const next = TOUR_PARTS[part + 1];
-  return next ? (TOUR_STEPS.find((s) => s.part === next.id)?.id ?? null) : null;
+  const parts = tourParts(state);
+  const part = parts.findIndex((p) => p.id === step.part);
+  const next = parts[part + 1];
+  return next ? (tourSteps(state).find((s) => s.part === next.id)?.id ?? null) : null;
 }
 
 export interface TourCard {
@@ -512,15 +540,17 @@ export interface TourCard {
 export function tourCard(state: GameState, id: string): TourCard | null {
   const step = tourStep(id);
   if (!step) return null;
-  const partIndex = TOUR_PARTS.findIndex((p) => p.id === step.part);
-  const inPart = TOUR_STEPS.filter((s) => s.part === step.part);
-  const n = inPart.indexOf(step) + 1;
+  const parts = tourParts(state);
+  const partIndex = Math.max(0, parts.findIndex((p) => p.id === step.part));
+  const inPart = tourSteps(state).filter((s) => s.part === step.part);
+  const n = Math.max(1, inPart.indexOf(step) + 1);
+  const part = parts[partIndex] ?? TOUR_PARTS.find((p) => p.id === step.part)!;
   return {
     title: step.title,
     text: step.text(state),
-    where: inPart.length > 1 ? `${TOUR_PARTS[partIndex]!.title}: ${n} of ${inPart.length}` : TOUR_PARTS[partIndex]!.title,
-    partOf: `Part ${partIndex + 1} of ${TOUR_PARTS.length}`,
-    last: nextStepId(id) === null,
+    where: inPart.length > 1 ? `${part.title}: ${n} of ${inPart.length}` : part.title,
+    partOf: `Part ${partIndex + 1} of ${parts.length}`,
+    last: nextStepId(state, id) === null,
     lastInPart: n === inPart.length,
   };
 }

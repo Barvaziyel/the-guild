@@ -4,6 +4,7 @@ import { defaultPosts, initialBuildings } from './depot/buildings.ts';
 import { createItem } from './gear.ts';
 import { generateSurvivor, pickOrigin } from './generator.ts';
 import { initialLocations } from './locations.ts';
+import { closeForStory } from './unlocks.ts';
 import { initRelationships } from './relationships.ts';
 import { Rng } from './rng.ts';
 import { fullName } from './text.ts';
@@ -15,6 +16,11 @@ export interface NewGameOptions {
   /** Epoch ms; the moment Day 1 begins. */
   now: number;
   guildName?: string;
+  /**
+   * A player's new guild (3.14.0): its systems open as the first week reaches them, the market starts off the
+   * map, and the opening scene waits to be watched. Without it (tests, bots), everything is open from day one.
+   */
+  guided?: boolean;
 }
 
 /** Game day for a moment in time (Day 1 starts at createdAt). */
@@ -144,5 +150,6 @@ export function newGame(opts: NewGameOptions): GameState {
   defaultPosts(state);
 
   addGuildLog(state, 1, `${state.guildName} set up camp in the old rail depot.`, ['founding']);
+  if (opts.guided) closeForStory(state);
   return state;
 }

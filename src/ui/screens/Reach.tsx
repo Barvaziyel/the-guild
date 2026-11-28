@@ -14,6 +14,7 @@ import {
   repairOutpost,
   station,
   type GameState,
+  isOpen,
 } from '../../engine/index.ts';
 import { Portrait } from '../components/Portrait.tsx';
 import { ReachMapSvg } from '../components/ReachMapSvg.tsx';
@@ -205,7 +206,7 @@ function PlacePanel({ state, id, tab }: { state: GameState; id: string; tab: Pla
       <p className="place-biome">{loc.biome}</p>
       <h3 className="place-title">{loc.name}</h3>
       <div className="sheet-tabs place-tabs" role="tablist" aria-label={loc.name} data-tour="place-tabs">
-        {PLACE_TABS.map((t) => (
+        {PLACE_TABS.filter((t) => t !== 'outpost' || outpost || isOpen(state, 'outposts')).map((t) => (
           <button
             key={t}
             type="button"

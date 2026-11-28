@@ -8,6 +8,7 @@ import {
   offerProblem,
   type DepotSummary,
   type GameState,
+  isOpen,
 } from '../../engine/index.ts';
 import { DilemmaCard } from '../components/DilemmaCard.tsx';
 import { RadioCalls } from '../components/RadioCard.tsx';
@@ -74,7 +75,7 @@ export function Depot({ state, now, tab, away, onDismissAway }: Props) {
       </div>
 
       <div className="sheet-tabs depot-tabs" role="tablist" aria-label="Depot">
-        {DEPOT_TABS.map((t) => (
+        {DEPOT_TABS.filter((t) => t !== 'projects' || isOpen(state, 'projects')).map((t) => (
           <button
             key={t}
             type="button"

@@ -16,6 +16,7 @@ export * from './game.ts';
 export * from './save.ts';
 export * from './locations.ts';
 export * from './needs.ts';
+export * from './unlocks.ts';
 export * from './evolution.ts';
 export * from './vehicles.ts';
 export * from './outposts.ts';

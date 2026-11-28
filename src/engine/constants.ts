@@ -6,7 +6,7 @@
 import type { BuildingId, Quality, RelationshipLabel, ResourceId, Resources } from './types.ts';
 
 /** Save format version. Bump together with a migration in save.ts. */
-export const SAVE_VERSION = 31;
+export const SAVE_VERSION = 32;
 /** A guild this many game days old or younger, coming in from an older version, gets the first week too (§9.10). */
 export const STORY_OLD_SAVE_DAYS = 14;
 
@@ -656,6 +656,11 @@ export const NEED_TRY_DC = 10;
 /** What a part holds: this many supplies, NEED_FIND_PER_DANGER more for each point of danger above 1, made richer like any find. */
 export const NEED_FIND = 6;
 export const NEED_FIND_PER_DANGER = 2;
+/** A new guild's first trip (§9.10, 3.14.0): this many minutes, whatever the place. */
+export const FIRST_TRIP_MIN = 4;
+/** What waits on the first trip: the first fight the player leads. */
+export const FIRST_TRIP_FOES = ['rad_hound', 'rad_hound'] as const;
+
 /** A running vehicle with at least this much room carries a heavy load out. */
 export const NEED_CARGO = 10;
 

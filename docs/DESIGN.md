@@ -1107,16 +1107,18 @@ Aviel's new game had nothing to do but send a run and wait out the one-run-a-gam
 
 The other half of Aviel's pick for the first hours (§9.9): a short chain of things to do, one at a time, each with a reward. Together they take a new guild through its first places, buildings and fights to a motorcycle, and end with the first word of Haven, the game's long goal (§15). The steps are data in `content/story.ts`; `story.ts` checks them and pays out.
 
-| Step | Goal | Reward |
-|---|---|---|
-| Kit them out | Hand out the gear in the stash: nothing left that would fill an empty slot on anyone | 6 ammo |
-| Get the Garden going | Garden level 2 | 8 rations |
-| A first run | A crew home from a run, anywhere | 5 scrap |
-| The old depot | Three corners of the Depot searched (§9.9) | 2 meds |
-| Smoke over Maple Street | A crew home from Maple Street | Whoever lit the fire, at the gate wanting to join |
-| The farm | A crew home from Kessler Farm | 10 rations, 4 tech (parts from the well pump) |
-| Wheels | The Workshop | A Motorcycle at 60% (it was under a tarp in the engine shed) and 8 gas |
-| Get on the air | The Radio Tower | 10 scrap, and the Haven broadcast |
+| Step | Goal | Reward | Opens in a new guild (3.14.0) |
+|---|---|---|---|
+| Kit them out | Hand out the gear in the stash: nothing left that would fill an empty slot on anyone | 6 ammo | |
+| A first run | A crew home from a run, anywhere | 5 scrap | Leading fights (if the first trip hasn't), decisions |
+| Get the Garden going | Garden level 2 | 8 rations | |
+| The old depot | Three corners of the Depot searched (§9.9) | 2 meds | |
+| Smoke over Maple Street | A crew home from Maple Street | Whoever lit the fire, at the gate wanting to join, with news of the market | The market (the Drive-In goes on the map) |
+| The farm | A crew home from Kessler Farm | 10 rations, 4 tech (parts from the well pump) | Raids ("Full sacks get noticed") |
+| Wheels | The Workshop | A Motorcycle at 60% (it was under a tarp in the engine shed) and 8 gas | Vehicles |
+| Get on the air | The Radio Tower | 10 scrap, and the Haven broadcast | Calls for help, outposts, projects |
+
+Since 3.14.0 the first run comes second, straight after the opening, and the Garden third (a save part way through keeps its place: the step it's on is the first in the new order it hasn't done, and any it did that now come later are passed over, `StoryState.skip`).
 
 - **One step at a time.** Each goal is read from the game as it is. Runs count from when the step began (a run before it doesn't count). When the goal is met, the reward waits to be collected. Collecting writes the step's ending in the news, then the next step begins.
 - **The end:** the first night on the air, a recorded voice: *"This is Haven. We have power, clean water, and room for you. All survivors welcome."* It plays on the hour, every hour, the same words. Nobody has heard of Haven or knows where it is. From there, Haven (§9.11): the card says the Haven tab now keeps what the guild finds out, and opens it.
@@ -1134,6 +1136,16 @@ The other half of Aviel's pick for the first hours (§9.9): a short chain of thi
   The Radio Tower's tech is the slowest part: the farm's 4 and the signal box's 5 cover it. Nobody went hungry; 1–3 deaths in 40 guilds over two days, as without the week.
 - **Old saves:** a guild no older than 14 game days gets the week from its first step, counting runs from when it came in (save 25). An older guild doesn't.
 - Tour: the last step, *That's the tour*, says that when it closes, a note above the yard says what to do first. (2.8.0 had a step pointing at the note; with the note hidden during the tour, 2.8.1 dropped it.)
+
+#### Systems the story opens, and the first ten minutes (3.14.0)
+
+Step 4a of *Built as if for the store* (§15). Aviel (2026-11-28) picked the opening and the order of what opens; and "need to make it exciting, fun animation, juice".
+
+- **A new guild starts with less** (`newGame({ guided: true })`, `unlocks.ts`): the Depot, its people, gear, the Reach and runs. Leading fights, decisions, the market, vehicles, calls for help, raids, outposts and projects each open when the first week reaches them (the table above; `opens` on the steps, `state.opened` with the day each opened). The Vultures (day 40), Haven (the broadcast) and the deeper levels (a place's outskirts mapped) open as before. While closed: no decisions come, no raiders are drawn to the Depot, no calls for help come in; the Drive-In is off the map; the planner has no *Lead the fights*; the Depot has no Projects tab, a place no Outpost tab, the Workshop and the Gear screen no vehicles. A vehicle that turns up some other way opens vehicles. **A guild from before 3.14.0, and any game made without `guided` (tests, bots), has everything open.**
+- **The opening scene** (`opening-view.ts`, `scene/opening.ts`, `components/Opening.tsx`): full screen, before the tour and the Depot, once (`state.intro`). Five shots, every one moving: the rail line at dusk, the camp they lost burning behind them and the sun going down behind the hills while the founders walk across; the founders up close, packs on their backs, the ground sliding past; the old depot at dusk, dark and empty, the founders coming in through the gate; the first fire that night, a slow push in; the guild's name stamped down, and *Day 1*. A tap goes on, *Skip* ends it. Its sound comes in 4b.
+- **The first trip** (`isFirstTrip`, `RunPlan.first`): the guild's first run, scavenging somewhere quiet (danger 1), is `FIRST_TRIP_MIN` 4 minutes on foot, and its first stretch is two hounds (`FIRST_TRIP_FOES`) that always call home: the first fight the player leads (it opens leading fights). Its call is a fight to lead, not trouble. Nobody dies on it (mercy), and it has no fork, no press-on call and no elite. Then the place's best part. Measured (40 guilds): the hounds call about 80 seconds after the crew sets out, and answered at once, the report is in 4.3 minutes later.
+- **First-time moments** (`opened-view.ts`, `components/OpenedCard.tsx`): when a system opens, a paper card drops in over the screen, its picture pops out of a ring of dust, an *Opened* stamp slams down, and one line says what it is, with a way to it. Once each (`state.openedSeen`), never over the tour, a fight or a raid.
+- **The tour is the first day**: a step for something the story hasn't opened, or the guild hasn't met (the Vultures, an elite), waits (`TourStep.when`); Settings shows it again with whatever is open by then.
 
 ### 9.11 Haven (2.9.0)
 
@@ -1620,20 +1632,22 @@ From the design review of 3.8.0 (the project doc `claude/design-review-3.8.md`; 
 | 2a | 3.10.0 | Calls that matter: a crew calls home for a named foe or a fight that would put someone down, and says when someone would die; a clean fight pays (§7.13) | **done** (#82) |
 | 2b | 3.11.0 | One *press on or come home* call a run, when going deeper is a real gamble (Moderate risk or worse for that crew); the wait scales with the run; the radio's crackle (§7.12, §14.1) | **done** (#83) |
 | 2c | 3.12.0 | Elites: one a place, each with a mechanic and a prize (new enemies, new drawings, new sounds) (§7.15) | **done** (#84) |
-| 3 | 3.13.0 | Places that need the right people: a best part on each level of each place, behind locked, heavy, radiation, machines, flooded, a load to carry out, traps or animals; crew perks from pairs of traits (§7.16) | **this PR** |
-| 4 | 3.14.0 | Systems unlocked through the story, the first session for a stranger (an opening scene, a short first run, the first led fight), the tour cut to the first day; sound in scenes, and the gate scene redone with it | planned |
-| 5 | 3.15.0 | The broadcast as the hook: seeds from day one, the night of the broadcast as a scene, a name on the air (someone a guild member lost), the goal made plain, a pull to go ("until the first snow"), the unlock page in the journal's style; with its sound (radio static, the dial, the voice through crackle) | planned |
-| 6 | 3.16.0 | The storyteller: one director paces trouble with warnings and quiet stretches; *Gentle / Standard / Hard* at a new game | planned |
-| 7 | 3.17.0 | People who speak (short lines in the yard, reports, fights, the planner) and want things, with refusals | planned |
-| 8 | 3.18.0 | Runs you watch: the report opens on a short reel | planned |
-| 9 | 3.19.0 | What kind of guild you become: open or closed, merciful or hard | planned |
-| 10 | 3.20.0 | A Reach that changes: seasons, things that show up and go away, threats that move | planned |
+| 3 | 3.13.0 | Places that need the right people: a best part on each level of each place, behind locked, heavy, radiation, machines, flooded, a load to carry out, traps or animals; crew perks from pairs of traits (§7.16) | **done** (#85) |
+| 4a | 3.14.0 | Systems opened through the story, the opening scene (moving), the first trip with the first led fight, first-time moments, the tour cut to the first day (§9.10) | **this PR** |
+| 4b | 3.15.0 | Sound in scenes; the opening's sound; Haven's gate scene redone, moving and with sound; a short intro scene for each elite the first time it's seen | planned |
+| 5 | 3.16.0 | The broadcast as the hook: seeds from day one, the night of the broadcast as a scene, a name on the air (someone a guild member lost), the goal made plain, a pull to go ("until the first snow"), the unlock page in the journal's style; with its sound (radio static, the dial, the voice through crackle) | planned |
+| 6 | 3.17.0 | The storyteller: one director paces trouble with warnings and quiet stretches; *Gentle / Standard / Hard* at a new game | planned |
+| 7 | 3.18.0 | People who speak (short lines in the yard, reports, fights, the planner) and want things, with refusals | planned |
+| 8 | 3.19.0 | Runs you watch: the report opens on a short reel | planned |
+| 9 | 3.20.0 | What kind of guild you become: open or closed, merciful or hard | planned |
+| 10 | 3.21.0 | A Reach that changes: seasons, things that show up and go away, threats that move | planned |
 | 11 | **4.0.0** | Store-ready: the $1 unlock (Play Billing), cloud saves, the store page, phones | planned |
 | 12 | 4.1.0+ | Chapters with a time skip: Chapter 2 and the second depot | planned |
 
 - **Not picked:** laying out the Depot by hand; one market for all trading; one kind of prisoner; a real use for gas.
 - **Step 2's two questions, which Aviel left to me** (2026-11-27: "analyze those decisions as you think would be most entertaining"): a crew calls when someone would go **down**, not only when someone would be badly hurt or die (measured, §7.13); and the *press on* call comes by stakes, not by the run's length: only when the next level is at least Moderate risk for that crew, worked out from the plan, never from how the run will go, so the call doesn't give the answer away. Step 2 is three PRs (2a–2c), so the later versions moved up two.
 - **Step 3's two questions, also left to me** (2026-11-27, "Continue"): **gear helps, but mostly it takes the right person.** A tool lowers the bar for whoever holds it (Lockpicks, a Crowbar), so someone fair at it with the tool will do; only gear that's about surviving rather than skill covers a need on its own (a Hazmat Suit for radiation), and a vehicle with room carries a load. **One best part a level, with one need on the outskirts, one or two deeper in, and two at the heart**, so the further in, the more particular the crew. Measured in §7.16.
+- **Step 4's two questions** (Aviel, 2026-11-28): the opening is **arriving at the depot**, burned out of the last camp, then the first trip with the first fight the player leads; and the systems open in the order in §9.10's table. He added: "need to make it exciting, fun animation, juice", the gate scene should move rather than be still pictures, and each elite gets a short scene the first time it's seen (4b). Step 4 is two PRs (4a, 4b), so the later versions moved up one.
 - **Sound in scenes** (Aviel, 2026-11-26: "the crackling static of the radio as well, and during other 'cutscenes'"): a radio kit (static, squelch, crackle, the dial's whistle, a voice's hum, a dropout) in step 2; beds and cues for each still of a scene from step 4; from then on, every new scene gets a sound pass.
 - **Store rules** (Google's pages, 2026-11-26): a one-time US$25 fee with ID verification; new personal accounts run a closed test with 12 testers for 14 days in a row before going public; new apps target API 36 (the game does).
 
