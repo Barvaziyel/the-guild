@@ -32,6 +32,18 @@ export const FACES: readonly FaceShape[] = [
   { name: 'soft', w: 46, jaw: 38, chin: 16, chinY: 165, top: 56 },
 ];
 
+/**
+ * A man's face or a woman's (3.15.0, Aviel: "the facial structure of males should be different from females so
+ * it's easier to tell"): a man's jaw broader and squarer, his chin heavier and lower; a woman's jaw narrower,
+ * her chin smaller and finer. Children get half of it. Hair, beards and everything else follow the shape.
+ */
+export function sexedFace(f: FaceShape, sex: 'he' | 'she', child: boolean): FaceShape {
+  const k = (child ? 0.5 : 1) * (sex === 'he' ? 1 : -1);
+  const jaw = f.jaw + k * (sex === 'he' ? 5 : 4.5);
+  const chin = Math.min(jaw - 8, f.chin + k * (sex === 'he' ? 6 : 4));
+  return { ...f, w: f.w + k, jaw, chin, chinY: f.chinY + k * (sex === 'he' ? 3.5 : 3) };
+}
+
 /** Round to one decimal to keep the SVG small. */
 export function n(v: number): string {
   return String(Math.round(v * 10) / 10);
@@ -125,7 +137,7 @@ function oneEye(x: number, side: number, variant: number, iris: string): string 
         path(d`M${x - 9.5},${y - 1} Q${x},${y - 4.5} ${x + 9.5},${y - 1}`, `${INK_LINE} stroke-width="3.2"`) +
         path(d`M${x - 7},${y + 7} Q${x},${y + 10} ${x + 7},${y + 7}`, `${INK_LINE} stroke-width="1.3" opacity="0.55"`)
       );
-    case 4: // lashes
+    case 4: // lashes (anyone's)
       return (
         path(d`M${x - 8.5},${y} Q${x},${y - 7.5} ${x + 8.5},${y} Q${x},${y + 5} ${x - 8.5},${y} Z`, white) +
         pupil(3.3) +
@@ -139,12 +151,17 @@ function oneEye(x: number, side: number, variant: number, iris: string): string 
   }
 }
 
-/** Both eyes. `skip` leaves one out (-1 left, 1 right) for an eyepatch. */
-export function eyes(f: FaceShape, variant: number, iris: string, skip = 0): string {
+/** Both eyes. `skip` leaves one out (-1 left, 1 right) for an eyepatch. `lashes`: a woman's, at the outer corner. */
+export function eyes(f: FaceShape, variant: number, iris: string, skip = 0, lashes = false): string {
   let out = '';
   for (const s of [-1, 1]) {
     if (s === skip) continue;
-    out += oneEye(CX + s * eyeDx(f), s, variant, iris);
+    const x = CX + s * eyeDx(f);
+    out += oneEye(x, s, variant, iris);
+    // The lashes variant has its own, and ink dots have no lids to put them on.
+    if (lashes && variant !== 4 && variant !== 5) {
+      out += path(d`M${x + s * 8.5},${EYE_Y - 1.5} L${x + s * 12},${EYE_Y - 4.5} M${x + s * 6},${EYE_Y - 4.5} L${x + s * 8.5},${EYE_Y - 8}`, `${INK_LINE} stroke-width="1.5"`);
+    }
   }
   return out;
 }
@@ -153,8 +170,11 @@ export function eyes(f: FaceShape, variant: number, iris: string, skip = 0): str
 
 export const BROW_COUNT = 6;
 
-export function brows(f: FaceShape, variant: number, hair: HairColor, skip = 0): string {
+/** `sex`: a man's brows heavier and lower, a woman's finer and a little higher (3.15.0). */
+export function brows(f: FaceShape, variant: number, hair: HairColor, skip = 0, sex?: 'he' | 'she'): string {
   const color = darken(hair.dark, 0.25);
+  const weight = sex === 'he' ? 1.35 : sex === 'she' ? 0.7 : 1;
+  const lift = sex === 'he' ? 2 : sex === 'she' ? -2 : 0;
   let out = '';
   for (const s of [-1, 1]) {
     if (s === skip) continue;
@@ -162,7 +182,7 @@ export function brows(f: FaceShape, variant: number, hair: HairColor, skip = 0):
     const inner = x - s * 9;
     const outer = x + s * 10.5;
     const line = (dAttr: string, width: number): string =>
-      path(dAttr, `fill="none" stroke="${color}" stroke-width="${width}"`);
+      path(dAttr, `fill="none" stroke="${color}" stroke-width="${n(width * weight)}"${lift ? ` transform="translate(0 ${lift})"` : ''}`);
     switch (variant) {
       case 1:
         out += line(d`M${inner},99 Q${x},91 ${outer},98`, 3.4);
@@ -211,9 +231,15 @@ export function nose(variant: number): string {
 
 export const MOUTH_COUNT = 6;
 
-export function mouth(f: FaceShape, variant: number, skin: SkinTone): string {
+/** `lips`: a woman's, with a little colour in them under a plain line (3.15.0). */
+export function mouth(f: FaceShape, variant: number, skin: SkinTone, lips = false): string {
   const y = mouthY(f);
   const line = `${INK_LINE} stroke-width="2.4"`;
+  const tint = lips && variant <= 3 ? path(d`M119,${y + 0.5} Q128,${y + 7.5} 137,${y + 0.5} Q128,${y + 3} 119,${y + 0.5} Z`, `fill="${skin.lip}" opacity="0.8"`) : '';
+  return tint + mouthLine(y, variant, line, skin);
+}
+
+function mouthLine(y: number, variant: number, line: string, skin: SkinTone): string {
   switch (variant) {
     case 1:
       return path(d`M116,${y - 1} Q128,${y + 7} 140,${y - 1}`, line);

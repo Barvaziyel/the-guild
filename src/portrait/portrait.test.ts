@@ -200,7 +200,27 @@ describe('what a survivor has lived through shows', () => {
     assert.equal(young.aged, false);
     assert.equal(old.aged, true);
     assert.notEqual(old.hairColor.base, young.hairColor.base);
-    assert.equal(old.face, young.face, 'still the same person');
+    assert.deepEqual(old.face, young.face, 'still the same person');
+  });
+
+  test('a man’s face and a woman’s are easy to tell apart (3.15.0)', () => {
+    for (let v = 0; v < 8; v++) {
+      const as = (sex: 'he' | 'she', age = 30) => portraitLook(person((s) => { s.pronouns = sex; s.age = age; s.appearance.faceShape = v; }));
+      const he = as('he');
+      const she = as('she');
+      assert.ok(he.face.jaw - she.face.jaw >= 7, `${he.face.name}: a man’s jaw is broader`);
+      assert.ok(he.face.chin > she.face.chin && he.face.chinY > she.face.chinY, `${he.face.name}: and his chin heavier`);
+      assert.ok(she.face.chin < she.face.jaw && he.face.chin < he.face.jaw);
+      // Children: half of it.
+      assert.ok(as('he', 8).face.jaw - as('she', 8).face.jaw < he.face.jaw - she.face.jaw);
+    }
+    // A woman's lashes and lips; a man's heavier brows.
+    const svgOf = (sex: 'he' | 'she') => portraitSvg(person((s) => { s.pronouns = sex; s.appearance.eyes = 0; s.appearance.mouth = 0; s.appearance.brows = 0; }));
+    const she = svgOf('she');
+    const he = svgOf('he');
+    assert.ok(she.length > he.length - 400, 'her lashes and lips are drawn');
+    assert.match(he, /stroke-width="4.6" transform="translate\(0 2\)"/);
+    assert.match(she, /stroke-width="2.4" transform="translate\(0 -2\)"/);
   });
 
   test('pronouns shape facial hair', () => {
