@@ -100,7 +100,14 @@ describe('Haven’s gate, before the fight (§9.12; moving, 4b)', () => {
     // Its sound: Haven's tune turning at the scream; the door, the shot, the fall, the gate; all of it while its shot is up.
     assert.deepEqual(first.sound.music, [{ id: 'haven', at: 0 }, { id: 'truth', at: first.lines[1]!.at }]);
     const ids = shots.flatMap((s) => s.sound.cues.map((c) => c.id));
-    for (const id of ['door_bang', 'shot_far', 'body_fall', 'pull_up', 'boots', 'gate_groan', 'stomp'] as const) assert.ok(ids.includes(id), id);
+    for (const id of ['door_bang', 'shot_far', 'body_fall', 'pull_up', 'gate_groan', 'stomp'] as const) assert.ok(ids.includes(id), id);
+    // Feet on the gravel: the Vultures coming on, and each of the orderlies walking out before the Shepherd.
+    assert.ok(shots[1]!.sound.cues.some((c) => c.id === 'gravel_walk' && Math.abs((c.delay ?? 0) - shots[1]!.model.arrive![0]!.at) < 0.5));
+    const orderlies = shots[2]!.model.arrive![0]!;
+    const steps = shots[2]!.sound.cues.filter((c) => c.id === 'gravel_walk');
+    assert.equal(steps.length, orderlies.keys.length);
+    assert.ok(steps.every((c) => c.delay! >= orderlies.at && c.delay! < shots[2]!.model.arrive![1]!.at));
+    assert.ok(!ids.includes('boots' as never) && !ids.includes('shuffle'));
     // The trucks are heard and stop before the Vultures come on.
     const truck = shots[1]!.sound.cues.find((c) => c.id === 'pull_up')!;
     assert.ok((truck.delay ?? 0) + SPRITE.pull_up[1] <= shots[1]!.model.arrive![0]!.at + 0.2);
