@@ -1639,7 +1639,7 @@ From the design review of 3.8.0 (the project doc `claude/design-review-3.8.md`; 
 | 2c | 3.12.0 | Elites: one a place, each with a mechanic and a prize (new enemies, new drawings, new sounds) (§7.15) | **done** (#84) |
 | 3 | 3.13.0 | Places that need the right people: a best part on each level of each place, behind locked, heavy, radiation, machines, flooded, a load to carry out, traps or animals; crew perks from pairs of traits (§7.16) | **done** (#85) |
 | 4a | 3.14.0 | Systems opened through the story, the opening scene (moving), the first trip with the first led fight, first-time moments, the tour cut to the first day (§9.10) | **done** (#87) |
-| 4b | 3.15.0 | Sound in scenes; the opening's sound and its last shot by the fire; Haven's gate scene redone, moving and with sound; real recordings; a man's face and a woman's told apart at a glance | **this PR** |
+| 4b | 3.15.0 | Sound in scenes; the opening's sound and its last shot by the fire; Haven's gate scene redone, moving and with sound; real recordings; a man's face and a woman's told apart at a glance | **done** (#88) |
 | 4c | 3.16.0 | A short intro scene for each elite the first time it's seen: its place, the elite coming on, its name stamped, its call | planned |
 | 5 | 3.17.0 | The broadcast as the hook: seeds from day one, the night of the broadcast as a scene, a name on the air (someone a guild member lost), the goal made plain, a pull to go ("until the first snow"), the unlock page in the journal's style; with its sound (radio static, the dial, the voice through crackle) | planned |
 | 6 | 3.18.0 | The storyteller: one director paces trouble with warnings and quiet stretches; *Gentle / Standard / Hard* at a new game | planned |
