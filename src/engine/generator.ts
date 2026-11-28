@@ -83,12 +83,33 @@ function rollName(rng: Rng, pronouns: Pronouns, taken: ReadonlySet<string>): { f
   return { first: rng.pick(pool), last: rng.pick(LAST_NAMES) };
 }
 
-function rollAppearance(rng: Rng): Appearance {
+/**
+ * The portrait's hair styles by number (`HAIR_STYLES` in src/portrait/hair.ts; a test there keeps these in
+ * step): how many there are, which are long, and the short ones a man's long hair is cut to.
+ */
+export const HAIR_STYLE_COUNT = 14;
+export const LONG_HAIR_STYLES: readonly number[] = [5, 6, 8, 10, 13];
+const MENS_SHORT_HAIR: readonly number[] = [0, 1, 2, 3, 4, 9, 11];
+
+/**
+ * A man's hair (3.15.0, Aviel: "males should also have smaller chances of long hair"): long one time in four
+ * that it comes up, cut short the rest, worked out from the same roll so no other dice move. Only for
+ * people made from now on: everyone's face stays as it was drawn.
+ */
+export function mensHair(roll: number): number {
+  const style = roll % HAIR_STYLE_COUNT;
+  const k = Math.floor(roll / HAIR_STYLE_COUNT);
+  if (!LONG_HAIR_STYLES.includes(style) || k % 4 === 0) return roll;
+  return MENS_SHORT_HAIR[(k + style) % MENS_SHORT_HAIR.length]!;
+}
+
+function rollAppearance(rng: Rng, pronouns: Pronouns): Appearance {
+  // Drawn in the same order as ever, so everything rolled after the hair comes out the same.
   return {
     seed: rng.seed32(),
     skinTone: rng.int(0, 99),
     hairColor: rng.int(0, 99),
-    hairStyle: rng.int(0, 99),
+    hairStyle: ((roll) => (pronouns === 'he' ? mensHair(roll) : roll))(rng.int(0, 99)),
     faceShape: rng.int(0, 99),
     eyes: rng.int(0, 99),
     brows: rng.int(0, 99),
@@ -157,7 +178,7 @@ export function generateSurvivor(state: GameState, rng: Rng, opts: GenerateOptio
     age: rng.int(origin.ageRange[0], origin.ageRange[1]),
     origin: origin.id,
     backstory: '',
-    appearance: rollAppearance(rng),
+    appearance: rollAppearance(rng, pronouns),
     stats: rollStats(rng, origin),
     practice: emptyStats(0),
     hp: 0,
