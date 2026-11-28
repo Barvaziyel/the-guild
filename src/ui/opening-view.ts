@@ -32,8 +32,6 @@ export interface ShotSound {
   duck?: { at: number; for: number };
 }
 
-/** When the caption has come up (see `.opening-caption` in styles.css) and these words of it are read. */
-const readTo = (words: string): number => 0.35 + words.split(/\s+/).length * 0.26;
 
 const NUMBERS = ['None', 'One', 'Two', 'Three', 'Four', 'Five', 'Six'];
 
@@ -50,12 +48,12 @@ export function openingShots(state: GameState): OpeningShot[] {
     'Where the line ran out, an old rail depot: doors hanging off, a fence still standing, and nobody home.',
     'They lit a fire in the yard. Someone said it first. “We stay.”',
   ];
-  const said = readTo('They lit a fire in the yard. Someone said it first.');
   // The old depot at dusk, the founders coming in through the gate with everything they own.
   const dusk = { ...yardModel(state, 19), bare: 'empty' as const, people: [], trips: founders.map((s, order) => ({ id: s.id, look: figureLook(s), way: 'in' as const, pack: 'big' as const, at: -4500, order })) };
   // That night, round the fire: the only thing in the yard that's theirs yet.
   const night = { ...yardModel(state, 22), bare: 'fire' as const, people: founders.map((s, i) => ({ id: s.id, look: figureLook(s), place: { kind: 'idle' as const, slot: i }, go: '', label: s.firstName })) };
-  // Under the night music: wind on the open line, the gravel under them, the old gate, the match, the line, the stamp.
+  // Under the night music: wind on the open line, the gravel under them, the yard at dusk, the fire, the stamp.
+  // No voice: words are heard only over the radio (Aviel, 2026-11-28); “We stay.” is on the screen.
   return [
     {
       svg: railLineSvg(looks, 'far'),
@@ -74,8 +72,7 @@ export function openingShots(state: GameState): OpeningShot[] {
       caption: lines[2]!,
       ms: hold(lines[2]!, 9),
       push: { x: 50, y: 88 },
-      // The first of them reaches the gate four seconds in.
-      sound: { ambience: { wind: 0.6, fire: 0, crickets: 0.55, birds: 0.15 }, cues: [{ id: 'gravel_walk', gain: 0.5, delay: 0.2 }, { id: 'creak', gain: 0.9, delay: 4.0 }, { id: 'gravel_walk', gain: 0.4, rate: 0.95, delay: 4.6 }] },
+      sound: { ambience: { wind: 0.6, fire: 0, crickets: 0.55, birds: 0.15 }, cues: [{ id: 'gravel_walk', gain: 0.5, delay: 0.2 }, { id: 'gravel_walk', gain: 0.4, rate: 0.95, delay: 4.6 }] },
     },
     {
       svg: yardSvg(night, 0),
@@ -83,7 +80,7 @@ export function openingShots(state: GameState): OpeningShot[] {
       ms: hold(lines[3]!, 7),
       push: { x: 53, y: 64 },
       catches: true,
-      sound: { ambience: { wind: 0.35, fire: 1, crickets: 0.8, birds: 0 }, cues: [{ id: 'match', delay: 0.2 }, { id: 'we_stay_m', delay: said }], duck: { at: said - 0.3, for: 1.9 } },
+      sound: { ambience: { wind: 0.35, fire: 0.9, crickets: 0.8, birds: 0 }, cues: [] },
     },
     { caption: '', ms: 3200, title: { name: state.guildName, day: 'Day 1' }, sound: { ambience: { wind: 0.4, fire: 0.8, crickets: 0.7, birds: 0 }, cues: [{ id: 'stamp', delay: 0.68 }] } },
   ];

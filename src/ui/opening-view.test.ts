@@ -32,11 +32,10 @@ describe('the opening scene (3.14.0)', () => {
         assert.ok((cue.delay ?? 0) * 1000 < shot.ms - 400, `${cue.id} at ${cue.delay} s in a ${shot.ms} ms shot`);
       }
     }
-    // The line is said once it's been read up to, with the music down under it.
+    // No voice in it: words are heard only over the radio. The fire catches, and its crackle comes up.
     const fire = shots[3]!;
-    const voice = fire.sound.cues.find((c) => c.id === 'we_stay_m')!;
-    assert.ok(voice.delay! > 2 && fire.sound.duck!.at < voice.delay! && fire.sound.duck!.at + fire.sound.duck!.for > voice.delay! + 1);
-    assert.ok(fire.catches && fire.sound.cues.some((c) => c.id === 'match'));
+    assert.ok(fire.catches && fire.sound.ambience!.fire > 0);
+    assert.ok(!shots.some((s) => s.sound.cues.some((c) => c.id.startsWith('radio_'))));
     assert.ok(shots[4]!.sound.cues.some((c) => c.id === 'stamp'));
   });
 });

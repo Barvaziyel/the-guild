@@ -863,15 +863,9 @@ ELITE = {name[2:]: (lambda fn=fn, name=name: master(fn(), ELITE_LOUDNESS[name[2:
 # ---------------------------------------------------------------- scenes (3.14.0)
 # Sounds for the scenes: the opening, Haven's gate, the elites' first sight. Made on random numbers of
 # their own (313), after the elites, so nothing earlier moves. The sounds Aviel hasn't recorded yet
-# (gravel, the gate, the match, boots) are made here until he does: see claude/recordings.md.
-
-def scene_voice(name):
-    """A line said in a scene, from voices/scene (made by recorded.py from a real recording), with a little room."""
-    import os, subprocess
-    here = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'voices', 'scene')
-    pcm = subprocess.run(['ffmpeg', '-v', 'quiet', '-i', os.path.join(here, f'{name}.ogg'), '-f', 'f32le', '-ac', '1',
-                          '-ar', str(SR), 'pipe:1'], capture_output=True, check=True).stdout
-    return np.frombuffer(pcm, dtype='<f4').astype(float)
+# (gravel, the gate, boots) are made here until he does: see claude/recordings.md. No voices: words are
+# heard only over the radio (Aviel, 2026-11-28). A made one that sounded wrong (a gate's hinge "like a dog
+# crying", a match like static) is left out until it's recorded.
 
 
 def crunch(power=1.0):
@@ -912,34 +906,8 @@ def c_run_gravel():
     return fade_end(verb(out, 0.7, 0.15), 0.1)
 
 
-def c_creak():
-    """The old depot's gate swinging open on a dry hinge: it catches and slips, catches and slips, then knocks."""
-    d = 1.9
-    t = t_(d)
-    # Stick and slip: the squeal comes in bursts as the hinge catches.
-    bursts = np.clip(np.sin(2 * np.pi * 3.4 * t + 2.5 * np.sin(2 * np.pi * 0.7 * t)), 0, 1) ** 2
-    f = 520 + 260 * t / d + 90 * np.sin(2 * np.pi * 7.3 * t)
-    squeal = np.sin(2 * np.pi * np.cumsum(f) / SR) + 0.4 * np.sin(2 * np.pi * np.cumsum(f * 2.01) / SR)
-    x = bp(squeal * bursts, 400, 2600) * np.interp(t, [0, 0.1, 1.6, d], [0, 1, 0.8, 0]) * 0.5
-    x += lp(noise(d), 300) * 0.08 * bursts
-    total = 2.4
-    out = at(x, 0, total) + at(lp(noise(0.08), 900) * env(0.08, 0.001, 0.02) * 0.9, 1.95, total)
-    return fade_end(verb(out, 1.0, 0.3), 0.15)
 
 
-def c_match():
-    """A match struck, the flare, and kindling catching: the first fire."""
-    total = 3.2
-    strike = bp(noise(0.16), 2500, 7000) * np.interp(t_(0.16), [0, 0.03, 0.16], [0, 1, 0.2])
-    flare = hp(noise(0.7), 250) * np.interp(t_(0.7), [0, 0.06, 0.25, 0.7], [0, 0.7, 0.35, 0.05])
-    out = at(strike * 0.9, 0.0, total) + at(lp(flare, 3500), 0.14, total)
-    # The kindling: a rising bed and the first cracks.
-    out += at(lp(noise(2.6), 1800) * np.interp(t_(2.6), [0, 1.2, 2.6], [0, 0.18, 0.25]), 0.5, total)
-    for _ in range(26):
-        when = rng.uniform(0.6, 3.0)
-        crack = hp(noise(0.01), 1500) * env(0.01, 0.0002, rng.uniform(0.0015, 0.004)) * rng.uniform(0.3, 0.9)
-        out += at(crack, when, total)
-    return fade_end(verb(out, 0.5, 0.12), 0.5)
 
 
 def c_stamp():
@@ -950,12 +918,6 @@ def c_stamp():
     return fade_end(verb(at(thud * 1.2, 0, total) + at(slap * 0.7, 0, total), 0.8, 0.25), 0.2)
 
 
-def c_we_stay_m():
-    """“We stay.”, said quietly by the fire (Aviel's recording), with the yard's night around it."""
-    v = scene_voice('we_stay_m')
-    v = hp(v, 90)
-    total = len(v) / SR + 0.6
-    return fade_end(verb(at(v, 0.05, total), 0.9, 0.18), 0.2)
 
 
 def c_door_bang():
@@ -1012,7 +974,7 @@ def c_gate_groan():
 
 
 # Loudness for each (LUFS), so a footstep doesn't drown a line.
-SCENE_LOUDNESS = {'gravel_walk': -26, 'run_gravel': -24, 'creak': -25, 'match': -24, 'stamp': -18, 'we_stay_m': -21, 'door_bang': -20, 'shot_far': -17, 'body_fall': -21, 'boots': -24, 'gate_groan': -21}
+SCENE_LOUDNESS = {'gravel_walk': -26, 'run_gravel': -24, 'stamp': -18, 'door_bang': -20, 'shot_far': -17, 'body_fall': -21, 'boots': -24, 'gate_groan': -21}
 
 SCENE = {name[2:]: (lambda fn=fn, name=name: master(fn(), SCENE_LOUDNESS[name[2:]])) for name, fn in globals().items() if name.startswith('c_') and callable(fn)}
 
