@@ -94,13 +94,13 @@ export const SPRITE = {
   radio_answer_f3: [106.1405, 1.492],
   clang: [107.7125, 0.9],
   splash: [108.6925, 1.1],
-  howl: [109.8725, 2.2],
-  bell: [112.1525, 2.0],
-  clap: [114.2325, 1.0],
-  klaxon: [115.3125, 1.2],
-  whistle: [116.5925, 1.3],
-  burst: [117.9725, 1.4],
-  chime: [119.4525, 1.6],
+  howl: [109.8725, 3.475],
+  bell: [113.4276, 2.0],
+  clap: [115.5076, 1.25],
+  klaxon: [116.8376, 1.2],
+  whistle: [118.1176, 1.95],
+  burst: [120.1476, 1.4],
+  chime: [121.6276, 1.6],
 } as const;
 
 export type MusicId = keyof typeof MUSIC;
