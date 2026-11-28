@@ -233,6 +233,11 @@ const MIGRATIONS: Record<number, (save: Record<string, unknown>) => void> = {
     story.step = step;
     if (later.length > 0) story.skip = later;
   },
+  32: (save) => {
+    // 3.15.1: the game is The Depot now, and so is a guild that kept the name it was given. One the player
+    // named stays as it is. The Chronicle and the guild's log keep what was written then.
+    if (save.guildName === 'The Guild') save.guildName = 'The Depot';
+  },
 };
 
 export function serialize(state: GameState): string {
