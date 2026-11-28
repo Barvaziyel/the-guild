@@ -3,13 +3,14 @@
  * a door banging open in the wall and the one who went east running out to warn the guild, screaming,
  * running again, the shot from the wall and the fall; the Vultures coming up behind; the great gate
  * swinging open and Haven's own walking out of it, the Shepherd last. Its lines come up under it from
- * the run's log, and it has its sound: Haven's tune turning to the truth at the scream. The fight's own
- * stage takes over once it's done.
+ * the run's log, and it has its sound: Haven's tune turning to the truth at the scream. The camera pushes
+ * in on whoever speaks, with their face over the stage (the one who went east is one of the guild's
+ * own; Aviel, 2026-11-28), and she bleeds when she's shot. The fight's own stage takes over once it's done.
  */
 import { HAVEN_JOURNEY, type FightView, type GameState, type LedFight, type Run, type Survivor } from '../engine/index.ts';
 import type { ExtraKey, ExtraPose, FigureLook, StageExtra, StageFighter, StageModel } from '../scene/index.ts';
 import { stageModel } from './battle-view.ts';
-import { readingTime, type SceneShot } from './scene-view.ts';
+import { readingTime, type SceneFace, type SceneShot } from './scene-view.ts';
 import { figureLook } from './yard-view.ts';
 
 /** A hospital gown, whoever wears it. */
@@ -80,12 +81,16 @@ export function gateScene(state: GameState, run: Run, fight: LedFight, view: Fig
   const look: FigureLook = who ? { ...figureLook(who), ...GOWN, hurt: true } : STRANGER;
   const { armor: _armor, hat: _hat, ...bare } = look;
   const runner: StageFighter = { key: 'x:runner', side: 'crew', label: who?.firstName ?? 'Stranger', title: who?.firstName ?? 'A stranger', hp: 1, maxHp: 1, state: 'up', look: bare };
-  const fallen: StageExtra = { fighter: runner, ...LIE, facing: -1, lying: true };
+  const fallen: StageExtra = { fighter: runner, ...LIE, facing: -1, lying: true, blood: true };
 
   // 1. The door, the runner, the scream, the shot.
   const [r0, r1, r2] = runnerLines.map(readingTime) as [number, number, number];
   const scream = sec(r0);
   const shotAt = sec(r0 + r1) + 0.3;
+  // In close on her while she screams, and out again before she runs, so the shot from the wall is seen.
+  const go = shotAt - 1.1;
+  const onHer = { scale: 1.9, x: STOP.x, y: STOP.y - 30 };
+  const her: SceneFace[] = who ? [{ survivor: who, name: who.firstName, at: scream + 0.4, until: go - 0.9, tone: 'hurt', side: 'left' }] : [];
   const shots: SceneShot[] = [
     {
       model: {
@@ -95,9 +100,17 @@ export function gateScene(state: GameState, run: Run, fight: LedFight, view: Fig
         enemies: [],
         targets: [],
         scene: true,
-        extras: [{ fighter: runner, ...DOOR, facing: -1, keys: runnerKeys(scream, shotAt) }],
+        extras: [{ fighter: runner, ...DOOR, facing: -1, keys: runnerKeys(scream, shotAt), blood: true }],
         shot: { ...POST, to: { x: HIT.x, y: HIT.y - 38 }, at: shotAt - 0.03 },
+        camera: [
+          { t: 0, scale: 1 },
+          { t: scream - 0.1, scale: 1 },
+          { t: scream + 0.6, ...onHer },
+          { t: go - 0.9, ...onHer },
+          { t: go - 0.2, scale: 1 },
+        ],
       },
+      faces: her,
       lines: [
         { at: 0, text: runnerLines[0]! },
         { at: scream, text: runnerLines[1]! },
@@ -122,13 +135,34 @@ export function gateScene(state: GameState, run: Run, fight: LedFight, view: Fig
     },
   ];
 
-  // 2. The Vultures, as they promised, come up behind the guild.
+  // 2. The Vultures, as they promised, come up behind the guild; then in close on them, and their boss says it.
   const allies = base.crew.filter((f) => f.vulture).map((f) => f.key);
   if (vulturesLine && allies.length > 0) {
+    const quote = vulturesLine.indexOf('“');
+    const [told, said] = quote > 0 ? [vulturesLine.slice(0, quote).trim(), vulturesLine.slice(quote)] : [vulturesLine, ''];
+    const arrived = 1.3 + allies.length * 0.35 + 1.7;
+    const speaks = Math.max(sec(readingTime(told)), arrived + 0.8);
+    const boss = view.crew.find((m) => m.ally);
+    const speaker = boss && state.vultures.people.find((p) => p.person.id === boss.id)?.person;
+    const end = speaks + (said ? sec(readingTime(said)) : 0);
     shots.push({
-      model: { ...base, place: 'haven_gate_shut', enemies: [], targets: [], scene: true, extras: [fallen], arrive: [{ keys: allies, from: 'left', at: 1.3, stagger: 0.35, seconds: 1.7 }] },
-      lines: [{ at: 0, text: vulturesLine }],
-      ms: readingTime(vulturesLine),
+      model: {
+        ...base,
+        place: 'haven_gate_shut',
+        enemies: [],
+        targets: [],
+        scene: true,
+        extras: [fallen],
+        arrive: [{ keys: allies, from: 'left', at: 1.3, stagger: 0.35, seconds: 1.7 }],
+        camera: [
+          { t: 0, scale: 1 },
+          { t: arrived - 0.4, scale: 1 },
+          { t: arrived + 0.4, scale: 1.8, on: allies },
+        ],
+      },
+      lines: said ? [{ at: 0, text: told }, { at: speaks, text: said }] : [{ at: 0, text: told }],
+      ms: Math.round(end * 1000),
+      faces: speaker ? [{ survivor: speaker, name: speaker.firstName, at: speaks - 0.2, until: end - 0.2, tone: 'vulture', side: 'right' }] : [],
       sound: {
         ambience: { wind: 0.5, fire: 0, crickets: 0, birds: 0 },
         cues: [

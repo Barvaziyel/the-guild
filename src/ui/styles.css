@@ -5166,6 +5166,81 @@ p.is-bad {
   margin: 0 0 0.75rem;
 }
 
+/* A face up close in a scene (4b): it drops in at its moment, shakes or holds hard, and leaves. */
+.scene-stage {
+  position: relative;
+}
+
+.scene-face {
+  position: absolute;
+  top: 0.5rem;
+  display: grid;
+  justify-items: center;
+  gap: 0.15rem;
+  padding: 0.35rem 0.35rem 0.25rem;
+  background: var(--steel-2);
+  border: 2px solid var(--bone);
+  border-radius: 6px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+  animation-name: scene-face;
+  animation-timing-function: linear;
+  animation-fill-mode: both;
+}
+
+.scene-face.is-left {
+  left: 0.5rem;
+  --tilt: -4deg;
+}
+
+.scene-face.is-right {
+  right: 0.5rem;
+  --tilt: 4deg;
+}
+
+.scene-face.is-hurt {
+  border-color: var(--blood);
+}
+
+.scene-face.is-vulture {
+  border-color: var(--rust);
+}
+
+.scene-face-shake {
+  display: block;
+  line-height: 0;
+}
+
+.scene-face.is-hurt .scene-face-shake {
+  animation: scene-face-shake 0.11s linear infinite alternate;
+}
+
+.scene-face-name {
+  font-family: var(--stencil);
+  font-size: 1.05rem;
+  line-height: 1.1;
+  color: var(--bone);
+}
+
+@keyframes scene-face {
+  0% { opacity: 0; transform: translateY(-2.5rem) rotate(calc(var(--tilt) * -3)) scale(1.25); }
+  7% { opacity: 1; transform: translateY(0.2rem) rotate(var(--tilt)) scale(0.97); }
+  11% { transform: translateY(0) rotate(var(--tilt)) scale(1); }
+  90% { opacity: 1; transform: translateY(0) rotate(var(--tilt)) scale(1); }
+  100% { opacity: 0; transform: translateY(-0.6rem) rotate(var(--tilt)) scale(0.95); }
+}
+
+@keyframes scene-face-shake {
+  from { transform: translate(-1.5px, 0.5px) rotate(-1deg); }
+  to { transform: translate(1.5px, -0.5px) rotate(1deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scene-face.is-hurt .scene-face-shake {
+    animation: none;
+  }
+}
+
 /* A line coming up in a moving scene (4b), as the pictures go on. */
 .scene-caption.is-new {
   animation: opening-caption 900ms ease-out both;
