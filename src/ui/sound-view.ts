@@ -359,9 +359,11 @@ export function actCues(state: GameState, view: FightView, act: FightAct): { cue
       if (e?.rank === 'back') return { cues: [own('burst')] };
       return { cues: [own('swing', 0, 0.9), ...(e?.kind === 'the_glass_man' ? [own('chime', 0.1, 0.7)] : [])] };
     }
+    // Real splashes (3.15.0): going under, and coming up.
     case 'dive':
-    case 'surface':
       return { cues: [own('splash')] };
+    case 'surface':
+      return { cues: [own('surface')] };
   }
 }
 
