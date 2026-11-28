@@ -35,6 +35,9 @@ describe('the opening scene (3.14.0)', () => {
     // No voice in it: words are heard only over the radio. The fire catches, and its crackle comes up.
     const fire = shots[3]!;
     assert.ok(fire.catches && fire.sound.ambience!.fire > 0);
+    // The real ones (3.15.0): the match as the fire catches, the old gate as the first of them reaches it.
+    assert.ok(fire.sound.cues.some((c) => c.id === 'match' && (c.delay ?? 0) < 1));
+    assert.ok(shots[2]!.sound.cues.some((c) => c.id === 'creak' && (c.delay ?? 0) > 3));
     assert.ok(!shots.some((s) => s.sound.cues.some((c) => c.id.startsWith('radio_'))));
     assert.ok(shots[4]!.sound.cues.some((c) => c.id === 'stamp'));
   });

@@ -100,7 +100,12 @@ describe('Haven’s gate, before the fight (§9.12; moving, 4b)', () => {
     // Its sound: Haven's tune turning at the scream; the door, the shot, the fall, the gate; all of it while its shot is up.
     assert.deepEqual(first.sound.music, [{ id: 'haven', at: 0 }, { id: 'truth', at: first.lines[1]!.at }]);
     const ids = shots.flatMap((s) => s.sound.cues.map((c) => c.id));
-    for (const id of ['door_bang', 'shot_far', 'body_fall', 'boots', 'gate_groan'] as const) assert.ok(ids.includes(id), id);
+    for (const id of ['door_bang', 'shot_far', 'body_fall', 'pull_up', 'boots', 'gate_groan', 'stomp'] as const) assert.ok(ids.includes(id), id);
+    // She screams (no words), as she shouts: a man's scream for a man.
+    const scream = dreamer.pronouns === 'he' ? 'scream_m' : 'scream_f';
+    const screams = first.sound.cues.filter((c) => c.id === scream);
+    assert.ok(screams.length >= 1);
+    for (const c of screams) assert.ok(keys.some((k, i) => k.pose === 'shout' && k.t <= c.delay! && c.delay! < (keys[i + 1]?.t ?? Infinity)), 'while shouting');
     for (const s of shots) for (const c of s.sound.cues) {
       assert.ok(c.id in SPRITE, c.id);
       assert.ok((c.delay ?? 0) * 1000 < s.ms, `${c.id} at ${c.delay} s in a ${s.ms} ms shot`);
