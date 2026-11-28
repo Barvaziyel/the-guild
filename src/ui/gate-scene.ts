@@ -91,6 +91,11 @@ export function gateScene(state: GameState, run: Run, fight: LedFight, view: Fig
   const go = shotAt - 1.1;
   const onHer = { scale: 1.9, x: STOP.x, y: STOP.y - 30 };
   const her: SceneFace[] = who ? [{ survivor: who, name: who.firstName, at: scream + 0.4, until: go - 0.9, tone: 'hurt', side: 'left' }] : [];
+  // Screaming without words (they're on the screen), on the first burst and the third. A stranger is a woman.
+  const keys = runnerKeys(scream, shotAt);
+  const bursts = keys.filter((k) => k.pose === 'shout').map((k) => k.t);
+  const voice = who?.pronouns === 'he' ? ('scream_m' as const) : ('scream_f' as const);
+  const screams = [bursts[0], bursts[2]].filter((t) => t !== undefined).map((t, i) => ({ id: voice, delay: t + 0.05, gain: i ? 0.8 : 1, rate: i ? 0.97 : 1 }));
   const shots: SceneShot[] = [
     {
       model: {
@@ -100,7 +105,7 @@ export function gateScene(state: GameState, run: Run, fight: LedFight, view: Fig
         enemies: [],
         targets: [],
         scene: true,
-        extras: [{ fighter: runner, ...DOOR, facing: -1, keys: runnerKeys(scream, shotAt), blood: true }],
+        extras: [{ fighter: runner, ...DOOR, facing: -1, keys, blood: true }],
         shot: { ...POST, to: { x: HIT.x, y: HIT.y - 38 }, at: shotAt - 0.03 },
         camera: [
           { t: 0, scale: 1 },
@@ -125,8 +130,10 @@ export function gateScene(state: GameState, run: Run, fight: LedFight, view: Fig
           { id: 'truth', at: scream },
         ],
         cues: [
+          { id: 'gale', gain: 0.4, delay: 0 },
           { id: 'door_bang', delay: 0.45 },
           { id: 'run_gravel', gain: 0.7, delay: 0.6 },
+          ...screams,
           { id: 'run_gravel', gain: 0.85, rate: 1.05, delay: shotAt - 1.1 },
           { id: 'shot_far', delay: shotAt - 0.05 },
           { id: 'body_fall', delay: shotAt + 0.45 },
@@ -166,7 +173,7 @@ export function gateScene(state: GameState, run: Run, fight: LedFight, view: Fig
       sound: {
         ambience: { wind: 0.5, fire: 0, crickets: 0, birds: 0 },
         cues: [
-          { id: 'engine', gain: 0.9, delay: 0.1 },
+          { id: 'pull_up', delay: 0 },
           { id: 'boots', delay: 1.2 },
         ],
       },
@@ -197,10 +204,10 @@ export function gateScene(state: GameState, run: Run, fight: LedFight, view: Fig
         { id: 'shuffle', gain: 0.7, rate: 0.95, delay: out + 1.4 },
         ...(shepherd.length
           ? [
-              { id: 'blunt' as const, gain: 0.6, rate: 0.5, delay: big + 0.6 },
-              { id: 'blunt' as const, gain: 0.7, rate: 0.48, delay: big + 1.6 },
+              { id: 'stomp' as const, gain: 0.7, delay: big + 0.6 },
+              { id: 'stomp' as const, gain: 0.85, rate: 0.96, delay: big + 1.6 },
               { id: 'groan' as const, rate: 0.7, delay: big + 2.2 },
-              { id: 'blunt' as const, gain: 0.8, rate: 0.46, delay: big + 2.7 },
+              { id: 'stomp' as const, rate: 0.92, delay: big + 2.7 },
             ]
           : []),
       ],
