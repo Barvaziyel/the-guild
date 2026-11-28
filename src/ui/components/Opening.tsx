@@ -91,8 +91,12 @@ export function Opening({ state }: { state: GameState }) {
         ) : (
           <div
             key={step}
-            className={`opening-shot-wrap${shot.push ? ' is-push' : ''}${shot.catches ? ' is-catch' : ''}`}
-            style={shot.push ? { transformOrigin: `${shot.push.x}% ${shot.push.y}%`, ['--push-s' as string]: `${shot.ms / 1000}s` } : undefined}
+            className={`opening-shot-wrap${shot.push ? ' is-push' : ''}${shot.pan ? ' is-pan' : ''}${shot.catches ? ' is-catch' : ''}`}
+            style={
+              shot.push || shot.pan
+                ? { ...(shot.push ? { transformOrigin: `${shot.push.x}% ${shot.push.y}%` } : {}), ['--push-s' as string]: `${shot.ms / 1000}s` }
+                : undefined
+            }
             dangerouslySetInnerHTML={{ __html: shot.svg ?? '' }}
           />
         )}

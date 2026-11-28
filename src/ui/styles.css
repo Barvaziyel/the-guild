@@ -7694,6 +7694,56 @@ p.is-bad {
   max-height: 100%;
 }
 
+/* Panning across them round the fire, from the far side to the one who's about to speak (3.15.0). */
+.opening-shot-wrap.is-pan {
+  animation: opening-in 900ms ease-out both, opening-pan var(--push-s, 4s) cubic-bezier(0.45, 0, 0.3, 1) both;
+}
+
+@keyframes opening-pan {
+  from { transform: scale(1.7) translateX(-17%); }
+  to { transform: scale(2) translateX(25%); }
+}
+
+/* Up close by the fire, its glow kept low and the picture deepened, so the night stays dark round the light. */
+.opening .op-close {
+  filter: contrast(1.3) brightness(0.82) saturate(1.25);
+}
+
+.opening .op-close .yard-lights {
+  opacity: 0.45;
+}
+
+.opening .op-close .op-warmth {
+  animation: op-firelight 1.3s ease-in-out infinite alternate;
+}
+
+/* A face by the fire: the light breathing, flames licking up from below, embers rising past. */
+.opening .op-face .op-light {
+  animation: op-firelight 1.3s ease-in-out infinite alternate;
+}
+
+.opening .op-face .op-tongue {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: yard-flicker 0.5s ease-in-out infinite alternate;
+}
+
+.opening .op-face .op-fly {
+  animation: op-fly 3.2s linear infinite;
+}
+
+@keyframes op-firelight {
+  from { opacity: 0.72; }
+  40% { opacity: 0.95; }
+  to { opacity: 0.8; }
+}
+
+@keyframes op-fly {
+  from { transform: translate(0, 0); opacity: 0; }
+  15% { opacity: 1; }
+  to { transform: translate(var(--drift), -560px); opacity: 0; }
+}
+
 .opening-shot-wrap.is-push {
   animation: opening-in 900ms ease-out both, opening-push var(--push-s, 7s) ease-in-out both;
 }
