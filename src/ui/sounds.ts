@@ -103,15 +103,12 @@ export const SPRITE = {
   chime: [121.6276, 1.6],
   gravel_walk: [123.3076, 5.2],
   run_gravel: [128.5876, 3.3],
-  creak: [131.9675, 3.4],
-  match: [135.4475, 3.7],
-  stamp: [139.2275, 1.8],
-  we_stay_m: [141.1075, 2.5],
-  door_bang: [143.6875, 2.5],
-  shot_far: [146.2675, 5.2],
-  body_fall: [151.5475, 1.6],
-  boots: [153.2275, 4.2],
-  gate_groan: [157.5075, 6.0],
+  stamp: [131.9675, 1.8],
+  door_bang: [133.8475, 2.5],
+  shot_far: [136.4275, 5.2],
+  body_fall: [141.7075, 1.6],
+  boots: [143.3875, 4.2],
+  gate_groan: [147.6675, 6.0],
 } as const;
 
 export type MusicId = keyof typeof MUSIC;
