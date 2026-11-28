@@ -114,10 +114,9 @@ export const SPRITE = {
   shot_far: [170.309, 5.0],
   body_fall: [175.389, 1.5385],
   stomp: [177.0074, 3.475],
-  boots: [180.5624, 4.2],
-  gate_groan: [184.8424, 8.4463],
-  pull_up: [193.3688, 3.8],
-  gale: [197.2488, 12.3],
+  gate_groan: [180.5624, 8.4463],
+  pull_up: [189.0888, 3.8],
+  gale: [192.9688, 12.3],
 } as const;
 
 export type MusicId = keyof typeof MUSIC;

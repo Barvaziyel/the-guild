@@ -176,7 +176,9 @@ export function gateScene(state: GameState, run: Run, fight: LedFight, view: Fig
         ambience: { wind: 0.5, fire: 0, crickets: 0, birds: 0 },
         cues: [
           { id: 'pull_up', delay: 0 },
-          { id: 'boots', delay: comeOn - 0.1 },
+          // Their feet on the gravel, hurrying (Aviel, 2026-11-28: the same gravel footsteps, not boots).
+          { id: 'gravel_walk', gain: 0.95, rate: 1.2, delay: comeOn - 0.1 },
+          { id: 'gravel_walk', gain: 0.7, rate: 1.12, delay: comeOn + 0.6 },
         ],
       },
     });
@@ -202,8 +204,8 @@ export function gateScene(state: GameState, run: Run, fight: LedFight, view: Fig
       ambience: { wind: 0.45, fire: 0, crickets: 0, birds: 0 },
       cues: [
         { id: 'gate_groan', delay: 0.5 },
-        { id: 'shuffle', gain: 0.8, delay: out + 0.2 },
-        { id: 'shuffle', gain: 0.7, rate: 0.95, delay: out + 1.4 },
+        // The orderlies walking out on the gravel, one after another, before the Shepherd.
+        ...theRest.map((_, k) => ({ id: 'gravel_walk' as const, gain: 0.55 + (k % 2) * 0.2, rate: 0.9 + (k % 3) * 0.04, delay: out + 0.1 + k * 0.45 })),
         ...(shepherd.length
           ? [
               { id: 'stomp' as const, gain: 0.7, delay: big + 0.6 },

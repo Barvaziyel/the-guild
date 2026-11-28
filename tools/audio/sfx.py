@@ -903,7 +903,7 @@ ELITE = {name[2:]: (lambda fn=fn, name=name: master(fn(), ELITE_LOUDNESS[name[2:
 # ---------------------------------------------------------------- scenes (3.14.0)
 # Sounds for the scenes: the opening, Haven's gate, the elites' first sight. Made on random numbers of
 # their own (313), after the elites, so nothing earlier moves. The sounds Aviel hasn't recorded yet
-# (gravel, the gate, boots) are made here until he does: see claude/recordings.md. No voices: words are
+# (the small door, the stamp) are made here until he does: see claude/recordings.md. No voices: words are
 # heard only over the radio (Aviel, 2026-11-28). A made one that sounded wrong (a gate's hinge "like a dog
 # crying", a match like static) is left out until it's recorded.
 
@@ -990,19 +990,6 @@ def c_stomp():
     return fade_end(verb(speed(taken('thud'), 0.72), 1.6, 0.3), 0.4)
 
 
-def c_boots():
-    """Boots coming up the road behind them, many of them, in step: the Vultures."""
-    total = 3.2
-    out = np.zeros(int(total * SR))
-    for k in range(int(total / 0.42)):
-        t = k * 0.42
-        step = lp(noise(0.12), 700) * env(0.12, 0.001, 0.03)
-        for _ in range(5):
-            out += at(step * rng.uniform(0.5, 0.9), t + rng.uniform(0, 0.03), total)
-    out *= np.interp(t_(total), [0, total], [0.35, 1.0])
-    return fade_end(verb(out, 1.0, 0.25), 0.3)
-
-
 def c_gate_groan():
     """Haven's gate opening: a real iron gate (3.15.0), slower and lower for its size, in the dam's echo."""
     return fade_end(verb(speed(taken('gate'), 0.82), 1.8, 0.35), 0.6)
@@ -1022,7 +1009,7 @@ def c_gale():
 
 
 # Loudness for each (LUFS), so a footstep doesn't drown a line.
-SCENE_LOUDNESS = {'gravel_walk': -25, 'run_gravel': -23, 'creak': -26, 'match': -19, 'campfire': -24, 'scream_f': -20, 'scream_m': -20, 'stamp': -18, 'door_bang': -20, 'shot_far': -17, 'body_fall': -20, 'stomp': -19, 'boots': -24, 'gate_groan': -21, 'pull_up': -27, 'gale': -26}
+SCENE_LOUDNESS = {'gravel_walk': -25, 'run_gravel': -23, 'creak': -26, 'match': -19, 'campfire': -24, 'scream_f': -20, 'scream_m': -20, 'stamp': -18, 'door_bang': -20, 'shot_far': -17, 'body_fall': -20, 'stomp': -19, 'gate_groan': -21, 'pull_up': -27, 'gale': -26}
 
 SCENE = {name[2:]: (lambda fn=fn, name=name: master(fn(), SCENE_LOUDNESS[name[2:]])) for name, fn in globals().items() if name.startswith('c_') and callable(fn)}
 
