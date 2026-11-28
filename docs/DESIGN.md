@@ -1,6 +1,6 @@
 # The Depot — Game Design Document
 
-> The game was called *The Guild* until 3.15.1 (Aviel, 2026-11-28: "I feel like it should be called The Depot"). The player's people are still a guild; the game is named for their home. Its first chapter is **Haven** (everything up to the road east, §9.11–9.12); Chapter 2 comes with the time skip (§15). The app id, the save's keys and the repo keep the old name, so nothing installed or saved is lost.
+> The game was called *The Guild* until 3.15.1 (Aviel, 2026-11-28: "I feel like it should be called The Depot"). The player's people are still a guild; the game is named for their home, and a new guild is called *The Depot* unless the player names it (one from before that kept the old default, *The Guild*, is renamed with it: save version 33). Its first chapter is **Haven** (everything up to the road east, §9.11–9.12); Chapter 2 comes with the time skip (§15). The app id, the save's keys and the repo keep the old name, so nothing installed or saved is lost.
 
 > Version 1.0 · 2026-11-11 · Living document. Numbers are starting points for tuning, not promises.
 
