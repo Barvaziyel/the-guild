@@ -3,6 +3,7 @@ import { describe, test } from 'node:test';
 import { newGame } from '../engine/index.ts';
 import { T0 } from '../engine/test-utils.ts';
 import { openingShots } from './opening-view.ts';
+import { SPRITE } from './sounds.ts';
 
 describe('the opening scene (3.14.0)', () => {
   test('the rail line, the founders up close, the depot, the fire, then the guild’s name', () => {
@@ -21,5 +22,21 @@ describe('the opening scene (3.14.0)', () => {
     assert.match(shots[1]!.svg!, /op-slide/);
     assert.match(shots[2]!.svg!, /@keyframes/);
     assert.deepEqual(shots[4]!.title, { name: 'The Ash Line', day: 'Day 1' });
+  });
+
+  test('every shot has its sound, and each sound starts while its shot is up', () => {
+    const shots = openingShots(newGame({ seed: 'opening', now: T0, guided: true }));
+    for (const shot of shots) {
+      for (const cue of shot.sound.cues) {
+        assert.ok(cue.id in SPRITE, cue.id);
+        assert.ok((cue.delay ?? 0) * 1000 < shot.ms - 400, `${cue.id} at ${cue.delay} s in a ${shot.ms} ms shot`);
+      }
+    }
+    // The line is said once it's been read up to, with the music down under it.
+    const fire = shots[3]!;
+    const voice = fire.sound.cues.find((c) => c.id === 'we_stay_m')!;
+    assert.ok(voice.delay! > 2 && fire.sound.duck!.at < voice.delay! && fire.sound.duck!.at + fire.sound.duck!.for > voice.delay! + 1);
+    assert.ok(fire.catches && fire.sound.cues.some((c) => c.id === 'match'));
+    assert.ok(shots[4]!.sound.cues.some((c) => c.id === 'stamp'));
   });
 });

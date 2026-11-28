@@ -7598,6 +7598,58 @@ p.is-bad {
   animation: opening-caption 800ms ease-out 1100ms both;
 }
 
+/* Before the first shot: an ember in the dark, and the tap that lets the sound start. */
+.opening-begin {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 2.5rem;
+}
+
+.opening-ember {
+  width: 0.9rem;
+  height: 0.9rem;
+  border-radius: 50%;
+  background: #f0a24a;
+  box-shadow: 0 0 1.2rem 0.5rem rgba(240, 130, 60, 0.55), 0 0 4rem 1.5rem rgba(200, 80, 40, 0.25);
+  animation: op-ember-glow 1.6s ease-in-out infinite alternate, op-ember-rise 3.2s ease-in-out infinite;
+}
+
+.opening-begin-btn {
+  min-width: 9rem;
+  min-height: 3rem;
+  font-family: var(--stencil);
+  font-size: 1.5rem;
+  animation: opening-caption 1100ms ease-out 600ms both, op-breathe 2.4s ease-in-out 1.7s infinite;
+}
+
+@keyframes op-ember-glow {
+  from { opacity: 0.55; transform: scale(0.85); }
+  to { opacity: 1; transform: scale(1.1); }
+}
+
+@keyframes op-ember-rise {
+  50% { translate: 0 -6px; }
+}
+
+@keyframes op-breathe {
+  50% { transform: scale(1.05); }
+}
+
+/* The first fire catching as the match strikes: the flames come up, then the light spreads. */
+.opening .is-catch .yard .yard-flame {
+  animation: yard-flicker 0.8s ease-in-out infinite alternate, op-catch 1.2s ease-out 0.3s both;
+}
+
+.opening .is-catch .yard-lights {
+  animation: op-catch 2.2s ease-out 0.5s both;
+}
+
+@keyframes op-catch {
+  from { opacity: 0; }
+  35% { opacity: 0.6; }
+}
+
 /* The rail line: smoke rolling up, the sun going down, walkers crossing, ground sliding past. */
 .opening .op-puff {
   transform-box: fill-box;
@@ -7627,13 +7679,6 @@ p.is-bad {
 
 .opening .op-slide-fast {
   animation-duration: 0.42s;
-}
-
-/* The old depot before anyone moved in: no light in its windows. */
-.opening .is-dark .yard-lights,
-.opening .is-dark .yard-smoke,
-.opening .is-dark .yard-flame {
-  display: none;
 }
 
 @keyframes opening-in {

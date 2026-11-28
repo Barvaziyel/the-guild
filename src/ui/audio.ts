@@ -41,7 +41,8 @@ type Ctor = typeof AudioContext;
 
 export class SoundSystem {
   private ctx: AudioContext | null = null;
-  private bus: { master: GainNode; music: GainNode; sound: GainNode; ambience: GainNode } | null = null;
+  /** `bed` carries the music and the ambience, so a line said in a scene can duck them both. */
+  private bus: { master: GainNode; bed: GainNode; music: GainNode; sound: GainNode; ambience: GainNode } | null = null;
   private files = new Map<string, Promise<AudioBuffer | null>>();
   private sprite: AudioBuffer | null = null;
   private music: Playing | null = null;
@@ -53,6 +54,9 @@ export class SoundSystem {
   private wantAmbience: AmbienceMix | null = null;
   private volumes: Volumes = { on: true, music: 0.6, sound: 0.8, ambience: 0.5 };
   private hidden = false;
+  /** A scene's sounds, scheduled ahead: cut when the scene moves on or is skipped. */
+  private staged: { src: AudioBufferSourceNode; gain: GainNode; at: number }[] = [];
+  private sceneId = 0;
 
   /** From a touch or a key: start the audio, or wake it. */
   unlock(): void {
@@ -109,6 +113,66 @@ export class SoundSystem {
     src.start(ctx.currentTime + (cue.delay ?? 0), start, length);
   }
 
+  /**
+   * A scene's sounds for the shot just shown (3.14.0), each at its own delay, exactly as made: no
+   * pitch or loudness drift, so a voice sounds like itself. Sounds of the last shot that haven't started
+   * yet are dropped, the ones playing ring out; `cut` fades those too (the scene was skipped or is over).
+   * If the effects haven't loaded yet (a scene can start on the first touch), they start when they
+   * have, part way in, so they stay in time with the pictures.
+   */
+  scene(cues: readonly Cue[], duck?: { at: number; for: number }, cut = false): void {
+    const ctx = this.ctx;
+    const id = ++this.sceneId;
+    if (ctx && this.bus) {
+      const now = ctx.currentTime;
+      for (const s of this.staged) {
+        if (s.at > now) s.src.stop();
+        else if (cut) {
+          s.gain.gain.setTargetAtTime(0, now, 0.08);
+          s.src.stop(now + 0.6);
+        }
+      }
+      this.staged = [];
+      const bed = this.bus.bed.gain;
+      bed.cancelScheduledValues(now);
+      bed.setTargetAtTime(1, now, 0.25);
+    }
+    if (!ctx || !this.bus || this.hidden || !this.volumes.on) return;
+    const asked = ctx.currentTime;
+    const go = (sprite: AudioBuffer): void => {
+      if (id !== this.sceneId || !this.bus) return;
+      const now = ctx.currentTime;
+      const late = now - asked;
+      for (const cue of cues) {
+        const [start, length] = SPRITE[cue.id];
+        const wait = (cue.delay ?? 0) - late;
+        const into = Math.max(0, -wait);
+        if (into >= length - 0.1) continue;
+        const src = ctx.createBufferSource();
+        src.buffer = sprite;
+        src.playbackRate.value = cue.rate ?? 1;
+        const gain = ctx.createGain();
+        gain.gain.value = cue.gain ?? 1;
+        src.connect(gain);
+        gain.connect(this.bus.sound);
+        const at = now + Math.max(0, wait);
+        src.start(at, start + into, length - into);
+        this.staged.push({ src, gain, at });
+      }
+      if (duck) {
+        const bed = this.bus.bed.gain;
+        const from = now + Math.max(0, duck.at - late);
+        bed.setTargetAtTime(0.4, from, 0.12);
+        bed.setTargetAtTime(1, from + duck.for, 0.6);
+      }
+    };
+    if (this.sprite) go(this.sprite);
+    else
+      void this.load('sfx').then((b) => {
+        if (b) go(b);
+      });
+  }
+
   /** The game went into the background, or came back. */
   pause(): void {
     this.hidden = true;
@@ -128,10 +192,11 @@ export class SoundSystem {
     if (!Make) return;
     const ctx = new Make();
     const node = (): GainNode => ctx.createGain();
-    const bus = { master: node(), music: node(), sound: node(), ambience: node() };
-    bus.music.connect(bus.master);
+    const bus = { master: node(), bed: node(), music: node(), sound: node(), ambience: node() };
+    bus.music.connect(bus.bed);
+    bus.ambience.connect(bus.bed);
+    bus.bed.connect(bus.master);
     bus.sound.connect(bus.master);
-    bus.ambience.connect(bus.master);
     bus.master.connect(ctx.destination);
     this.ctx = ctx;
     this.bus = bus;

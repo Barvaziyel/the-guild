@@ -860,6 +860,163 @@ ELITE_LOUDNESS = {'clang': -21, 'splash': -21, 'howl': -23, 'bell': -21, 'clap':
 ELITE = {name[2:]: (lambda fn=fn, name=name: master(fn(), ELITE_LOUDNESS[name[2:]])) for name, fn in globals().items() if name.startswith('e_') and callable(fn)}
 
 
+# ---------------------------------------------------------------- scenes (3.14.0)
+# Sounds for the scenes: the opening, Haven's gate, the elites' first sight. Made on random numbers of
+# their own (313), after the elites, so nothing earlier moves. The sounds Aviel hasn't recorded yet
+# (gravel, the gate, the match, boots) are made here until he does: see claude/recordings.md.
+
+def scene_voice(name):
+    """A line said in a scene, from voices/scene (made by recorded.py from a real recording), with a little room."""
+    import os, subprocess
+    here = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'voices', 'scene')
+    pcm = subprocess.run(['ffmpeg', '-v', 'quiet', '-i', os.path.join(here, f'{name}.ogg'), '-f', 'f32le', '-ac', '1',
+                          '-ar', str(SR), 'pipe:1'], capture_output=True, check=True).stdout
+    return np.frombuffer(pcm, dtype='<f4').astype(float)
+
+
+def crunch(power=1.0):
+    """One footfall on gravel: a scatter of small stones shifting under a boot, and the boot."""
+    d = 0.16
+    out = np.zeros(int(d * SR))
+    for _ in range(int(14 * power) + 6):
+        t0 = rng.uniform(0, 0.07)
+        g = bp(noise(0.012), rng.uniform(1800, 3400), rng.uniform(5000, 7500)) * env(0.012, 0.0003, rng.uniform(0.002, 0.005))
+        out += at(g * rng.uniform(0.3, 1.0), t0, d)
+    out += lp(noise(d), 260) * env(d, 0.002, 0.025) * 1.6
+    return out * power
+
+
+def c_gravel_walk():
+    """Four people walking the rail line's gravel, not quite in step, for a few seconds."""
+    total = 4.6
+    out = np.zeros(int(total * SR))
+    for who in range(4):
+        pace = rng.uniform(0.5, 0.58)
+        t = rng.uniform(0, 0.4)
+        gain = rng.uniform(0.55, 1.0)
+        while t < total - 0.2:
+            out += at(crunch(gain * rng.uniform(0.8, 1.1)), t, total)
+            t += pace * rng.uniform(0.95, 1.05)
+    return fade_end(verb(out, 0.6, 0.12), 0.4)
+
+
+def c_run_gravel():
+    """Someone running on gravel, coming closer."""
+    total = 2.6
+    out = np.zeros(int(total * SR))
+    t, k = 0.0, 0
+    while t < total - 0.15:
+        out += at(crunch(0.5 + 0.6 * t / total) * (1.25 if k % 2 else 1.0), t, total)
+        t += 0.29
+        k += 1
+    return fade_end(verb(out, 0.7, 0.15), 0.1)
+
+
+def c_creak():
+    """The old depot's gate swinging open on a dry hinge: it catches and slips, catches and slips, then knocks."""
+    d = 1.9
+    t = t_(d)
+    # Stick and slip: the squeal comes in bursts as the hinge catches.
+    bursts = np.clip(np.sin(2 * np.pi * 3.4 * t + 2.5 * np.sin(2 * np.pi * 0.7 * t)), 0, 1) ** 2
+    f = 520 + 260 * t / d + 90 * np.sin(2 * np.pi * 7.3 * t)
+    squeal = np.sin(2 * np.pi * np.cumsum(f) / SR) + 0.4 * np.sin(2 * np.pi * np.cumsum(f * 2.01) / SR)
+    x = bp(squeal * bursts, 400, 2600) * np.interp(t, [0, 0.1, 1.6, d], [0, 1, 0.8, 0]) * 0.5
+    x += lp(noise(d), 300) * 0.08 * bursts
+    total = 2.4
+    out = at(x, 0, total) + at(lp(noise(0.08), 900) * env(0.08, 0.001, 0.02) * 0.9, 1.95, total)
+    return fade_end(verb(out, 1.0, 0.3), 0.15)
+
+
+def c_match():
+    """A match struck, the flare, and kindling catching: the first fire."""
+    total = 3.2
+    strike = bp(noise(0.16), 2500, 7000) * np.interp(t_(0.16), [0, 0.03, 0.16], [0, 1, 0.2])
+    flare = hp(noise(0.7), 250) * np.interp(t_(0.7), [0, 0.06, 0.25, 0.7], [0, 0.7, 0.35, 0.05])
+    out = at(strike * 0.9, 0.0, total) + at(lp(flare, 3500), 0.14, total)
+    # The kindling: a rising bed and the first cracks.
+    out += at(lp(noise(2.6), 1800) * np.interp(t_(2.6), [0, 1.2, 2.6], [0, 0.18, 0.25]), 0.5, total)
+    for _ in range(26):
+        when = rng.uniform(0.6, 3.0)
+        crack = hp(noise(0.01), 1500) * env(0.01, 0.0002, rng.uniform(0.0015, 0.004)) * rng.uniform(0.3, 0.9)
+        out += at(crack, when, total)
+    return fade_end(verb(out, 0.5, 0.12), 0.5)
+
+
+def c_stamp():
+    """A heavy stamp coming down on paper: the guild's name."""
+    total = 1.0
+    thud = sweep(110, 48, 0.3) * env(0.3, 0.001, 0.08)
+    slap = bp(noise(0.05), 600, 4000) * env(0.05, 0.0005, 0.01)
+    return fade_end(verb(at(thud * 1.2, 0, total) + at(slap * 0.7, 0, total), 0.8, 0.25), 0.2)
+
+
+def c_we_stay_m():
+    """“We stay.”, said quietly by the fire (Aviel's recording), with the yard's night around it."""
+    v = scene_voice('we_stay_m')
+    v = hp(v, 90)
+    total = len(v) / SR + 0.6
+    return fade_end(verb(at(v, 0.05, total), 0.9, 0.18), 0.2)
+
+
+def c_door_bang():
+    """A door in a wall thrown open, banging back."""
+    total = 1.1
+    hitx = at(lp(noise(0.12), 1600) * env(0.12, 0.0005, 0.03), 0, total) + at(sweep(140, 70, 0.2) * env(0.2, 0.001, 0.05) * 0.8, 0, total)
+    rattle = bp(noise(0.25), 900, 3000) * env(0.25, 0.002, 0.06) * 0.3
+    return fade_end(verb(hitx + at(rattle, 0.03, total), 1.4, 0.4), 0.2)
+
+
+def c_shot_far():
+    """A rifle from the top of a wall, and the dam throwing it back, twice."""
+    shot = gun(1.3, 0.7, 1500, 70, 0.9, 0.3)
+    total = 3.0
+    out = at(shot, 0, total)
+    for delay, g, cut in ((0.42, 0.35, 1800), (0.95, 0.18, 1200)):
+        out += at(lp(shot, cut) * g, delay, total)
+    return fade_end(verb(out, 2.2, 0.35), 0.6)
+
+
+def c_body_fall():
+    """Someone going down in the road: a heavy body on dirt and gravel."""
+    total = 1.0
+    out = at(lp(noise(0.25), 220) * env(0.25, 0.002, 0.05) * 1.8, 0, total) + at(sweep(90, 50, 0.2) * env(0.2, 0.002, 0.06), 0, total)
+    out += at(crunch(0.7) * 0.6, 0.05, total) + at(crunch(0.4) * 0.4, 0.22, total)
+    return fade_end(verb(out, 0.6, 0.15), 0.2)
+
+
+def c_boots():
+    """Boots coming up the road behind them, many of them, in step: the Vultures."""
+    total = 3.2
+    out = np.zeros(int(total * SR))
+    for k in range(int(total / 0.42)):
+        t = k * 0.42
+        step = lp(noise(0.12), 700) * env(0.12, 0.001, 0.03)
+        for _ in range(5):
+            out += at(step * rng.uniform(0.5, 0.9), t + rng.uniform(0, 0.03), total)
+    out *= np.interp(t_(total), [0, total], [0.35, 1.0])
+    return fade_end(verb(out, 1.0, 0.25), 0.3)
+
+
+def c_gate_groan():
+    """Haven's gate opening: steel grinding on its rails, low and long, with an edge a phone can carry."""
+    d = 3.4
+    t = t_(d)
+    f = 46 + 6 * np.sin(2 * np.pi * 0.6 * t)
+    grind = blwave(f, 'saw') * (0.6 + 0.4 * np.abs(np.sin(2 * np.pi * 2.1 * t)))
+    edge = bp(noise(d), 700, 2200) * (0.25 + 0.2 * np.abs(np.sin(2 * np.pi * 5.3 * t)))
+    squeal = np.sin(2 * np.pi * np.cumsum(880 + 120 * np.sin(2 * np.pi * 0.9 * t)) / SR) * np.clip(np.sin(2 * np.pi * 1.3 * t), 0, 1) ** 3 * 0.15
+    x = (lp(grind, 900) * 0.8 + edge + squeal) * np.interp(t, [0, 0.3, 2.9, d], [0, 1, 1, 0])
+    total = 4.2
+    out = at(x, 0, total) + at(lp(noise(0.2), 400) * env(0.2, 0.001, 0.06) * 1.4, 3.35, total)
+    return fade_end(verb(out, 1.8, 0.4), 0.4)
+
+
+# Loudness for each (LUFS), so a footstep doesn't drown a line.
+SCENE_LOUDNESS = {'gravel_walk': -26, 'run_gravel': -24, 'creak': -25, 'match': -24, 'stamp': -18, 'we_stay_m': -21, 'door_bang': -20, 'shot_far': -17, 'body_fall': -21, 'boots': -24, 'gate_groan': -21}
+
+SCENE = {name[2:]: (lambda fn=fn, name=name: master(fn(), SCENE_LOUDNESS[name[2:]])) for name, fn in globals().items() if name.startswith('c_') and callable(fn)}
+
+
 # ---------------------------------------------------------------- ambience (stereo loops)
 
 def loop_xfade(x, fade):
@@ -1004,6 +1161,12 @@ if __name__ == '__main__':
     # The elites after them, on their own random numbers (3.12.0).
     rng.bit_generator.state = np.random.default_rng(312).bit_generator.state
     for name, fn in ELITE.items():
+        x = fade_end(np.asarray(fn(), dtype=float), 0.01)
+        index[name] = [round(sum(len(p) for p in parts) / SR, 4), round(len(x) / SR, 4)]
+        parts.append(x)
+        parts.append(np.zeros(int(gap * SR)))
+    rng.bit_generator.state = np.random.default_rng(313).bit_generator.state
+    for name, fn in SCENE.items():
         x = fade_end(np.asarray(fn(), dtype=float), 0.01)
         index[name] = [round(sum(len(p) for p in parts) / SR, 4), round(len(x) / SR, 4)]
         parts.append(x)

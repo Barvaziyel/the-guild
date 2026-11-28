@@ -29,6 +29,8 @@ export type AmbienceMix = Record<AmbienceId, number>;
 
 /** The music for a screen at an hour of the phone's day. */
 export function musicFor(route: Route, state: GameState, hour: number): MusicId {
+  // The opening scene (3.14.0) is dusk into night, whatever the hour; it sets its own ambience.
+  if (state.intro) return 'night';
   if (route.screen === 'fight') return 'fight';
   if (route.screen === 'raid' && openRaid(state)) return 'fight';
   // The road east, and Haven's notebook: hopeful, a road to somewhere safe (Aviel, 2026-11-23),
