@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import { BUILDING_IDS, PROJECT_IDS, type BuildingId, type ProjectId } from '../engine/types.ts';
-import { RUN, STROLL, errandFor, errandMotion, gaitFor, gatePath, pathLength, stepSeconds, tripMotion, tripSeconds } from './life.ts';
+import { RUN, STROLL, errandFor, errandMotion, gaitFor, gatePath, gateTimes, pathLength, stepSeconds, tripMotion, tripSeconds } from './life.ts';
 import { IDLE_SPOTS, POST_SPOTS, REST_SPOTS, W } from './layout.ts';
 import type { FigureLook, YardModel, YardPerson, YardTrip } from './model.ts';
 import { spotFor, yardSvg } from './yard.ts';
@@ -95,10 +95,15 @@ describe('through the gate (3.2.0)', () => {
     const svg = yardSvg(model([person('a', { kind: 'idle', slot: 0 })], [{ ...out, way: 'in' }, { id: 'v1', vehicle: { defId: 'pickup', id: 'v1', slot: 0 }, way: 'in', at: 10_000, order: 0 }]), 12_000);
     const classes = [...svg.matchAll(/class="(yt\w+-h)"/g)].map((m) => m[1]);
     assert.equal(classes.length, 2, 'the person and the vehicle each wait');
-    assert.match(svg, /animation:yard-gate /);
+    assert.match(svg, /animation:yard-gate-\d+ /);
+    // Shut until the first of them gets to it (3.15.0): its swing starts later than now.
+    const delay = Number(/animation:yard-gate-\d+ [\d.]+s linear (-?[\d.]+)s/.exec(svg)![1]);
+    assert.ok(delay > 0, `the gate waits ${delay} s`);
+    const first = Math.min(gateTimes({ ...out, way: 'in' }).reach, gateTimes({ id: 'v1', vehicle: { defId: 'pickup', id: 'v1', slot: 0 }, way: 'in', at: 10_000, order: 0 }).reach);
+    assert.ok(Math.abs(delay - (first - 0.5 - 2)) < 0.1);
     // Long after, the gate stays shut and nothing waits.
     const later = yardSvg(model([person('a', { kind: 'idle', slot: 0 })], [{ ...out, way: 'in' }]), 90_000);
-    assert.doesNotMatch(later, /yard-gate \d/);
+    assert.doesNotMatch(later, /animation:yard-gate/);
     assert.doesNotMatch(later, /class="yt/);
   });
 });

@@ -942,6 +942,13 @@ def c_match():
     return fade_end(verb(taken('match'), 0.4, 0.1), 0.3)
 
 
+def c_campfire():
+    """The first fire, catching after the match and crackling on through the end of the opening (3.15.0, real)."""
+    x = taken('campfire')
+    grow = np.clip(np.arange(len(x)) / (2.2 * SR), 0.25, 1.0)
+    return x * grow
+
+
 def c_scream_f():
     """A woman screaming the truth at Haven's gate, out on the road (3.15.0, real; no words)."""
     return fade_end(verb(lp(taken('scream_f'), 6000), 1.6, 0.3), 0.6)
@@ -1002,8 +1009,11 @@ def c_gate_groan():
 
 
 def c_pull_up():
-    """The Vultures' trucks coming up the road, braking and idling (3.15.0, a real old car)."""
-    return fade_end(taken('pull_up'), 0.5)
+    """The Vultures' trucks coming up the road and braking (3.15.0, a real old car): over before they come on
+    (Aviel, 2026-11-28), so the engine is cut short of its idling."""
+    x = taken('pull_up')[int(1.4 * SR):int(5.2 * SR)]
+    x = x * np.clip(np.arange(len(x)) / (0.6 * SR), 0, 1)
+    return fade_end(x, 0.9)
 
 
 def c_gale():
@@ -1012,7 +1022,7 @@ def c_gale():
 
 
 # Loudness for each (LUFS), so a footstep doesn't drown a line.
-SCENE_LOUDNESS = {'gravel_walk': -25, 'run_gravel': -23, 'creak': -26, 'match': -23, 'scream_f': -20, 'scream_m': -20, 'stamp': -18, 'door_bang': -20, 'shot_far': -17, 'body_fall': -20, 'stomp': -19, 'boots': -24, 'gate_groan': -21, 'pull_up': -22, 'gale': -26}
+SCENE_LOUDNESS = {'gravel_walk': -25, 'run_gravel': -23, 'creak': -26, 'match': -19, 'campfire': -24, 'scream_f': -20, 'scream_m': -20, 'stamp': -18, 'door_bang': -20, 'shot_far': -17, 'body_fall': -20, 'stomp': -19, 'boots': -24, 'gate_groan': -21, 'pull_up': -27, 'gale': -26}
 
 SCENE = {name[2:]: (lambda fn=fn, name=name: master(fn(), SCENE_LOUDNESS[name[2:]])) for name, fn in globals().items() if name.startswith('c_') and callable(fn)}
 
