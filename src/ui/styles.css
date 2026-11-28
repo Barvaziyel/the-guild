@@ -5166,6 +5166,68 @@ p.is-bad {
   margin: 0 0 0.75rem;
 }
 
+/* A line coming up in a moving scene (4b), as the pictures go on. */
+.scene-caption.is-new {
+  animation: opening-caption 900ms ease-out both;
+}
+
+/* Fighters coming onto the stage in a moving scene (4b): from off the edge or out of a gate, a step at a time. */
+.battle .bt-arrive {
+  animation-name: bt-arrive;
+  animation-timing-function: cubic-bezier(0.3, 0, 0.45, 1);
+  animation-fill-mode: both;
+}
+
+.battle .bt-arrive-step {
+  animation: bt-step 0.15s ease-in-out alternate;
+}
+
+@keyframes bt-arrive {
+  from { transform: translate(var(--dx), var(--dy)) scale(var(--s0)); opacity: 0; }
+  10% { opacity: 1; }
+  to { transform: translate(0, 0) scale(1); opacity: 1; }
+}
+
+@keyframes bt-step {
+  to { transform: translateY(-2.5px); }
+}
+
+/* Haven's gate in its scene (4b): the small door banging open, the great gate swinging out. */
+.battle .bd-door {
+  transform-origin: 256px 145px;
+  animation: bd-door 0.32s cubic-bezier(0.6, 0, 0.9, 0.5) 0.5s both;
+}
+
+@keyframes bd-door {
+  70% { transform: scaleX(-0.7); }
+  85% { transform: scaleX(-0.52); }
+  to { transform: scaleX(-0.58); }
+}
+
+.battle .bd-leaf-l,
+.battle .bd-leaf-r {
+  animation: bd-leaf 3.2s cubic-bezier(0.5, 0, 0.3, 1) 0.6s both;
+}
+
+.battle .bd-leaf-l {
+  transform-origin: 172px 129px;
+}
+
+.battle .bd-leaf-r {
+  transform-origin: 228px 129px;
+}
+
+@keyframes bd-leaf {
+  6% { transform: scaleX(0.96); filter: brightness(1); }
+  to { transform: scaleX(-0.64); filter: brightness(0.78); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .battle .bt-arrive-step {
+    animation: none;
+  }
+}
+
 .fight-one .battle-stage {
   position: relative;
   margin: 0;

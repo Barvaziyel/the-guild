@@ -3,7 +3,9 @@ import { describe, test } from 'node:test';
 import { HAVEN_CLUES, HAVEN_JOURNEY, HAVEN_VULTURES, Rng, fightPreview, letThemFight, makeMember, setOutForHaven, startHaven, type GameState } from '../engine/index.ts';
 import { T0, openGame } from '../engine/test-utils.ts';
 import { stageSvg } from '../scene/index.ts';
-import { gateScene, readingTime } from './gate-scene.ts';
+import { gateScene } from './gate-scene.ts';
+import { readingTime } from './scene-view.ts';
+import { SPRITE } from './sounds.ts';
 
 /** A guild at Haven's gate: every clue, a van, the Vultures' word if asked, and the first two fights behind them. */
 function atTheGate(seed: string, vultures: boolean): { state: GameState; runId: string } {
@@ -27,48 +29,76 @@ function atTheGate(seed: string, vultures: boolean): { state: GameState; runId: 
   return { state, runId: run.id };
 }
 
-describe('Haven’s gate, before the fight (§9.12)', () => {
-  test('the shut gate, the runner, the shot, the Vultures, then the gate open on the fight', () => {
+describe('Haven’s gate, before the fight (§9.12; moving, 4b)', () => {
+  test('the door and the runner, the Vultures coming up, then the gate opening on the fight', () => {
     const { state, runId } = atTheGate('scene', true);
     const run = state.runs.find((r) => r.id === runId)!;
     const fight = run.lead!.fights[2]!;
     assert.equal(fight.site, 'haven_gate');
     const view = fightPreview(state, runId, fight.at + 1000)!;
-    const frames = gateScene(state, run, fight, view)!;
-    assert.equal(frames.length, 7);
+    const shots = gateScene(state, run, fight, view)!;
+    assert.equal(shots.length, 3);
     const lines = run.beats[fight.fromBeat - 1]!.lines.map((l) => l.text);
-    assert.deepEqual(
-      frames.slice(0, 5).map((f) => f.caption),
-      [lines[0], lines[1], lines[1], lines[2], lines[2]],
-    );
-    assert.ok(frames[5]!.caption.startsWith('Engines on the road behind them'));
-    assert.equal(frames[6]!.caption, HAVEN_JOURNEY.gate.open);
-    // One of the guild calls the halt, not a Vulture.
-    assert.ok(state.survivors.some((s) => s.id === fight.by));
-    // Shut until the last; nobody of Haven's on the stage until then; the Vultures only from their line on.
-    assert.ok(frames.slice(0, 6).every((f) => f.model.place === 'haven_gate_shut' && f.model.enemies.length === 0));
-    assert.equal(frames[6]!.model.place, 'haven_gate');
-    assert.ok(frames[6]!.model.enemies.some((e) => e.kind === 'the_shepherd'));
-    const allies = (k: number) => frames[k]!.model.crew.filter((f) => f.vulture && f.state !== 'fled').length;
-    assert.equal(allies(4), 0);
-    assert.equal(allies(5), 2);
-    // The shot, and the runner on the ground from then on.
-    assert.ok(frames[3]!.model.shot);
-    assert.ok(frames[3]!.model.extras![0]!.hit);
-    assert.ok(frames.slice(4).every((f) => f.model.extras![0]!.lying));
-    // A scene: no names or bars, and it draws.
-    assert.ok(frames.every((f) => f.model.scene));
-    for (const f of frames) assert.match(stageSvg(f.model), /aria-label="Before the fight"/);
-    assert.ok(frames.every((f) => f.ms >= 900));
+    // The runner's three lines come up in turn over one moving shot, each with time to be read.
+    const first = shots[0]!;
+    assert.deepEqual(first.lines.map((l) => l.text), lines.slice(0, 3));
+    assert.ok(Math.abs(first.lines[1]!.at * 1000 - readingTime(lines[0]!)) <= 50);
+    assert.ok(first.ms >= lines.slice(0, 3).reduce((t, l) => t + readingTime(l), 0));
+    assert.ok(shots[1]!.lines[0]!.text.startsWith('Engines on the road behind them'));
+    assert.equal(shots[2]!.lines[0]!.text, HAVEN_JOURNEY.gate.open);
+
+    // The small door bangs open, then the great gate swings open; nobody of Haven's on the stage until it does.
+    assert.deepEqual(shots.map((s) => s.model.place), ['haven_gate_door', 'haven_gate_shut', 'haven_gate_opening']);
+    assert.ok(shots.slice(0, 2).every((s) => s.model.enemies.length === 0));
+    assert.ok(shots[2]!.model.enemies.some((e) => e.kind === 'the_shepherd'));
+    // Haven's own walk out of the gate, the Shepherd last; the Vultures come on from behind.
+    const out = shots[2]!.model.arrive!;
+    assert.ok(out.every((a) => a.from !== 'left'));
+    assert.deepEqual(out[out.length - 1]!.keys, shots[2]!.model.enemies.filter((e) => e.kind === 'the_shepherd').map((e) => e.key));
+    assert.equal(out.flatMap((a) => a.keys).length, shots[2]!.model.enemies.length);
+    const allies = (k: number) => shots[k]!.model.crew.filter((f) => f.vulture && f.state !== 'fled').map((f) => f.key);
+    assert.equal(allies(0).length, 0);
+    assert.deepEqual(shots[1]!.model.arrive![0]!.keys, allies(1));
+    assert.equal(allies(1).length, 2);
+
+    // The runner: hidden in the door, running, shouting, hit when the shot comes, and on the ground after.
+    const keys = first.model.extras![0]!.keys!;
+    assert.ok(keys[0]!.hidden);
+    assert.ok(keys.some((k) => k.pose === 'run') && keys.some((k) => k.pose === 'shout'));
+    const hit = keys.find((k) => k.pose === 'hit')!;
+    assert.ok(Math.abs(hit.t - first.model.shot!.at!) < 0.1, 'hit when the shot comes');
+    assert.ok(hit.t > first.lines[2]!.at, 'after its line is up');
+    assert.equal(keys[keys.length - 1]!.pose, 'lying');
+    assert.ok(keys.every((k, i) => i === 0 || k.t > keys[i - 1]!.t), 'in order');
+    assert.ok(shots.slice(1).every((s) => s.model.extras![0]!.lying));
+
+    // Its sound: Haven's tune turning at the scream; the door, the shot, the fall, the gate; all of it while its shot is up.
+    assert.deepEqual(first.sound.music, [{ id: 'haven', at: 0 }, { id: 'truth', at: first.lines[1]!.at }]);
+    const ids = shots.flatMap((s) => s.sound.cues.map((c) => c.id));
+    for (const id of ['door_bang', 'shot_far', 'body_fall', 'boots', 'gate_groan'] as const) assert.ok(ids.includes(id), id);
+    for (const s of shots) for (const c of s.sound.cues) {
+      assert.ok(c.id in SPRITE, c.id);
+      assert.ok((c.delay ?? 0) * 1000 < s.ms, `${c.id} at ${c.delay} s in a ${s.ms} ms shot`);
+    }
+
+    // A scene: no names or bars, and it draws, moving.
+    for (const s of shots) {
+      assert.ok(s.model.scene);
+      const svg = stageSvg(s.model);
+      assert.match(svg, /aria-label="Before the fight"/);
+    }
+    assert.match(stageSvg(first.model), /@keyframes sx/);
+    assert.match(stageSvg(shots[2]!.model), /class="bt-arrive"/);
+    assert.match(stageSvg(shots[2]!.model), /bd-leaf-l/);
   });
 
-  test('without the Vultures there’s no frame for them', () => {
+  test('without the Vultures there’s no shot for them', () => {
     const { state, runId } = atTheGate('alone', false);
     const run = state.runs.find((r) => r.id === runId)!;
     const fight = run.lead!.fights[2]!;
-    const frames = gateScene(state, run, fight, fightPreview(state, runId, fight.at + 1000)!)!;
-    assert.equal(frames.length, 6);
-    assert.ok(!frames.some((f) => f.caption.startsWith('Engines on the road behind them')));
+    const shots = gateScene(state, run, fight, fightPreview(state, runId, fight.at + 1000)!)!;
+    assert.equal(shots.length, 2);
+    assert.ok(!shots.some((s) => s.lines.some((l) => l.text.startsWith('Engines on the road behind them'))));
   });
 
   test('any other fight has no scene', () => {

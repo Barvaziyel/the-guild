@@ -296,8 +296,13 @@ const HAVEN_GLOW: Backdrop = () => {
   return out + `<rect x="0" y="110" width="${W}" height="70" fill="#c7f27a" opacity="0.1"/>`;
 };
 
-/** The dam's north gate (§9.12): open for the fight, or shut, with a small door in the wall, before it. */
-function havenGate(open: boolean): string {
+/**
+ * The dam's north gate (§9.12): open for the fight, or shut, with a small door in the wall, before it. In
+ * the scene before the fight (4b) it moves: the small door bangs open half a second in (`door`), or the
+ * great gate swings open (`opening`).
+ */
+function havenGate(mode: 'open' | 'shut' | 'door' | 'opening'): string {
+  const open = mode === 'open';
   let out = sky('#c9d0cb', '#e3e1d4') + skyline('#a8afa6', 'hd', 60, 18);
   // The dam: one great wall of concrete across the valley, seams down it.
   out += pathEl(`M 0 36 Q 200 24 ${W} 36 L ${W} ${HORIZON} L 0 ${HORIZON} Z`, '#a9a596', THIN);
@@ -318,11 +323,21 @@ function havenGate(open: boolean): string {
     out += rect(172, 100, 56, 58, '#1d1b1a', THIN);
     out += poly([[172, 100], [154, 106], [154, 160], [172, 158]], '#6b7272', THIN) + poly([[228, 100], [246, 106], [246, 160], [228, 158]], '#6b7272', THIN);
     out += line(163, 112, 163, 152, 0.8, INK) + line(237, 112, 237, 152, 0.8, INK);
+  } else if (mode === 'opening') {
+    // The leaves swing out on their hinges, the dark inside showing between them.
+    out += rect(172, 100, 56, 58, '#1d1b1a', THIN);
+    for (const [x, cls] of [[172, 'bd-leaf-l'], [200, 'bd-leaf-r']] as const) {
+      let leaf = rect(x, 100, 28, 58, '#6b7272', THIN);
+      for (const y of [108, 128, 148]) leaf += line(x + 2, y, x + 26, y, 0.7, '#4f5555');
+      out += `<g class="${cls}">${leaf}</g>`;
+    }
+    out += rect(244, 132, 12, 26, '#1d1b1a', THIN) + poly([[256, 132], [263, 135], [263, 160], [256, 158]], '#7d7a6e', THIN);
   } else {
-    // Shut, riveted; and a small door in the wall beside it, banged open.
+    // Shut, riveted; and a small door in the wall beside it, banged open (or about to be).
     out += rect(172, 100, 56, 58, '#6b7272', THIN) + line(200, 100, 200, 158, 1.2, INK);
     for (const y of [108, 128, 148]) out += line(174, y, 226, y, 0.7, '#4f5555');
-    out += rect(244, 132, 12, 26, '#1d1b1a', THIN) + poly([[256, 132], [263, 135], [263, 160], [256, 158]], '#7d7a6e', THIN);
+    out += rect(244, 132, 12, 26, '#1d1b1a', THIN);
+    out += mode === 'door' ? `<g class="bd-door">${rect(244, 132, 12, 26, '#7d7a6e', THIN)}${circle(246.5, 146, 0.9, INK)}</g>` : poly([[256, 132], [263, 135], [263, 160], [256, 158]], '#7d7a6e', THIN);
   }
   // A white truck parked by the gate, its back shut.
   out += rect(300, 118, 62, 40, '#e6e3d8', THIN) + pathEl('M 362 158 L 362 128 L 380 128 L 390 142 L 390 158 Z', '#e6e3d8', THIN) + rect(368, 132, 12, 9, '#4f5a5a', THIN);
@@ -364,8 +379,8 @@ const DRIVE_IN: Backdrop = () => {
   return out;
 };
 
-const HAVEN_GATE: Backdrop = () => havenGate(true);
-const HAVEN_GATE_SHUT: Backdrop = () => havenGate(false);
+const HAVEN_GATE: Backdrop = () => havenGate('open');
+const HAVEN_GATE_SHUT: Backdrop = () => havenGate('shut');
 
 /** Where lookouts stand on the Watchtower in a raid (§9.8): the platform's floor, and its left and right ends. */
 export const TOWER_DECK = { y: 104, x0: 14, x1: 70 } as const;
@@ -409,6 +424,8 @@ const BACKDROPS: Record<string, Backdrop> = {
   haven_glow: HAVEN_GLOW,
   haven_gate: HAVEN_GATE,
   haven_gate_shut: HAVEN_GATE_SHUT,
+  haven_gate_door: () => havenGate('door'),
+  haven_gate_opening: () => havenGate('opening'),
   corwin_dam: HAVEN_GATE,
 };
 

@@ -1,60 +1,83 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { stageSvg } from '../../scene/index.ts';
-import type { SceneFrame } from '../gate-scene.ts';
 import { useServices } from '../hooks.ts';
+import type { SceneShot } from '../scene-view.ts';
 
 /**
- * A scene played on the battle stage before a fight (Haven's gate, §9.12):
- * one still after another, each with its line under it. A tap on the stage
- * goes to the next; Skip ends it. `onDone` once it's over either way.
+ * A scene played on the battle stage before a fight (Haven's gate, §9.12; 4b): one moving shot after
+ * another, each line coming up under it as the pictures go on, with its own sound and music over the
+ * screen's. A tap on the stage goes to the next shot; Skip ends it. `onDone` once it's over either way.
  */
-export function SceneStage({ frames, onDone }: { frames: SceneFrame[]; onDone: () => void }) {
+export function SceneStage({ frames, onDone }: { frames: SceneShot[]; onDone: () => void }) {
+  // The scene as it was when it began: the screen's clock moving on mustn't start it over.
+  const [shots] = useState(frames);
   const [step, setStep] = useState(0);
-  const frame = frames[Math.min(step, frames.length - 1)];
-  const over = step >= frames.length;
+  // Which of the shot's lines is up, for the shot it was set in.
+  const [line, setLine] = useState({ step: 0, k: 0 });
+  const over = step >= shots.length;
+  const shot = shots[Math.min(step, shots.length - 1)];
+  const done = useRef(onDone);
+  done.current = onDone;
+  const { sound } = useServices();
 
   useEffect(() => {
     if (over) {
-      onDone();
+      sound.scene([], undefined, true);
+      done.current();
       return;
     }
-    const t = window.setTimeout(() => setStep((s) => s + 1), frame!.ms);
-    return () => window.clearTimeout(t);
-  }, [step, over, frame, onDone]);
+    const s = shots[step]!;
+    if (s.sound.ambience) sound.sceneAmbience(s.sound.ambience);
+    sound.scene(s.sound.cues, s.sound.duck);
+    const timers = [window.setTimeout(() => setStep((n) => n + 1), s.ms)];
+    s.lines.forEach((l, k) => {
+      if (k > 0) timers.push(window.setTimeout(() => setLine({ step, k }), l.at * 1000));
+    });
+    for (const m of s.sound.music ?? []) timers.push(window.setTimeout(() => sound.sceneMusic(m.id), m.at * 1000));
+    return () => timers.forEach((t) => window.clearTimeout(t));
+  }, [step, over, shots, sound]);
+  // Leaving the scene any way gives the screen its own sound back.
+  useEffect(
+    () => () => {
+      sound.scene([], undefined, true);
+      sound.sceneMusic(undefined);
+      sound.sceneAmbience(undefined);
+    },
+    [sound],
+  );
 
-  const svg = useMemo(() => (frame ? stageSvg(frame.model) : ''), [frame]);
-  // The shot from the wall is heard (3.1.0).
-  const { sound } = useServices();
-  useEffect(() => {
-    if (!over && frame?.model.shot) sound.play({ id: 'rifle', pan: -0.3 });
-  }, [frame, over, sound]);
-  if (!frame) return null;
+  const svg = useMemo(() => (shot ? stageSvg(shot.model) : ''), [shot]);
+  if (!shot) return null;
+  const k = line.step === step ? line.k : 0;
+  const text = shot.lines[Math.min(k, shot.lines.length - 1)]?.text ?? '';
+  const next = (): void => setStep((s) => s + 1);
   return (
     <figure className="battle-stage scene-stage">
       <div
+        key={step}
         className="battle-svg"
         role="button"
         tabIndex={0}
         aria-label="Next"
-        onClick={() => setStep((s) => s + 1)}
+        onClick={next}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
-            setStep((s) => s + 1);
+            next();
           }
         }}
         dangerouslySetInnerHTML={{ __html: svg }}
       />
-      <figcaption className="scene-caption" aria-live="polite">
-        {frame.caption}
+      <figcaption key={`${step}:${k}`} className="scene-caption is-new" aria-live="polite">
+        {text}
       </figcaption>
       <div className="scene-controls">
         <span className="scene-pips" aria-hidden="true">
-          {frames.map((_, k) => (
+          {shots.map((_, k) => (
             <span key={k} className={k <= step ? 'is-on' : undefined} />
           ))}
         </span>
-        <button type="button" className="btn btn-quiet btn-small" onClick={() => setStep(frames.length)}>
+        <button type="button" className="btn btn-quiet btn-small" onClick={() => setStep(shots.length)}>
           Skip
         </button>
       </div>
