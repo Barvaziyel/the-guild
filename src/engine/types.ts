@@ -1355,6 +1355,11 @@ export interface GameState {
   nemeses: Nemesis[];
   /** The elites the guild knows of (§7.15, 3.12.0), by enemy id. One not here hasn't been seen yet. */
   elites: Record<string, EliteRecord>;
+  /**
+   * The elites whose first sight the player has watched or skipped (4c, 3.16.0), by enemy id: the scene plays
+   * once, when the crew that saw it is home, or at its fight if that comes first. Missing: none yet.
+   */
+  eliteSights?: string[];
   /** Vehicles the guild owns, at home or out (§7.8). */
   vehicles: Vehicle[];
   /** Outposts at fully explored places (§7.9). */

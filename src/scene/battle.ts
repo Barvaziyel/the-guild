@@ -148,7 +148,8 @@ export interface CameraKey {
 }
 
 /** How someone placed by hand stands in a moving scene: running leans and bobs, shouting leans and shakes. */
-export type ExtraPose = 'stand' | 'run' | 'shout' | 'hit' | 'lying';
+/** `walk` (4c): a slow, heavy step, for something big coming on. */
+export type ExtraPose = 'stand' | 'walk' | 'run' | 'shout' | 'hit' | 'lying';
 
 /** Where someone placed by hand is at a moment of a moving scene (4b), and how they stand from then until the next. */
 export interface ExtraKey {
@@ -387,7 +388,7 @@ function placed(f: StageFighter, slot: Slot, effect: StageEffect | undefined): s
 
 const pct = (t: number, total: number): string => `${n1(Math.min(100, Math.max(0, (t / total) * 100)))}%`;
 const at3 = (x: number, y: number, sc: number): string => `transform:translate(${n1(x)}px,${n1(y)}px) scale(${Math.round(sc * 1000) / 1000})`;
-const EASE: Record<ExtraPose, string> = { stand: 'cubic-bezier(0.45,0,0.55,1)', run: 'linear', shout: 'linear', hit: 'cubic-bezier(0.5,0,1,1)', lying: 'linear' };
+const EASE: Record<ExtraPose, string> = { stand: 'cubic-bezier(0.45,0,0.55,1)', walk: 'linear', run: 'linear', shout: 'linear', hit: 'cubic-bezier(0.5,0,1,1)', lying: 'linear' };
 
 /** The body's transform for a pose: every one the same list of functions, so one turns smoothly into the next. */
 function poseCss(pose: ExtraPose, height: number, beat = 0): string {
@@ -395,6 +396,8 @@ function poseCss(pose: ExtraPose, height: number, beat = 0): string {
   switch (pose) {
     case 'stand':
       return t(0, beat % 2 ? -0.8 : 0, 0, 1);
+    case 'walk':
+      return t(0, beat % 2 ? -1.6 : 0, beat % 2 ? 1.5 : -1, 1);
     case 'run':
       return t(0, beat % 2 ? -3 : 0, 8, 1);
     case 'shout':
@@ -419,7 +422,7 @@ function movingExtraSvg(e: StageExtra, keys: ExtraKey[], total: number): { svg: 
   let move = '';
   ends.forEach((key, i) => {
     const next = ends[i + 1];
-    const ease = next && (next.pose === 'lying' || key.pose === 'hit') ? 'cubic-bezier(0.5,0,1,1)' : key.pose === 'run' ? 'linear' : EASE.stand;
+    const ease = next && (next.pose === 'lying' || key.pose === 'hit') ? 'cubic-bezier(0.5,0,1,1)' : key.pose === 'run' || key.pose === 'walk' ? 'linear' : EASE.stand;
     move += `${pct(key.t, total)}{${at3(key.x, key.y, key.scale)};opacity:${key.hidden ? 0 : 1};animation-timing-function:${ease}}`;
   });
   let pose = '';
@@ -432,7 +435,7 @@ function movingExtraSvg(e: StageExtra, keys: ExtraKey[], total: number): { svg: 
       steps.push({ t: Math.min(end, key.t + 0.1), css: poseCss('hit', b.height), ease: 'cubic-bezier(0.55,0,1,0.45)' });
       return;
     }
-    const beat = p === 'run' ? 0.13 : p === 'shout' ? 0.09 : 1.4;
+    const beat = p === 'run' ? 0.13 : p === 'walk' ? 0.34 : p === 'shout' ? 0.09 : 1.4;
     let n = 0;
     for (let t = key.t; t < end - 0.06; t += beat) steps.push({ t, css: poseCss(p, b.height, n++) });
     if (p !== 'lying') steps.push({ t: Math.max(key.t, end - 0.06), css: poseCss(p, b.height, 0) });

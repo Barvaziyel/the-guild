@@ -30,5 +30,5 @@ export {
 } from './runs.ts';
 export { attackKind, enemyNames, movesFor, type FightAct, type FightActKind, type FightEnemyView, type FightMemberView, type FightView, type MoveChoice } from './command.ts';
 export type { GoalView } from './goals.ts';
-export { eliteProblem, eliteStatus, type EliteStatus } from './elites.ts';
+export { eliteProblem, eliteSightShown, eliteStatus, nextEliteSight, seenEliteSight, type EliteStatus } from './elites.ts';
 export type { EnemyIntentKind } from './combat.ts';

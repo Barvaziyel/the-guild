@@ -90,10 +90,11 @@ export class SoundSystem {
   }
 
   /** A scene's own music, in place of the screen's while it plays (Haven's gate turning from hope to the truth); undefined gives the screen's back. */
-  sceneMusic(id: MusicId | undefined): void {
+  sceneMusic(id: MusicId | null | undefined): void {
     if (id === this.sceneTune) return;
     this.sceneTune = id;
-    if (this.ctx) void this.switchMusic(id ?? this.wantMusic);
+    // `null` is a scene with no music, only its ambience (4c); undefined gives the screen's back.
+    if (this.ctx) void this.switchMusic(id === undefined ? this.wantMusic : id);
   }
 
   setAmbience(mix: AmbienceMix): void {
@@ -227,7 +228,7 @@ export class SoundSystem {
     void this.load('sfx').then((b) => {
       this.sprite = b;
     });
-    const tune = this.sceneTune ?? this.wantMusic;
+    const tune = this.sceneTune === undefined ? this.wantMusic : this.sceneTune;
     if (tune) void this.switchMusic(tune);
     const mix = this.sceneMix ?? this.wantAmbience;
     if (mix) this.applyAmbience(mix);

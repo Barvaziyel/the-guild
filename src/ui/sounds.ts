@@ -117,6 +117,7 @@ export const SPRITE = {
   gate_groan: [187.5624, 8.4463],
   pull_up: [196.0888, 3.8],
   gale: [199.9688, 12.3],
+  loudspeaker: [212.3488, 3.4],
 } as const;
 
 export type MusicId = keyof typeof MUSIC;

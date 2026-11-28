@@ -1,7 +1,7 @@
 {
   "name": "the-depot",
   "private": true,
-  "version": "3.15.1",
+  "version": "3.16.0",
   "description": "A post-apocalyptic scavenger-guild management game for Android.",
   "type": "module",
   "engines": {

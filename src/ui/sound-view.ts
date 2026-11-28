@@ -28,7 +28,8 @@ export interface ShotSound {
   ambience?: AmbienceMix;
   cues: Cue[];
   duck?: { at: number; for: number };
-  music?: { id: MusicId; at: number }[];
+  /** The scene's own music from so many seconds in; `null` is none, only the ambience (an elite's first sight, 4c). */
+  music?: { id: MusicId | null; at: number }[];
 }
 
 /** A short buzz of the phone: a light one for a hit taken, a heavy one when someone goes down. */

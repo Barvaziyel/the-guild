@@ -12,7 +12,7 @@ import { deserialize, serialize } from '../save.ts';
 import { T0, openGame, testPlan } from '../test-utils.ts';
 import type { GameState, RoundOrders, RunPlan } from '../types.ts';
 import type { FightAct, FightView } from './command.ts';
-import { eliteOnRun, eliteStatus } from './elites.ts';
+import { eliteOnRun, eliteSightShown, eliteStatus, nextEliteSight, seenEliteSight } from './elites.ts';
 import { validatePlan } from './plan.ts';
 import { completeRun, startRun } from './runs.ts';
 import { simulateRun } from './sim.ts';
@@ -70,6 +70,16 @@ describe('elites: content (3.12.0)', () => {
       assert.equal(el.signs.lines.crew.length, el.signs.lines.solo.length, e.id);
     }
   });
+
+  test('its first sight is a line of its own, about it and nobody of the guild (4c, 3.16.0)', () => {
+    for (const e of ELITES) {
+      const sight = e.elite!.sight;
+      assert.ok(sight.length > 20, e.id);
+      assert.doesNotMatch(sight, /\{/, `${e.id}: no placeholders`);
+      assert.doesNotMatch(sight, GROUP, `${e.id}: ${sight}`);
+      assert.doesNotMatch(sight, /\b(they|their|someone|somebody)\b/i, `${e.id}: nobody of the guild in it`);
+    }
+  });
 });
 
 describe('elites: seen, then met (3.12.0)', () => {
@@ -96,8 +106,30 @@ describe('elites: seen, then met (3.12.0)', () => {
       assert.equal(eliteStatus(state, 'rail_yard')?.state, 'atLarge');
       const witness = state.survivors.find((s) => s.id === news.seen)!;
       assert.ok(witness.chronicle.some((c) => c.text === 'First to see the Switchman, at The Rail Yard.'), JSON.stringify(witness.chronicle.at(-1)));
+      // Its first sight is to show now they're home, once (4c, 3.16.0).
+      assert.equal(nextEliteSight(state), 'the_switchman');
+      seenEliteSight(state, 'the_switchman');
+      assert.equal(nextEliteSight(state), undefined);
+      assert.ok(eliteSightShown(state, 'the_switchman'));
     }
     assert.ok(seen >= 3, `seen on ${seen} runs`);
+  });
+
+  test('first sights show one at a time, in the order they were seen, and not for one already dead (4c, 3.16.0)', () => {
+    const state = openGame('sights');
+    assert.equal(nextEliteSight(state), undefined);
+    state.elites = {
+      the_butcher: { seen: 5, status: 'atLarge', fights: 0 },
+      the_switchman: { seen: 3, status: 'atLarge', fights: 0 },
+      old_mother: { seen: 1, status: 'dead', fights: 1, diedDay: 2 },
+    };
+    assert.equal(nextEliteSight(state), 'the_switchman');
+    seenEliteSight(state, 'the_switchman');
+    seenEliteSight(state, 'the_switchman');
+    assert.deepEqual(state.eliteSights, ['the_switchman']);
+    assert.equal(nextEliteSight(state), 'the_butcher');
+    seenEliteSight(state, 'the_butcher');
+    assert.equal(nextEliteSight(state), undefined);
   });
 
   test('a run where it doesn’t show plays exactly as it would with no elite at all', () => {
@@ -300,6 +332,17 @@ describe('elites: the save (3.12.0)', () => {
     delete data.elites;
     data.version = 29;
     assert.deepEqual(deserialize(JSON.stringify(data)).elites, {});
+  });
+
+  test('in an older save, the elites already known count as shown; none is played over again (4c, 3.16.0)', () => {
+    const state = openGame('old-sights');
+    state.elites = { the_switchman: { seen: 3, status: 'atLarge', fights: 0 } };
+    const data = JSON.parse(serialize(state)) as Record<string, unknown>;
+    delete data.eliteSights;
+    data.version = 33;
+    const loaded = deserialize(JSON.stringify(data));
+    assert.deepEqual(loaded.eliteSights, ['the_switchman']);
+    assert.equal(nextEliteSight(loaded), undefined);
   });
 
   test('each place’s elite is the one at it', () => {

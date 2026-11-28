@@ -5,7 +5,7 @@ import type { SceneShot } from '../scene-view.ts';
 import { Portrait } from './Portrait.tsx';
 
 /**
- * A scene played on the battle stage before a fight (Haven's gate, §9.12; 4b): one moving shot after
+ * A scene played on the battle stage (Haven's gate, §9.12, 4b; an elite's first sight, 4c): one moving shot after
  * another, each line coming up under it as the pictures go on, with its own sound and music over the
  * screen's. A tap on the stage goes to the next shot; Skip ends it. `onDone` once it's over either way.
  */
@@ -52,23 +52,36 @@ export function SceneStage({ frames, onDone }: { frames: SceneShot[]; onDone: ()
   const k = line.step === step ? line.k : 0;
   const text = shot.lines[Math.min(k, shot.lines.length - 1)]?.text ?? '';
   const next = (): void => setStep((s) => s + 1);
+  const stamp = shot.stamp;
   return (
     <figure className="battle-stage scene-stage">
-      <div
-        key={step}
-        className="battle-svg"
-        role="button"
-        tabIndex={0}
-        aria-label="Next"
-        onClick={next}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            next();
-          }
-        }}
-        dangerouslySetInnerHTML={{ __html: svg }}
-      />
+      <div className="scene-frame" key={step}>
+        <div
+          className={stamp ? 'battle-svg is-stamped' : 'battle-svg'}
+          style={stamp ? { animationDelay: `${stamp.at}s` } : undefined}
+          role="button"
+          tabIndex={0}
+          aria-label="Next"
+          onClick={next}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              next();
+            }
+          }}
+          dangerouslySetInnerHTML={{ __html: svg }}
+        />
+        {/* A name slammed down over the stage (4c): it drops, the stage jolts, dust flies, and its place under it. */}
+        {stamp && (
+          <div className={stamp.top ? 'scene-stamp is-top' : 'scene-stamp'} style={{ ['--at' as string]: `${stamp.at}s` }} aria-live="polite">
+            {[0, 1, 2, 3, 4, 5].map((k) => (
+              <span key={k} className="scene-stamp-dust" style={{ ['--a' as string]: `${k * 60 + 15}deg` }} aria-hidden="true" />
+            ))}
+            <span className="scene-stamp-title">{stamp.title}</span>
+            {stamp.sub && <span className="scene-stamp-sub">{stamp.sub}</span>}
+          </div>
+        )}
+      </div>
       {/* Close-ups: in, shaking or hard, and out, on the shot's own clock. */}
       {shot.faces?.map((f, k) => (
         <div

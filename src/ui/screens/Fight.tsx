@@ -1,9 +1,10 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { commandRound, fightNow, fightPreview, getLocation, lastFought, ledFightNow, letThemFight, takeCommand, waitsForWord, type FightMemberView, type FightView, type GameState, type MoveId, type RoundOrders, type Run } from '../../engine/index.ts';
+import { commandRound, eliteSightShown, fightNow, fightPreview, getEnemy, getLocation, lastFought, ledFightNow, letThemFight, seenEliteSight, takeCommand, waitsForWord, type FightMemberView, type FightView, type GameState, type MoveId, type RoundOrders, type Run } from '../../engine/index.ts';
 import { tapOnStage } from '../battle-view.ts';
 import { Meter } from '../components/Bars.tsx';
 import { BattleStage } from '../components/BattleStage.tsx';
 import { SceneStage } from '../components/SceneStage.tsx';
+import { eliteFightScene } from '../elite-scene.ts';
 import { gateScene } from '../gate-scene.ts';
 import { Chips } from '../components/Glyph.tsx';
 import { Sheet } from '../components/Sheet.tsx';
@@ -104,15 +105,19 @@ function NotYet({ state, runId, now }: { state: GameState; runId: string; now: n
   const card = fightCard(state, run, now)!;
   // What they're up against, before anyone takes command; it changes nothing.
   const preview = useMemo(() => fightPreview(state, runId, now), [state, runId, now]);
-  // At Haven's gate (§9.12), what happens there plays out first.
+  // At Haven's gate (§9.12), what happens there plays out first; an elite comes on (4c), first seen if it wasn't yet.
   const fight = ledFightNow(run, now);
   const sceneKey = `${runId}:${fight?.at}`;
-  const scene = useMemo(() => (fight && preview ? gateScene(state, run, fight, preview) : undefined), [state, run, fight, preview]);
+  // The stage keeps the shots it started with, so seeing the first sight here doesn't cut it short.
+  const scene = useMemo(() => (fight && preview ? (gateScene(state, run, fight, preview) ?? eliteFightScene(state, run, fight)) : undefined), [state, run, fight, preview]);
   const [playing, setPlaying] = useState(() => !scenesPlayed.has(sceneKey));
+  const elite = fight?.elite;
+  const sighted = elite === undefined || eliteSightShown(state, elite);
   const done = useCallback(() => {
     scenesPlayed.add(sceneKey);
     setPlaying(false);
-  }, [sceneKey]);
+    if (elite && !sighted) act((s) => seenEliteSight(s, elite));
+  }, [sceneKey, elite, sighted, act]);
   if (scene && playing) {
     return (
       <section className="panel fight-call">
@@ -128,7 +133,7 @@ function NotYet({ state, runId, now }: { state: GameState; runId: string; now: n
       {preview && <BattleStage state={state} place={stagePlace(run, preview)} seed={run.id} view={preview} />}
       {scene && (
         <button type="button" className="btn btn-quiet btn-small scene-again" onClick={() => setPlaying(true)}>
-          Watch the gate again
+          {elite ? `Watch ${getEnemy(elite).name.replace(/^The /, 'the ')} come on again` : 'Watch the gate again'}
         </button>
       )}
       {preview?.goal && (
