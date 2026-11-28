@@ -7799,8 +7799,8 @@ p.is-bad {
   animation: opening-caption 800ms ease-out 1100ms both;
 }
 
-/* Before the first shot, the title (3.15.1): the mark stamped down, its ring drawn round, the name and the
-   chapter; then an ember in the dark, and the tap that lets the sound start. */
+/* Before the first shot, the title (3.15.1): the plate stamped down, its rivets punched in one by one, the D
+   dropped on it, the name and the chapter; then an ember in the dark, and the tap that lets the sound start. */
 .opening-begin {
   display: grid;
   place-items: center;
@@ -7820,13 +7820,15 @@ p.is-bad {
   height: 100%;
 }
 
-.opening-logo .logo-ring {
-  stroke-dasharray: 2124;
-  animation: op-logo-ring 1100ms ease-out 350ms both;
+.opening-logo .logo-rivet {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: op-logo-rivet 260ms cubic-bezier(0.3, 1.6, 0.5, 1) both;
+  animation-delay: calc(650ms + var(--i) * 110ms);
 }
 
-.opening-logo .logo-roof {
-  animation: op-logo-roof 500ms ease-out 900ms both;
+.opening-logo .logo-d {
+  animation: op-logo-d 520ms cubic-bezier(0.2, 0.8, 0.3, 1.15) 1100ms both;
 }
 
 .opening-game {
@@ -7854,13 +7856,13 @@ p.is-bad {
   to { opacity: 1; transform: scale(1) rotate(0); }
 }
 
-@keyframes op-logo-ring {
-  from { stroke-dashoffset: 2124; }
-  to { stroke-dashoffset: 0; }
+@keyframes op-logo-rivet {
+  from { opacity: 0; transform: scale(2.2); }
+  to { opacity: 1; transform: scale(1); }
 }
 
-@keyframes op-logo-roof {
-  from { opacity: 0; transform: translateY(40px); }
+@keyframes op-logo-d {
+  from { opacity: 0; transform: translateY(-60px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
