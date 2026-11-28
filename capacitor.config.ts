@@ -3,11 +3,12 @@ import type { CapacitorConfig } from '@capacitor/cli';
 /**
  * Capacitor wraps the built web app (dist/) in an Android app.
  * The app id must never change: Android treats a new id as a different app,
- * and the save (in the app's storage) would not carry over.
+ * and the save (in the app's storage) would not carry over. So it still says
+ * "theguild", from before the game was called The Depot (3.15.1).
  */
 const config: CapacitorConfig = {
   appId: 'io.github.barvaziyel.theguild',
-  appName: 'The Guild',
+  appName: 'The Depot',
   webDir: 'dist',
   android: {
     // The depot steel, so there's no white flash before the game draws.
@@ -21,7 +22,7 @@ const config: CapacitorConfig = {
       style: 'DARK',
     },
     LocalNotifications: {
-      smallIcon: 'ic_stat_guild',
+      smallIcon: 'ic_stat_depot',
       iconColor: '#a64d27',
     },
   },

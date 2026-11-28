@@ -114,12 +114,12 @@ export function sections(): { title: string; cards: Card[] }[] {
 }
 
 if (import.meta.main) {
-  let html = `<!doctype html><meta charset="utf-8"><title>The Guild - portraits</title><style>
+  let html = `<!doctype html><meta charset="utf-8"><title>The Depot - portraits</title><style>
 body{font-family:Georgia,serif;background:#d9ccb0;color:#2b2420;margin:16px}
 h2{margin:28px 0 10px}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
 figure{margin:0;background:#eadfc8;border:2px solid #2b2420;border-radius:6px;overflow:hidden}
 figure svg{display:block;width:100%;height:auto}figcaption{font-size:12px;padding:5px 6px;border-top:2px solid #2b2420}
-</style><h1>The Guild: portraits</h1><p>Seed: ${seed}</p>`;
+</style><h1>The Depot: portraits</h1><p>Seed: ${seed}</p>`;
   for (const section of sections()) {
     html += `<h2>${section.title}</h2><div class="grid">`;
     for (const card of section.cards) {

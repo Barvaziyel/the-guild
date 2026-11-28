@@ -2,6 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { seenIntro, type GameState } from '../../engine/index.ts';
 import { useAction, useServices } from '../hooks.ts';
 import { openingShots } from '../opening-view.ts';
+import { GAME_NAME, chapterLine, logoMarkSvg } from '../../scene/index.ts';
+
+const MARK = logoMarkSvg();
 
 /**
  * A new guild's opening scene (§9.10, 3.14.0), full screen before anything else: each shot fades in and
@@ -47,7 +50,11 @@ export function Opening({ state }: { state: GameState }) {
   if (!begun)
     return (
       <div className="opening" role="dialog" aria-modal="true" aria-label="How it began">
+        {/* The title: the mark stamped down, the name, the chapter; then an ember and Begin. */}
         <div className="opening-begin">
+          <div className="opening-logo" aria-hidden="true" dangerouslySetInnerHTML={{ __html: MARK }} />
+          <h1 className="opening-game">{GAME_NAME}</h1>
+          <p className="opening-chapter">{chapterLine()}</p>
           <span className="opening-ember" aria-hidden="true" />
           <button
             type="button"
