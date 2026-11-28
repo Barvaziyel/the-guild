@@ -784,17 +784,21 @@ def e_splash():
     return norm(fade_end(out, 0.1), -4)
 
 
+def recorded(name):
+    """One of the elites' calls from voices/calls (made by recorded.py from real recordings, 3.13.1), dry."""
+    import os, subprocess
+    here = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'voices', 'calls')
+    pcm = subprocess.run(['ffmpeg', '-v', 'quiet', '-i', os.path.join(here, f'{name}.ogg'), '-f', 'f32le', '-ac', '1',
+                          '-ar', str(SR), 'pipe:1'], capture_output=True, check=True).stdout
+    return np.frombuffer(pcm, dtype='<f4').astype(float)
+
+
 def e_howl():
-    """Old Mother's howl: up, held, and falling away."""
-    total = 2.2
-    d = 1.9
-    t = t_(d)
-    f = np.interp(t, [0, 0.35, 1.2, 1.9], [330, 610, 590, 400]) * (1 + 0.012 * np.sin(2 * np.pi * 5.5 * t))
-    src = blwave(f, 'saw') * 0.4 + np.sin(2 * np.pi * np.cumsum(f) / SR)
-    voice = bp(src, 450, 1800) + bp(src, 900, 1300) * 0.6
-    voice *= np.interp(t, [0, 0.15, 1.5, 1.9], [0, 1, 0.8, 0])
-    voice += bp(noise(d), 800, 2500) * 0.06 * np.interp(t, [0, 0.2, 1.9], [0, 1, 0])
-    return norm(fade_end(verb(at(voice, 0, total), 1.6, 0.5)[: int(total * SR)], 0.15), -5)
+    """Old Mother's howl: a real wolf's, up, held and falling away, lower and a little rough for her size."""
+    x = recorded('howl')
+    x = x + bp(np.tanh(x * 5), 300, 2400) * 0.12
+    total = len(x) / SR + 0.35
+    return norm(fade_end(verb(at(x, 0, total), 1.6, 0.3)[: int(total * SR)], 0.2), -5)
 
 
 def e_bell():
@@ -807,14 +811,10 @@ def e_bell():
 
 
 def e_clap():
-    """The Matron's two sharp claps, in an empty ward."""
-    total = 1.0
-    out = np.zeros(int(total * SR))
-    for when in (0.0, 0.24):
-        c = bp(noise(0.05), 900, 3200) * env(0.05, 0.0005, 0.009) * 1.3
-        c += bp(noise(0.05), 350, 900) * env(0.05, 0.0005, 0.006) * 0.5
-        out += at(c, when, total)
-    return norm(fade_end(verb(out, 1.5, 0.7)[: int(total * SR)], 0.2), -4)
+    """The Matron's two sharp claps (recorded), in an empty ward."""
+    x = recorded('claps')
+    total = len(x) / SR + 0.5
+    return norm(fade_end(verb(at(x, 0, total), 1.5, 0.7)[: int(total * SR)], 0.2), -4)
 
 
 def e_klaxon():
@@ -829,14 +829,10 @@ def e_klaxon():
 
 
 def e_whistle():
-    """The Red Hand's two-finger whistle: up, and a long fall."""
-    total = 1.3
-    d = 1.0
-    t = t_(d)
-    f = np.interp(t, [0, 0.12, 0.3, 1.0], [1900, 2900, 2850, 2300]) * (1 + 0.006 * np.sin(2 * np.pi * 9 * t))
-    tone = np.sin(2 * np.pi * np.cumsum(f) / SR) * np.interp(t, [0, 0.05, 0.25, 0.32, 0.4, 0.85, 1.0], [0, 1, 1, 0.5, 1, 0.9, 0])
-    breath = bp(noise(d), 1800, 4000) * 0.12 * np.interp(t, [0, 0.05, 1.0], [0, 1, 0])
-    return norm(fade_end(verb(at(tone + breath, 0, total), 1.2, 0.4)[: int(total * SR)], 0.15), -6)
+    """The Red Hand's whistle (recorded, played faster so it's shrill): up, held, and a fall."""
+    x = recorded('whistle')
+    total = len(x) / SR + 0.35
+    return norm(fade_end(verb(at(x, 0, total), 1.2, 0.4)[: int(total * SR)], 0.15), -6)
 
 
 def e_burst():
@@ -859,7 +855,7 @@ def e_chime():
 
 
 # Loudness for each (LUFS), so a whistle doesn't drown a clang: set by ear through a phone's speaker.
-ELITE_LOUDNESS = {'clang': -21, 'splash': -21, 'howl': -23, 'bell': -21, 'clap': -19, 'klaxon': -24, 'whistle': -27, 'burst': -19, 'chime': -22}
+ELITE_LOUDNESS = {'clang': -21, 'splash': -21, 'howl': -23, 'bell': -21, 'clap': -19, 'klaxon': -24, 'whistle': -24, 'burst': -19, 'chime': -22}
 
 ELITE = {name[2:]: (lambda fn=fn, name=name: master(fn(), ELITE_LOUDNESS[name[2:]])) for name, fn in globals().items() if name.startswith('e_') and callable(fn)}
 
