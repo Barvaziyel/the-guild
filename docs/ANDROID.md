@@ -31,11 +31,11 @@ The app is the same web game wrapped by [Capacitor](https://capacitorjs.com). Yo
 npm run apk
 ```
 
-This checks Java and the SDK, builds the web app, copies it into the Android project (`cap sync`), runs Gradle, and leaves the result in `out/the-guild-<version>.apk`. The first build downloads Gradle and the Android libraries, a few hundred MB, so give it several minutes; later builds take well under a minute.
+This checks Java and the SDK, builds the web app, copies it into the Android project (`cap sync`), runs Gradle, and leaves the result in `out/the-depot-<version>.apk`. The first build downloads Gradle and the Android libraries, a few hundred MB, so give it several minutes; later builds take well under a minute.
 
 Every build gets a higher version code than the last (it is the build time in minutes), so a new APK always installs over an older one. The version name comes from `package.json`.
 
-`npm run apk -- --debug` makes a debug build instead (`out/the-guild-<version>-debug.apk`).
+`npm run apk -- --debug` makes a debug build instead (`out/the-depot-<version>-debug.apk`).
 
 ## Putting it on the phone
 
@@ -46,7 +46,7 @@ Every build gets a higher version code than the last (it is the build time in mi
 3. Plug the phone in and accept the "Allow USB debugging?" prompt.
 4. Run `npm run apk:install`. It builds and installs in one go.
 
-**By copying the file:** send `out/the-guild-<version>.apk` to the phone any way you like (a cable, Google Drive, Quick Share, email to yourself), then tap it in the Files app. Android asks you to allow installing apps from that source the first time. Play Protect may warn that it doesn't know the developer; choose *More details → Install anyway*.
+**By copying the file:** send `out/the-depot-<version>.apk` to the phone any way you like (a cable, Google Drive, Quick Share, email to yourself), then tap it in the Files app. Android asks you to allow installing apps from that source the first time. Play Protect may warn that it doesn't know the developer; choose *More details → Install anyway*.
 
 ## First launch
 
@@ -72,13 +72,13 @@ If you ever have to change the key (for example, if you built before making the 
 - `npm run android:sync` builds the web app and copies it into `android/`.
 - `npm run android:open` opens the project in Android Studio, where you can run it on a phone or emulator and see its logs.
 
-App icons and the splash screen are generated from the images in `assets/`:
+App icons and the splash screen are generated from the images in `assets/`, which `node tools/brand/make.mjs` draws from the game's mark (`src/scene/logo.ts`; needs puppeteer and Chrome):
 
 ```bash
 npx @capacitor/assets@4.0.0 generate --android --iconBackgroundColor '#24332f' --iconBackgroundColorDark '#24332f' --splashBackgroundColor '#24332f' --splashBackgroundColorDark '#24332f'
 ```
 
-The notification icon is a vector drawable, `android/app/src/main/res/drawable/ic_stat_guild.xml`.
+The notification icon is a vector drawable, `android/app/src/main/res/drawable/ic_stat_depot.xml`.
 
 ## Troubleshooting
 

@@ -8,6 +8,7 @@ import { saveFileLabel, saveTextFile } from '../files.ts';
 import { isNative } from '../native.ts';
 import { exportFileName, parseImport } from '../persist.ts';
 import { dailyCopies, readCopy, type DailyCopy } from '../save-disk.ts';
+import { GAME_NAME, chapterLine } from '../../scene/index.ts';
 
 interface Props {
   state: GameState;
@@ -495,10 +496,10 @@ function About() {
     <div className="panel about">
       <h3 className="panel-title">About</h3>
       <p>
-        The Guild {__APP_VERSION__}, save format {SAVE_VERSION}.
+        {GAME_NAME} {__APP_VERSION__}, {chapterLine()}. Save format {SAVE_VERSION}.
       </p>
       <p>Type: Big Shoulders Stencil and Atkinson Hyperlegible Next, both under the SIL Open Font License.</p>
-      <p>Music: played on the FluidR3 GM instruments by Frank Wen, under Creative Commons Attribution 3.0. The other sounds are made from scratch.</p>
+      <p>Music: played on the FluidR3 GM instruments by Frank Wen, under Creative Commons Attribution 3.0. Sounds: some recorded for the game, some free sounds from Pixabay, the rest made from scratch.</p>
     </div>
   );
 }

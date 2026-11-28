@@ -1,4 +1,4 @@
-# The Guild's sound
+# The Depot's sound
 
 Everything in `public/audio/` is made here, offline, in Python. Nothing is downloaded at play time.
 

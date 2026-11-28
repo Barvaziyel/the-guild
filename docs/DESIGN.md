@@ -1,4 +1,6 @@
-# The Guild — Game Design Document
+# The Depot — Game Design Document
+
+> The game was called *The Guild* until 3.15.1 (Aviel, 2026-11-28: "I feel like it should be called The Depot"). The player's people are still a guild; the game is named for their home. Its first chapter is **Haven** (everything up to the road east, §9.11–9.12); Chapter 2 comes with the time skip (§15). The app id, the save's keys and the repo keep the old name, so nothing installed or saved is lost.
 
 > Version 1.0 · 2026-11-11 · Living document. Numbers are starting points for tuning, not promises.
 
@@ -1646,7 +1648,7 @@ From the design review of 3.8.0 (the project doc `claude/design-review-3.8.md`; 
 | 9 | 3.21.0 | What kind of guild you become: open or closed, merciful or hard | planned |
 | 10 | 3.22.0 | A Reach that changes: seasons, things that show up and go away, threats that move | planned |
 | 11 | **4.0.0** | Store-ready: the $1 unlock (Play Billing), cloud saves, the store page, phones | planned |
-| 12 | 4.1.0+ | Chapters with a time skip: Chapter 2 and the second depot | planned |
+| 12 | 4.1.0+ | Chapters with a time skip: Chapter 2 and the second depot (Chapter one is *Haven*) | planned |
 
 - **Not picked:** laying out the Depot by hand; one market for all trading; one kind of prisoner; a real use for gas.
 - **Step 2's two questions, which Aviel left to me** (2026-11-27: "analyze those decisions as you think would be most entertaining"): a crew calls when someone would go **down**, not only when someone would be badly hurt or die (measured, §7.13); and the *press on* call comes by stakes, not by the run's length: only when the next level is at least Moderate risk for that crew, worked out from the plan, never from how the run will go, so the call doesn't give the answer away. Step 2 is three PRs (2a–2c), so the later versions moved up two.
