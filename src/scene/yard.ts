@@ -7,7 +7,7 @@ import type { AnimalKind, BuildingId, ProjectId } from '../engine/types.ts';
 import { BUILDING_BASE, BUILDING_DRAWINGS, bulbs, flame, stationHouse } from './buildings.ts';
 import { C, circle, hash, hit, ink, line, mix, pathEl, rect, tappable } from './draw.ts';
 import { figure, trader, type Work } from './figures.ts';
-import { errandFor, errandMotion, roadLife, skyLife, tripMotion, tripSeconds, type Motion } from './life.ts';
+import { errandFor, errandMotion, gateTimes, roadLife, skyLife, tripMotion, type Motion } from './life.ts';
 import { BUILDING_AREAS, CHILD_SPOTS, GATE, GATE_SPOTS, H, IDLE_SPOTS, PARKING_X, POST_SPOTS, PROJECT_SPOTS, REST_SPOTS, W, Y, type Spot } from './layout.ts';
 import { PROJECT_BASE, PROJECT_DRAWINGS, wallRun, wallShare, type ProjectLook } from './projects.ts';
 import type { DayPhase, YardModel, YardPerson } from './model.ts';
@@ -144,14 +144,22 @@ function gate(open?: { seconds: number; elapsed: number }): string {
   const top = Y.fence - 26;
   const half = GATE.w / 2;
   let body = '';
-  const swing = open ? ` style="animation:yard-gate ${open.seconds.toFixed(2)}s linear ${(-open.elapsed).toFixed(2)}s 1 both"` : '';
+  // It swings open in about a second (3.15.0: a set share of the time open, which made it snap open for a crew of one).
+  let swing = '';
+  let keys = '';
+  if (open) {
+    const f = Math.round(Math.min(30, (90 / open.seconds)) * 10) / 10;
+    const name = `yard-gate-${Math.round(open.seconds * 100)}`;
+    keys = `<style>@keyframes ${name}{0%{transform:scaleX(1);animation-timing-function:cubic-bezier(0.4,0,0.3,1)}${f}%,${100 - f}%{transform:scaleX(0.12)}100%{transform:scaleX(1)}}</style>`;
+    swing = ` style="animation:${name} ${open.seconds.toFixed(2)}s linear ${(-open.elapsed).toFixed(2)}s 1 both"`;
+  }
   for (const [i, x] of [GATE.x, GATE.x + half].entries()) {
     body += `<g class="yard-gate-leaf yard-gate-${i === 0 ? 'l' : 'r'}"${swing}>`;
     body += `<rect x="${x + 1}" y="${top}" width="${half - 2}" height="26" fill="url(#yard-chain)" ${ink(1.2)}/>`;
     body += line(x + 1, Y.fence, x + half - 1, top, 0.9);
     body += '</g>';
   }
-  body += rect(GATE.x - 3, top - 6, 4, 32, C.steelDark) + rect(GATE.x + GATE.w - 1, top - 6, 4, 32, C.steelDark);
+  body += rect(GATE.x - 3, top - 6, 4, 32, C.steelDark) + rect(GATE.x + GATE.w - 1, top - 6, 4, 32, C.steelDark) + keys;
   return tappable('gate', '#/recruits', 'The gate. See who is asking to join.', hit(GATE.x - 4, top - 8, GATE.w + 8, 36) + body);
 }
 
@@ -243,9 +251,11 @@ function workFor(person: YardPerson, pose: string): Work | undefined {
 function gateOpen(model: YardModel, clock: number): { seconds: number; elapsed: number } | undefined {
   const trips = (model.trips ?? []).filter((t) => tripMotion(t, clock));
   if (trips.length === 0) return undefined;
-  const from = Math.min(...trips.map((t) => t.at));
-  const to = Math.max(...trips.map((t) => t.at + tripSeconds(t) * 1000));
-  return { seconds: (to - from) / 1000 + 1, elapsed: (clock - from) / 1000 };
+  // Shut until the first of them gets there (3.15.0: it used to stand open from when they set out), and
+  // shut again once the last is through.
+  const from = Math.min(...trips.map((t) => t.at + (gateTimes(t).reach - 0.5) * 1000));
+  const to = Math.max(...trips.map((t) => t.at + (gateTimes(t).through + 0.6) * 1000));
+  return { seconds: (to - from) / 1000, elapsed: (clock - from) / 1000 };
 }
 
 /**

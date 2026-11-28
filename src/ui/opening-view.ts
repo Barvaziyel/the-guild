@@ -5,7 +5,7 @@
  * Plain TypeScript, tested in Node.
  */
 import { STARTING_SURVIVORS, type GameState } from '../engine/index.ts';
-import { RAIL_SECONDS, railLineSvg, yardSvg, type FigureLook } from '../scene/index.ts';
+import { RAIL_SECONDS, gateTimes, railLineSvg, yardSvg, type FigureLook } from '../scene/index.ts';
 import { readingTime } from './scene-view.ts';
 import type { ShotSound } from './sound-view.ts';
 import { figureLook, yardModel } from './yard-view.ts';
@@ -21,12 +21,22 @@ export interface OpeningShot {
   title?: { name: string; day: string };
   /** The fire catches as the shot comes in. */
   catches?: boolean;
+  /** Its line is something said, alone and big (“We stay.”). */
+  quote?: boolean;
   sound: ShotSound;
 }
 
 
 
 const NUMBERS = ['None', 'One', 'Two', 'Three', 'Four', 'Five', 'Six'];
+
+/** The fire and the logs round it, up close: a part of the yard's drawing, in its own shape. */
+const FIRESIDE = { x: 151, y: 316, w: 120, h: 180 };
+
+/** A yard drawing cropped to a part of it, shown up close. */
+export function closeUp(svg: string, box: { x: number; y: number; w: number; h: number }): string {
+  return svg.replace(/viewBox="[^"]*"/, `viewBox="${box.x} ${box.y} ${box.w} ${box.h}"`);
+}
 
 /** Each shot stays its motion's length, or longer if its line needs it. */
 const hold = (caption: string, seconds: number): number => Math.max(seconds * 1000, readingTime(caption) + 800);
@@ -39,26 +49,31 @@ export function openingShots(state: GameState): OpeningShot[] {
     'The camp burned at noon. By dusk they were walking the rail line, and the smoke still stood in the sky behind them.',
     `${count} of them, carrying what they could save. Nobody talked much.`,
     'Where the line ran out, an old rail depot: doors hanging off, a fence still standing, and nobody home.',
-    'They lit a fire in the yard. Someone said it first. “We stay.”',
+    'They lit a fire in the yard. Someone said it first.',
   ];
-  // The old depot at dusk, the founders coming in through the gate with everything they own.
-  const dusk = { ...yardModel(state, 19), bare: 'empty' as const, people: [], trips: founders.map((s, order) => ({ id: s.id, look: figureLook(s), way: 'in' as const, pack: 'big' as const, at: -4500, order })) };
+  // The old depot at dusk, the gate shut, the founders coming up the road with everything they own; the first
+  // of them gets to the gate about four seconds in and swings it open (Aviel, 2026-11-28).
+  const trips = founders.map((s, order) => ({ id: s.id, look: figureLook(s), way: 'in' as const, pack: 'big' as const, at: -4500, order }));
+  const dusk = { ...yardModel(state, 19), bare: 'empty' as const, people: [], trips };
+  const gateOpens = trips[0] ? gateTimes(trips[0]).reach - 4.5 - 0.4 : 4;
   // That night, round the fire: the only thing in the yard that's theirs yet.
   const night = { ...yardModel(state, 22), bare: 'fire' as const, people: founders.map((s, i) => ({ id: s.id, look: figureLook(s), place: { kind: 'idle' as const, slot: i }, go: '', label: s.firstName })) };
   // Under the night music: wind on the open line, the gravel under them, the old gate as the first of them reaches
   // it, the match and the fire, the stamp (3.15.0: real ones). No voice: words are heard only over the radio
   // (Aviel, 2026-11-28); “We stay.” is on the screen.
+  const far = hold(lines[0]!, RAIL_SECONDS.far);
+  const near = hold(lines[1]!, RAIL_SECONDS.near);
   return [
     {
-      svg: railLineSvg(looks, 'far'),
+      svg: railLineSvg(looks, 'far', far / 1000),
       caption: lines[0]!,
-      ms: hold(lines[0]!, RAIL_SECONDS.far),
+      ms: far,
       sound: { ambience: { wind: 0.9, fire: 0, crickets: 0.15, birds: 0.1 }, cues: [{ id: 'gale', gain: 0.7, delay: 0 }, { id: 'gravel_walk', gain: 0.35, delay: 0.6 }, { id: 'gravel_walk', gain: 0.4, rate: 0.97, delay: 4.4 }] },
     },
     {
-      svg: railLineSvg(looks, 'near'),
+      svg: railLineSvg(looks, 'near', near / 1000),
       caption: lines[1]!,
-      ms: hold(lines[1]!, RAIL_SECONDS.near),
+      ms: near,
       sound: { ambience: { wind: 0.75, fire: 0, crickets: 0.3, birds: 0 }, cues: [{ id: 'gale', gain: 0.5, rate: 0.96, delay: 2.5 }, { id: 'gravel_walk', gain: 0.95, delay: 0.1 }, { id: 'gravel_walk', gain: 0.9, rate: 1.03, delay: 4.0 }] },
     },
     {
@@ -66,7 +81,7 @@ export function openingShots(state: GameState): OpeningShot[] {
       caption: lines[2]!,
       ms: hold(lines[2]!, 9),
       push: { x: 50, y: 88 },
-      sound: { ambience: { wind: 0.6, fire: 0, crickets: 0.55, birds: 0.15 }, cues: [{ id: 'gravel_walk', gain: 0.5, delay: 0.2 }, { id: 'creak', gain: 0.8, delay: 4.0 }, { id: 'gravel_walk', gain: 0.4, rate: 0.95, delay: 4.6 }] },
+      sound: { ambience: { wind: 0.6, fire: 0, crickets: 0.55, birds: 0.15 }, cues: [{ id: 'gravel_walk', gain: 0.5, delay: 0.2 }, { id: 'creak', gain: 0.8, delay: gateOpens }, { id: 'gravel_walk', gain: 0.4, rate: 0.95, delay: 4.6 }] },
     },
     {
       svg: yardSvg(night, 0),
@@ -74,8 +89,18 @@ export function openingShots(state: GameState): OpeningShot[] {
       ms: hold(lines[3]!, 7),
       push: { x: 53, y: 64 },
       catches: true,
-      sound: { ambience: { wind: 0.35, fire: 0.9, crickets: 0.8, birds: 0 }, cues: [{ id: 'match', delay: 0.2 }] },
+      // A real fire (3.15.0) from the match on, through to the end, not the yard's everyday one.
+      sound: { ambience: { wind: 0.35, fire: 0, crickets: 0.8, birds: 0 }, cues: [{ id: 'match', delay: 0.2 }, { id: 'campfire', delay: 0.9 }] },
     },
-    { caption: '', ms: 3200, title: { name: state.guildName, day: 'Day 1' }, sound: { ambience: { wind: 0.4, fire: 0.8, crickets: 0.7, birds: 0 }, cues: [{ id: 'stamp', delay: 0.68 }] } },
+    {
+      // In close on them round the fire, and what was said (Aviel, 2026-11-28).
+      svg: closeUp(yardSvg(night, 0), FIRESIDE),
+      caption: '“We stay.”',
+      quote: true,
+      ms: 4400,
+      push: { x: 50, y: 55 },
+      sound: { ambience: { wind: 0.25, fire: 0, crickets: 0.6, birds: 0 }, cues: [] },
+    },
+    { caption: '', ms: 3200, title: { name: state.guildName, day: 'Day 1' }, sound: { ambience: { wind: 0.4, fire: 0, crickets: 0.7, birds: 0 }, cues: [{ id: 'stamp', delay: 0.68 }] } },
   ];
 }

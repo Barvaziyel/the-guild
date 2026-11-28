@@ -147,7 +147,9 @@ export function gateScene(state: GameState, run: Run, fight: LedFight, view: Fig
   if (vulturesLine && allies.length > 0) {
     const quote = vulturesLine.indexOf('“');
     const [told, said] = quote > 0 ? [vulturesLine.slice(0, quote).trim(), vulturesLine.slice(quote)] : [vulturesLine, ''];
-    const arrived = 1.3 + allies.length * 0.35 + 1.7;
+    // The trucks are heard first and stop; then the Vultures come on (Aviel, 2026-11-28: the engine over before they're seen).
+    const comeOn = 4.0;
+    const arrived = comeOn + allies.length * 0.35 + 1.7;
     const speaks = Math.max(sec(readingTime(told)), arrived + 0.8);
     const boss = view.crew.find((m) => m.ally);
     const speaker = boss && state.vultures.people.find((p) => p.person.id === boss.id)?.person;
@@ -160,7 +162,7 @@ export function gateScene(state: GameState, run: Run, fight: LedFight, view: Fig
         targets: [],
         scene: true,
         extras: [fallen],
-        arrive: [{ keys: allies, from: 'left', at: 1.3, stagger: 0.35, seconds: 1.7 }],
+        arrive: [{ keys: allies, from: 'left', at: comeOn, stagger: 0.35, seconds: 1.7 }],
         camera: [
           { t: 0, scale: 1 },
           { t: arrived - 0.4, scale: 1 },
@@ -174,7 +176,7 @@ export function gateScene(state: GameState, run: Run, fight: LedFight, view: Fig
         ambience: { wind: 0.5, fire: 0, crickets: 0, birds: 0 },
         cues: [
           { id: 'pull_up', delay: 0 },
-          { id: 'boots', delay: 1.2 },
+          { id: 'boots', delay: comeOn - 0.1 },
         ],
       },
     });

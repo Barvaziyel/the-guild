@@ -70,18 +70,21 @@ function tufts(y: number, sliding: boolean): string {
  * The rail line at dusk. `far`: the founders small, crossing the whole frame, the smoke big behind them.
  * `near`: up close, packs on their backs, the ground sliding past while they hold the middle.
  */
-export function railLineSvg(looks: readonly FigureLook[], shot: 'far' | 'near'): string {
+export function railLineSvg(looks: readonly FigureLook[], shot: 'far' | 'near', shown: number = RAIL_SECONDS[shot]): string {
   const far = shot === 'far';
   const scale = far ? 1.9 : 4.2;
   const ground = far ? 452 : 470;
-  const seconds = RAIL_SECONDS[shot];
+  // They keep walking as long as the shot is up, at their own pace, so nobody walks on the spot at the edge
+  // (Aviel, 2026-11-28): far off, the last of them is leaving the frame as it cuts.
+  const seconds = Math.max(RAIL_SECONDS[shot], shown) + 0.5;
+  const dist = Math.round(((far ? 440 : 46) / RAIL_SECONDS[shot]) * seconds);
   let people = '';
   looks.forEach((look, i) => {
     const gait = { step: 0.5 + (i % 3) * 0.04, phase: i * 0.21 };
     const spacing = far ? 26 : 74;
     const x0 = far ? -40 - i * spacing : 250 - i * spacing;
     const body = walker(look, gait, 'big', true);
-    people += `<g class="op-walk op-walk-${shot}" style="--x0:${x0}px;--sec:${seconds}s"><g transform="translate(0 ${ground}) scale(${scale})">${body}</g></g>`;
+    people += `<g class="op-walk op-walk-${shot}" style="--x0:${x0}px;--sec:${seconds}s;--dist:${dist}px"><g transform="translate(0 ${ground}) scale(${scale})">${body}</g></g>`;
   });
   const extra = far ? '' : tufts(H - 40, true);
   return (

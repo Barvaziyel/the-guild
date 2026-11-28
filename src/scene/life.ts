@@ -205,6 +205,19 @@ export function gatePath(order: number, way: 'out' | 'in'): Point[] {
   return way === 'out' ? path : path.reverse();
 }
 
+/**
+ * When a trip reaches the gate, seconds from when it starts, and when it's through: the gate swings open
+ * as the first of a crew gets to it, not before (3.15.0).
+ */
+export function gateTimes(trip: YardTrip): { reach: number; through: number } {
+  const path = trip.vehicle ? drivePath(trip) : gatePath(trip.order, trip.way);
+  const speed = trip.vehicle ? DRIVE : MARCH;
+  // The gate is the first point at the fence on the way, inside or out.
+  const at = path.findIndex((p) => p.y === OUTSIDE || p.y === INSIDE || p.y === OUTSIDE + 6 || p.y === INSIDE + 4);
+  const reach = pathLength(path.slice(0, at + 1)) / speed + trip.order * 0.9;
+  return { reach, through: reach + Math.abs(OUTSIDE - INSIDE) / speed };
+}
+
 /** How long a trip through the gate takes from when it starts, in seconds, with a moment to fade at the end. */
 export function tripSeconds(trip: YardTrip): number {
   const moving = trip.vehicle ? pathLength(drivePath(trip)) / DRIVE : pathLength(gatePath(trip.order, trip.way)) / MARCH;

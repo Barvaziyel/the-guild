@@ -1,7 +1,9 @@
 """Real recordings (3.13.1): the elites' calls (the Red Hand's whistle, the Matron's claps, Old Mother's howl),
 and since 3.15.0 the scenes' sounds, the splashes and the plate, and the wind (EFFECTS).
 
-    python3 tools/audio/recorded.py <folder with the recordings>
+    python3 tools/audio/recorded.py <folder with the recordings> [names...]
+
+With names, only those are written (the rest keep their files, so nothing else changes).
 
 The whistle and the claps were recorded for the game by Aviel (2026-11-28, a phone's
 voice memos); the howl is "Wolf Howl 2" by Dragon Studio on Pixabay (free to use and
@@ -59,6 +61,8 @@ EFFECTS = {
     'splash_up': ('water-splash-199583', 0.1, 1.9, (1, 1), 0.02, 0.5, 40, False),
     # Metal cracking: a plate knocked off.
     'metal': ('metal-crack', 0.0, 1.07, (1, 1), 0.001, 0.25, 60, False),
+    # A fire crackling: the first fire in the opening (the yard's everyday fire stays the made one: Aviel liked it).
+    'campfire': ('fire-crackling', 0.0, 15.5, (1, 1), 0.05, 2.0, 60, False),
     # Wind: a hard one across open ground for the scenes, a soft one for the yard's ambience.
     'gale': ('harsh-wind', 0.6, 12.9, (1, 1), 1.2, 1.5, 30, False),
     'breeze': ('soft-wind', 0.0, 8.0, (1, 1), 0.05, 0.05, 25, True),
@@ -133,10 +137,12 @@ def effect(x, a, b, ratio, fade_in, fade_out, low):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) != 2:
+    if len(sys.argv) < 2:
         sys.exit(__doc__)
     os.makedirs(OUT, exist_ok=True)
     for name, (src, a, b, ratio, fade) in CALLS.items():
+        if sys.argv[2:] and name not in sys.argv[2:]:
+            continue
         try:
             x = read(sys.argv[1], src)
         except SystemExit as missing:
@@ -146,7 +152,10 @@ if __name__ == '__main__':
         write(y, os.path.join(OUT, f'{name}.ogg'))
         print(f'{name}: {len(y) / SR:.2f} s')
     os.makedirs(EFFECTS_OUT, exist_ok=True)
+    only = sys.argv[2:]
     for name, (src, a, b, ratio, fade_in, fade_out, low, stereo) in EFFECTS.items():
+        if only and name not in only:
+            continue
         if not glob.glob(os.path.join(sys.argv[1], f'*{src}*')):
             print(f'no recording named {src}')
             continue
