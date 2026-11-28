@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Notification icon: the game's mark (the ring, the roof and the stencilled D) as a white silhouette (Android tints it). -->
+<!-- Notification icon: the game's mark (the riveted plate and its stencilled D) as a white silhouette (Android tints it). -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
@@ -9,14 +9,11 @@
         android:fillColor="#00000000"
         android:strokeColor="#FFFFFFFF"
         android:strokeWidth="1.6"
-        android:pathData="M1.8,12 A10.2,10.2 0 1,0 22.2,12 A10.2,10.2 0 1,0 1.8,12 Z" />
-    <path
-        android:fillColor="#00000000"
-        android:strokeColor="#FFFFFFFF"
-        android:strokeWidth="1.5"
-        android:strokeLineJoin="miter"
-        android:pathData="M4.4,12.3 L12,7 L19.6,12.3" />
+        android:pathData="M5.2,3.2 H18.8 A2,2 0 0 1 20.8,5.2 V18.8 A2,2 0 0 1 18.8,20.8 H5.2 A2,2 0 0 1 3.2,18.8 V5.2 A2,2 0 0 1 5.2,3.2 Z" />
     <path
         android:fillColor="#FFFFFFFF"
-        android:pathData="M9.2,10.4 h1.5 v7.4 h-1.5 Z M11.4,10.4 h0.9 a3.1,3.7 0 0 1 3.1,3.7 a3.1,3.7 0 0 1 -3.1,3.7 h-0.9 v-1.5 h0.6 a1.6,2.2 0 0 0 1.6,-2.2 a1.6,2.2 0 0 0 -1.6,-2.2 h-0.6 Z" />
+        android:pathData="M5.2,6 a0.9,0.9 0 1,0 1.8,0 a0.9,0.9 0 1,0 -1.8,0 Z M17,6 a0.9,0.9 0 1,0 1.8,0 a0.9,0.9 0 1,0 -1.8,0 Z M5.2,18 a0.9,0.9 0 1,0 1.8,0 a0.9,0.9 0 1,0 -1.8,0 Z M17,18 a0.9,0.9 0 1,0 1.8,0 a0.9,0.9 0 1,0 -1.8,0 Z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M8.6,7.2 h1.8 v9.6 h-1.8 Z M11.2,7.2 h1.2 a4,4.8 0 0 1 4,4.8 a4,4.8 0 0 1 -4,4.8 h-1.2 v-1.8 h0.9 a2.1,3 0 0 0 2.1,-3 a2.1,3 0 0 0 -2.1,-3 h-0.9 Z" />
 </vector>
