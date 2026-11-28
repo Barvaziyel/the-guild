@@ -65,7 +65,8 @@ export function createGameStore(kv: KeyValueStore, opts: StoreOptions): GameStor
   };
 
   const freshGame = (): GameState => {
-    const state = newGame({ seed: opts.newSeed(), now: opts.now() });
+    // A player's new guild: systems open as the first week reaches them, and the opening plays first (3.14.0).
+    const state = newGame({ seed: opts.newSeed(), now: opts.now(), guided: true });
     opts.onNewGuild?.(state);
     return state;
   };

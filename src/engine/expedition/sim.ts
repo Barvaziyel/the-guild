@@ -107,6 +107,7 @@ import { footDuration, hungryCrew, rationsPacked, runDuration } from './plan.ts'
 import { atDepth, locationState, planDepth } from '../locations.ts';
 import { PART_JOBS, coverNeed, crewPerks } from '../needs.ts';
 import { partBeat, simCarries } from './needs.ts';
+import { firstFight } from './first-trip.ts';
 import { outpostNear } from '../outposts.ts';
 import { seating } from '../vehicles.ts';
 import { earnNickname, nameWeapon, nemesisNewsList, takenNames } from './stories.ts';
@@ -685,7 +686,8 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
     items: [],
     meds: plan.meds,
     ammo: plan.ammo,
-    mercy: state.settings.mercyMode,
+    // Nobody dies on a new guild's first trip (3.14.0).
+    mercy: state.settings.mercyMode || plan.first === true,
     hadCombat: false,
     turnBack: false,
     routed: false,
@@ -771,8 +773,13 @@ export function simulateRun(state: GameState, plan: RunPlan, seed: string, depar
     }
     // A trade run reaches the market halfway (§7.14).
     const kind = i === tradeAt ? 'trade' : pickBeatKind(sim, previous, i === middle - 1);
-    // The place's best part (§7.16), instead of their first search: what it holds if they get in, nothing if they can't.
-    if (kind === 'scavenge' && part && !sim.parts?.length) {
+    // A new guild's first trip (3.14.0): the hounds come first, the first fight the player leads.
+    if (plan.first && i === 0) {
+      firstFight(sim);
+      endBeat(sim, 'combat');
+      previous = 'combat';
+    } else if (kind === 'scavenge' && part && !sim.parts?.length) {
+      // The place's best part (§7.16), instead of their first search: what it holds if they get in, nothing if they can't.
       partBeat(sim, part, planDepth(plan));
       endBeat(sim, 'scavenge');
       previous = 'scavenge';

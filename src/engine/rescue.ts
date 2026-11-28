@@ -28,6 +28,7 @@ import { fill, fullName, pronounForms } from './text.ts';
 import type { FoundNews, GameState, RescueCall, RescueNews, RescueTrouble, Run, Survivor } from './types.ts';
 import { STAT_IDS } from './types.ts';
 import { vulturesGet, vulturesTake } from './vultures.ts';
+import { isOpen } from './unlocks.ts';
 
 export const RESCUE_TROUBLES: readonly RescueTrouble[] = ['trapped', 'hurt', 'cornered', 'lost'];
 
@@ -58,6 +59,8 @@ export function openCall(state: GameState, locationId?: string): RescueCall | un
  * otherwise, with a Radio Tower, a new one comes when its day comes.
  */
 export function playRescueDay(state: GameState, day: number, rng: Rng): RescueCall | undefined {
+  // Calls for help come over the radio: in a new guild, once it's on the air (3.14.0).
+  if (!isOpen(state, 'rescue')) return undefined;
   const r = state.rescue;
   if (r.call) {
     if (!r.call.runId && day >= r.call.expiresDay) {

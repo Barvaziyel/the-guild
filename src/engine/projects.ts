@@ -25,6 +25,7 @@ import { atDepot, buildingDef, buildingLevel, canAfford, canWork, costText, payC
 import { ensureLocationState } from './locations.ts';
 import { addPractice, effectiveStat } from './stats.ts';
 import type { GameState, Post, ProjectId, ProjectState, Survivor } from './types.ts';
+import { isOpen } from './unlocks.ts';
 
 export { CLINIC_HEAL_MULT, LINE_TIME, MEMORIAL_RELIEF, RELAY_OUTPOSTS, WALL_DEFENSE };
 
@@ -66,6 +67,7 @@ export function projectNeeds(state: GameState, id: ProjectId): string | undefine
 export function stageProblem(state: GameState, id: ProjectId): string | undefined {
   const stage = currentStage(state, id);
   if (!stage) return `${getProject(id).name} is finished.`;
+  if (!isOpen(state, 'projects')) return 'Not yet: the guild has to find its feet first.';
   const needs = projectNeeds(state, id);
   if (needs) return needs;
   const busy = projectUnderWay(state);

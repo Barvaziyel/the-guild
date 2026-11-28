@@ -24,6 +24,7 @@ import { fillRoles } from './text.ts';
 import { addTrait, hasTrait } from './traits.ts';
 import type { ActiveDilemma, GameState, ResourceId, Resources, Survivor, VultureMember } from './types.ts';
 import { RESOURCE_IDS } from './types.ts';
+import { isOpen } from './unlocks.ts';
 
 /** What a decision came to: shown to the player and written in the news. */
 export interface DilemmaResult {
@@ -127,6 +128,8 @@ function envoyDue(state: GameState, day: number): boolean {
  * Returns what was settled, if anything.
  */
 export function playDilemmaDay(state: GameState, day: number, rng: Rng): DilemmaResult | undefined {
+  // A new guild has none until its first run is home (3.14.0).
+  if (!isOpen(state, 'decisions')) return undefined;
   const active = state.dilemmas.active;
   if (active) {
     if (!dilemmaRoles(state, active)) {

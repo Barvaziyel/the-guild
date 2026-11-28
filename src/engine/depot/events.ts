@@ -52,6 +52,7 @@ import { RAIDERS, type Raiders } from '../outposts.ts';
 import { openRaid, scheduleRaid } from './raids.ts';
 import { changeStanding, freeLieutenants, noteMember, tradeCut, vultureBand, vultureBoss, vulturesActive } from '../vultures.ts';
 import { traderHint } from '../haven.ts';
+import { isOpen } from '../unlocks.ts';
 
 type EventKind = 'wanderer' | 'trader' | 'raid' | 'celebration' | 'sickness' | 'stray' | 'vultureRaid' | 'vultureTrader';
 
@@ -86,6 +87,8 @@ export function rollDepotEvents(state: GameState, day: number, rng: Rng): EventK
   const options = (Object.keys(EVENT_WEIGHTS) as EventKind[]).filter((k) => {
     // One raid at a time.
     if ((k === 'raid' || k === 'vultureRaid') && openRaid(state)) return false;
+    // A new guild has nothing worth taking until it has worked the farm (3.14.0).
+    if (k === 'raid' && !isOpen(state, 'raids')) return false;
     if (k === 'celebration') return home.length >= 2 && state.resources.rations >= home.length * 2;
     if (k === 'sickness' || k === 'stray') return home.length > 0;
     return vultureWeight(state, k) > 0;

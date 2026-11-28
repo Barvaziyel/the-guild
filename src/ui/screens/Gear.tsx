@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { canChangeGear, dayAt, equipFromStash, getSurvivor, salvage, salvageSpares, type GameState } from '../../engine/index.ts';
+import { canChangeGear, dayAt, isOpen, equipFromStash, getSurvivor, salvage, salvageSpares, type GameState } from '../../engine/index.ts';
 import { ItemDetails } from '../components/ItemDetails.tsx';
 import { Portrait } from '../components/Portrait.tsx';
 import { gearTakers, salvageButton, sparesPanel, stashGroups, stashLine } from '../gear-view.ts';
@@ -162,14 +162,16 @@ export function Gear({ state }: { state: GameState }) {
         {error && <p className="field-error">{error}</p>}
       </section>
 
-      <section className="panel" aria-labelledby="vehicles-title" data-tour="vehicles-panel">
-        <h3 id="vehicles-title" className="panel-title">
-          Vehicles
-        </h3>
-        <button type="button" className="link-row" onClick={() => navigate({ screen: 'vehicles' })}>
-          {state.vehicles.length === 0 ? 'None yet.' : vehiclesLine(state)} <Glyph name="gas" /> {state.resources.gas}
-        </button>
-      </section>
+      {isOpen(state, 'vehicles') && (
+        <section className="panel" aria-labelledby="vehicles-title" data-tour="vehicles-panel">
+          <h3 id="vehicles-title" className="panel-title">
+            Vehicles
+          </h3>
+          <button type="button" className="link-row" onClick={() => navigate({ screen: 'vehicles' })}>
+            {state.vehicles.length === 0 ? 'None yet.' : vehiclesLine(state)} <Glyph name="gas" /> {state.resources.gas}
+          </button>
+        </section>
+      )}
     </section>
   );
 }

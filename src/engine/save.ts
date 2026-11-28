@@ -10,7 +10,7 @@ import { addGuildLog } from './chronicle.ts';
 import { buildingName, defaultPosts, initialBuildings, trimPosts } from './depot/buildings.ts';
 import { fullName } from './text.ts';
 import { initialLocations } from './locations.ts';
-import { FIRST_NAMES, FIRST_WEEK } from './content/index.ts';
+import { FIRST_NAMES, FIRST_WEEK, FIRST_WEEK_BEFORE } from './content/index.ts';
 import { orientationFor } from './generator.ts';
 import type { GameState, Pronouns, Survivor } from './types.ts';
 import { newVultures } from './vultures.ts';
@@ -220,6 +220,18 @@ const MIGRATIONS: Record<number, (save: Record<string, unknown>) => void> = {
   30: () => {
     // Places that need the right people (3.13.0): what a place's best parts need is found out on runs from now on
     // (`LocationState.parts`), and nothing is known of them yet. Nothing to change.
+  },
+  31: (save) => {
+    // 3.14.0 put the first run second in the first week, before the Garden. A guild part way through keeps its
+    // place: the step it's on is the first in the new order it hasn't done, and any it has done that now come later
+    // are passed over. Everything else stays open (no `opened`), as it was.
+    const story = save.story as { step: number; skip?: string[] } | undefined;
+    if (!story || story.step >= FIRST_WEEK_BEFORE.length) return;
+    const done = new Set<string>(FIRST_WEEK_BEFORE.slice(0, story.step));
+    const step = FIRST_WEEK.findIndex((s) => !done.has(s.id));
+    const later = FIRST_WEEK.slice(step).filter((s) => done.has(s.id)).map((s) => s.id);
+    story.step = step;
+    if (later.length > 0) story.skip = later;
   },
 };
 

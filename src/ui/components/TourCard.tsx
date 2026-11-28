@@ -78,11 +78,11 @@ export function TourCard({ state, stepId }: { state: GameState; stepId: string }
         <p className="tour-text">{view.text}</p>
       </div>
       <div className="tour-actions">
-        <button type="button" className="btn btn-primary" onClick={() => go(view.last ? null : nextStepId(stepId))}>
+        <button type="button" className="btn btn-primary" onClick={() => go(view.last ? null : nextStepId(state, stepId))}>
           {view.last ? 'Finish' : 'Next'}
         </button>
         {!view.lastInPart && (
-          <button type="button" className="btn" onClick={() => go(nextPartStepId(stepId))}>
+          <button type="button" className="btn" onClick={() => go(nextPartStepId(state, stepId))}>
             Skip this part
           </button>
         )}

@@ -84,7 +84,8 @@ describe('the first week (2.8.0)', () => {
     assert.equal(ending.title, 'Kit them out');
     assert.equal(state.story!.last, ending);
     assert.ok(state.log.some((l) => l.text.startsWith('Kit them out:')));
-    assert.equal(storyStep(state)!.id, 'garden');
+    // The first run comes second since 3.14.0, straight after the opening.
+    assert.equal(storyStep(state)!.id, 'first_run');
     seenStory(state);
     assert.equal(state.story!.last!.seen, true);
   });
@@ -99,7 +100,7 @@ describe('the first week (2.8.0)', () => {
     state.locations.rail_yard!.runs = 4;
     assert.deepEqual(storyProgress(state), { met: true, have: 1, need: 1 });
     claimStory(state, T0);
-    assert.equal(storyStep(state)!.id, 'corners');
+    assert.equal(storyStep(state)!.id, 'garden');
     assert.deepEqual(state.story!.base, { runs: 4, at: { rail_yard: 4 } });
 
     // Maple Street: a run anywhere else doesn't do it.

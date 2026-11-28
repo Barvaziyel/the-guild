@@ -11,6 +11,15 @@ export const STAT_IDS = ['grit', 'brawn', 'aim', 'wits', 'nerve'] as const;
 export type StatId = (typeof STAT_IDS)[number];
 export type Stats = Record<StatId, number>;
 
+// ---------------------------------------------------------------- systems the story opens (§9.10, 3.14.0)
+
+/**
+ * What a new guild starts without, each opened when the first week reaches it (§9.10, 3.14.0): leading
+ * fights, decisions at the Depot, the market, vehicles, calls for help, raids, outposts and projects.
+ */
+export const SYSTEM_IDS = ['lead', 'decisions', 'market', 'vehicles', 'rescue', 'raids', 'outposts', 'projects'] as const;
+export type SystemId = (typeof SYSTEM_IDS)[number];
+
 // ---------------------------------------------------------------- needs (§7.16, 3.13.0)
 
 /**
@@ -370,6 +379,11 @@ export interface RunPlan {
    * looks for it, and at the deepest point of the run they find where it lives.
    */
   elite?: boolean;
+  /**
+   * A new guild's first trip (§9.10, 3.14.0), set by `startRun`: short, and its fight with the hounds always
+   * calls home, as the player's first fight to lead. Nobody dies on it.
+   */
+  first?: true;
   /** A trade run's goods and what they're for (§7.14, 3.4.0). Only with job `trade`. */
   trade?: TradeOrder;
 }
@@ -936,6 +950,8 @@ export interface StoryState {
   step: number;
   /** What the step counts from. */
   base: StoryBase;
+  /** Steps already done in an older order (3.14.0 put the first run second): passed over when they come up. */
+  skip?: string[];
   /** How the last step went, for its card until read. */
   last?: StoryEnding;
 }
@@ -1018,6 +1034,8 @@ export interface StoryEnding {
   supplies?: Partial<Resources>;
   /** Anything else: "a Motorcycle", "Ada Moss, at the gate". */
   gifts?: string[];
+  /** What it opened in a new guild (3.14.0). */
+  opened?: SystemId[];
   seen?: boolean;
 }
 
@@ -1357,6 +1375,15 @@ export interface GameState {
   corners: CornerState;
   /** The first week (§9.10): the step under way. Undefined for a guild that never had one (older than its first week when it came in). */
   story?: StoryState;
+  /**
+   * The systems the story has opened (§9.10, 3.14.0), by the game day each opened. Missing for a guild from
+   * before 3.14.0, or made without the story: everything is open.
+   */
+  opened?: Partial<Record<SystemId, number>>;
+  /** The opening scene is still to be shown (3.14.0): a new guild, until it's watched or skipped. */
+  intro?: boolean;
+  /** The systems whose first-time moment the player has seen (3.14.0). */
+  openedSeen?: SystemId[];
   /** Haven (§9.11), from the broadcast on. Missing before it. */
   haven?: HavenState;
   /** The market at the Drive-In (§7.14, 3.4.0). Missing until the guild first trades there. */

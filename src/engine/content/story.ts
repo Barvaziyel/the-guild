@@ -6,7 +6,7 @@
  * (§9.9), so the first hours have a direction. Each step's goal is checked from the game as it is; the reward
  * is collected from the card.
  */
-import type { BuildingId, Resources } from '../types.ts';
+import type { BuildingId, Resources, SystemId } from '../types.ts';
 import { HAVEN_BROADCAST } from './haven.ts';
 
 export type StoryGoal =
@@ -36,6 +36,8 @@ export interface StoryStep {
   /** How it went, once collected. */
   done: string;
   gives: StoryGift[];
+  /** What it opens in a new guild (3.14.0): each with a first-time moment of its own. */
+  opens?: SystemId[];
 }
 
 export const FIRST_WEEK: readonly StoryStep[] = [
@@ -49,6 +51,17 @@ export const FIRST_WEEK: readonly StoryStep[] = [
     gives: [{ kind: 'supplies', change: { ammo: 6 } }],
   },
   {
+    // Second since 3.14.0, straight after the opening: the first trip, and the first fight the player leads.
+    id: 'first_run',
+    title: 'A first run',
+    text: 'They passed the Rail Yard on the way in: freight cars, and something moving under them. It’s close. Send a crew and see what they bring back.',
+    goalText: 'Bring a crew home from a run',
+    goal: { kind: 'runs', count: 1 },
+    done: 'They’re back, dirt under their nails and something to show for it.',
+    gives: [{ kind: 'supplies', change: { scrap: 5 } }],
+    opens: ['lead', 'decisions'],
+  },
+  {
     id: 'garden',
     title: 'Get the Garden going',
     text: 'Too many mouths for one bed of beans. A bigger Garden first, before the rations run thin.',
@@ -56,15 +69,6 @@ export const FIRST_WEEK: readonly StoryStep[] = [
     goal: { kind: 'building', building: 'garden', level: 2 },
     done: 'The new beds are dug and planted. Something green by the end of the week.',
     gives: [{ kind: 'supplies', change: { rations: 8 } }],
-  },
-  {
-    id: 'first_run',
-    title: 'A first run',
-    text: 'The Rail Yard is close, and quiet as these places go. Send a crew and see what they bring back.',
-    goalText: 'Bring a crew home from a run',
-    goal: { kind: 'runs', count: 1 },
-    done: 'They’re back, dirt under their nails and something to show for it.',
-    gives: [{ kind: 'supplies', change: { scrap: 5 } }],
   },
   {
     id: 'corners',
@@ -81,8 +85,9 @@ export const FIRST_WEEK: readonly StoryStep[] = [
     text: 'Someone saw smoke over Maple Street last night. Somebody else is out there.',
     goalText: 'Bring a crew home from Maple Street',
     goal: { kind: 'runs', count: 1, at: 'maple_street' },
-    done: 'Whoever lit the fire was gone by the time the crew got there, but they left tracks, and the tracks led back here. The next morning there’s someone at the gate, asking to come in.',
+    done: 'Whoever lit the fire was gone by the time the crew got there, but they left tracks, and the tracks led back here. The next morning there’s someone at the gate, asking to come in, and bringing news: there’s a market at the old Drive-In, and traders still go there.',
     gives: [{ kind: 'wanderer' }],
+    opens: ['market'],
   },
   {
     id: 'farm',
@@ -90,8 +95,9 @@ export const FIRST_WEEK: readonly StoryStep[] = [
     text: 'Kessler Farm has food, and ferals that think it’s theirs.',
     goalText: 'Bring a crew home from Kessler Farm',
     goal: { kind: 'runs', count: 1, at: 'kessler_farm' },
-    done: 'They came back with full sacks, and the guts of the old well pump: wire, a motor, a few parts worth more than the rest.',
+    done: 'They came back with full sacks, and the guts of the old well pump: wire, a motor, a few parts worth more than the rest. Full sacks get noticed, though. From now on the Depot has something worth taking.',
     gives: [{ kind: 'supplies', change: { rations: 10, tech: 4 } }],
+    opens: ['raids'],
   },
   {
     id: 'wheels',
@@ -104,6 +110,7 @@ export const FIRST_WEEK: readonly StoryStep[] = [
       { kind: 'vehicle', defId: 'motorcycle', condition: 60 },
       { kind: 'supplies', change: { gas: 8 } },
     ],
+    opens: ['vehicles'],
   },
   {
     id: 'on_air',
@@ -114,5 +121,10 @@ export const FIRST_WEEK: readonly StoryStep[] = [
     // The lead to the long goal (Aviel, 2026-11-15): Haven. Finding it is a roadmap step of its own (§15).
     done: `The first night on the air is mostly static. Then a woman’s voice, calm and clear: “${HAVEN_BROADCAST}” It comes again on the hour, every hour, the same words. Nobody here has heard of Haven, or knows where it is. Everyone is listening now.`,
     gives: [{ kind: 'supplies', change: { scrap: 10 } }],
+    // The radio brings calls for help; and the guild has found its feet: room to reach further.
+    opens: ['rescue', 'outposts', 'projects'],
   },
 ];
+
+/** The first week's order before 3.14.0, for older saves part way through it. */
+export const FIRST_WEEK_BEFORE = ['kit_out', 'garden', 'first_run', 'corners', 'smoke', 'farm', 'wheels', 'on_air'] as const;

@@ -3,7 +3,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { build } from '../engine/index.ts';
+import { build, newGame, openSystem, type GameState } from '../engine/index.ts';
 import { T0, openGame } from '../engine/test-utils.ts';
 import { fastForward } from './dev.ts';
 import { memoryStore } from './persist.ts';
@@ -20,6 +20,7 @@ import {
   nextPartStepId,
   nextStepId,
   tourCard,
+  tourSteps,
   tourStep,
 } from './tour.ts';
 
@@ -119,21 +120,44 @@ describe('tour', () => {
     assert.match(text('build-first'), /^Besides what the note above the yard asks for, good first goals: /);
   });
 
+  /** A guild that has met everything: every step shows. */
+  const everything = (): GameState => {
+    const state = openGame('tour-all');
+    state.vultures.arrived = true;
+    state.elites = { the_switchman: { seen: 1, status: 'atLarge', fights: 0 } };
+    return state;
+  };
+
   test('Next walks every step, then ends', () => {
+    const state = everything();
     const seen: string[] = [];
-    for (let id: string | null = FIRST_STEP; id; id = nextStepId(id)) seen.push(id);
+    for (let id: string | null = FIRST_STEP; id; id = nextStepId(state, id)) seen.push(id);
     assert.deepEqual(
       seen,
       TOUR_STEPS.map((s) => s.id),
     );
-    assert.equal(nextStepId('not-a-step'), null);
+    assert.equal(nextStepId(state, 'not-a-step'), null);
   });
 
   test('skipping a part goes to the start of the next part, and past the last part ends the tour', () => {
-    assert.equal(nextPartStepId('welcome'), 'supplies');
-    assert.equal(nextPartStepId('roster'), 'reach');
-    assert.equal(nextPartStepId('days'), 'supplies');
-    assert.equal(nextPartStepId('vultures'), null);
+    const state = everything();
+    assert.equal(nextPartStepId(state, 'welcome'), 'supplies');
+    assert.equal(nextPartStepId(state, 'roster'), 'reach');
+    assert.equal(nextPartStepId(state, 'days'), 'supplies');
+    assert.equal(nextPartStepId(state, 'vultures'), null);
+  });
+
+  test('a new guild\u2019s tour is its first day: nothing the story hasn\u2019t opened (3.14.0)', () => {
+    const state = newGame({ seed: 'tour-new', now: T0, guided: true });
+    const ids = tourSteps(state).map((s) => s.id);
+    for (const closed of ['market', 'lead', 'raids', 'decisions', 'vehicles', 'further', 'elites', 'projects', 'vultures']) assert.ok(!ids.includes(closed), closed);
+    for (const open of ['welcome', 'gear', 'reach', 'plan', 'done']) assert.ok(ids.includes(open), open);
+    // Next never lands on a closed step.
+    for (let id: string | null = FIRST_STEP; id; id = nextStepId(state, id)) assert.ok(ids.includes(id), id);
+    assert.equal(tourCard(state, 'welcome')!.partOf, `Part 1 of ${new Set(tourSteps(state).map((s) => s.part)).size}`);
+    // Once the story opens them, they're in.
+    openSystem(state, 'market', 2);
+    assert.ok(tourSteps(state).some((s) => s.id === 'market'));
   });
 
   test('the card says where in the tour you are', () => {

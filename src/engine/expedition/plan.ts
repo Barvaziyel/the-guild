@@ -6,7 +6,7 @@ import { openRaid, raidAtGate } from '../depot/raids.ts';
 import { havenRoadOpen } from '../haven.ts';
 import { searchReason } from '../corners.ts';
 import { laidUp } from '../depot/buildings.ts';
-import { DAY_MS, DEPTH_DURATION, HAVEN_ROAD_MINUTES, HUNGER_STRESS, OUTPOST_SHORTCUT, RAID_FULL_FENCE, SNEAKY_DURATION_MULT, STRESS_HIGH } from '../constants.ts';
+import { DAY_MS, DEPTH_DURATION, FIRST_TRIP_MIN, HAVEN_ROAD_MINUTES, HUNGER_STRESS, OUTPOST_SHORTCUT, RAID_FULL_FENCE, SNEAKY_DURATION_MULT, STRESS_HIGH } from '../constants.ts';
 import { depthOpen, DEPTH_NAMES, locationState, planDepth } from '../locations.ts';
 import { outpostNear } from '../outposts.ts';
 import { findLocation, getEnemy, getGear, getLocation, getTrait } from '../content/index.ts';
@@ -45,6 +45,8 @@ export function footDuration(state: GameState, plan: RunPlan): number {
 
 /** Walking minutes there and back, deeper levels taking longer (§7.10). */
 export function placeMinutes(plan: RunPlan): number {
+  // A new guild's first trip is short wherever it goes (3.14.0).
+  if (plan.first) return FIRST_TRIP_MIN;
   return getLocation(plan.locationId).durationMin * (1 + DEPTH_DURATION * (planDepth(plan) - 1));
 }
 

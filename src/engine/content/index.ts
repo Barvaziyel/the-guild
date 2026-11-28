@@ -36,7 +36,7 @@ export { VEHICLES, type VehicleDef } from './vehicles.ts';
 export { LINE_STOPS, PROJECTS, getProject, type ProjectDef, type ProjectStage } from './projects.ts';
 export { ANIMALS, getAnimal, type AnimalDef } from './animals.ts';
 export { CORNERS, getCorner, type CornerDef, type CornerGift, type CornerOutcome } from './corners.ts';
-export { FIRST_WEEK, type StoryGift, type StoryGoal, type StoryStep } from './story.ts';
+export { FIRST_WEEK, FIRST_WEEK_BEFORE, type StoryGift, type StoryGoal, type StoryStep } from './story.ts';
 export { HAVEN_BROADCAST, HAVEN_CLUES, HAVEN_DREAMER, HAVEN_HINTS, HAVEN_JOURNEY, HAVEN_ROAD, HAVEN_VULTURES, type HavenClue, type HavenClueWhere, type HavenHint } from './haven.ts';
 export { RAID_BANDS, RAID_SPOILS, type RaidBandDef } from './raids.ts';
 

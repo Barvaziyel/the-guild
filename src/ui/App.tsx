@@ -2,6 +2,9 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { advanceTime, dayAt, dueRuns, getLocation, nextDayAt, returnUnsure, searchDue, type AdvanceResult, type DepotSummary, type GameState } from '../engine/index.ts';
 import { mergeSummaries, nextDayView } from './depot-view.ts';
 import { TourCard } from './components/TourCard.tsx';
+import { OpenedCard } from './components/OpenedCard.tsx';
+import { Opening } from './components/Opening.tsx';
+import { openingFits } from './opened-view.ts';
 import { navigate, savedScroll, useHash, useNow, usePrefs, useRoute, useMarkSeen, useSeen, useServices, useSnapshot } from './hooks.ts';
 import { tabFor, type Route, type TabScreen } from './route.ts';
 import { joinNames, noticesFor, reportFirstNames } from './runs-view.ts';
@@ -119,6 +122,8 @@ export function App() {
       break;
   }
 
+  // A new guild opens on how it began (3.14.0); the tour and the Depot come after.
+  if (s.intro) return <Opening state={s} />;
   const touring = tourStep(tour) !== undefined;
 
   return (
@@ -137,6 +142,8 @@ export function App() {
       {/* Not over the report it points to: it's already open (3.7.0). */}
       {time.current && !(route.screen === 'run' && route.id === time.current) && <ReturnToast state={s} reportId={time.current} more={time.more} onClose={time.dismiss} />}
       {touring && tour && <TourCard state={s} stepId={tour} />}
+      {/* Something the story just opened (3.14.0): not over the tour, a fight or a raid. */}
+      {!touring && openingFits(route.screen) && <OpenedCard state={s} />}
       <TagTips />
       <TabBar current={tabFor(route)} state={s} now={now} touring={touring} />
     </div>
