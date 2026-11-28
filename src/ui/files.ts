@@ -17,7 +17,7 @@ export async function saveTextFile(fileName: string, text: string): Promise<bool
   if (isNative()) {
     const { uri } = await Filesystem.writeFile({ path: fileName, data: text, directory: Directory.Cache, encoding: Encoding.UTF8 });
     try {
-      await Share.share({ title: 'The Guild save', files: [uri] });
+      await Share.share({ title: 'The Depot save', files: [uri] });
       return true;
     } catch {
       return false;

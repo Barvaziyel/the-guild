@@ -1,7 +1,7 @@
 /**
  * Build the Android app on this machine.
  *
- *   npm run apk              builds out/the-guild-<version>.apk
+ *   npm run apk              builds out/the-depot-<version>.apk
  *   npm run apk -- --install also installs it on a phone plugged in over USB
  *   npm run apk -- --debug   a debug build instead (no signing key needed)
  *
@@ -85,7 +85,7 @@ if (!existsSync(built)) fail(`Gradle finished but ${built} isn't there.`);
 
 const version = (JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')) as { version: string }).version;
 mkdirSync(join(root, 'out'), { recursive: true });
-const apk = join(root, 'out', `the-guild-${version}${debug ? '-debug' : ''}.apk`);
+const apk = join(root, 'out', `the-depot-${version}${debug ? '-debug' : ''}.apk`);
 copyFileSync(built, apk);
 console.log(`\nBuilt ${apk} (${(statSync(apk).size / 1024 / 1024).toFixed(1)} MB).`);
 
@@ -95,7 +95,7 @@ if (install) {
   const adb = findAdb(sdk);
   if (!adb) fail("Couldn't find adb (Android SDK > platform-tools). Install it from Android Studio's SDK Manager.");
   run(adb, ['install', '-r', apk]);
-  console.log('\nInstalled. Open The Guild on the phone.');
+  console.log('\nInstalled. Open The Depot on the phone.');
 } else {
   console.log(
     [
