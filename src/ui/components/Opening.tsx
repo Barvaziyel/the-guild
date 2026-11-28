@@ -29,13 +29,19 @@ export function Opening({ state }: { state: GameState }) {
       return;
     }
     if (!begun) return;
-    sound.setAmbience(shot.sound.ambience);
+    if (shot.sound.ambience) sound.sceneAmbience(shot.sound.ambience);
     sound.scene(shot.sound.cues, shot.sound.duck);
     const t = window.setTimeout(() => setStep((n) => n + 1), shot.ms);
     return () => window.clearTimeout(t);
   }, [step, over, shot, begun, sound]);
   // Leaving the scene any way cuts what's still to come.
-  useEffect(() => () => sound.scene([], undefined, true), [sound]);
+  useEffect(
+    () => () => {
+      sound.scene([], undefined, true);
+      sound.sceneAmbience(undefined);
+    },
+    [sound],
+  );
 
   const next = (): void => setStep((n) => n + 1);
   if (!begun)

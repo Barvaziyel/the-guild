@@ -6,8 +6,8 @@
  */
 import { STARTING_SURVIVORS, type GameState } from '../engine/index.ts';
 import { RAIL_SECONDS, railLineSvg, yardSvg, type FigureLook } from '../scene/index.ts';
-import { readingTime } from './gate-scene.ts';
-import type { AmbienceMix, Cue } from './sound-view.ts';
+import { readingTime } from './scene-view.ts';
+import type { ShotSound } from './sound-view.ts';
 import { figureLook, yardModel } from './yard-view.ts';
 
 export interface OpeningShot {
@@ -24,13 +24,6 @@ export interface OpeningShot {
   sound: ShotSound;
 }
 
-/** What a shot sounds like, under the night music: the yard around it, and sounds at their moments. */
-export interface ShotSound {
-  ambience: AmbienceMix;
-  cues: Cue[];
-  /** The music and the yard drop back under a line said aloud, from and for this many seconds. */
-  duck?: { at: number; for: number };
-}
 
 
 const NUMBERS = ['None', 'One', 'Two', 'Three', 'Four', 'Five', 'Six'];

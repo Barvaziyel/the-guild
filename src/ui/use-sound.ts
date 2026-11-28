@@ -41,8 +41,8 @@ export function useSound(state: GameState | null, route: Route, now: number): vo
     sound.setMusic(music);
   }, [sound, music]);
 
-  // The opening scene sets its own, shot by shot (`components/Opening.tsx`).
-  const ambience = state && !state.intro ? ambienceFor(route, state, hour) : null;
+  // A scene (the opening, Haven's gate) puts its own over this while it plays (`SoundSystem.sceneAmbience`).
+  const ambience = state ? ambienceFor(route, state, hour) : null;
   const ambienceKey = ambience ? Object.values(ambience).join(',') : '';
   useEffect(() => {
     if (ambience) sound.setAmbience(ambience);
