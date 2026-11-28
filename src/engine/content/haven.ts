@@ -366,7 +366,8 @@ export const HAVEN_JOURNEY = {
       '“It’s not a haven!” she screams. “They cut you open! Down in the turbine hall, they’re making something out of people. Everyone who came. Everyone! Run!”',
       'A single shot from the wall. She falls in the road, ten steps short of them, and doesn’t get up.',
     ],
-    vultures: 'Engines on the road behind them: the Vultures, as they promised. {v.first} looks at the body in the road, then at the gate. “Well,” {v.they} says. “We’re here now.”',
+    /** The Vultures pull up (Aviel, 2026-11-28: “we saw everything that happened, let's kill these bastards”). */
+    vultures: 'Engines on the road behind them: the Vultures, as they promised. {v.first} jumps down from the first truck, looks at the body in the road, then up at the wall. “We saw everything,” {v.they} says, loud enough for the wall to hear. “Let’s kill these bastards.”',
     open: 'The north gate swings open. Orderlies in white come out with saws and hooks, a marksman settles on the wall above them, and behind them comes the Shepherd: a giant sewn together out of many people, four arms, two heads, three legs, and every face on it still looking around.',
   },
   won: {
