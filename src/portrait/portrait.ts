@@ -22,6 +22,7 @@ import {
   neck,
   nose,
   path,
+  sexedFace,
   wrinkles,
   type FaceShape,
 } from './face.ts';
@@ -68,6 +69,8 @@ export type LayerName = (typeof LAYERS)[number];
 /** Every choice that goes into a portrait, resolved from the survivor. */
 export interface PortraitLook {
   face: FaceShape;
+  /** A man or a woman: the face's build, brows, lashes and lips (3.15.0). */
+  sex: 'he' | 'she';
   skin: SkinTone;
   hairColor: HairColor;
   hairStyle: (typeof HAIR_STYLES)[number];
@@ -118,7 +121,7 @@ export function portraitLook(s: Survivor): PortraitLook {
   const clothesIndex = rng.int(0, CLOTHES_COUNT - 1);
   const child = s.age < ADULT_AGE;
   const shoulders = (0.92 + rng.next() * 0.16 + (s.pronouns === 'he' && !child ? 0.03 : 0)) * (child ? 0.9 : 1);
-  const neckWidth = 31 + rng.int(0, 5) + (s.pronouns === 'he' && !child ? 3 : 0) - (child ? 3 : 0);
+  const neckWidth = 31 + rng.int(0, 5) + (child ? -3 : s.pronouns === 'he' ? 3 : -2);
   const accessory = rng.weighted<Accessory>([
     { item: 'none', weight: 62 },
     { item: 'goggles', weight: 13 },
@@ -143,7 +146,8 @@ export function portraitLook(s: Survivor): PortraitLook {
   const hairIndex = s.age < 3 ? HAIR_STYLES.indexOf('buzz') : a.hairStyle % HAIR_COUNT;
 
   const look: PortraitLook = {
-    face: FACES[a.faceShape % FACES.length]!,
+    face: sexedFace(FACES[a.faceShape % FACES.length]!, s.pronouns, child),
+    sex: s.pronouns,
     skin: SKIN[a.skinTone % SKIN.length]!,
     hairColor,
     hairStyle: HAIR_STYLES[hairIndex]!,
@@ -255,14 +259,14 @@ export function portraitLayers(s: Survivor, look = portraitLook(s)): Record<Laye
     head: ears(f, skin) + head(f, skin),
     'skin-marks': skinMarks ? `<g ${clip}>${skinMarks}</g>` : '',
     features:
-      eyes(f, look.eyes, look.iris, lostSide) +
-      brows(f, look.brows, look.hairColor, lostSide) +
+      eyes(f, look.eyes, look.iris, lostSide, look.sex === 'she') +
+      brows(f, look.brows, look.hairColor, lostSide, look.sex) +
       nose(look.nose) +
       // Stubble and sideburns stay inside the outline of the face; beards grow past it.
       (CLIPPED_FACIAL_HAIR.includes(look.facialHair)
         ? `<g ${clip}>${facialHair(f, look.facialHair, look.hairColor)}</g>`
         : facialHair(f, look.facialHair, look.hairColor)) +
-      mouth(f, look.mouth, skin),
+      mouth(f, look.mouth, skin, look.sex === 'she'),
     'face-marks': faceMarks,
     hair: worn.coversAllHair ? '' : (worn.coversHair ? '' : locks.top) + locks.front,
     headgear,

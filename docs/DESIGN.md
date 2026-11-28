@@ -1424,6 +1424,7 @@ With a Radio Tower, now and then someone calls for help from a known place; `res
     11. headgear (helmet, hood and mask, goggles, bandana, beanie, head bandage, eyepatch)
     12. strain (sweat and a knotted brow)
   - **Parts:** 8 face shapes, 8 skin tones, 14 hair styles in 8 colors (greying with age), 6 eyes, 6 brows, 5 noses, 6 mouths, 6 kinds of facial hair, 7 outfits, 3 accessories.
+  - **A man or a woman at a glance** (3.15.0, Aviel: "the facial structure of males should be different from females so it's easier to tell"): a man's jaw broader and squarer, his chin heavier, his brows heavier and lower, his neck thicker; a woman's jaw narrower, her chin finer, her brows finer and higher, lashes at the corners of her eyes and colour in her lips (`sexedFace`; children get half). Facial hair is only ever a man's. A man's hair comes up long a quarter as often as a woman's (`mensHair`, for people made from 3.15.0 on).
   - **Gear and history show on the character:**
     - armor replaces the clothes: Leather Jacket, Scrap Vest, Riot Gear (with helmet), Hazmat Suit (with hood and gas mask)
     - the weapon is carried on the back, with a sling or holster
